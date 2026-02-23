@@ -53,8 +53,8 @@ The site is structured as **5 full-screen value statements**, each immediately f
 **Full viewport.**
 
 - Name: **Harald Solaas**
-- Subtitle: Senior Software Engineer & Technology Consultant
-- Tagline: *"I build technology that serves people — and communities that outlive me."*
+- Tagline: *"I started meditating at 15, teaching in slums at 17, and writing code at 20. I haven't stopped doing any of them."*
+- No job title in the hero — introduce Harald as a human, not a role
 - Warm, atmospheric background (placeholder for a personal photo)
 - Simple scroll indicator (arrow or "scroll to meet me")
 - Minimal navigation: just anchor links to sections, maybe a hamburger on mobile
