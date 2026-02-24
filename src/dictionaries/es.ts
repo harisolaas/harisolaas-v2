@@ -4,19 +4,21 @@ const es: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     description:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Construyo tecnolog\u00eda al servicio de las personas \u2014 y comunidades que me trasciendan.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Desde soluciones de IA hasta productos full-stack, construyo tecnolog\u00eda al servicio de las personas \u2014 y comunidades que me trasciendan.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
       "Ingeniero de Software Senior",
       "Consultor Tecnol\u00f3gico",
+      "Soluciones de IA",
+      "Consultor de IA",
       "React",
       "Next.js",
       "Desarrollador Full Stack",
     ],
     ogTitle: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     ogDescription:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Construyo tecnolog\u00eda al servicio de las personas y comunidades que me trasciendan.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Desde soluciones de IA hasta productos full-stack, construyo tecnolog\u00eda al servicio de las personas y comunidades que me trasciendan.",
     twitterTitle:
       "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     twitterDescription:
@@ -46,7 +48,7 @@ const es: Dictionary = {
           label: "Comunidad",
           title: "50 voluntarios, 500+ vidas impactadas",
           description:
-            "Lider\u00e9, junto a un equipo, a 50 voluntarios para ense\u00f1ar a m\u00e1s de 500 personas en una villa de Buenos Aires. Constru\u00ed la infraestructura de voluntarios y despu\u00e9s migr\u00e9 al pr\u00f3ximo desaf\u00edo. El programa contin\u00faa hasta el d\u00eda de hoy sin m\u00ed.",
+            "Lider\u00e9, junto a un equipo, a 50 voluntarios para ense\u00f1ar a m\u00e1s de 500 personas en una villa de Buenos Aires. Constru\u00ed la infraestructura de voluntarios y despu\u00e9s migr\u00e9 al pr\u00f3ximo desaf\u00edo. El programa contin\u00faa hasta el d\u00eda de hoy.",
         },
         {
           label: "Personal",
@@ -152,13 +154,13 @@ const es: Dictionary = {
           label: "Art of Living",
           title: "Plataforma de streaming para bienestar",
           description:
-            "Hice una plataforma de streaming para la Fundaci\u00f3n El Arte de Vivir con miles de usuarios mensuales, usando desaf\u00edos de video con gamification para mejorar el compromiso con contenido de meditaci\u00f3n y bienestar.",
+            "Desarrollé gamification para la plataforma de streaming de la Fundaci\u00f3n El Arte de Vivir con miles de usuarios mensuales, mejorarando el compromiso e engagement con contenido de meditaci\u00f3n y bienestar.",
         },
         {
           label: "Cruise",
           title: "Herramientas que construyen el futuro",
           description:
-            "Constru\u00ed herramientas que ayudaron a ingenieros de autos, testers y cient\u00edficos de datos a visualizar cientos de miles de puntos de datos de rutas de veh\u00edculos automatizados (si, autos robot... si, sin conductor). Construyendo las herramientas que hacen al futuro del transporte.",
+            "Constru\u00ed herramientas que ayudaron a ingenieros de autos, testers y cient\u00edficos de datos a visualizar cientos de miles de puntos de datos de rutas de veh\u00edculos automatizados. Construyendo las herramientas que hacen al futuro del transporte (si, autos robot... si, sin conductor).",
         },
         {
           label: "Carewell",
@@ -237,15 +239,24 @@ const es: Dictionary = {
         status: "Pr\u00f3ximamente",
         cta: {
           label: "Ver pr\u00f3ximas fechas",
-          href: "https://wa.me/5491122555110?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20los%20talleres%20de%20meditaci%C3%B3n",
+          href: "https://wa.me/5491122555110?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20talleres%20de%20meditaci%C3%B3n",
         },
       },
       {
         categoryKey: "building",
         categoryLabel: "Desarrollo",
-        title: "Socio tecnol\u00f3gico para negocios locales",
+        title: "Socio tecnol\u00f3gico y de IA para negocios",
         description:
-          "Actualmente ayudando a empresas argentinas a llevar sus operaciones al mundo digital \u2014 desde automatizaciones con IA hasta productos completos. Si necesit\u00e1s un socio tecnol\u00f3gico que entienda tanto la tecnolog\u00eda como el negocio, hablemos.",
+          "Ayudando a empresas a llevar sus operaciones al mundo digital \u2014 desde automatizaci\u00f3n con IA y flujos de trabajo inteligentes hasta productos completos. Si necesit\u00e1s un socio tecnol\u00f3gico que entienda tanto la tecnolog\u00eda como el negocio, hablemos.",
+        status: "Sucediendo ahora",
+        cta: { label: "Contactame", href: "mailto:dev@harisolaas.com" },
+      },
+      {
+        categoryKey: "building",
+        categoryLabel: "Desarrollo",
+        title: "Soluciones de IA al servicio de las personas",
+        description:
+          "Construyendo herramientas con IA que genuinamente ayudan \u2014 no reemplazan \u2014 a las personas que las usan. Desde automatizaci\u00f3n inteligente hasta integraciones de IA a medida, siempre con el humano en el centro.",
         status: "Sucediendo ahora",
         cta: { label: "Contactame", href: "mailto:dev@harisolaas.com" },
       },
@@ -270,7 +281,7 @@ const es: Dictionary = {
         status: "Anual",
         cta: {
           label: "Saber m\u00e1s",
-          href: "https://wa.me/5491122555110?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20la%20fiesta%20de%20reforestaci%C3%B3n",
+          href: "https://wa.me/5491122555110?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20la%20fiesta%20de%20reforestaci%C3%B3n",
         },
       },
       {
@@ -282,7 +293,7 @@ const es: Dictionary = {
         status: "Sucediendo ahora",
         cta: {
           label: "Participar",
-          href: "https://wa.me/5491122555110?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20meditaci%C3%B3n",
+          href: "https://wa.me/5491122555110?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20cursos%20de%20meditaci%C3%B3n",
         },
       },
     ],
@@ -382,7 +393,7 @@ const es: Dictionary = {
         year: "2023\u2013Presente",
         title: "Consultor Senior",
         description:
-          "Carewell (reconstrucci\u00f3n de ecommerce de salud de $21M), Colgate (asesor tecnol\u00f3gico), varios clientes. Evoluci\u00f3n de ingeniero a asesor de confianza.",
+          "Carewell (reconstrucci\u00f3n de ecommerce de salud de $21M), Colgate (asesor tecnol\u00f3gico), soluciones con IA, varios clientes. Evoluci\u00f3n de ingeniero a asesor de confianza.",
         type: "work",
       },
     ],
@@ -409,12 +420,15 @@ const es: Dictionary = {
       "PostgreSQL",
       "MySQL",
       "MongoDB",
+      "OpenAI API",
+      "LangChain",
+      "AI Automation",
     ],
   },
   contact: {
     heading: "Construyamos algo.",
     description:
-      "Trabajo como consultor tecnol\u00f3gico senior \u2014 ayudando a empresas a construir los productos correctos con las tecnolog\u00edas correctas. Traigo experiencia profunda en ingenier\u00eda, comunicaci\u00f3n humana y una mentalidad de servicio. Si quer\u00e9s un ingeniero que se preocupe por tu problema tanto como vos, hablemos.",
+      "Trabajo como consultor tecnol\u00f3gico senior \u2014 ayudando a empresas a construir los productos correctos con las tecnolog\u00edas correctas, incluyendo soluciones de IA que genuinamente sirvan a tu equipo y a tus usuarios. Traigo experiencia profunda en ingenier\u00eda, comunicaci\u00f3n humana y una mentalidad de servicio. Si quer\u00e9s un ingeniero que se preocupe por tu problema tanto como vos, hablemos.",
     caseStudyLabel: "Leer el caso de estudio de Carewell en Toptal",
     linkLabels: {
       email: "Email",

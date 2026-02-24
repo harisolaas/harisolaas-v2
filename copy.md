@@ -11,20 +11,20 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Harald Solaas — Tecnología al servicio de las personas
 
 **Description**
-- EN: Senior Software Engineer & Technology Consultant. I build technology that serves people — and communities that outlive me.
-- ES: Ingeniero de Software Senior y Consultor Tecnológico. Construyo tecnología al servicio de las personas — y comunidades que me trasciendan.
+- EN: Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, I build technology that serves people — and communities that outlive me.
+- ES: Ingeniero de Software Senior y Consultor Tecnológico. Desde soluciones de IA hasta productos full-stack, construyo tecnología al servicio de las personas — y comunidades que me trasciendan.
 
 **OG Title**
 - EN: Harald Solaas — Technology that serves people
 - ES: Harald Solaas — Tecnología al servicio de las personas
 
 **OG Description**
-- EN: Senior Software Engineer & Technology Consultant. Building technology that serves people and communities that outlive me.
-- ES: Ingeniero de Software Senior y Consultor Tecnológico. Construyo tecnología al servicio de las personas y comunidades que me trasciendan.
+- EN: Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, building technology that serves people and communities that outlive me.
+- ES: Ingeniero de Software Senior y Consultor Tecnológico. Desde soluciones de IA hasta productos full-stack, construyo tecnología al servicio de las personas y comunidades que me trasciendan.
 
 **Keywords**
-- EN: Harald Solaas, Hari Solaas, Senior Software Engineer, Technology Consultant, React, Next.js, Full Stack Developer
-- ES: Harald Solaas, Hari Solaas, Ingeniero de Software Senior, Consultor Tecnológico, React, Next.js, Desarrollador Full Stack
+- EN: Harald Solaas, Hari Solaas, Senior Software Engineer, Technology Consultant, AI Solutions, AI Consultant, React, Next.js, Full Stack Developer
+- ES: Harald Solaas, Hari Solaas, Ingeniero de Software Senior, Consultor Tecnológico, Soluciones de IA, Consultor de IA, React, Next.js, Desarrollador Full Stack
 
 ---
 
@@ -315,14 +315,26 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 **Status:** EN: Upcoming / ES: Próximamente
 **CTA:** EN: See Upcoming Dates / ES: Ver próximas fechas
 
-### Card 2: Tech Partner [Building / Desarrollo]
+### Card 2: Tech & AI Partner [Building / Desarrollo]
 **Title**
-- EN: Technology Partner for Local Businesses
-- ES: Socio tecnológico para negocios locales
+- EN: Technology & AI Partner for Businesses
+- ES: Socio tecnológico y de IA para negocios
 
 **Description**
-- EN: Currently helping Argentine businesses bring their operations into the digital world — from AI automation to full product builds. If you need a technology partner who understands both the tech and the business, let's talk.
-- ES: Actualmente ayudando a empresas argentinas a llevar sus operaciones al mundo digital — desde automatizaciones con IA hasta productos completos. Si necesitás un socio tecnológico que entienda tanto la tecnología como el negocio, hablemos.
+- EN: Helping businesses bring their operations into the digital world — from AI-powered automation and intelligent workflows to full product builds. If you need a technology partner who understands both the tech and the business, let's talk.
+- ES: Ayudando a empresas a llevar sus operaciones al mundo digital — desde automatización con IA y flujos de trabajo inteligentes hasta productos completos. Si necesitás un socio tecnológico que entienda tanto la tecnología como el negocio, hablemos.
+
+**Status:** EN: Ongoing / ES: Sucediendo ahora
+**CTA:** EN: Get in Touch / ES: Contactame
+
+### Card 2b: AI Solutions [Building / Desarrollo]
+**Title**
+- EN: AI Solutions That Serve People
+- ES: Soluciones de IA al servicio de las personas
+
+**Description**
+- EN: Building AI-powered tools that genuinely help — not replace — the people who use them. From intelligent automation to custom AI integrations, always with the human at the center.
+- ES: Construyendo herramientas con IA que genuinamente ayudan — no reemplazan — a las personas que las usan. Desde automatización inteligente hasta integraciones de IA a medida, siempre con el humano en el centro.
 
 **Status:** EN: Ongoing / ES: Sucediendo ahora
 **CTA:** EN: Get in Touch / ES: Contactame
@@ -435,8 +447,8 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Noruega | Reconectando con mis ancestros y reconstruyendo puentes en la familia.
 
 **2023–Present**
-- EN: Senior Consultant | Carewell ($21M healthcare ecommerce rebuild), Colgate (technology advisor), various clients. Evolution from engineer to trusted advisor.
-- ES: Consultor Senior | Carewell (reconstrucción de ecommerce de salud de $21M), Colgate (asesor tecnológico), varios clientes. Evolución de ingeniero a asesor de confianza.
+- EN: Senior Consultant | Carewell ($21M healthcare ecommerce rebuild), Colgate (technology advisor), AI-powered solutions, various clients. Evolution from engineer to trusted advisor.
+- ES: Consultor Senior | Carewell (reconstrucción de ecommerce de salud de $21M), Colgate (asesor tecnológico), soluciones con IA, varios clientes. Evolución de ingeniero a asesor de confianza.
 
 ---
 
@@ -447,8 +459,8 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Construyamos algo.
 
 **Description**
-- EN: I work as a senior technology consultant — helping companies build the right products with the right technologies. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let's talk.
-- ES: Trabajo como consultor tecnológico senior — ayudando a empresas a construir los productos correctos con las tecnologías correctas. Traigo experiencia profunda en ingeniería, comunicación humana y una mentalidad de servicio. Si querés un ingeniero que se preocupe por tu problema tanto como vos, hablemos.
+- EN: I work as a senior technology consultant — helping companies build the right products with the right technologies, including AI solutions that genuinely serve your team and your users. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let's talk.
+- ES: Trabajo como consultor tecnológico senior — ayudando a empresas a construir los productos correctos con las tecnologías correctas, incluyendo soluciones de IA que genuinamente sirvan a tu equipo y a tus usuarios. Traigo experiencia profunda en ingeniería, comunicación humana y una mentalidad de servicio. Si querés un ingeniero que se preocupe por tu problema tanto como vos, hablemos.
 
 **Case study link text**
 - EN: Read the Carewell Case Study on Toptal

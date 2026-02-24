@@ -4,19 +4,21 @@ const en: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Technology that serves people",
     description:
-      "Senior Software Engineer & Technology Consultant. I build technology that serves people \u2014 and communities that outlive me.",
+      "Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, I build technology that serves people \u2014 and communities that outlive me.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
       "Senior Software Engineer",
       "Technology Consultant",
+      "AI Solutions",
+      "AI Consultant",
       "React",
       "Next.js",
       "Full Stack Developer",
     ],
     ogTitle: "Harald Solaas \u2014 Technology that serves people",
     ogDescription:
-      "Senior Software Engineer & Technology Consultant. Building technology that serves people and communities that outlive me.",
+      "Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, building technology that serves people and communities that outlive me.",
     twitterTitle: "Harald Solaas \u2014 Technology that serves people",
     twitterDescription:
       "Senior Software Engineer & Technology Consultant. Building technology that serves people.",
@@ -143,7 +145,7 @@ const en: Dictionary = {
           label: "Art of Living",
           title: "Streaming platform for wellbeing",
           description:
-            "Built a streaming platform for the Art of Living Foundation with thousands of monthly users, using gamified video challenges to deepen engagement with meditation and wellbeing content.",
+            "Built gamification for the Art of Living Foundation's streaming platform with thousands of monthly users, deepening engagement with meditation and wellbeing content.",
         },
         {
           label: "Cruise",
@@ -226,34 +228,28 @@ const en: Dictionary = {
         description:
           "Next dates for meditation and breathing technique courses. Learn Sudarshan Kriya and tools for managing stress, anxiety, and emotional wellbeing.",
         status: "Upcoming",
-        cta: { label: "See Upcoming Dates", href: "#contact" },
+        cta: {
+          label: "See Upcoming Dates",
+          href: "https://wa.me/5491122555110?text=Hi%20I%27d%20like%20information%20about%20the%20meditation%20workshops",
+        },
       },
       {
         categoryKey: "building",
         categoryLabel: "Building",
-        title: "Technology Partner for Local Businesses",
+        title: "Technology & AI Partner for Businesses",
         description:
-          "Currently helping Argentine businesses bring their operations into the digital world \u2014 from AI automation to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
+          "Helping businesses bring their operations into the digital world \u2014 from AI-powered automation and intelligent workflows to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
         status: "Ongoing",
-        cta: { label: "Get in Touch", href: "#contact" },
+        cta: { label: "Get in Touch", href: "mailto:dev@harisolaas.com" },
       },
       {
-        categoryKey: "community",
-        categoryLabel: "Community",
-        title: "Tree Planting Initiative",
+        categoryKey: "building",
+        categoryLabel: "Building",
+        title: "AI Solutions That Serve People",
         description:
-          "Annual birthday tradition \u2014 planting trees with the community. Building something that will outlast all of us.",
-        status: "Annual",
-        cta: { label: "Learn More", href: "#contact" },
-      },
-      {
-        categoryKey: "teaching",
-        categoryLabel: "Teaching",
-        title: "Breathwork & Leadership for Youth",
-        description:
-          "Ongoing programs with university students and young professionals, combining breathwork, meditation, and practical tools for emotional strength, purpose, and conscious leadership.",
+          "Building AI-powered tools that genuinely help \u2014 not replace \u2014 the people who use them. From intelligent automation to custom AI integrations, always with the human at the center.",
         status: "Ongoing",
-        cta: { label: "Volunteer", href: "#contact" },
+        cta: { label: "Get in Touch", href: "mailto:dev@harisolaas.com" },
       },
       {
         categoryKey: "personal",
@@ -262,7 +258,34 @@ const en: Dictionary = {
         description:
           "Keeping adventure, art, travel and physical challenges as part of my everyday life. Follow along on Instagram.",
         status: "In Progress",
-        cta: { label: "Follow on Instagram", href: "https://instagram.com" },
+        cta: {
+          label: "Follow on Instagram",
+          href: "https://instagram.com/harisolaas",
+        },
+      },
+      {
+        categoryKey: "community",
+        categoryLabel: "Community",
+        title: "Tree Planting Initiative",
+        description:
+          "Annual birthday tradition \u2014 planting trees with the community. Building something that will outlast all of us.",
+        status: "Annual",
+        cta: {
+          label: "Learn More",
+          href: "https://wa.me/5491122555110?text=Hi%20I%27d%20like%20information%20about%20the%20tree%20planting%20initiative",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
+        title: "Breathwork & Leadership for Youth",
+        description:
+          "Ongoing programs with university students and young professionals, combining breathwork, meditation, and practical tools for emotional strength, purpose, and conscious leadership.",
+        status: "Ongoing",
+        cta: {
+          label: "Volunteer",
+          href: "https://wa.me/5491122555110?text=Hi%20I%27d%20like%20information%20about%20the%20meditation%20courses",
+        },
       },
     ],
   },
@@ -360,7 +383,7 @@ const en: Dictionary = {
         year: "2023\u2013Present",
         title: "Senior Consultant",
         description:
-          "Carewell ($21M healthcare ecommerce rebuild), Colgate (technology advisor), various clients. Evolution from engineer to trusted advisor.",
+          "Carewell ($21M healthcare ecommerce rebuild), Colgate (technology advisor), AI-powered solutions, various clients. Evolution from engineer to trusted advisor.",
         type: "work",
       },
     ],
@@ -387,12 +410,15 @@ const en: Dictionary = {
       "PostgreSQL",
       "MySQL",
       "MongoDB",
+      "OpenAI API",
+      "LangChain",
+      "AI Automation",
     ],
   },
   contact: {
     heading: "Let\u2019s build something.",
     description:
-      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
+      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies, including AI solutions that genuinely serve your team and your users. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
     caseStudyLabel: "Read the Carewell Case Study on Toptal",
     linkLabels: {
       email: "Email",
