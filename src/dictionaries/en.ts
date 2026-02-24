@@ -32,7 +32,7 @@ const en: Dictionary = {
   hero: {
     name: "Harald Solaas",
     tagline:
-      "I started meditating at 15, teaching in slums at 17, and writing code at 20. I haven\u2019t stopped doing any of them.",
+      "I started meditating at 15, teaching at 16, and writing code at 20. I haven\u2019t stopped doing any of them.",
     scrollCta: "Scroll to meet me",
     photoAlt: "Harald Solaas",
   },
@@ -45,7 +45,7 @@ const en: Dictionary = {
           label: "Community",
           title: "50 volunteers, 500+ lives touched",
           description:
-            "Led 50 volunteers to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continued for 2+ years without him.",
+            "Led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continues to this day without him.",
         },
         {
           label: "Personal",
@@ -55,7 +55,7 @@ const en: Dictionary = {
         },
         {
           label: "Professional",
-          title: "From 14 crashes to near-zero",
+          title: "From 14 prod crashes to near-zero",
           description:
             "At Cruise (autonomous vehicles, Silicon Valley), inherited a codebase with 20% test coverage and 14 crashes/month. Left it at 70%+ coverage with 0.3 crashes/month. The testing infrastructure he built became the team\u2019s foundation.",
         },
@@ -78,13 +78,13 @@ const en: Dictionary = {
           label: "Formative",
           title: "Youngest trauma relief teacher in Latin America",
           description:
-            "At 15, became the youngest Art of Living trauma relief teacher in Latin America. Worked with people who lost homes in Villa La Angostura. Worked with orphans, at-risk youth, and past criminals. Learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
+            "At 15, became the youngest Art of Living trauma relief teacher in Latin America. Worked with people who lost homes in Villa La Angostura. Worked with orphans, rehab youth, and past criminals. Learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
         },
         {
           label: "Professional",
           title: "The bridge between engineering and people",
           description:
-            "At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At Carewell, rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At every company, ended up as the bridge between engineering and product \u2014 because he sees the humans, not just the code.",
+            "At Carewell, rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, ended up as the bridge between engineering and product \u2014 because he sees the humans, not just the code.",
         },
       ],
       photoAlt: "Working with youth in community settings",
@@ -110,7 +110,7 @@ const en: Dictionary = {
           label: "Carewell",
           title: "$21M healthcare platform rebuild",
           description:
-            "Rebuilt a $21M healthcare ecommerce platform with React, Next.js, Tailwind CSS, and GraphQL. The site loads instantly, works without JavaScript, achieves exceptional SEO scores. Launched on time with increased engagement and sales.",
+            "I was a key member of a team of four engineers that rebuilt a $21M healthcare ecommerce platform using React, Next.js, Tailwind CSS, and GraphQL. The site loads instantly, works without JavaScript, and achieves exceptional SEO scores. It launched on time, with increased engagement and sales.",
           metrics: [
             { value: "$21M", label: "Platform rebuilt" },
             { value: "100", label: "Lighthouse performance" },
@@ -143,7 +143,7 @@ const en: Dictionary = {
           label: "Art of Living",
           title: "Streaming platform for wellbeing",
           description:
-            "Built a streaming platform for the foundation with thousands of monthly users, using gamified video challenges to deepen engagement with meditation and wellbeing content.",
+            "Built a streaming platform for the Art of Living Foundation with thousands of monthly users, using gamified video challenges to deepen engagement with meditation and wellbeing content.",
         },
         {
           label: "Cruise",
@@ -201,9 +201,9 @@ const en: Dictionary = {
         },
         {
           label: "Daily practice",
-          title: "8\u20139 years of daily practice",
+          title: "9 years of daily practice",
           description:
-            "8\u20139 years of daily Sudarshan Kriya breathing practice. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
+            "9 years of daily Sudarshan Kriya breathing practice and meditation. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
         },
       ],
       quote: {
@@ -233,7 +233,7 @@ const en: Dictionary = {
         categoryLabel: "Building",
         title: "Technology Partner for Local Businesses",
         description:
-          "Currently helping Argentine businesses bring their operations into the digital world \u2014 from automation to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
+          "Currently helping Argentine businesses bring their operations into the digital world \u2014 from AI automation to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
         status: "Ongoing",
         cta: { label: "Get in Touch", href: "#contact" },
       },
@@ -249,18 +249,18 @@ const en: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Teaching",
-        title: "Breathwork & Human Values for Youth",
+        title: "Breathwork & Leadership for Youth",
         description:
-          "Ongoing programs working with teenagers and young adults on meditation, emotional resilience, and finding alternatives to violence and crime.",
+          "Ongoing programs with university students and young professionals, combining breathwork, meditation, and practical tools for emotional strength, purpose, and conscious leadership.",
         status: "Ongoing",
         cta: { label: "Volunteer", href: "#contact" },
       },
       {
         categoryKey: "personal",
         categoryLabel: "Personal",
-        title: "Surf Season Prep",
+        title: "Follow My Adventures",
         description:
-          "Following an 8-week training program to get surf-ready and protect the knees. Follow along on Instagram.",
+          "Keeping adventure, art, travel and physical challenges as part of my everyday life. Follow along on Instagram.",
         status: "In Progress",
         cta: { label: "Follow on Instagram", href: "https://instagram.com" },
       },
@@ -284,7 +284,14 @@ const en: Dictionary = {
         year: "2011\u20132012",
         title: "Villa La Angostura",
         description:
-          "Post-disaster community support \u2014 working with people who lost their homes, orphans, at-risk youth, and past criminals.",
+          "Post-disaster community support \u2014 working with people who lost their homes.",
+        type: "community",
+      },
+      {
+        year: "2011\u20132012",
+        title: "Service",
+        description:
+          "Ense\u00f1ar t\u00e9cnicas de manejo emocional a orphans, at-risk youth, and past criminals.",
         type: "community",
       },
       {
@@ -298,7 +305,7 @@ const en: Dictionary = {
         year: "2016\u2013Present",
         title: "Independent Software Engineer",
         description:
-          "Freelance work \u2014 artist portfolios, foundation sites, ecommerce platforms. The beginning of a lifelong craft.",
+          "Building and scaling real-world systems for organizations in health, legal services, and public-facing institutions. From complex claim platforms and verification flows to internal tools and production-grade frontends. Where engineering became ownership, judgment, and long-term responsibility. The beginning of a lifelong craft.",
         type: "work",
       },
       {
@@ -346,7 +353,7 @@ const en: Dictionary = {
       {
         year: "2023",
         title: "Norway",
-        description: "Reconnecting with family heritage.",
+        description: "Reconnecting with heritage and rebuilding family bridges.",
         type: "life",
       },
       {

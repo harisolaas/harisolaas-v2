@@ -69,7 +69,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: 50 voluntarios, 500+ vidas impactadas
 
 **Description**
-- EN: Led, with a team, 50 volunteers to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continued for 2+ years without him.
+- EN: Led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continues to this day without him.
 - ES: Lideré, junto a un equipo, a 50 voluntarios para enseñar a más de 500 personas en una villa de Buenos Aires. Construí la infraestructura de voluntarios y después migré al próximo desafío. El programa continúa hasta el día de hoy sin mí.
 
 ### Proof: Personal
@@ -169,7 +169,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 ### Proof: Estée Lauder
 **Title**
 - EN: 200+ brand sites globally
-- ES: 200+ sitios de marcas globales
+- ES: 200+ sitios de marcas en todo el mundo
 
 **Description**
 - EN: Built flexible, reusable components serving 200+ brand sites globally. Reduced time to first interaction. Multi-tenancy at the extreme — every deployment matters when hundreds of thousands of users depend on it daily.
@@ -184,7 +184,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 ### Quote
 - EN: "Not leaving anything for later. Going to the one percentile of making the user experience awesome. Optimizing as much as it makes sense, as much as it adds value."
-- ES: "No dejar nada para después. Ir al primer percentil de hacer que la experiencia del usuario sea increíble. Optimizar tanto como tenga sentido, tanto como agregue valor."
+- ES: "No dejar nada para después. Ir hasta el último 1% de hacer que la experiencia del usuario sea increíble. Optimizar tanto como tenga sentido, tanto como agregue valor."
 
 ---
 
@@ -200,8 +200,8 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Plataforma de streaming para bienestar
 
 **Description**
-- EN: Built a streaming platform for the foundation with thousands of monthly users, using gamified video challenges to deepen engagement with meditation and wellbeing content.
-- ES: Construí una plataforma de streaming para la fundación con miles de usuarios mensuales, usando desafíos de video gamificados para profundizar el compromiso con contenido de meditación y bienestar.
+- EN: Built a streaming platform for the Art of Living Foundation with thousands of monthly users, using gamified video challenges to deepen engagement with meditation and wellbeing content.
+- ES: Hice una plataforma de streaming para la Fundación El Arte de Vivir con miles de usuarios mensuales, usando desafíos de video con gamification para mejorar el compromiso con contenido de meditación y bienestar.
 
 ### Proof: Cruise
 **Title**
@@ -210,7 +210,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 **Description**
 - EN: Built tools that helped car engineers, testers, and data scientists visualize hundreds of thousands of data points from autonomous drives. Building the tools that build the future of transportation.
-- ES: Construí herramientas que ayudaron a ingenieros de autos, testers y científicos de datos a visualizar cientos de miles de puntos de datos de conducciones autónomas. Construyendo las herramientas que construyen el futuro del transporte.
+- ES: Construí herramientas que ayudaron a ingenieros de autos, testers y científicos de datos a visualizar cientos de miles de puntos de datos de rutas de vehículos automatizados (si, autos robot... si, sin conductor). Construyendo las herramientas que hacen al futuro del transporte.
 
 ### Proof: Carewell
 **Title**
@@ -249,7 +249,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 ### Statement
 - EN: I bring joy to the work.
-- ES: Traigo alegría al trabajo.
+- ES: Traigo diversión al trabajo.
 
 ### Proof: Basketball
 **Title**
@@ -258,7 +258,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 **Description**
 - EN: Too old to join a team at 29, so he created one. Joined an amateur league. It became its own living thing.
-- ES: Muy grande para unirme a un equipo a los 29, así que creé uno. Me sumé a una liga amateur. Se convirtió en algo con vida propia.
+- ES: Muy grande para meterme a un equipo a los 29, así que creé uno. Me sumé a una liga amateur. Se convirtió en algo con vida propia.
 
 ### Proof: Teaching
 **Title**
@@ -267,7 +267,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 **Description**
 - EN: Teaching teenagers breathing techniques, human values, how to be kids again. Helping adolescents leave crime. Showing that there's another way.
-- ES: Enseñando a adolescentes técnicas de respiración, valores humanos, cómo volver a ser chicos. Ayudando a adolescentes a salir del crimen. Mostrando que hay otro camino.
+- ES: Enseñando a adolescentes técnicas de respiración, valores humanos, cómo volver a ser chicos. Ayudándolos a salir del crimen. Mostrando que hay otro camino.
 
 ### Proof: Art of Living
 **Title**
@@ -280,12 +280,12 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 ### Proof: Daily practice
 **Title**
-- EN: 8–9 years of daily practice
-- ES: 8–9 años de práctica diaria
+- EN: 9 years of daily practice
+- ES: 9 años de práctica diaria
 
 **Description**
-- EN: 8–9 years of daily Sudarshan Kriya breathing practice. Joy isn't accidental — it's a discipline.
-- ES: 8–9 años de práctica diaria de Sudarshan Kriya. La alegría no es accidental — es una disciplina.
+- EN: 9 years of daily Sudarshan Kriya breathing practice and meditation. Joy isn't accidental — it's a discipline.
+- ES: 9 años de práctica diaria de Sudarshan Kriya y meditación. La alegría no es accidental — es una disciplina.
 
 ### Quote
 - EN: "Having fun while we do the things that need to be done. Celebrating our victories, learning from our defeats and keeping our chin up."
@@ -297,7 +297,7 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 **Heading**
 - EN: What I'm Building Right Now
-- ES: Lo que estoy construyendo ahora
+- ES: Lo que estoy armando ahora
 
 **Subheading**
 - EN: I'm always building something — in code, in community, or in myself. Here's what I'm working on these days.
@@ -321,10 +321,10 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Socio tecnológico para negocios locales
 
 **Description**
-- EN: Currently helping Argentine businesses bring their operations into the digital world — from automation to full product builds. If you need a technology partner who understands both the tech and the business, let's talk.
-- ES: Actualmente ayudando a empresas argentinas a llevar sus operaciones al mundo digital — desde automatización hasta productos completos. Si necesitás un socio tecnológico que entienda tanto la tecnología como el negocio, hablemos.
+- EN: Currently helping Argentine businesses bring their operations into the digital world — from AI automation to full product builds. If you need a technology partner who understands both the tech and the business, let's talk.
+- ES: Actualmente ayudando a empresas argentinas a llevar sus operaciones al mundo digital — desde automatizaciones con IA hasta productos completos. Si necesitás un socio tecnológico que entienda tanto la tecnología como el negocio, hablemos.
 
-**Status:** EN: Ongoing / ES: En curso
+**Status:** EN: Ongoing / ES: Sucediendo ahora
 **CTA:** EN: Get in Touch / ES: Contactame
 
 ### Card 3: Tree Planting [Community / Comunidad]
@@ -341,24 +341,24 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 
 ### Card 4: Youth Breathwork [Teaching / Enseñanza]
 **Title**
-- EN: Breathwork & Human Values for Youth
-- ES: Respiración y valores humanos para jóvenes
+- EN: Breathwork & Leadership for Youth
+- ES: Respiración y liderazgo para jóvenes
 
 **Description**
-- EN: Ongoing programs working with teenagers and young adults on meditation, emotional resilience, and finding alternatives to violence and crime.
-- ES: Programas continuos trabajando con adolescentes y jóvenes adultos en meditación, resiliencia emocional y búsqueda de alternativas a la violencia y el crimen.
+- EN: Ongoing programs with university students and young professionals, combining breathwork, meditation, and practical tools for emotional strength, purpose, and conscious leadership.
+- ES: Programas en curso con estudiantes universitarios y jóvenes profesionales, combinando respiración, meditación y herramientas prácticas para fortalecer la resiliencia emocional, el propósito y el liderazgo consciente.
 
-**Status:** EN: Ongoing / ES: En curso
+**Status:** EN: Ongoing / ES: Sucediendo ahora
 **CTA:** EN: Volunteer / ES: Ser voluntario
 
 ### Card 5: Surf [Personal]
 **Title**
-- EN: Surf Season Prep
-- ES: Preparación para temporada de surf
+- EN: Follow My Adventures
+- ES: Seguí mis aventuras
 
 **Description**
-- EN: Following an 8-week training program to get surf-ready and protect the knees. Follow along on Instagram.
-- ES: Siguiendo un programa de entrenamiento de 8 semanas para estar listo para surfear y proteger las rodillas. Seguime en Instagram.
+- EN: Keeping adventure, art, travel and physical challenges as part of my everyday life. Follow along on Instagram.
+- ES: Mantengo la aventura, el arte y los desafíos físicos como parte de mi día a día. Seguime en Instagram.
 
 **Status:** EN: In Progress / ES: En progreso
 **CTA:** EN: Follow on Instagram / ES: Seguime en Instagram
@@ -376,10 +376,10 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Un arco compacto desde los 15 hasta hoy.
 
 **Expand button**
-- EN: Expand Timeline / ES: Expandir línea de tiempo
+- EN: Expand Timeline / ES: Ver la línea de tiempo
 
 **Collapse button**
-- EN: Collapse Timeline / ES: Contraer línea de tiempo
+- EN: Collapse Timeline / ES: Ocultar la línea de tiempo
 
 **Tech heading**
 - EN: Technologies / ES: Tecnologías
@@ -391,20 +391,24 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Art of Living — 15 años | Comencé la práctica de meditación y la formación como profesor de alivio de trauma. El profesor más joven de El Arte de Vivir en Latinoamérica.
 
 **2011–2012**
-- EN: Villa La Angostura | Post-disaster community support — working with people who lost their homes, orphans, at-risk youth, and past criminals.
-- ES: Villa La Angostura | Apoyo comunitario post-desastre — trabajando con personas que perdieron sus hogares, huérfanos, jóvenes en riesgo y ex convictos.
+- EN: Villa La Angostura | Post-disaster community support — working with people who lost their homes.
+- ES: Villa La Angostura | Apoyo comunitario post-desastre — trabajando con personas que perdieron sus hogares.
+
+**2011–2012**
+- EN: Service | Enseñar técnicas de manejo emocional a orphans, at-risk youth, and past criminals.
+- ES: Servicio | Enseñé técnicas de manejo emocional a huérfanos, jóvenes en rehabilitación y procesos judiciales.
 
 **2014–2017**
 - EN: University of Belgrano | BSc in Business Management. Started programming at 20 out of necessity for entrepreneurship contests.
-- ES: Universidad de Belgrano | Licenciatura en Administración de Empresas. Empecé a programar a los 20 por necesidad en concursos de emprendimiento.
+- ES: Universidad de Belgrano | Licenciatura en Administración de Empresas. Empecé a programar a los 20 por necesidad en concursos de emprendedurismo.
 
 **2016–Present**
-- EN: Independent Software Engineer | Freelance work — artist portfolios, foundation sites, ecommerce platforms. The beginning of a lifelong craft.
-- ES: Ingeniero de Software Independiente | Trabajo freelance — portfolios de artistas, sitios de fundaciones, plataformas de ecommerce. El comienzo de un oficio de por vida.
+- EN: Independent Software Engineer — building and scaling real-world systems for organizations in health, legal services, and public-facing institutions. From complex claim platforms and verification flows to internal tools and production-grade frontends. Where engineering became ownership, judgment, and long-term responsibility. The beginning of a lifelong craft.
+- ES: ngeniero de Software Independiente — diseñando y construyendo sistemas reales para organizaciones de salud, servicios legales e instituciones con impacto público. Desde plataformas complejas de reclamos y flujos de verificación hasta herramientas internas y frontends en producción. El momento en que la ingeniería pasó a ser hacerse cargo, decidir bien y pensar a largo plazo. El comienzo de un oficio de por vida.
 
 **2016–2022**
 - EN: Community Service | Slum programs with 50 volunteers and 500+ participants. 3-year soccer club youth program. Volunteer team building.
-- ES: Servicio comunitario | Programas en villas con 50 voluntarios y 500+ participantes. Programa juvenil de fútbol de 3 años. Construcción de equipos de voluntarios.
+- ES: Servicio comunitario | Programas en villas con 50 voluntarios y 500+ participantes. Programa juvenil de fútbol de 3 años. Creación de equipos de voluntarios.
 
 **2018–2019**
 - EN: GuruDevelopers | Ecommerce, Art of Living streaming platform, WordPress plugins. First "real" software factory experience.
@@ -427,8 +431,8 @@ All translatable text, EN and ES side by side. Edit here, then update `src/dicti
 - ES: Profesor de El Arte de Vivir | Me certifiqué como profesor de los programas principales de El Arte de Vivir. Enseñando cursos, construyendo comunidad.
 
 **2023**
-- EN: Norway | Reconnecting with family heritage.
-- ES: Noruega | Reconectando con la herencia familiar.
+- EN: Norway | Reconnecting with heritage and rebuilding family bridges.
+- ES: Noruega | Reconectando con mis ancestros y reconstruyendo puentes en la familia.
 
 **2023–Present**
 - EN: Senior Consultant | Carewell ($21M healthcare ecommerce rebuild), Colgate (technology advisor), various clients. Evolution from engineer to trusted advisor.
