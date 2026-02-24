@@ -19,7 +19,7 @@ export default function NotFound() {
   return (
     <html lang="en" className={`${dmSerif.variable} ${sourceSans.variable}`}>
       <body className="font-sans antialiased bg-cream text-charcoal">
-        <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+        <main style={{ minHeight: "var(--app-height, 100svh)" }} className="flex flex-col items-center justify-center px-6 text-center">
           <h1 className="font-serif text-6xl md:text-8xl text-forest mb-4">
             404
           </h1>

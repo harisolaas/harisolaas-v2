@@ -13,7 +13,8 @@ export default function Hero({ dict }: HeroProps) {
   return (
     <section
       id="hero"
-      className="texture-overlay relative flex min-h-svh items-center justify-center bg-cream px-6"
+      style={{ minHeight: "var(--app-height, 100svh)" }}
+      className="texture-overlay relative flex items-center justify-center bg-cream px-6"
     >
       <motion.div
         initial="hidden"

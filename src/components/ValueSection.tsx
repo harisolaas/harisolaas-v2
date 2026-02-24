@@ -44,7 +44,7 @@ export default function ValueSection({ value, index }: ValueSectionProps) {
       className={`texture-overlay relative ${config.section}`}
     >
       {/* Value statement */}
-      <div className="flex min-h-[50vh] items-center px-6 py-12 md:px-12 md:py-16 lg:px-20">
+      <div style={{ minHeight: "var(--app-height-half, 50svh)" }} className="flex items-center px-6 py-12 md:px-12 md:py-16 lg:px-20">
         <motion.div
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}

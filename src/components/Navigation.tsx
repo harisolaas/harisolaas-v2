@@ -86,7 +86,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
           >
             <motion.span
               animate={
-                isMobileOpen ? { rotate: 45, y: 5 } : { rotate: 0, y: 0 }
+                isMobileOpen ? { rotate: 45, y: 8 } : { rotate: 0, y: 0 }
               }
               className="block h-0.5 w-5 bg-forest"
             />
@@ -96,7 +96,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
             />
             <motion.span
               animate={
-                isMobileOpen ? { rotate: -45, y: -5 } : { rotate: 0, y: 0 }
+                isMobileOpen ? { rotate: -45, y: -8 } : { rotate: 0, y: 0 }
               }
               className="block h-0.5 w-5 bg-forest"
             />
@@ -114,7 +114,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-40 bg-cream/95 backdrop-blur-md md:hidden"
           >
-            <div className="flex min-h-svh flex-col items-center justify-center gap-8">
+            <div style={{ minHeight: "var(--app-height, 100svh)" }} className="flex flex-col items-center justify-center gap-8">
               {navLinks.map((link) => (
                 <a
                   key={link.href}

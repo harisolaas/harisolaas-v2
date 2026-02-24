@@ -3,6 +3,7 @@ import { DM_Serif_Display, Source_Sans_3 } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import { locales, type Locale } from "@/i18n/config";
 import { socialLinks } from "@/data/links";
+import ViewportHeight from "@/components/ViewportHeight";
 import "../globals.css";
 
 const dmSerif = DM_Serif_Display({
@@ -118,7 +119,10 @@ export default async function LocaleLayout({
           />
         </noscript>
       </head>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <ViewportHeight />
+        {children}
+      </body>
     </html>
   );
 }
