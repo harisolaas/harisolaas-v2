@@ -1,22 +1,22 @@
 export interface SocialLink {
-  label: string;
+  key: string;
   href: string;
   external?: boolean;
 }
 
 export const socialLinks: SocialLink[] = [
-  { label: "Email", href: "mailto:hello@harisolaas.com" },
+  { key: "email", href: "mailto:hello@harisolaas.com" },
   {
-    label: "LinkedIn",
+    key: "linkedin",
     href: "https://linkedin.com/in/haraldsolaas",
     external: true,
   },
   {
-    label: "Toptal",
+    key: "toptal",
     href: "https://www.toptal.com/resume/harald-solaas",
     external: true,
   },
-  { label: "Instagram", href: "https://instagram.com", external: true },
+  { key: "instagram", href: "https://instagram.com", external: true },
 ];
 
 export const caseStudyLink =

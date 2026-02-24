@@ -2,17 +2,26 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Dictionary } from "@/dictionaries/types";
 
-const navLinks = [
-  { label: "Values", href: "#outlive" },
-  { label: "Now", href: "#now" },
-  { label: "Story", href: "#timeline" },
-  { label: "Contact", href: "#contact" },
-];
+interface NavigationProps {
+  locale: string;
+  dict: Dictionary["nav"];
+}
 
-export default function Navigation() {
+export default function Navigation({ locale, dict }: NavigationProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const navLinks = [
+    { label: dict.values, href: "#outlive" },
+    { label: dict.now, href: "#now" },
+    { label: dict.story, href: "#timeline" },
+    { label: dict.contact, href: "#contact" },
+  ];
+
+  const otherLocale = locale === "en" ? "es" : "en";
+  const localeLabel = locale === "en" ? "ES" : "EN";
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 100);
@@ -39,7 +48,7 @@ export default function Navigation() {
               isScrolled ? "text-forest" : "text-forest/80"
             }`}
           >
-            Hari
+            {dict.brand}
           </a>
 
           {/* Desktop nav */}
@@ -57,13 +66,23 @@ export default function Navigation() {
                 {link.label}
               </a>
             ))}
+            <a
+              href={`/${otherLocale}`}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                isScrolled
+                  ? "border-forest/20 text-forest hover:bg-forest/5"
+                  : "border-forest/15 text-forest/70 hover:bg-forest/5"
+              }`}
+            >
+              {localeLabel}
+            </a>
           </div>
 
           {/* Mobile hamburger */}
           <button
             onClick={() => setIsMobileOpen(!isMobileOpen)}
             className="flex h-8 w-8 flex-col items-center justify-center gap-1.5 md:hidden"
-            aria-label="Toggle menu"
+            aria-label={dict.toggleMenu}
           >
             <motion.span
               animate={
@@ -106,6 +125,12 @@ export default function Navigation() {
                   {link.label}
                 </a>
               ))}
+              <a
+                href={`/${otherLocale}`}
+                className="rounded-full border border-forest/20 px-5 py-2 text-sm font-semibold text-forest transition-colors hover:bg-forest/5"
+              >
+                {localeLabel}
+              </a>
             </div>
           </motion.div>
         )}

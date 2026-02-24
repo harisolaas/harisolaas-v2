@@ -4,8 +4,13 @@ import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { fadeUp, heroStagger } from "@/lib/animations";
 import { socialLinks, caseStudyLink } from "@/data/links";
+import type { Dictionary } from "@/dictionaries/types";
 
-export default function Contact() {
+interface ContactProps {
+  dict: Dictionary["contact"];
+}
+
+export default function Contact({ dict }: ContactProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
 
@@ -25,17 +30,13 @@ export default function Contact() {
           variants={fadeUp}
           className="font-serif text-4xl text-cream md:text-5xl lg:text-6xl"
         >
-          Let&rsquo;s build something.
+          {dict.heading}
         </motion.h2>
         <motion.p
           variants={fadeUp}
           className="mt-6 text-cream/70 md:text-lg md:leading-relaxed"
         >
-          I work as a senior technology consultant &mdash; helping companies
-          build the right products with the right technologies. I bring deep
-          engineering expertise, human communication, and a service-oriented
-          mindset. If you want an engineer who cares about your problem as much
-          as you do, let&rsquo;s talk.
+          {dict.description}
         </motion.p>
 
         <motion.div
@@ -44,14 +45,14 @@ export default function Contact() {
         >
           {socialLinks.map((link) => (
             <a
-              key={link.label}
+              key={link.key}
               href={link.href}
               {...(link.external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
               className="rounded-full border border-cream/20 px-6 py-3 text-sm font-semibold text-cream transition-all hover:border-cream/50 hover:bg-cream/10"
             >
-              {link.label}
+              {dict.linkLabels[link.key]}
             </a>
           ))}
         </motion.div>
@@ -63,7 +64,7 @@ export default function Contact() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-terracotta/80 transition-colors hover:text-terracotta"
           >
-            Read the Carewell Case Study on Toptal
+            {dict.caseStudyLabel}
             <svg
               className="h-3.5 w-3.5"
               fill="none"

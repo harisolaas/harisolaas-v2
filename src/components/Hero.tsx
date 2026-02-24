@@ -3,8 +3,13 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { fadeUp, heroStagger } from "@/lib/animations";
+import type { Dictionary } from "@/dictionaries/types";
 
-export default function Hero() {
+interface HeroProps {
+  dict: Dictionary["hero"];
+}
+
+export default function Hero({ dict }: HeroProps) {
   return (
     <section
       id="hero"
@@ -22,14 +27,13 @@ export default function Hero() {
             variants={fadeUp}
             className="font-serif text-5xl text-forest md:text-7xl lg:text-8xl"
           >
-            Harald Solaas
+            {dict.name}
           </motion.h1>
           <motion.p
             variants={fadeUp}
             className="mx-auto mt-6 max-w-xl font-serif text-lg italic leading-relaxed text-charcoal/70 md:text-xl lg:mx-0 lg:text-2xl"
           >
-            I started meditating at 15, teaching in slums at 17, and writing
-            code at 20. I haven&rsquo;t stopped doing any of them.
+            {dict.tagline}
           </motion.p>
         </div>
 
@@ -38,7 +42,7 @@ export default function Hero() {
           <div className="h-[200px] w-[200px] overflow-hidden rounded-full shadow-lg md:h-[280px] md:w-[280px] lg:h-[340px] lg:w-[340px]">
             <Image
               src="/hari.jpg"
-              alt="Harald Solaas"
+              alt={dict.photoAlt}
               width={340}
               height={340}
               priority
@@ -64,7 +68,7 @@ export default function Hero() {
           className="flex flex-col items-center gap-2 text-sage/70 transition-colors hover:text-forest"
         >
           <span className="text-xs uppercase tracking-widest">
-            Scroll to meet me
+            {dict.scrollCta}
           </span>
           <motion.svg
             animate={{ y: [0, 6, 0] }}

@@ -1,0 +1,402 @@
+import type { Dictionary } from "./types";
+
+const en: Dictionary = {
+  metadata: {
+    title: "Harald Solaas \u2014 Technology that serves people",
+    description:
+      "Senior Software Engineer & Technology Consultant. I build technology that serves people \u2014 and communities that outlive me.",
+    keywords: [
+      "Harald Solaas",
+      "Hari Solaas",
+      "Senior Software Engineer",
+      "Technology Consultant",
+      "React",
+      "Next.js",
+      "Full Stack Developer",
+    ],
+    ogTitle: "Harald Solaas \u2014 Technology that serves people",
+    ogDescription:
+      "Senior Software Engineer & Technology Consultant. Building technology that serves people and communities that outlive me.",
+    twitterTitle: "Harald Solaas \u2014 Technology that serves people",
+    twitterDescription:
+      "Senior Software Engineer & Technology Consultant. Building technology that serves people.",
+  },
+  nav: {
+    brand: "Hari",
+    values: "Values",
+    now: "Now",
+    story: "Story",
+    contact: "Contact",
+    toggleMenu: "Toggle menu",
+  },
+  hero: {
+    name: "Harald Solaas",
+    tagline:
+      "I started meditating at 15, teaching in slums at 17, and writing code at 20. I haven\u2019t stopped doing any of them.",
+    scrollCta: "Scroll to meet me",
+    photoAlt: "Harald Solaas",
+  },
+  values: [
+    {
+      id: "outlive",
+      statement: "I build things that outlive me.",
+      proofPoints: [
+        {
+          label: "Community",
+          title: "50 volunteers, 500+ lives touched",
+          description:
+            "Led 50 volunteers to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continued for 2+ years without him.",
+        },
+        {
+          label: "Personal",
+          title: "A basketball team from nothing",
+          description:
+            "Created a basketball team at age 29 because he was too old to join one. Built it from nothing, played for two years, then left due to injury. The team kept playing for two more years.",
+        },
+        {
+          label: "Professional",
+          title: "From 14 crashes to near-zero",
+          description:
+            "At Cruise (autonomous vehicles, Silicon Valley), inherited a codebase with 20% test coverage and 14 crashes/month. Left it at 70%+ coverage with 0.3 crashes/month. The testing infrastructure he built became the team\u2019s foundation.",
+        },
+      ],
+      photoAlt: "Community volunteering work in Buenos Aires",
+      photoSrc: "/community.jpg",
+      variant: "cream",
+    },
+    {
+      id: "humans",
+      statement: "I see the humans behind the system.",
+      proofPoints: [
+        {
+          label: "Origin",
+          title: "A psychologist\u2019s son",
+          description:
+            "Father was a psychologist and organizational consultant. From childhood, Hari learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
+        },
+        {
+          label: "Formative",
+          title: "Youngest trauma relief teacher in Latin America",
+          description:
+            "At 15, became the youngest Art of Living trauma relief teacher in Latin America. Worked with people who lost homes in Villa La Angostura. Worked with orphans, at-risk youth, and past criminals. Learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
+        },
+        {
+          label: "Professional",
+          title: "The bridge between engineering and people",
+          description:
+            "At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At Carewell, rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At every company, ended up as the bridge between engineering and product \u2014 because he sees the humans, not just the code.",
+        },
+      ],
+      photoAlt: "Working with youth in community settings",
+      photoSrc: "/working-with-youth.jpg",
+      variant: "tan",
+    },
+    {
+      id: "percentile",
+      statement: "I go to the last percentile.",
+      proofPoints: [
+        {
+          label: "Cruise",
+          title: "Autonomous vehicle analytics",
+          description:
+            "Built the analytics platform used by executives and operations staff across the company. Reduced execution time by 90% on critical components.",
+          metrics: [
+            { value: "20\u219270%", label: "Test coverage in 3 months" },
+            { value: "14\u21920.3", label: "Crashes per month" },
+            { value: "90%", label: "Execution time reduction" },
+          ],
+        },
+        {
+          label: "Carewell",
+          title: "$21M healthcare platform rebuild",
+          description:
+            "Rebuilt a $21M healthcare ecommerce platform with React, Next.js, Tailwind CSS, and GraphQL. The site loads instantly, works without JavaScript, achieves exceptional SEO scores. Launched on time with increased engagement and sales.",
+          metrics: [
+            { value: "$21M", label: "Platform rebuilt" },
+            { value: "100", label: "Lighthouse performance" },
+          ],
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "200+ brand sites globally",
+          description:
+            "Built flexible, reusable components serving 200+ brand sites globally. Reduced time to first interaction. Multi-tenancy at the extreme \u2014 every deployment matters when hundreds of thousands of users depend on it daily.",
+          metrics: [
+            { value: "200+", label: "Sites served" },
+            { value: "60\u219285%", label: "Test coverage" },
+          ],
+        },
+      ],
+      quote: {
+        text: "Not leaving anything for later. Going to the one percentile of making the user experience awesome. Optimizing as much as it makes sense, as much as it adds value.",
+      },
+      photoAlt: "Technical excellence and precision",
+      photoSrc: "/excellence.jpg",
+      photoPosition: "80% center",
+      variant: "cream",
+    },
+    {
+      id: "serve",
+      statement: "Technology should serve people, not replace them.",
+      proofPoints: [
+        {
+          label: "Art of Living",
+          title: "Streaming platform for wellbeing",
+          description:
+            "Built a streaming platform for the foundation with thousands of monthly users, using gamified video challenges to deepen engagement with meditation and wellbeing content.",
+        },
+        {
+          label: "Cruise",
+          title: "Tools that build the future",
+          description:
+            "Built tools that helped car engineers, testers, and data scientists visualize hundreds of thousands of data points from autonomous drives. Building the tools that build the future of transportation.",
+        },
+        {
+          label: "Carewell",
+          title: "Technology for vulnerable moments",
+          description:
+            "Making healthcare supplies accessible to families caring for aging loved ones. Technology that reduces friction in a moment of vulnerability.",
+        },
+        {
+          label: "Nubi",
+          title: "Financial access for 50,000+",
+          description:
+            "Gave 50,000+ Latin Americans easier access to their PayPal funds \u2014 international transfers, withdrawals, credit card management.",
+        },
+        {
+          label: "Philosophy",
+          title: "Inspired by Muhammad Yunus",
+          description:
+            "Inspired by the \u201cBanker to the Poor\u201d \u2014 the idea that systems (financial, technological, organizational) can be designed to serve people who have been forgotten.",
+        },
+      ],
+      quote: {
+        text: "I want to make technology your ally, your friend \u2014 not a threat.",
+      },
+      photoAlt: "Technology serving human needs",
+      photoSrc: "/for-people.png",
+      variant: "forest",
+    },
+    {
+      id: "joy",
+      statement: "I bring joy to the work.",
+      proofPoints: [
+        {
+          label: "Basketball",
+          title: "Too old to join, so he built one",
+          description:
+            "Too old to join a team at 29, so he created one. Joined an amateur league. It became its own living thing.",
+        },
+        {
+          label: "Teaching",
+          title: "Three years in a slum",
+          description:
+            "Teaching teenagers breathing techniques, human values, how to be kids again. Helping adolescents leave crime. Showing that there\u2019s another way.",
+        },
+        {
+          label: "Art of Living",
+          title: "Teacher since 2022",
+          description:
+            "Teaching courses, building community on social media, learning to sell with authenticity, networking, building volunteer groups rooted in ethics.",
+        },
+        {
+          label: "Daily practice",
+          title: "8\u20139 years of daily practice",
+          description:
+            "8\u20139 years of daily Sudarshan Kriya breathing practice. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
+        },
+      ],
+      quote: {
+        text: "Having fun while we do the things that need to be done. Celebrating our victories, learning from our defeats and keeping our chin up.",
+      },
+      photoAlt: "Surfing, basketball, or Art of Living community",
+      photoSrc: "/basketball.jpg",
+      variant: "tan",
+    },
+  ],
+  now: {
+    heading: "What I\u2019m Building Right Now",
+    subheading:
+      "I\u2019m always building something \u2014 in code, in community, or in myself. Here\u2019s what I\u2019m working on these days.",
+    items: [
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
+        title: "Art of Living Workshops",
+        description:
+          "Next dates for meditation and breathing technique courses. Learn Sudarshan Kriya and tools for managing stress, anxiety, and emotional wellbeing.",
+        status: "Upcoming",
+        cta: { label: "See Upcoming Dates", href: "#contact" },
+      },
+      {
+        categoryKey: "building",
+        categoryLabel: "Building",
+        title: "Technology Partner for Local Businesses",
+        description:
+          "Currently helping Argentine businesses bring their operations into the digital world \u2014 from automation to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
+        status: "Ongoing",
+        cta: { label: "Get in Touch", href: "#contact" },
+      },
+      {
+        categoryKey: "community",
+        categoryLabel: "Community",
+        title: "Tree Planting Initiative",
+        description:
+          "Annual birthday tradition \u2014 planting trees with the community. Building something that will outlast all of us.",
+        status: "Annual",
+        cta: { label: "Learn More", href: "#contact" },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
+        title: "Breathwork & Human Values for Youth",
+        description:
+          "Ongoing programs working with teenagers and young adults on meditation, emotional resilience, and finding alternatives to violence and crime.",
+        status: "Ongoing",
+        cta: { label: "Volunteer", href: "#contact" },
+      },
+      {
+        categoryKey: "personal",
+        categoryLabel: "Personal",
+        title: "Surf Season Prep",
+        description:
+          "Following an 8-week training program to get surf-ready and protect the knees. Follow along on Instagram.",
+        status: "In Progress",
+        cta: { label: "Follow on Instagram", href: "https://instagram.com" },
+      },
+    ],
+  },
+  timeline: {
+    heading: "The Full Story",
+    subheading: "A compact arc from age 15 to now.",
+    expand: "Expand Timeline",
+    collapse: "Collapse Timeline",
+    techHeading: "Technologies",
+    entries: [
+      {
+        year: "2009",
+        title: "Art of Living \u2014 Age 15",
+        description:
+          "Began meditation practice and training as a trauma relief teacher. Youngest Art of Living teacher in Latin America.",
+        type: "life",
+      },
+      {
+        year: "2011\u20132012",
+        title: "Villa La Angostura",
+        description:
+          "Post-disaster community support \u2014 working with people who lost their homes, orphans, at-risk youth, and past criminals.",
+        type: "community",
+      },
+      {
+        year: "2014\u20132017",
+        title: "University of Belgrano",
+        description:
+          "BSc in Business Management. Started programming at 20 out of necessity for entrepreneurship contests.",
+        type: "life",
+      },
+      {
+        year: "2016\u2013Present",
+        title: "Independent Software Engineer",
+        description:
+          "Freelance work \u2014 artist portfolios, foundation sites, ecommerce platforms. The beginning of a lifelong craft.",
+        type: "work",
+      },
+      {
+        year: "2016\u20132022",
+        title: "Community Service",
+        description:
+          "Slum programs with 50 volunteers and 500+ participants. 3-year soccer club youth program. Volunteer team building.",
+        type: "community",
+      },
+      {
+        year: "2018\u20132019",
+        title: "GuruDevelopers",
+        description:
+          "Ecommerce, Art of Living streaming platform, WordPress plugins. First \u201creal\u201d software factory experience.",
+        type: "work",
+      },
+      {
+        year: "2019\u20132020",
+        title: "Litebox \u2014 Technical Lead",
+        description:
+          "Nubi digital wallet (50K+ users), BI startup, marine apps, mobile game (50K+ downloads), personalized dog nutrition ecommerce. Mentored juniors to mid-level.",
+        type: "work",
+      },
+      {
+        year: "2020\u20132021",
+        title: "The Est\u00e9e Lauder Companies",
+        description:
+          "Senior Frontend Engineer \u2014 React component library serving 200+ ecommerce sites. Test coverage 60%\u219285%. Global multi-tenancy at scale.",
+        type: "work",
+      },
+      {
+        year: "2021\u20132023",
+        title: "Cruise via Toptal",
+        description:
+          "Senior Software Engineer \u2014 Autonomous vehicle analytics platform. Testing 20%\u219270%, crashes 14\u21920.3/month. D3.js data visualization. First Silicon Valley company.",
+        type: "work",
+      },
+      {
+        year: "2022",
+        title: "Art of Living Teacher",
+        description:
+          "Became a certified teacher for core Art of Living programs. Teaching courses, building community.",
+        type: "life",
+      },
+      {
+        year: "2023",
+        title: "Norway",
+        description: "Reconnecting with family heritage.",
+        type: "life",
+      },
+      {
+        year: "2023\u2013Present",
+        title: "Senior Consultant",
+        description:
+          "Carewell ($21M healthcare ecommerce rebuild), Colgate (technology advisor), various clients. Evolution from engineer to trusted advisor.",
+        type: "work",
+      },
+    ],
+    technologies: [
+      "React.js",
+      "React Native",
+      "Next.js",
+      "TypeScript",
+      "Node.js",
+      "GraphQL",
+      "D3.js",
+      "Tailwind CSS",
+      "Redux",
+      "MobX",
+      "Jest",
+      "Cypress",
+      "Styled Components",
+      "Vue.js",
+      "Express.js",
+      "PHP",
+      "Laravel",
+      "Docker",
+      "AWS",
+      "PostgreSQL",
+      "MySQL",
+      "MongoDB",
+    ],
+  },
+  contact: {
+    heading: "Let\u2019s build something.",
+    description:
+      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
+    caseStudyLabel: "Read the Carewell Case Study on Toptal",
+    linkLabels: {
+      email: "Email",
+      linkedin: "LinkedIn",
+      toptal: "Toptal",
+      instagram: "Instagram",
+    },
+  },
+  footer: {
+    copyright: "Harald Solaas \u2014 harisolaas.com",
+  },
+};
+
+export default en;

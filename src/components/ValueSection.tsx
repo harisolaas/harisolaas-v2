@@ -4,7 +4,7 @@ import Image from "next/image";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import { fadeUp, fadeUpSlow, staggerContainer } from "@/lib/animations";
-import type { ValueData } from "@/data/values";
+import type { ValueData } from "@/dictionaries/types";
 import ProofCard from "./ProofCard";
 import SectionQuote from "./SectionQuote";
 

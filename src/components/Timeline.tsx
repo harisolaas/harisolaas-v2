@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { fadeUp, staggerContainer } from "@/lib/animations";
-import { timelineEntries, technologies } from "@/data/timeline";
+import type { Dictionary } from "@/dictionaries/types";
 
 const typeColors = {
   work: "bg-terracotta",
@@ -11,7 +11,11 @@ const typeColors = {
   community: "bg-sage",
 } as const;
 
-export default function Timeline() {
+interface TimelineProps {
+  dict: Dictionary["timeline"];
+}
+
+export default function Timeline({ dict }: TimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -30,10 +34,10 @@ export default function Timeline() {
           className="text-center"
         >
           <h2 className="font-serif text-4xl text-forest md:text-5xl">
-            The Full Story
+            {dict.heading}
           </h2>
           <p className="mt-4 text-charcoal/60">
-            A compact arc from age 15 to now.
+            {dict.subheading}
           </p>
         </motion.div>
 
@@ -47,7 +51,7 @@ export default function Timeline() {
             onClick={() => setIsExpanded(!isExpanded)}
             className="group flex items-center gap-2 rounded-full border border-forest/20 px-6 py-3 text-sm font-semibold text-forest transition-all hover:border-forest/40 hover:bg-forest/5"
           >
-            {isExpanded ? "Collapse Timeline" : "Expand Timeline"}
+            {isExpanded ? dict.collapse : dict.expand}
             <motion.svg
               animate={{ rotate: isExpanded ? 180 : 0 }}
               transition={{ duration: 0.3 }}
@@ -84,7 +88,7 @@ export default function Timeline() {
                 {/* Timeline line */}
                 <div className="absolute left-4 top-0 bottom-0 w-px bg-sage/40 md:left-1/2 md:-translate-x-px" />
 
-                {timelineEntries.map((entry, i) => (
+                {dict.entries.map((entry, i) => (
                   <motion.div
                     key={entry.year + entry.title}
                     variants={fadeUp}
@@ -127,10 +131,10 @@ export default function Timeline() {
               {/* Technologies */}
               <motion.div variants={fadeUp} className="mt-10 text-center">
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-sage">
-                  Technologies
+                  {dict.techHeading}
                 </h3>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
-                  {technologies.map((tech) => (
+                  {dict.technologies.map((tech) => (
                     <span
                       key={tech}
                       className="rounded-full border border-forest/10 bg-white/50 px-3 py-1 text-xs text-charcoal/70"

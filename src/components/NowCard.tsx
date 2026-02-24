@@ -2,15 +2,21 @@
 
 import { motion } from "framer-motion";
 import { fadeUp } from "@/lib/animations";
-import type { NowItem } from "@/data/now";
-import { categoryColors } from "@/data/now";
+import type { NowItem, NowCategoryKey } from "@/dictionaries/types";
+
+const categoryColors: Record<NowCategoryKey, { bg: string; text: string }> = {
+  teaching: { bg: "bg-sage/20", text: "text-forest" },
+  building: { bg: "bg-terracotta/20", text: "text-terracotta" },
+  community: { bg: "bg-forest/20", text: "text-forest" },
+  personal: { bg: "bg-tan/40", text: "text-charcoal" },
+};
 
 interface NowCardProps {
   item: NowItem;
 }
 
 export default function NowCard({ item }: NowCardProps) {
-  const colors = categoryColors[item.category];
+  const colors = categoryColors[item.categoryKey];
 
   return (
     <motion.div
@@ -22,7 +28,7 @@ export default function NowCard({ item }: NowCardProps) {
           <span
             className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${colors.bg} ${colors.text}`}
           >
-            {item.category}
+            {item.categoryLabel}
           </span>
           <span className="text-xs text-charcoal/40">{item.status}</span>
         </div>

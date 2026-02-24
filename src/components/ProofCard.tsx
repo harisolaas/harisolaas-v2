@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { fadeUp } from "@/lib/animations";
-import type { ProofPoint } from "@/data/values";
+import type { ProofPoint } from "@/dictionaries/types";
 import MetricDisplay from "./MetricDisplay";
 
 interface ProofCardProps {
