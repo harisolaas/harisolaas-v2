@@ -42,13 +42,13 @@ export async function generateMetadata({
       siteName: "Harald Solaas",
       locale: locale === "es" ? "es_AR" : "en_US",
       type: "website",
-      images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+      images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title: dict.metadata.twitterTitle,
       description: dict.metadata.twitterDescription,
-      images: ["/og-image.png"],
+      images: ["/og-image.jpg"],
     },
     metadataBase: new URL("https://harisolaas.com"),
     alternates: {
