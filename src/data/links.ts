@@ -5,10 +5,10 @@ export interface SocialLink {
 }
 
 export const socialLinks: SocialLink[] = [
-  { key: "email", href: "mailto:hello@harisolaas.com" },
+  { key: "email", href: "mailto:dev@harisolaas.com" },
   {
     key: "linkedin",
-    href: "https://linkedin.com/in/haraldsolaas",
+    href: "https://www.linkedin.com/in/harisolaas/",
     external: true,
   },
   {
@@ -16,7 +16,11 @@ export const socialLinks: SocialLink[] = [
     href: "https://www.toptal.com/resume/harald-solaas",
     external: true,
   },
-  { key: "instagram", href: "https://instagram.com", external: true },
+  {
+    key: "instagram",
+    href: "https://instagram.com/harisolaas",
+    external: true,
+  },
 ];
 
 export const caseStudyLink =
