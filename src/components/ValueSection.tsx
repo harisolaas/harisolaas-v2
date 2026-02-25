@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { trackSectionView } from "@/lib/analytics";
 import { fadeUp, fadeUpSlow, staggerContainer } from "@/lib/animations";
 import type { ValueData } from "@/dictionaries/types";
 import ProofCard from "./ProofCard";
@@ -35,6 +36,10 @@ export default function ValueSection({ value, index }: ValueSectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const config = bgConfig[value.variant];
+
+  useEffect(() => {
+    if (isInView) trackSectionView(value.id);
+  }, [isInView, value.id]);
   const isEven = index % 2 === 0;
 
   return (

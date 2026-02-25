@@ -3,7 +3,10 @@ import { DM_Serif_Display, Source_Sans_3 } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import { locales, type Locale } from "@/i18n/config";
 import { socialLinks } from "@/data/links";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import ViewportHeight from "@/components/ViewportHeight";
+import PostHogAnalytics from "@/components/Analytics";
 import "../globals.css";
 
 const dmSerif = DM_Serif_Display({
@@ -121,6 +124,9 @@ export default async function LocaleLayout({
       </head>
       <body className="font-sans antialiased">
         <ViewportHeight />
+        <PostHogAnalytics />
+        <Analytics />
+        <SpeedInsights />
         {children}
       </body>
     </html>

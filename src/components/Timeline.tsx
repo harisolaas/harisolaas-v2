@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { fadeUp, staggerContainer } from "@/lib/animations";
+import { trackSectionView, trackTimelineToggle } from "@/lib/analytics";
 import type { Dictionary } from "@/dictionaries/types";
 
 const typeColors = {
@@ -19,6 +20,10 @@ export default function Timeline({ dict }: TimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+
+  useEffect(() => {
+    if (isInView) trackSectionView("timeline");
+  }, [isInView]);
 
   return (
     <section
@@ -48,7 +53,11 @@ export default function Timeline({ dict }: TimelineProps) {
           className="mt-6 flex justify-center"
         >
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => {
+              const next = !isExpanded;
+              setIsExpanded(next);
+              trackTimelineToggle(next);
+            }}
             className="group flex items-center gap-2 rounded-full border border-forest/20 px-6 py-3 text-sm font-semibold text-forest transition-all hover:border-forest/40 hover:bg-forest/5"
           >
             {isExpanded ? dict.collapse : dict.expand}

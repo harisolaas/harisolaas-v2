@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import { fadeUp, heroStagger } from "@/lib/animations";
+import { trackSectionView, trackCtaClick } from "@/lib/analytics";
 import { socialLinks, caseStudyLink } from "@/data/links";
 import type { Dictionary } from "@/dictionaries/types";
 
@@ -13,6 +14,10 @@ interface ContactProps {
 export default function Contact({ dict }: ContactProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+
+  useEffect(() => {
+    if (isInView) trackSectionView("contact");
+  }, [isInView]);
 
   return (
     <section
@@ -47,6 +52,7 @@ export default function Contact({ dict }: ContactProps) {
             <a
               key={link.key}
               href={link.href}
+              onClick={() => trackCtaClick(link.key, link.href, "contact")}
               {...(link.external
                 ? { target: "_blank", rel: "noopener noreferrer" }
                 : {})}
@@ -60,6 +66,7 @@ export default function Contact({ dict }: ContactProps) {
         <motion.div variants={fadeUp} className="mt-8">
           <a
             href={caseStudyLink}
+            onClick={() => trackCtaClick("case_study", caseStudyLink, "contact")}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-terracotta/80 transition-colors hover:text-terracotta"

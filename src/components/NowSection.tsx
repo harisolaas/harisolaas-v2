@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { trackSectionView } from "@/lib/analytics";
 import { fadeUp, staggerContainer } from "@/lib/animations";
 import type { Dictionary } from "@/dictionaries/types";
 import NowCard from "./NowCard";
@@ -13,6 +14,10 @@ interface NowSectionProps {
 export default function NowSection({ dict }: NowSectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+
+  useEffect(() => {
+    if (isInView) trackSectionView("now");
+  }, [isInView]);
 
   return (
     <section

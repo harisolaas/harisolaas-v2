@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { trackNavClick, trackLocaleSwitch } from "@/lib/analytics";
 import type { Dictionary } from "@/dictionaries/types";
 
 interface NavigationProps {
@@ -57,6 +58,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
               <a
                 key={link.href}
                 href={link.href}
+                onClick={() => trackNavClick(link.label, link.href)}
                 className={`text-sm transition-colors ${
                   isScrolled
                     ? "text-charcoal/60 hover:text-forest"
@@ -68,6 +70,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
             ))}
             <a
               href={`/${otherLocale}`}
+              onClick={() => trackLocaleSwitch(locale, otherLocale)}
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                 isScrolled
                   ? "border-forest/20 text-forest hover:bg-forest/5"
@@ -119,7 +122,10 @@ export default function Navigation({ locale, dict }: NavigationProps) {
                 <a
                   key={link.href}
                   href={link.href}
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={() => {
+                    setIsMobileOpen(false);
+                    trackNavClick(link.label, link.href);
+                  }}
                   className="font-serif text-3xl text-forest transition-colors hover:text-terracotta"
                 >
                   {link.label}
@@ -127,6 +133,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
               ))}
               <a
                 href={`/${otherLocale}`}
+                onClick={() => trackLocaleSwitch(locale, otherLocale)}
                 className="rounded-full border border-forest/20 px-5 py-2 text-sm font-semibold text-forest transition-colors hover:bg-forest/5"
               >
                 {localeLabel}

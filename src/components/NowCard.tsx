@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { fadeUp } from "@/lib/animations";
+import { trackCtaClick } from "@/lib/analytics";
 import type { NowItem, NowCategoryKey } from "@/dictionaries/types";
 
 const categoryColors: Record<NowCategoryKey, { bg: string; text: string }> = {
@@ -40,6 +41,7 @@ export default function NowCard({ item }: NowCardProps) {
       <div className="mt-5">
         <a
           href={item.cta.href}
+          onClick={() => trackCtaClick(item.cta.label, item.cta.href, "now")}
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-terracotta transition-colors hover:text-forest"
         >
           {item.cta.label}

@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { fadeUp, heroStagger } from "@/lib/animations";
+import { trackSectionView } from "@/lib/analytics";
 import type { Dictionary } from "@/dictionaries/types";
 
 interface HeroProps {
@@ -10,6 +12,10 @@ interface HeroProps {
 }
 
 export default function Hero({ dict }: HeroProps) {
+  useEffect(() => {
+    trackSectionView("hero");
+  }, []);
+
   return (
     <section
       id="hero"
