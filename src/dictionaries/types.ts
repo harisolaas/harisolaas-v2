@@ -38,6 +38,52 @@ export interface TimelineEntry {
   type: "life" | "work" | "community";
 }
 
+export interface BroteExperienceItem {
+  icon: string;
+  title: string;
+  description: string;
+  subtitle?: string;
+}
+
+export interface BroteDict {
+  meta: { title: string; description: string; ogDescription: string };
+  hero: {
+    subtitle: string;
+    dateTime: string;
+    subhead: string;
+    cta: string;
+  };
+  experience: BroteExperienceItem[];
+  impact: {
+    heading: string;
+    partner: { intro: string; name: string; rest: string };
+    body: string;
+    attendees: string;
+    partnerLabel: string;
+  };
+  pricing: {
+    reanchor: string;
+    cta: string;
+    payment: string;
+  };
+  about: {
+    intro: { before: string; sponsors: string; after: string };
+    body: string;
+    closing: string;
+  };
+  practical: {
+    dateTime: string;
+    includes: string;
+    bring: string;
+  };
+  final: {
+    heading: string;
+    cta: string;
+    donationPrompt: string;
+    donationCta: string;
+  };
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -86,4 +132,5 @@ export interface Dictionary {
   footer: {
     copyright: string;
   };
+  brote: BroteDict;
 }

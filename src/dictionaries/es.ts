@@ -440,6 +440,90 @@ const es: Dictionary = {
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",
   },
+  brote: {
+    meta: {
+      title: "BROTE \u2014 La fiesta que deja ra\u00edces",
+      description:
+        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Buenos Aires. S\u00e1bado 28 de marzo.",
+      ogDescription:
+        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Buenos Aires.",
+    },
+    hero: {
+      subtitle: "La fiesta que deja ra\u00edces",
+      dateTime: "S\u00e1bado 28 de marzo \u00b7 14 a 19h \u00b7 Buenos Aires",
+      subhead:
+        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde entera con gente que celebra con sentido. Cada entrada planta un \u00e1rbol real en Buenos Aires.",
+      cta: "Quiero mi entrada",
+    },
+    experience: [
+      {
+        icon: "\u2615",
+        title: "Caf\u00e9 de especialidad",
+        description:
+          "Un stand de caf\u00e9 curado por Cristian Burutica para arrancar la tarde con los sentidos abiertos.",
+      },
+      {
+        icon: "\ud83c\udfb5",
+        title: "M\u00fasica en vivo + DJ set",
+        description:
+          "Xime en vivo y Gaspar Insfr\u00e1n desde Paraguay en los platos. De la calma al baile, todo en una tarde.",
+      },
+      {
+        icon: "\ud83e\uddd8",
+        title: "Respiraci\u00f3n guiada",
+        subtitle: "post-fiesta, opcional",
+        description:
+          "Para los que quieran cerrar la tarde con algo m\u00e1s profundo. No es obligatorio, est\u00e1 ah\u00ed para quien lo necesite.",
+      },
+      {
+        icon: "\ud83c\udf31",
+        title: "1 entrada = 1 \u00e1rbol",
+        description:
+          "Cada ticket planta un \u00e1rbol real en la zona de Tigre junto a Un \u00c1rbol, una ONG con la que ya trabajamos.",
+      },
+    ],
+    impact: {
+      heading: "Tu entrada no se gasta. Se planta.",
+      partner: {
+        intro: "Trabajamos con ",
+        name: "Un \u00c1rbol",
+        rest: ", una asociaci\u00f3n civil dedicada a reforestar zonas del AMBA. Ya hicimos un viaje de plantaci\u00f3n con ellos y vimos de primera mano c\u00f3mo trabajan.",
+      },
+      body: "Cada entrada financia la plantaci\u00f3n de un \u00e1rbol nativo. No es simb\u00f3lico: es un \u00e1rbol real, en un lugar real, que va a crecer mucho despu\u00e9s de que termine la m\u00fasica.",
+      attendees:
+        "Si vienen {count} personas, son {count} \u00e1rboles. As\u00ed de simple.",
+      partnerLabel: "En alianza con",
+    },
+    pricing: {
+      reanchor:
+        "Una tarde de m\u00fasica, caf\u00e9, comunidad y un \u00e1rbol plantado a tu nombre.",
+      cta: "Quiero mi entrada",
+      payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
+    },
+    about: {
+      intro: {
+        before: "Esto nace de ",
+        sponsors: "Sky Campus y El Arte de Vivir",
+        after:
+          ", comunidades que practican respiraci\u00f3n, yoga y servicio en m\u00e1s de 100 universidades y 180 pa\u00edses del mundo.",
+      },
+      body: "No organizamos eventos. Creamos experiencias donde lo que hac\u00e9s por afuera refleja lo que cultiv\u00e1s por dentro.",
+      closing: "Esta fiesta es abierta a todos. Ven\u00ed como sos.",
+    },
+    practical: {
+      dateTime: "S\u00e1bado 28 de marzo \u00b7 14:00 a 19:00",
+      includes:
+        "Tu entrada incluye: m\u00fasica, caf\u00e9, actividades y la plantaci\u00f3n de 1 \u00e1rbol",
+      bring: "Ven\u00ed con buena energ\u00eda, ropa cool y c\u00f3moda",
+    },
+    final: {
+      heading: "\u00bfVen\u00eds?",
+      cta: "Quiero mi entrada",
+      donationPrompt:
+        "\u00bfNo pod\u00e9s venir pero quer\u00e9s ser parte?",
+      donationCta: "Sumate a la plantaci\u00f3n",
+    },
+  },
 };
 
 export default es;

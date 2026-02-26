@@ -49,3 +49,4 @@ export function trackNavClick(label: string, href: string) {
 export function trackLocaleSwitch(from: string, to: string) {
   posthog.capture("locale_switched", { from, to });
 }
+

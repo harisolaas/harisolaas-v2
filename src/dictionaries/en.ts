@@ -376,7 +376,8 @@ const en: Dictionary = {
       {
         year: "2023",
         title: "Norway",
-        description: "Reconnecting with heritage and rebuilding family bridges.",
+        description:
+          "Reconnecting with heritage and rebuilding family bridges.",
         type: "life",
       },
       {
@@ -429,6 +430,89 @@ const en: Dictionary = {
   },
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",
+  },
+  brote: {
+    meta: {
+      title: "BROTE \u2014 The party that plants roots",
+      description:
+        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Buenos Aires. Saturday March 28.",
+      ogDescription:
+        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Buenos Aires.",
+    },
+    hero: {
+      subtitle: "The party that plants roots",
+      dateTime: "Saturday March 28 \u00b7 2 to 7 PM \u00b7 Buenos Aires",
+      subhead:
+        "Live music, specialty coffee, DJ set, and a full afternoon with people who celebrate with purpose. Every ticket plants a real tree in Buenos Aires.",
+      cta: "I want my ticket",
+    },
+    experience: [
+      {
+        icon: "\u2615",
+        title: "Specialty coffee",
+        description:
+          "A curated coffee stand by Cristian Burutica to kick off the afternoon with your senses wide open.",
+      },
+      {
+        icon: "\ud83c\udfb5",
+        title: "Live music + DJ set",
+        description:
+          "Xime live and Gaspar Insfr\u00e1n from Paraguay on the decks. From calm to dance, all in one afternoon.",
+      },
+      {
+        icon: "\ud83e\uddd8",
+        title: "Guided breathwork",
+        subtitle: "post-party, optional",
+        description:
+          "For those who want to close the afternoon with something deeper. Not mandatory, just there if you need it.",
+      },
+      {
+        icon: "\ud83c\udf31",
+        title: "1 ticket = 1 tree",
+        description:
+          "Each ticket plants a real tree near Tigre with Un \u00c1rbol, an NGO we already work with.",
+      },
+    ],
+    impact: {
+      heading: "Your ticket doesn\u2019t get spent. It gets planted.",
+      partner: {
+        intro: "We work with ",
+        name: "Un \u00c1rbol",
+        rest: ", a civil association dedicated to reforesting areas around Buenos Aires. We\u2019ve already done a planting trip with them and saw firsthand how they work.",
+      },
+      body: "Each ticket funds the planting of a native tree. It\u2019s not symbolic: it\u2019s a real tree, in a real place, that will keep growing long after the music stops.",
+      attendees:
+        "If {count} people come, that\u2019s {count} trees. Simple as that.",
+      partnerLabel: "In partnership with",
+    },
+    pricing: {
+      reanchor:
+        "An afternoon of music, coffee, community, and a tree planted in your name.",
+      cta: "I want my ticket",
+      payment: "Pay with MercadoPago / card / bank transfer.",
+    },
+    about: {
+      intro: {
+        before: "This comes from ",
+        sponsors: "Sky Campus and The Art of Living",
+        after:
+          ", communities practicing breathwork, yoga, and service across 100+ universities and 180 countries worldwide.",
+      },
+      body: "We don\u2019t organize events. We create experiences where what you do on the outside reflects what you cultivate within.",
+      closing: "This party is open to everyone. Come as you are.",
+    },
+    practical: {
+      dateTime: "Saturday March 28 \u00b7 2:00 to 7:00 PM",
+      includes:
+        "Your ticket includes: music, coffee, activities, and planting 1 tree",
+      bring: "Come in cool and comfy clothes and good vibes",
+    },
+    final: {
+      heading: "Are you coming?",
+      cta: "I want my ticket",
+      donationPrompt: "Can\u2019t make it but want to be part of it?",
+      donationCta: "Join the planting",
+    },
   },
 };
 
