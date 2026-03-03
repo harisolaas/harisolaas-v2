@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, type ReactNode } from "react";
+import { useRef, useEffect, useState, useCallback, type ReactNode } from "react";
 import Image from "next/image";
 import { motion, useInView } from "framer-motion";
 import { broteConfig } from "@/data/brote";
@@ -11,15 +11,7 @@ import {
   trackCtaClick,
   trackLocaleSwitch,
 } from "@/lib/analytics";
-
-/* ─── helpers ─── */
-
-function handleCta(type: "ticket" | "donation") {
-  const isTicket = type === "ticket";
-  const href = isTicket ? broteConfig.ticketLink : broteConfig.donationLink;
-
-  trackCtaClick(type, href, `brote_${type}`);
-}
+import TreeCounter from "@/components/TreeCounter";
 
 /* ─── animated section wrapper ─── */
 
@@ -65,12 +57,41 @@ export default function BroteLanding({ dict, locale }: Props) {
   const localeLabel = locale === "en" ? "ES" : "EN";
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoLoaded, setVideoLoaded] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [ctaHovered, setCtaHovered] = useState(false);
 
   useEffect(() => {
     initPostHog();
     trackSectionView("brote_hero");
     videoRef.current?.load();
   }, []);
+
+  const handleCheckout = useCallback(async (type: "ticket" | "donation") => {
+    if (checkoutLoading) return;
+    setCheckoutLoading(type);
+    trackCtaClick(type, "/api/brote/checkout", `brote_${type}`);
+
+    try {
+      const res = await fetch("/api/brote/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      });
+
+      const data = await res.json();
+      if (data.init_point) {
+        window.location.href = data.init_point;
+      }
+    } catch {
+      setCheckoutLoading(null);
+    }
+  }, [checkoutLoading]);
+
+  // Early bird check (client-side, Argentina UTC-3)
+  const isEarlyBird = (() => {
+    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
+    return new Date() <= deadline;
+  })();
 
   const { expectedAttendees } = broteConfig;
   const attendeesText = dict.impact.attendees.replace(
@@ -128,7 +149,7 @@ export default function BroteLanding({ dict, locale }: Props) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.25 }}
-              className="mt-2 font-serif text-xl italic text-forest/70 md:text-2xl"
+              className="mt-2 font-serif text-xl italic text-forest md:text-2xl"
             >
               {dict.hero.subtitle}
             </motion.p>
@@ -146,7 +167,7 @@ export default function BroteLanding({ dict, locale }: Props) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.55 }}
-              className="mx-auto mt-6 max-w-md text-base leading-relaxed text-charcoal/70 md:text-lg"
+              className="mx-auto mt-6 max-w-md text-base leading-relaxed text-charcoal md:text-lg"
             >
               {dict.hero.subhead}
             </motion.p>
@@ -157,13 +178,31 @@ export default function BroteLanding({ dict, locale }: Props) {
               transition={{ duration: 0.5, delay: 0.7 }}
               className="mt-8"
             >
-              <a
-                href={broteConfig.ticketLink}
-                onClick={() => handleCta("ticket")}
-                className="inline-block rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg"
+              <button
+                onClick={() => handleCheckout("ticket")}
+                onMouseEnter={() => setCtaHovered(true)}
+                onMouseLeave={() => setCtaHovered(false)}
+                disabled={checkoutLoading === "ticket"}
+                className="inline-block cursor-pointer rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg disabled:opacity-60"
               >
-                {dict.hero.cta}
-              </a>
+                {checkoutLoading === "ticket" ? "..." : dict.hero.cta}
+              </button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
+              className="mt-10"
+            >
+              <TreeCounter
+                goal={broteConfig.expectedAttendees}
+                label={locale === "es" ? "meta:" : "goal:"}
+                treesLabel={locale === "es" ? "árboles" : "trees"}
+                locale={locale}
+                onCheckout={() => handleCheckout("ticket")}
+                optimisticBump={checkoutLoading === "ticket" || ctaHovered ? 1 : 0}
+              />
             </motion.div>
           </div>
         </section>
@@ -217,7 +256,7 @@ export default function BroteLanding({ dict, locale }: Props) {
             <h2 className="font-serif text-3xl text-cream md:text-4xl">
               {dict.impact.heading}
             </h2>
-            <div className="mt-6 space-y-4 text-base leading-relaxed text-cream/90 md:text-lg">
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-cream md:text-lg">
               <p>
                 {dict.impact.partner.intro}
                 <a
@@ -246,25 +285,43 @@ export default function BroteLanding({ dict, locale }: Props) {
                 className="h-7 w-auto"
               />
             </div>
+
           </div>
         </Section>
 
         {/* ───────── BLOCK 4 — CTA + precio ───────── */}
         <Section id="precio" className="px-6 py-12 text-center md:py-16">
           <div className="mx-auto max-w-md">
-            <p className="font-serif text-5xl text-terracotta md:text-6xl">
-              {broteConfig.ticketPrice}
-            </p>
+            {isEarlyBird ? (
+              <>
+                <span className="inline-block rounded-full bg-terracotta/15 px-4 py-1.5 text-sm font-semibold tracking-wide text-terracotta">
+                  {dict.pricing.earlyBirdBadge}
+                </span>
+                <p className="mt-4 font-serif text-5xl text-terracotta md:text-6xl">
+                  {broteConfig.earlyBirdPrice}
+                </p>
+                <p className="mt-2 text-base text-charcoal/40 line-through">
+                  {broteConfig.ticketPrice}
+                </p>
+                <p className="mt-1 text-sm text-charcoal/50">
+                  {dict.pricing.earlyBirdUntil}
+                </p>
+              </>
+            ) : (
+              <p className="font-serif text-5xl text-terracotta md:text-6xl">
+                {broteConfig.ticketPrice}
+              </p>
+            )}
             <p className="mt-4 text-base leading-relaxed text-charcoal/70 md:text-lg">
               {dict.pricing.reanchor}
             </p>
-            <a
-              href={broteConfig.ticketLink}
-              onClick={() => handleCta("ticket")}
-              className="mt-6 inline-block rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg"
+            <button
+              onClick={() => handleCheckout("ticket")}
+              disabled={checkoutLoading === "ticket"}
+              className="mt-6 inline-block cursor-pointer rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg disabled:opacity-60"
             >
-              {dict.pricing.cta}
-            </a>
+              {checkoutLoading === "ticket" ? "..." : dict.pricing.cta}
+            </button>
             <p className="mt-4 text-xs text-charcoal/40">
               {dict.pricing.payment}
             </p>
@@ -324,21 +381,22 @@ export default function BroteLanding({ dict, locale }: Props) {
             <p className="font-serif text-3xl text-cream md:text-4xl">
               {dict.final.heading}
             </p>
-            <a
-              href={broteConfig.ticketLink}
-              onClick={() => handleCta("ticket")}
-              className="mt-6 inline-block rounded-full bg-cream px-8 py-4 text-lg font-semibold text-forest shadow-md transition-all hover:bg-cream/90 hover:shadow-lg"
+            <button
+              onClick={() => handleCheckout("ticket")}
+              disabled={checkoutLoading === "ticket"}
+              className="mt-6 inline-block cursor-pointer rounded-full bg-cream px-8 py-4 text-lg font-semibold text-forest shadow-md transition-all hover:bg-cream/90 hover:shadow-lg disabled:opacity-60"
             >
-              {dict.final.cta}
-            </a>
+              {checkoutLoading === "ticket" ? "..." : dict.final.cta}
+            </button>
 
             <div className="mx-auto my-8 h-px w-16 bg-cream/20" />
 
             <p className="text-sm text-cream/50">{dict.final.donationPrompt}</p>
             <a
-              href={broteConfig.donationLink}
-              onClick={() => handleCta("donation")}
-              className="mt-3 inline-block rounded-full border border-cream/25 px-6 py-2.5 text-sm text-cream/60 transition-all hover:border-cream/50 hover:text-cream"
+              href={broteConfig.plantingContactLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block cursor-pointer rounded-full border border-cream/25 px-6 py-2.5 text-sm text-cream/60 transition-all hover:border-cream/50 hover:text-cream"
             >
               {dict.final.donationCta}
             </a>

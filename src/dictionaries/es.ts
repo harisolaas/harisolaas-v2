@@ -442,36 +442,35 @@ const es: Dictionary = {
   },
   brote: {
     meta: {
-      title: "BROTE \u2014 La fiesta que deja ra\u00edces",
+      title: "BROTE \u2014 Fiesta de reforestaci\u00f3n",
       description:
-        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Buenos Aires. S\u00e1bado 28 de marzo.",
+        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Argentina. S\u00e1bado 28 de marzo.",
       ogDescription:
-        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Buenos Aires.",
+        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
     },
     hero: {
-      subtitle: "La fiesta que deja ra\u00edces",
-      dateTime: "S\u00e1bado 28 de marzo \u00b7 14 a 19h \u00b7 Buenos Aires",
+      subtitle: "Fiesta de reforestaci\u00f3n",
+      dateTime: "S\u00e1bado 28 de marzo \u00b7 14 a 19h \u00b7 Argentina",
       subhead:
-        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde entera con gente que celebra con sentido. Cada entrada planta un \u00e1rbol real en Buenos Aires.",
+        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde entera con gente que celebra con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
       cta: "Quiero mi entrada",
     },
     experience: [
       {
         icon: "\u2615",
-        title: "Caf\u00e9 de especialidad",
+        title: "Caf\u00e9 de especialidad y pasteler\u00eda",
         description:
-          "Un stand de caf\u00e9 curado por Cristian Burutica para arrancar la tarde con los sentidos abiertos.",
+          "Un stand de caf\u00e9 curado para arrancar la tarde con los sentidos abiertos.",
       },
       {
         icon: "\ud83c\udfb5",
         title: "M\u00fasica en vivo + DJ set",
         description:
-          "Xime en vivo y Gaspar Insfr\u00e1n desde Paraguay en los platos. De la calma al baile, todo en una tarde.",
+          "Apertura con m\u00fasica ac\u00fastica en vivo y DJ para cerrar. De la calma al baile, todo en una tarde.",
       },
       {
         icon: "\ud83e\uddd8",
-        title: "Respiraci\u00f3n guiada",
-        subtitle: "post-fiesta, opcional",
+        title: "Meditaci\u00f3n grupal + intenci\u00f3n por la naturaleza",
         description:
           "Para los que quieran cerrar la tarde con algo m\u00e1s profundo. No es obligatorio, est\u00e1 ah\u00ed para quien lo necesite.",
       },
@@ -479,7 +478,7 @@ const es: Dictionary = {
         icon: "\ud83c\udf31",
         title: "1 entrada = 1 \u00e1rbol",
         description:
-          "Cada ticket planta un \u00e1rbol real en la zona de Tigre junto a Un \u00c1rbol, una ONG con la que ya trabajamos.",
+          "Cada ticket planta un \u00e1rbol real en Argentina junto a Un \u00c1rbol, una ONG con m\u00e1s de 15 a\u00f1os y miles de \u00e1rboles plantados en el pa\u00eds.",
       },
     ],
     impact: {
@@ -487,7 +486,7 @@ const es: Dictionary = {
       partner: {
         intro: "Trabajamos con ",
         name: "Un \u00c1rbol",
-        rest: ", una asociaci\u00f3n civil dedicada a reforestar zonas del AMBA. Ya hicimos un viaje de plantaci\u00f3n con ellos y vimos de primera mano c\u00f3mo trabajan.",
+        rest: ", una asociaci\u00f3n civil con m\u00e1s de 15 a\u00f1os dedicada a reforestar zonas de toda Argentina. Ya hicimos un viaje de plantaci\u00f3n con ellos y vimos de primera mano c\u00f3mo trabajan.",
       },
       body: "Cada entrada financia la plantaci\u00f3n de un \u00e1rbol nativo. No es simb\u00f3lico: es un \u00e1rbol real, en un lugar real, que va a crecer mucho despu\u00e9s de que termine la m\u00fasica.",
       attendees:
@@ -499,6 +498,8 @@ const es: Dictionary = {
         "Una tarde de m\u00fasica, caf\u00e9, comunidad y un \u00e1rbol plantado a tu nombre.",
       cta: "Quiero mi entrada",
       payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
+      earlyBirdBadge: "Preventa \u2014 20% OFF",
+      earlyBirdUntil: "Hasta el 14 de marzo",
     },
     about: {
       intro: {
@@ -522,6 +523,19 @@ const es: Dictionary = {
       donationPrompt:
         "\u00bfNo pod\u00e9s venir pero quer\u00e9s ser parte?",
       donationCta: "Sumate a la plantaci\u00f3n",
+    },
+    success: {
+      title: "BROTE \u2014 \u00a1Listo!",
+      heading: "\u00a1Tu lugar est\u00e1 confirmado!",
+      body: "Gracias por ser parte de BROTE. Tu entrada y el QR para ingresar van a llegar a tu email en unos minutos.",
+      emailNote: "Revis\u00e1 tu bandeja de entrada (y spam, por las dudas).",
+      backLink: "Volver a BROTE",
+    },
+    failure: {
+      title: "BROTE \u2014 Pago no completado",
+      heading: "El pago no se complet\u00f3",
+      body: "Algo sali\u00f3 mal con el pago o fue cancelado. Pod\u00e9s intentar de nuevo desde la p\u00e1gina de BROTE.",
+      backLink: "Volver a BROTE",
     },
   },
 };

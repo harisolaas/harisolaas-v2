@@ -433,36 +433,35 @@ const en: Dictionary = {
   },
   brote: {
     meta: {
-      title: "BROTE \u2014 The party that plants roots",
+      title: "BROTE \u2014 Reforestation party",
       description:
-        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Buenos Aires. Saturday March 28.",
+        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Argentina. Saturday March 28.",
       ogDescription:
-        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Buenos Aires.",
+        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Argentina.",
     },
     hero: {
-      subtitle: "The party that plants roots",
-      dateTime: "Saturday March 28 \u00b7 2 to 7 PM \u00b7 Buenos Aires",
+      subtitle: "Reforestation party",
+      dateTime: "Saturday March 28 \u00b7 2 to 7 PM \u00b7 Argentina",
       subhead:
-        "Live music, specialty coffee, DJ set, and a full afternoon with people who celebrate with purpose. Every ticket plants a real tree in Buenos Aires.",
+        "Live music, specialty coffee, DJ set, and a full afternoon with people who celebrate with purpose. Every ticket plants a real tree in Argentina.",
       cta: "I want my ticket",
     },
     experience: [
       {
         icon: "\u2615",
-        title: "Specialty coffee",
+        title: "Specialty coffee & pastries",
         description:
-          "A curated coffee stand by Cristian Burutica to kick off the afternoon with your senses wide open.",
+          "A curated coffee stand to kick off the afternoon with your senses wide open.",
       },
       {
         icon: "\ud83c\udfb5",
         title: "Live music + DJ set",
         description:
-          "Xime live and Gaspar Insfr\u00e1n from Paraguay on the decks. From calm to dance, all in one afternoon.",
+          "Opening with live acoustic music and a DJ to close. From calm to dance, all in one afternoon.",
       },
       {
         icon: "\ud83e\uddd8",
-        title: "Guided breathwork",
-        subtitle: "post-party, optional",
+        title: "Group meditation + intention for nature",
         description:
           "For those who want to close the afternoon with something deeper. Not mandatory, just there if you need it.",
       },
@@ -470,7 +469,7 @@ const en: Dictionary = {
         icon: "\ud83c\udf31",
         title: "1 ticket = 1 tree",
         description:
-          "Each ticket plants a real tree near Tigre with Un \u00c1rbol, an NGO we already work with.",
+          "Each ticket plants a real tree in Argentina with Un \u00c1rbol, an NGO with over 15 years and thousands of trees planted across the country.",
       },
     ],
     impact: {
@@ -478,7 +477,7 @@ const en: Dictionary = {
       partner: {
         intro: "We work with ",
         name: "Un \u00c1rbol",
-        rest: ", a civil association dedicated to reforesting areas around Buenos Aires. We\u2019ve already done a planting trip with them and saw firsthand how they work.",
+        rest: ", a civil association with over 15 years dedicated to reforesting areas across Argentina. We\u2019ve already done a planting trip with them and saw firsthand how they work.",
       },
       body: "Each ticket funds the planting of a native tree. It\u2019s not symbolic: it\u2019s a real tree, in a real place, that will keep growing long after the music stops.",
       attendees:
@@ -490,6 +489,8 @@ const en: Dictionary = {
         "An afternoon of music, coffee, community, and a tree planted in your name.",
       cta: "I want my ticket",
       payment: "Pay with MercadoPago / card / bank transfer.",
+      earlyBirdBadge: "Early bird — 20% OFF",
+      earlyBirdUntil: "Until March 14",
     },
     about: {
       intro: {
@@ -512,6 +513,19 @@ const en: Dictionary = {
       cta: "I want my ticket",
       donationPrompt: "Can\u2019t make it but want to be part of it?",
       donationCta: "Join the planting",
+    },
+    success: {
+      title: "BROTE \u2014 You\u2019re in!",
+      heading: "Your spot is confirmed!",
+      body: "Thanks for being part of BROTE. Your ticket and QR code will arrive in your email in a few minutes.",
+      emailNote: "Check your inbox (and spam, just in case).",
+      backLink: "Back to BROTE",
+    },
+    failure: {
+      title: "BROTE \u2014 Payment not completed",
+      heading: "Payment didn\u2019t go through",
+      body: "Something went wrong with the payment or it was cancelled. You can try again from the BROTE page.",
+      backLink: "Back to BROTE",
     },
   },
 };

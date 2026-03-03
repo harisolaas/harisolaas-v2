@@ -1,14 +1,17 @@
 export const broteConfig = {
-  // Prices — easily configurable
-  ticketPrice: "$20.000",
-  ticketPriceRaw: 20000,
+  // Prices
+  ticketPrice: "$23.313",
+  ticketPriceRaw: 23313,
+  earlyBirdPrice: "$18.650",
+  earlyBirdPriceRaw: 18650,
+  earlyBirdDeadline: "2026-03-14", // YYYY-MM-DD, inclusive (Argentina time)
   donationPrice: "$10.000",
   donationPriceRaw: 10000,
   currency: "ARS",
 
-  // Payment links — replace with actual MercadoPago checkout URLs
-  ticketLink: "#",
-  donationLink: "#",
+  // Contact link for tree planting / donations
+  plantingContactLink:
+    "https://wa.me/5491122555110?text=Hola%20quiero%20sumarme%20a%20la%20plantaci%C3%B3n%20de%20%C3%A1rboles%20de%20BROTE",
 
   // Venue
   locationAddress: "Costa Rica 5644, Palermo Hollywood, CABA",

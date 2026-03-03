@@ -65,6 +65,8 @@ export interface BroteDict {
     reanchor: string;
     cta: string;
     payment: string;
+    earlyBirdBadge: string;
+    earlyBirdUntil: string;
   };
   about: {
     intro: { before: string; sponsors: string; after: string };
@@ -81,6 +83,19 @@ export interface BroteDict {
     cta: string;
     donationPrompt: string;
     donationCta: string;
+  };
+  success: {
+    title: string;
+    heading: string;
+    body: string;
+    emailNote: string;
+    backLink: string;
+  };
+  failure: {
+    title: string;
+    heading: string;
+    body: string;
+    backLink: string;
   };
 }
 
