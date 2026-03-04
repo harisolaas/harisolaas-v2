@@ -463,7 +463,7 @@ const en: Dictionary = {
         icon: "\ud83e\uddd8",
         title: "Group meditation + intention for nature",
         description:
-          "For those who want to close the afternoon with something deeper. Not mandatory, just there if you need it.",
+          "Close the afternoon connecting with yourself and nature. A guided experience to take something home that lasts longer than the music.",
       },
       {
         icon: "\ud83c\udf31",

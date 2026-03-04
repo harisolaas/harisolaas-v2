@@ -472,7 +472,7 @@ const es: Dictionary = {
         icon: "\ud83e\uddd8",
         title: "Meditaci\u00f3n grupal + intenci\u00f3n por la naturaleza",
         description:
-          "Para los que quieran cerrar la tarde con algo m\u00e1s profundo. No es obligatorio, est\u00e1 ah\u00ed para quien lo necesite.",
+          "Cerr\u00e1 la tarde conectando con vos y con la naturaleza. Una experiencia guiada para llevarte algo que dure m\u00e1s que la m\u00fasica.",
       },
       {
         icon: "\ud83c\udf31",
