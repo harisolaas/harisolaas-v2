@@ -132,7 +132,7 @@ export default function BroteLanding({ dict, locale }: Props) {
             ref={videoRef}
             autoPlay
             muted
-            loop
+
             playsInline
             preload="none"
             onPlaying={() => setVideoLoaded(true)}
