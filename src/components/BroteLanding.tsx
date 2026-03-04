@@ -210,7 +210,7 @@ export default function BroteLanding({ dict, locale }: Props) {
         {/* ───────── BLOCK 2 — Qué vas a vivir ───────── */}
         <Section id="experiencia" className="px-6 py-12 md:py-16">
           <div className="mx-auto max-w-2xl">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {dict.experience.map((item, i) => (
                 <motion.div
                   key={item.title}
