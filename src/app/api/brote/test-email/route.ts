@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import QRCode from "qrcode";
 import { nanoid } from "nanoid";
 import type { BroteTicket } from "@/lib/brote-types";
-import { buildTicketEmailHtml } from "@/lib/brote-email";
+import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -43,7 +43,13 @@ export async function POST(req: Request) {
     from: `BROTE <${fromEmail}>`,
     to,
     subject: `Tu entrada para BROTE 🌱 Arbol #${tree}`,
-    html: buildTicketEmailHtml(ticket, qrDataUrl, tree),
+    html: buildTicketEmailHtml(ticket, tree),
+    attachments: [{
+      filename: "qr.png",
+      content: qrDataUrlToBuffer(qrDataUrl),
+      contentType: "image/png",
+      contentId: "qr",
+    }],
   });
 
   return NextResponse.json({ ok: true, ticketId, to, treeNumber: tree, resendId: result.data?.id });

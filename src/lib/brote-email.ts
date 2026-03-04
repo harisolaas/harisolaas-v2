@@ -1,8 +1,13 @@
 import type { BroteTicket } from "./brote-types";
 
+/** Extract raw base64 content from a data URL for use as an email attachment */
+export function qrDataUrlToBuffer(dataUrl: string): Buffer {
+  const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
+  return Buffer.from(base64, "base64");
+}
+
 export function buildTicketEmailHtml(
   ticket: BroteTicket,
-  qrDataUrl: string,
   treeNumber: number,
 ): string {
   return `<!DOCTYPE html>
@@ -36,7 +41,7 @@ export function buildTicketEmailHtml(
 
   <!-- QR Code -->
   <div style="text-align:center;padding:24px;background:#FAF6F1;border-radius:12px;margin-bottom:20px">
-    <img src="${qrDataUrl}" alt="QR Code" width="200" height="200" style="display:block;margin:0 auto"/>
+    <img src="cid:qr" alt="QR Code" width="200" height="200" style="display:block;margin:0 auto"/>
     <p style="margin:12px 0 0;color:#2D4A3E;font-size:13px;font-weight:700;letter-spacing:1.5px">${ticket.id}</p>
   </div>
 

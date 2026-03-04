@@ -6,7 +6,7 @@ import { Resend } from "resend";
 import QRCode from "qrcode";
 import { nanoid } from "nanoid";
 import type { BroteTicket } from "@/lib/brote-types";
-import { buildTicketEmailHtml } from "@/lib/brote-email";
+import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -136,7 +136,13 @@ export async function POST(req: Request) {
       from: `BROTE <${fromEmail}>`,
       to: buyerEmail,
       subject: `Tu entrada para BROTE 🌱 Arbol #${treeNumber}`,
-      html: buildTicketEmailHtml(ticket, qrDataUrl, treeNumber),
+      html: buildTicketEmailHtml(ticket, treeNumber),
+      attachments: [{
+        filename: "qr.png",
+        content: qrDataUrlToBuffer(qrDataUrl),
+        contentType: "image/png",
+        contentId: "qr",
+      }],
     });
   }
 
