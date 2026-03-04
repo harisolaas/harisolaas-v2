@@ -125,11 +125,11 @@ export default function BroteLanding({ dict, locale }: Props) {
             playsInline
             preload="none"
             onPlaying={() => setVideoLoaded(true)}
-            className={`absolute inset-0 z-[1] h-full w-full object-cover object-left transition-opacity duration-1000 ${
+            className={`absolute inset-0 z-[1] h-full w-full object-cover object-center transition-opacity duration-1000 ${
               videoLoaded ? "opacity-100" : "opacity-0"
             }`}
           >
-            <source src="/brote-hero.mp4" type="video/mp4" />
+            <source src="/brote-hero-v2.mp4" type="video/mp4" />
           </video>
 
           {/* Cream overlay */}
