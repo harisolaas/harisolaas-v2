@@ -192,8 +192,8 @@ export default function TreeCounter({ goal, label, treesLabel, locale, onCheckou
           : "Get your ticket and grow the forest ☝️"}
       </button>
 
-      {/* DEV ONLY — remove before launch */}
-      {process.env.NODE_ENV === "development" && (
+      {/* DEV ONLY — temporarily enabled for screen recording */}
+      {(
         <div className="mt-2 flex gap-2 justify-center">
           <button
             onClick={() => setCount((c) => Math.min(c + 1, goal))}

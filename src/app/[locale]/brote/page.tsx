@@ -46,7 +46,7 @@ export default async function BrotePage({
 }) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
 
-  // if (!("preview" in query)) notFound(); // temporarily disabled for screen recording
+  if (!("preview" in query)) notFound();
 
   const dict = await getDictionary(locale as Locale);
 
