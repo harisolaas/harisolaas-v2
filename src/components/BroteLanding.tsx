@@ -87,11 +87,22 @@ export default function BroteLanding({ dict, locale }: Props) {
     }
   }, [checkoutLoading]);
 
-  // Early bird check (client-side, Argentina UTC-3)
-  const isEarlyBird = (() => {
+  // Early bird check (client-side, Argentina UTC-3) — auto-updates after deadline
+  const [isEarlyBird, setIsEarlyBird] = useState(() => {
     const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
     return new Date() <= deadline;
-  })();
+  });
+
+  useEffect(() => {
+    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
+    const remaining = deadline.getTime() - Date.now();
+    if (remaining <= 0) {
+      setIsEarlyBird(false);
+      return;
+    }
+    const timer = setTimeout(() => setIsEarlyBird(false), remaining);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { expectedAttendees } = broteConfig;
   const attendeesText = dict.impact.attendees.replace(
