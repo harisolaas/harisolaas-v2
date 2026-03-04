@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import BroteLanding from "@/components/BroteLanding";
@@ -38,10 +39,15 @@ export async function generateMetadata({
 
 export default async function BrotePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { locale } = await params;
+  const [{ locale }, query] = await Promise.all([params, searchParams]);
+
+  if (!("preview" in query)) notFound();
+
   const dict = await getDictionary(locale as Locale);
 
   return <BroteLanding dict={dict.brote} locale={locale} />;
