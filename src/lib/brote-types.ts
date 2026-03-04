@@ -1,6 +1,6 @@
 export interface BroteTicket {
   id: string;
-  type: "ticket" | "donation";
+  type: "ticket";
   paymentId: string;
   buyerEmail: string;
   buyerName: string;

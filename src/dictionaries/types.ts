@@ -81,8 +81,8 @@ export interface BroteDict {
   final: {
     heading: string;
     cta: string;
-    donationPrompt: string;
-    donationCta: string;
+    plantingPrompt: string;
+    plantingCta: string;
   };
   success: {
     title: string;

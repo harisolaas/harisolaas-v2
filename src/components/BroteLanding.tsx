@@ -66,16 +66,16 @@ export default function BroteLanding({ dict, locale }: Props) {
     videoRef.current?.load();
   }, []);
 
-  const handleCheckout = useCallback(async (type: "ticket" | "donation") => {
+  const handleCheckout = useCallback(async () => {
     if (checkoutLoading) return;
-    setCheckoutLoading(type);
-    trackCtaClick(type, "/api/brote/checkout", `brote_${type}`);
+    setCheckoutLoading("ticket");
+    trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
 
     try {
       const res = await fetch("/api/brote/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({ type: "ticket" }),
       });
 
       const data = await res.json();
@@ -190,7 +190,7 @@ export default function BroteLanding({ dict, locale }: Props) {
               className="mt-8"
             >
               <button
-                onClick={() => handleCheckout("ticket")}
+                onClick={() => handleCheckout()}
                 onMouseEnter={() => setCtaHovered(true)}
                 onMouseLeave={() => setCtaHovered(false)}
                 disabled={checkoutLoading === "ticket"}
@@ -211,7 +211,7 @@ export default function BroteLanding({ dict, locale }: Props) {
                 label={locale === "es" ? "meta:" : "goal:"}
                 treesLabel={locale === "es" ? "árboles" : "trees"}
                 locale={locale}
-                onCheckout={() => handleCheckout("ticket")}
+                onCheckout={() => handleCheckout()}
                 optimisticBump={checkoutLoading === "ticket" || ctaHovered ? 1 : 0}
               />
             </motion.div>
@@ -327,7 +327,7 @@ export default function BroteLanding({ dict, locale }: Props) {
               {dict.pricing.reanchor}
             </p>
             <button
-              onClick={() => handleCheckout("ticket")}
+              onClick={() => handleCheckout()}
               disabled={checkoutLoading === "ticket"}
               className="mt-6 inline-block cursor-pointer rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg disabled:opacity-60"
             >
@@ -393,7 +393,7 @@ export default function BroteLanding({ dict, locale }: Props) {
               {dict.final.heading}
             </p>
             <button
-              onClick={() => handleCheckout("ticket")}
+              onClick={() => handleCheckout()}
               disabled={checkoutLoading === "ticket"}
               className="mt-6 inline-block cursor-pointer rounded-full bg-cream px-8 py-4 text-lg font-semibold text-forest shadow-md transition-all hover:bg-cream/90 hover:shadow-lg disabled:opacity-60"
             >
@@ -402,14 +402,14 @@ export default function BroteLanding({ dict, locale }: Props) {
 
             <div className="mx-auto my-8 h-px w-16 bg-cream/20" />
 
-            <p className="text-sm text-cream/50">{dict.final.donationPrompt}</p>
+            <p className="text-sm text-cream/50">{dict.final.plantingPrompt}</p>
             <a
               href={broteConfig.plantingContactLink}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-block cursor-pointer rounded-full border border-cream/25 px-6 py-2.5 text-sm text-cream/60 transition-all hover:border-cream/50 hover:text-cream"
             >
-              {dict.final.donationCta}
+              {dict.final.plantingCta}
             </a>
           </div>
         </Section>

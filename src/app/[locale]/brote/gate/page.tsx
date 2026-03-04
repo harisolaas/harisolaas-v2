@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 
 interface TicketInfo {
   id: string;
-  type: "ticket" | "donation";
+  type: "ticket";
   buyerName: string;
   status: "valid" | "used";
 }
@@ -122,7 +122,7 @@ function GateContent() {
             </p>
             <p>
               <strong>Tipo:</strong>{" "}
-              {ticket.type === "ticket" ? "Entrada" : "Donacion"}
+              Entrada
             </p>
             <p>
               <strong>ID:</strong> {ticket.id}

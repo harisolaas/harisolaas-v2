@@ -520,9 +520,9 @@ const es: Dictionary = {
     final: {
       heading: "\u00bfVen\u00eds?",
       cta: "Quiero mi entrada",
-      donationPrompt:
+      plantingPrompt:
         "\u00bfNo pod\u00e9s venir pero quer\u00e9s ser parte?",
-      donationCta: "Sumate a la plantaci\u00f3n",
+      plantingCta: "Sumate a la plantaci\u00f3n",
     },
     success: {
       title: "BROTE \u2014 \u00a1Listo!",

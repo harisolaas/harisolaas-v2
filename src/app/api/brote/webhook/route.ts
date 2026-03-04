@@ -86,7 +86,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, status: payment.status });
   }
 
-  const type = (payment.metadata?.type as "ticket" | "donation") || "ticket";
+  const type = "ticket" as const;
   const buyerEmail = payment.payer?.email || "";
   const buyerName =
     [payment.payer?.first_name, payment.payer?.last_name]
@@ -118,21 +118,25 @@ export async function POST(req: Request) {
   // Store in Redis
   await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
   await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
-  await redis.incr("brote:counter");
+  const treeNumber = await redis.incr("brote:counter");
+
+  // Store attendee for export
+  await redis.sadd("brote:attendees", JSON.stringify({
+    email: buyerEmail,
+    name: buyerName,
+    ticketId,
+    createdAt: ticket.createdAt,
+  }));
 
   // Send email
   if (buyerEmail) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-    const subject =
-      type === "ticket"
-        ? "Tu entrada para BROTE"
-        : "Gracias por sumarte a la plantacion — BROTE";
 
     await resend.emails.send({
       from: `BROTE <${fromEmail}>`,
       to: buyerEmail,
-      subject,
-      html: buildTicketEmailHtml(ticket, qrDataUrl),
+      subject: `Tu entrada para BROTE 🌱 Arbol #${treeNumber}`,
+      html: buildTicketEmailHtml(ticket, qrDataUrl, treeNumber),
     });
   }
 

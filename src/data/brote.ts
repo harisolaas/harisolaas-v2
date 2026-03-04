@@ -5,8 +5,6 @@ export const broteConfig = {
   earlyBirdPrice: "$18.650",
   earlyBirdPriceRaw: 18650,
   earlyBirdDeadline: "2026-03-14", // YYYY-MM-DD, inclusive (Argentina time)
-  donationPrice: "$10.000",
-  donationPriceRaw: 10000,
   currency: "ARS",
 
   // Contact link for tree planting / donations

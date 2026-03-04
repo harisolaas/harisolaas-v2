@@ -511,8 +511,8 @@ const en: Dictionary = {
     final: {
       heading: "Are you coming?",
       cta: "I want my ticket",
-      donationPrompt: "Can\u2019t make it but want to be part of it?",
-      donationCta: "Join the planting",
+      plantingPrompt: "Can\u2019t make it but want to be part of it?",
+      plantingCta: "Join the planting",
     },
     success: {
       title: "BROTE \u2014 You\u2019re in!",
