@@ -135,7 +135,7 @@ export async function POST(req: Request) {
     await resend.emails.send({
       from: `BROTE <${fromEmail}>`,
       to: buyerEmail,
-      subject: `Tu entrada para BROTE 🌱 Arbol #${treeNumber}`,
+      subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
       html: buildTicketEmailHtml(ticket, treeNumber),
       attachments: [{
         filename: "qr.png",

@@ -21,15 +21,15 @@ export function buildTicketEmailHtml(
 <!-- Header -->
 <tr><td style="background:#2D4A3E;padding:40px 24px;text-align:center">
   <h1 style="margin:0;color:#FAF6F1;font-size:36px;letter-spacing:3px;font-weight:700">BROTE</h1>
-  <p style="margin:10px 0 0;color:#A8B5A0;font-size:14px;letter-spacing:1px">La fiesta que deja raices</p>
+  <p style="margin:10px 0 0;color:#A8B5A0;font-size:14px;letter-spacing:1px">Fiesta de reforestaci&oacute;n</p>
 </td></tr>
 
 <!-- Tree highlight -->
 <tr><td style="padding:32px 24px 0;text-align:center">
   <div style="display:inline-block;background:#2D4A3E;border-radius:50%;width:80px;height:80px;line-height:80px;font-size:40px;text-align:center">🌱</div>
-  <h2 style="margin:16px 0 4px;color:#2D4A3E;font-size:26px;font-weight:700">Arbol #${treeNumber}</h2>
-  <p style="margin:0;color:#C4704B;font-size:15px;font-weight:600">va a echar raices en Argentina gracias a vos</p>
-  <p style="margin:12px 0 0;color:#888;font-size:13px;line-height:1.5">Cada entrada planta un arbol real. El tuyo ya tiene numero y va a crecer mucho despues de que termine la musica.</p>
+  <h2 style="margin:16px 0 4px;color:#2D4A3E;font-size:26px;font-weight:700">&Aacute;rbol #${treeNumber}</h2>
+  <p style="margin:0;color:#C4704B;font-size:15px;font-weight:600">va a echar ra&iacute;ces en Argentina gracias a vos</p>
+  <p style="margin:12px 0 0;color:#888;font-size:13px;line-height:1.5">Cada entrada planta un &aacute;rbol real. El tuyo ya tiene n&uacute;mero y va a crecer mucho despu&eacute;s de que termine la m&uacute;sica.</p>
 </td></tr>
 
 <!-- Divider -->
@@ -50,13 +50,13 @@ export function buildTicketEmailHtml(
     <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><strong style="color:#2D4A3E">Nombre</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">${ticket.buyerName}</td></tr>
     <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><strong style="color:#2D4A3E">Fecha</strong></td>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">Sabado 28 de marzo, 14–19h</td></tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">S&aacute;bado 28 de marzo, 14&ndash;19h</td></tr>
     <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><strong style="color:#2D4A3E">Lugar</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">Costa Rica 5644, Palermo</td></tr>
   </table>
 
   <div style="margin:20px 0 0;padding:14px 16px;background:#FAF6F1;border-radius:8px;text-align:center">
-    <p style="margin:0;color:#2D4A3E;font-size:13px">Mostra este QR en la puerta para ingresar.</p>
+    <p style="margin:0;color:#2D4A3E;font-size:13px">Mostr&aacute; este QR en la puerta para ingresar.</p>
   </div>
 </td></tr>
 
