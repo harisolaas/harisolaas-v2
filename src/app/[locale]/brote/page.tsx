@@ -22,13 +22,13 @@ export async function generateMetadata({
       siteName: "BROTE",
       locale: locale === "es" ? "es_AR" : "en_US",
       type: "website",
-      images: [{ url: "https://harisolaas.com/og-image.jpg", width: 1200, height: 630 }],
+      images: [{ url: "https://www.harisolaas.com/og-brote.jpg", width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title: meta.title,
       description: meta.ogDescription,
-      images: ["https://harisolaas.com/og-image.jpg"],
+      images: ["https://www.harisolaas.com/og-brote.jpg"],
     },
     icons: {
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>",
