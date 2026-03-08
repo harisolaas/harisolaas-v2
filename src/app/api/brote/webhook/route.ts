@@ -85,7 +85,13 @@ export async function POST(req: Request) {
   }
 
   // Fetch payment details from MercadoPago
-  const payment = await new Payment(mp).get({ id: mpPaymentId });
+  let payment;
+  try {
+    payment = await new Payment(mp).get({ id: mpPaymentId });
+  } catch (err) {
+    console.error("MP payment fetch failed:", mpPaymentId, err);
+    return NextResponse.json({ error: "Payment not found" }, { status: 200 });
+  }
 
   if (payment.status !== "approved") {
     return NextResponse.json({ ok: true, status: payment.status });
