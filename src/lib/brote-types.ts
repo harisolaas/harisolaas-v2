@@ -7,4 +7,5 @@ export interface BroteTicket {
   status: "valid" | "used";
   createdAt: string;
   usedAt?: string;
+  emailSent?: boolean;
 }

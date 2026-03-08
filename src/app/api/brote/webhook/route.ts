@@ -79,86 +79,106 @@ export async function POST(req: Request) {
   const redis = await getRedis();
 
   // Idempotency: check if we already processed this payment
-  const existing = await redis.get(`brote:payment:${mpPaymentId}`);
-  if (existing) {
-    return NextResponse.json({ ok: true, ticketId: existing });
+  const existingTicketId = await redis.get(`brote:payment:${mpPaymentId}`);
+
+  let ticket: BroteTicket;
+  let treeNumber: number;
+
+  if (existingTicketId) {
+    // Already processed — but check if email was sent
+    const raw = await redis.get(`brote:ticket:${existingTicketId}`);
+    if (!raw) {
+      return NextResponse.json({ ok: true, ticketId: existingTicketId });
+    }
+    ticket = JSON.parse(raw);
+    if (ticket.emailSent) {
+      return NextResponse.json({ ok: true, ticketId: existingTicketId });
+    }
+    // Email wasn't sent — fall through to retry it
+    console.log("Retrying email for existing ticket:", existingTicketId);
+    treeNumber = Number(await redis.get("brote:counter")) || 1;
+  } else {
+    // New payment — fetch from MP and create ticket
+    let payment;
+    try {
+      payment = await new Payment(mp).get({ id: mpPaymentId });
+    } catch (err) {
+      console.error("MP payment fetch failed:", mpPaymentId, err);
+      return NextResponse.json({ error: "Payment not found" }, { status: 200 });
+    }
+
+    if (payment.status !== "approved") {
+      return NextResponse.json({ ok: true, status: payment.status });
+    }
+
+    const buyerEmail = payment.payer?.email || "";
+    const buyerName =
+      [payment.payer?.first_name, payment.payer?.last_name]
+        .filter(Boolean)
+        .join(" ") || "Asistente";
+
+    console.log("Webhook processing:", { mpPaymentId, status: payment.status, buyerEmail, buyerName });
+
+    const ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
+
+    ticket = {
+      id: ticketId,
+      type: "ticket",
+      paymentId: mpPaymentId,
+      buyerEmail,
+      buyerName,
+      status: "valid",
+      createdAt: new Date().toISOString(),
+    };
+
+    // Store in Redis
+    await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
+    await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
+    treeNumber = await redis.incr("brote:counter");
+
+    // Store attendee for export
+    await redis.sAdd("brote:attendees", JSON.stringify({
+      email: buyerEmail,
+      name: buyerName,
+      ticketId,
+      createdAt: ticket.createdAt,
+    }));
   }
 
-  // Fetch payment details from MercadoPago
-  let payment;
-  try {
-    payment = await new Payment(mp).get({ id: mpPaymentId });
-  } catch (err) {
-    console.error("MP payment fetch failed:", mpPaymentId, err);
-    return NextResponse.json({ error: "Payment not found" }, { status: 200 });
+  // Send email (runs for both new tickets and retries)
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+  if (ticket.buyerEmail) {
+    try {
+      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticket.id}`;
+      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#2D4A3E", light: "#FAF6F1" },
+      });
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      await getResend().emails.send({
+        from: `BROTE <${fromEmail}>`,
+        to: ticket.buyerEmail,
+        subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
+        html: buildTicketEmailHtml(ticket, treeNumber),
+        attachments: [{
+          filename: "qr.png",
+          content: qrDataUrlToBuffer(qrDataUrl),
+          contentType: "image/png",
+          contentId: "qr",
+        }],
+      });
+
+      // Mark email as sent
+      ticket.emailSent = true;
+      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
+      console.log("Email sent:", { to: ticket.buyerEmail, ticketId: ticket.id });
+    } catch (err) {
+      console.error("Email send failed:", ticket.id, err);
+      // Don't fail the webhook — MP will retry and we'll try email again
+    }
   }
 
-  if (payment.status !== "approved") {
-    return NextResponse.json({ ok: true, status: payment.status });
-  }
-
-  const type = "ticket" as const;
-  const buyerEmail = payment.payer?.email || "";
-  const buyerName =
-    [payment.payer?.first_name, payment.payer?.last_name]
-      .filter(Boolean)
-      .join(" ") || "Asistente";
-
-  console.log("Webhook processing:", { mpPaymentId, status: payment.status, buyerEmail, buyerName });
-
-  // Generate ticket
-  const ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://harisolaas.com";
-
-  const ticket: BroteTicket = {
-    id: ticketId,
-    type,
-    paymentId: mpPaymentId,
-    buyerEmail,
-    buyerName,
-    status: "valid",
-    createdAt: new Date().toISOString(),
-  };
-
-  // Generate QR code
-  const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticketId}`;
-  const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-    width: 300,
-    margin: 2,
-    color: { dark: "#2D4A3E", light: "#FAF6F1" },
-  });
-
-  // Store in Redis
-  await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
-  await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
-  const treeNumber = await redis.incr("brote:counter");
-
-  // Store attendee for export
-  await redis.sadd("brote:attendees", JSON.stringify({
-    email: buyerEmail,
-    name: buyerName,
-    ticketId,
-    createdAt: ticket.createdAt,
-  }));
-
-  // Send email
-  console.log("About to send email:", { buyerEmail, ticketId, treeNumber });
-  if (buyerEmail) {
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-
-    await getResend().emails.send({
-      from: `BROTE <${fromEmail}>`,
-      to: buyerEmail,
-      subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-      html: buildTicketEmailHtml(ticket, treeNumber),
-      attachments: [{
-        filename: "qr.png",
-        content: qrDataUrlToBuffer(qrDataUrl),
-        contentType: "image/png",
-        contentId: "qr",
-      }],
-    });
-  }
-
-  return NextResponse.json({ ok: true, ticketId });
+  return NextResponse.json({ ok: true, ticketId: ticket.id });
 }

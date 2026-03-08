@@ -7,9 +7,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const redis = await getRedis();
-  const raw = (await redis.smembers("brote:attendees")) as string[] | null;
-  const attendees = (raw ?? []).map((r: string) => JSON.parse(r));
-
-  return NextResponse.json({ count: attendees.length, attendees });
+  try {
+    const redis = await getRedis();
+    const raw = await redis.sMembers("brote:attendees");
+    const attendees = (raw ?? []).map((r: string) => JSON.parse(r));
+    return NextResponse.json({ count: attendees.length, attendees });
+  } catch (err) {
+    console.error("Attendees fetch failed:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
