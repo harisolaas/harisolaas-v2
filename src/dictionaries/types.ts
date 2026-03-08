@@ -89,6 +89,8 @@ export interface BroteDict {
     heading: string;
     body: string;
     emailNote: string;
+    noEmail: string;
+    whatsappCta: string;
     backLink: string;
   };
   failure: {

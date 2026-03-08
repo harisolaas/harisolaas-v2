@@ -526,9 +526,11 @@ const es: Dictionary = {
     },
     success: {
       title: "BROTE \u2014 \u00a1Listo!",
-      heading: "\u00a1Tu lugar est\u00e1 confirmado!",
-      body: "Gracias por ser parte de BROTE. Tu entrada y el QR para ingresar van a llegar a tu email en unos minutos.",
-      emailNote: "Revis\u00e1 tu bandeja de entrada (y spam, por las dudas).",
+      heading: "\u00a1Ya sos parte del bosque!",
+      body: "Gracias a vos, un \u00e1rbol nuevo va a echar ra\u00edces en Argentina. Eso es real, y es gracias a tu decisi\u00f3n de hoy. Nos vemos el 28 de marzo para celebrarlo juntos.",
+      emailNote: "Tu entrada con el c\u00f3digo QR va a llegar al email que usaste en MercadoPago en los pr\u00f3ximos minutos. Revis\u00e1 tu bandeja de entrada y spam.",
+      noEmail: "\u00bfNo te lleg\u00f3 el email? Escribime y lo resolvemos.",
+      whatsappCta: "Escribime por WhatsApp",
       backLink: "Volver a BROTE",
     },
     failure: {

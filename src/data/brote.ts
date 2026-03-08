@@ -1,9 +1,9 @@
 export const broteConfig = {
   // Prices
-  ticketPrice: "$10",
-  ticketPriceRaw: 10,
-  earlyBirdPrice: "$10",
-  earlyBirdPriceRaw: 10,
+  ticketPrice: "$23.313",
+  ticketPriceRaw: 23313,
+  earlyBirdPrice: "$18.650",
+  earlyBirdPriceRaw: 18650,
   earlyBirdDeadline: "2026-03-14", // YYYY-MM-DD, inclusive (Argentina time)
   currency: "ARS",
 

@@ -516,9 +516,11 @@ const en: Dictionary = {
     },
     success: {
       title: "BROTE \u2014 You\u2019re in!",
-      heading: "Your spot is confirmed!",
-      body: "Thanks for being part of BROTE. Your ticket and QR code will arrive in your email in a few minutes.",
-      emailNote: "Check your inbox (and spam, just in case).",
+      heading: "You\u2019re part of the forest now!",
+      body: "Because of you, a new tree will take root in Argentina. That\u2019s real, and it\u2019s because of what you chose to do today. See you on March 28 to celebrate together.",
+      emailNote: "Your ticket with the QR code will arrive at the email you used in MercadoPago in the next few minutes. Check your inbox and spam.",
+      noEmail: "Didn\u2019t get the email? Reach out and we\u2019ll sort it out.",
+      whatsappCta: "Message me on WhatsApp",
       backLink: "Back to BROTE",
     },
     failure: {
