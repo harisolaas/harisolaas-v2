@@ -104,6 +104,8 @@ export async function POST(req: Request) {
       .filter(Boolean)
       .join(" ") || "Asistente";
 
+  console.log("Webhook processing:", { mpPaymentId, status: payment.status, buyerEmail, buyerName });
+
   // Generate ticket
   const ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://harisolaas.com";
@@ -140,6 +142,7 @@ export async function POST(req: Request) {
   }));
 
   // Send email
+  console.log("About to send email:", { buyerEmail, ticketId, treeNumber });
   if (buyerEmail) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
 
