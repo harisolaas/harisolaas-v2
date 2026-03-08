@@ -11,7 +11,12 @@ import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
-const resend = new Resend(process.env.RESEND_API_KEY!);
+
+let _resend: Resend | null = null;
+function getResend() {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!);
+  return _resend;
+}
 
 function verifySignature(req: Request, body: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
@@ -132,7 +137,7 @@ export async function POST(req: Request) {
   if (buyerEmail) {
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
 
-    await resend.emails.send({
+    await getResend().emails.send({
       from: `BROTE <${fromEmail}>`,
       to: buyerEmail,
       subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,

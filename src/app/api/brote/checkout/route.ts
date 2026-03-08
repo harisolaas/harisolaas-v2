@@ -6,8 +6,32 @@ const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
+// Simple in-memory rate limit: max 5 requests per IP per 60s
+const rateMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 60_000;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return false;
+  }
+  entry.count++;
+  return entry.count > RATE_LIMIT;
+}
+
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429 },
+      );
+    }
+
     // Early bird: check if we're before the deadline (end of day Argentina time, UTC-3)
     const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
     const isEarlyBird = new Date() <= deadline;
