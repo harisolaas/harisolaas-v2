@@ -24,7 +24,17 @@ function verifySignature(req: Request, body: string): boolean {
 
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
-  if (!xSignature || !xRequestId) return false;
+  if (!xSignature || !xRequestId) {
+    console.warn("Webhook missing signature headers:", {
+      hasSignature: !!xSignature,
+      hasRequestId: !!xRequestId,
+      // Log all headers for debugging (redact auth)
+      headers: Object.fromEntries(
+        [...new Headers(req.headers)].filter(([k]) => !k.includes("auth")),
+      ),
+    });
+    return false;
+  }
 
   const parts = Object.fromEntries(
     xSignature.split(",").map((p) => {
@@ -49,7 +59,12 @@ function verifySignature(req: Request, body: string): boolean {
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
 
-  return hash === expected;
+  if (hash !== expected) {
+    console.warn("Webhook signature mismatch:", { dataId, xRequestId, ts, manifest });
+    return false;
+  }
+
+  return true;
 }
 
 export async function POST(req: Request) {

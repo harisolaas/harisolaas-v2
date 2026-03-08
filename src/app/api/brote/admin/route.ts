@@ -1,0 +1,154 @@
+import { NextResponse } from "next/server";
+import { getRedis } from "@/lib/redis";
+import QRCode from "qrcode";
+import { Resend } from "resend";
+import type { BroteTicket } from "@/lib/brote-types";
+import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+
+function auth(req: Request): boolean {
+  const secret = req.headers.get("authorization");
+  return secret === `Bearer ${process.env.BROTE_ADMIN_SECRET}`;
+}
+
+// GET /api/brote/admin — system status
+// GET /api/brote/admin?ticket=BROTE-XXXX — lookup ticket
+export async function GET(req: Request) {
+  if (!auth(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const url = new URL(req.url);
+  const ticketId = url.searchParams.get("ticket");
+
+  try {
+    const redis = await getRedis();
+
+    // Ticket lookup
+    if (ticketId) {
+      const raw = await redis.get(`brote:ticket:${ticketId}`);
+      if (!raw) {
+        return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+      }
+      return NextResponse.json({ ticket: JSON.parse(raw) });
+    }
+
+    // System status
+    const counter = Number(await redis.get("brote:counter") ?? 0);
+    const ticketKeys = await redis.keys("brote:ticket:*");
+    const paymentKeys = await redis.keys("brote:payment:*");
+
+    // Check for tickets missing email
+    const ticketsWithoutEmail: string[] = [];
+    for (const key of ticketKeys) {
+      const raw = await redis.get(key);
+      if (raw) {
+        const t: BroteTicket = JSON.parse(raw);
+        if (!t.emailSent) ticketsWithoutEmail.push(t.id);
+      }
+    }
+
+    return NextResponse.json({
+      status: "ok",
+      counter,
+      tickets: ticketKeys.length,
+      payments: paymentKeys.length,
+      ticketsWithoutEmail,
+      env: {
+        hasRedisUrl: !!process.env.REDIS_URL,
+        hasResendKey: !!process.env.RESEND_API_KEY,
+        hasMpToken: !!process.env.MP_ACCESS_TOKEN,
+        hasMpWebhookSecret: !!process.env.MP_WEBHOOK_SECRET,
+        hasResendFrom: !!process.env.RESEND_FROM_EMAIL,
+        baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+      },
+    });
+  } catch (err) {
+    console.error("Admin GET error:", err);
+    return NextResponse.json(
+      { error: "Server error", message: String(err) },
+      { status: 500 },
+    );
+  }
+}
+
+// POST /api/brote/admin — actions: resend-email, lookup-payment
+export async function POST(req: Request) {
+  if (!auth(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { action, ticketId, paymentId } = (await req.json()) as {
+      action: string;
+      ticketId?: string;
+      paymentId?: string;
+    };
+
+    const redis = await getRedis();
+
+    if (action === "resend-email" && ticketId) {
+      const raw = await redis.get(`brote:ticket:${ticketId}`);
+      if (!raw) {
+        return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
+      }
+
+      const ticket: BroteTicket = JSON.parse(raw);
+      if (!ticket.buyerEmail) {
+        return NextResponse.json({ error: "No email on ticket" }, { status: 400 });
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+      const treeNumber = Number(await redis.get("brote:counter") ?? 1);
+      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticket.id}`;
+      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#2D4A3E", light: "#FAF6F1" },
+      });
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+      const result = await resend.emails.send({
+        from: `BROTE <${fromEmail}>`,
+        to: ticket.buyerEmail,
+        subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
+        html: buildTicketEmailHtml(ticket, treeNumber),
+        attachments: [{
+          filename: "qr.png",
+          content: qrDataUrlToBuffer(qrDataUrl),
+          contentType: "image/png",
+          contentId: "qr",
+        }],
+      });
+
+      ticket.emailSent = true;
+      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
+
+      return NextResponse.json({
+        ok: true,
+        to: ticket.buyerEmail,
+        resendId: result.data?.id,
+      });
+    }
+
+    if (action === "lookup-payment" && paymentId) {
+      const ticketIdForPayment = await redis.get(`brote:payment:${paymentId}`);
+      if (!ticketIdForPayment) {
+        return NextResponse.json({ error: "Payment not found" }, { status: 404 });
+      }
+      const raw = await redis.get(`brote:ticket:${ticketIdForPayment}`);
+      return NextResponse.json({
+        ticketId: ticketIdForPayment,
+        ticket: raw ? JSON.parse(raw) : null,
+      });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (err) {
+    console.error("Admin POST error:", err);
+    return NextResponse.json(
+      { error: "Server error", message: String(err) },
+      { status: 500 },
+    );
+  }
+}
