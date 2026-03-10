@@ -16,6 +16,18 @@ export async function generateMetadata({
         ? "Entrada especial para la comunidad de Un Árbol. 25% OFF."
         : "Special ticket for the Un Árbol community. 25% OFF.",
     robots: { index: false, follow: false },
+    openGraph: {
+      title: "BROTE × Un Árbol",
+      description:
+        locale === "es"
+          ? "Entrada especial para la comunidad de Un Árbol. 25% OFF."
+          : "Special ticket for the Un Árbol community. 25% OFF.",
+      images: [{ url: "https://www.harisolaas.com/og-brote.jpg", width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      images: ["https://www.harisolaas.com/og-brote.jpg"],
+    },
     icons: {
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>",
     },
