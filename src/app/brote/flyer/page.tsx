@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 
@@ -241,6 +241,14 @@ function useUrlState() {
 }
 
 export default function FlyerPage() {
+  return (
+    <Suspense>
+      <FlyerPageInner />
+    </Suspense>
+  );
+}
+
+function FlyerPageInner() {
   const { format, theme, variant, set } = useUrlState();
   const [exporting, setExporting] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
