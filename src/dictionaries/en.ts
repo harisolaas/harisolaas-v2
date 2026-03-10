@@ -560,6 +560,33 @@ const en: Dictionary = {
       backLink: "Back to BROTE",
     },
   },
+  broteUnArbol: {
+    headline: "A party. A tree. Your afternoon.",
+    message: [
+      "This party is born from the same logic shared at Un \u00c1rbol: real impact starts with concrete action.",
+      "For the Un \u00c1rbol community: $17,477 ARS \u2014 25% OFF the final price.",
+      "Each ticket plants a native tree in the Buenos Aires metro area.",
+    ],
+    includes: [
+      "Specialty coffee & pastries (Nueza)",
+      "Live music (Ximena) + DJ set (Gaspar Insfr\u00e1n from Paraguay)",
+      "Reforestation talk + collective planting \u2014 take your plant home",
+      "Intention planting (collective meditation)",
+    ],
+    pricingTitle: "Pricing",
+    pricing: [
+      { label: "Un \u00c1rbol community (25% OFF)", price: "$17,477", highlight: true },
+      { label: "General presale", price: "$18,650" },
+      { label: "At the door", price: "$23,303" },
+    ],
+    codePlaceholder: "Enter your code",
+    codeButton: "Validate",
+    codeInvalid: "Invalid code. Check that it\u2019s correct.",
+    codeUsed: "This code has already been used.",
+    cta: "Get my ticket",
+    loading: "Processing...",
+    backLink: "Back to BROTE",
+  },
 };
 
 export default en;

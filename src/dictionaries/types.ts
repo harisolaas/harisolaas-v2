@@ -112,6 +112,21 @@ export interface BroteDict {
   };
 }
 
+export interface BroteUnArbolDict {
+  headline: string;
+  message: string[];
+  includes: string[];
+  pricingTitle: string;
+  pricing: { label: string; price: string; highlight?: boolean }[];
+  codePlaceholder: string;
+  codeButton: string;
+  codeInvalid: string;
+  codeUsed: string;
+  cta: string;
+  loading: string;
+  backLink: string;
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -161,4 +176,5 @@ export interface Dictionary {
     copyright: string;
   };
   brote: BroteDict;
+  broteUnArbol: BroteUnArbolDict;
 }
