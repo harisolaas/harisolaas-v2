@@ -160,10 +160,10 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
                 </p>
               </div>
 
-              {/* Urgency + tree callout */}
+              {/* Tree callout */}
               <p style={{ fontSize: isStory ? 26 : isVertical ? 22 : 18 }}
                 className={`mt-2 font-semibold tracking-wide ${t.accent}`}>
-                Después sube — cada entrada planta un árbol
+                Cada entrada planta un árbol real en Argentina
               </p>
             </>
           ) : (
