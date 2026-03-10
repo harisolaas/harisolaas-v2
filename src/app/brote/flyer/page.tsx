@@ -11,6 +11,7 @@ const FORMATS: Record<string, { label: string; w: number; h: number }> = {
 };
 
 type Theme = "dark" | "light";
+type Variant = "original" | "promo";
 
 const ACTIVITIES = [
   { icon: "🎵", text: "Música en vivo" },
@@ -38,6 +39,11 @@ const themes = {
     date: "text-[#FAF6F1]",
     time: "text-[#FAF6F1]/70",
     location: "text-[#c8d4c0]",
+    promoBg: "bg-[#FAF6F1]/[0.06]",
+    promoBorder: "border-[#FAF6F1]/15",
+    promoOld: "text-[#FAF6F1]/40",
+    promoNew: "text-[#e8956b]",
+    promoDeadline: "text-[#FAF6F1]/60",
   },
   light: {
     bg: "bg-[#FAF6F1]",
@@ -57,10 +63,15 @@ const themes = {
     date: "text-[#2D4A3E]",
     time: "text-[#2C2C2C]/50",
     location: "text-[#2D4A3E]/70",
+    promoBg: "bg-[#2D4A3E]/[0.06]",
+    promoBorder: "border-[#D4C5B2]",
+    promoOld: "text-[#2C2C2C]/35",
+    promoNew: "text-[#C4704B]",
+    promoDeadline: "text-[#2C2C2C]/50",
   },
 };
 
-function Flyer({ format, theme }: { format: keyof typeof FORMATS; theme: Theme }) {
+function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme: Theme; variant: Variant }) {
   const { w, h } = FORMATS[format];
   const isVertical = h > w;
   const isStory = format === "story";
@@ -108,7 +119,7 @@ function Flyer({ format, theme }: { format: keyof typeof FORMATS; theme: Theme }
           </p>
         </div>
 
-        {/* Middle — what's happening */}
+        {/* Middle — what's happening / promo */}
         <div className={`flex flex-col items-center text-center ${isLandscape ? "gap-4" : "gap-5"}`}>
           {/* Divider */}
           <div className="flex items-center gap-4">
@@ -117,28 +128,70 @@ function Flyer({ format, theme }: { format: keyof typeof FORMATS; theme: Theme }
             <div className={`h-[1px] w-[40px] ${t.divider}`} />
           </div>
 
-          {/* Activity pills */}
-          <div className={`flex flex-wrap items-center justify-center ${isStory ? "gap-4" : "gap-3"}`}>
-            {ACTIVITIES.map((item) => (
+          {variant === "promo" ? (
+            <>
+              {/* Promo pricing block */}
               <div
-                key={item.text}
                 style={{
-                  fontSize: isStory ? 28 : isVertical ? 24 : 20,
-                  padding: isStory ? "14px 32px" : isVertical ? "12px 28px" : "10px 24px",
+                  padding: isStory ? "40px 56px" : isVertical ? "32px 48px" : "24px 40px",
+                  borderRadius: isStory ? 24 : 20,
                 }}
-                className={`flex items-center gap-3 rounded-full border ${t.pillBorder} ${t.pillBg} ${t.pillText}`}
+                className={`flex flex-col items-center gap-2 border ${t.promoBorder} ${t.promoBg}`}
               >
-                <span>{item.icon}</span>
-                <span className="font-medium">{item.text}</span>
-              </div>
-            ))}
-          </div>
+                <p style={{ fontSize: isStory ? 24 : isVertical ? 20 : 16 }}
+                  className={`font-semibold uppercase tracking-[0.2em] ${t.accent}`}>
+                  Precio early bird
+                </p>
 
-          {/* 1 entrada = 1 árbol callout */}
-          <p style={{ fontSize: isStory ? 26 : isVertical ? 22 : 18 }}
-            className={`mt-2 font-semibold tracking-wide ${t.accent}`}>
-            Cada entrada planta un árbol real en Argentina
-          </p>
+                <div className="flex flex-col items-center">
+                  <span style={{ fontSize: isStory ? 28 : isVertical ? 24 : 20 }}
+                    className={`font-medium line-through ${t.promoOld}`}>
+                    $23.313
+                  </span>
+                  <span style={{ fontSize: isStory ? 72 : isVertical ? 60 : isLandscape ? 48 : 54 }}
+                    className={`font-serif font-bold ${t.promoNew}`}>
+                    $18.650
+                  </span>
+                </div>
+
+                <p style={{ fontSize: isStory ? 22 : isVertical ? 18 : 15 }}
+                  className={`mt-1 font-medium ${t.promoDeadline}`}>
+                  Hasta el 14 de marzo
+                </p>
+              </div>
+
+              {/* Urgency + tree callout */}
+              <p style={{ fontSize: isStory ? 26 : isVertical ? 22 : 18 }}
+                className={`mt-2 font-semibold tracking-wide ${t.accent}`}>
+                Después sube — cada entrada planta un árbol
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Activity pills */}
+              <div className={`flex flex-wrap items-center justify-center ${isStory ? "gap-4" : "gap-3"}`}>
+                {ACTIVITIES.map((item) => (
+                  <div
+                    key={item.text}
+                    style={{
+                      fontSize: isStory ? 28 : isVertical ? 24 : 20,
+                      padding: isStory ? "14px 32px" : isVertical ? "12px 28px" : "10px 24px",
+                    }}
+                    className={`flex items-center gap-3 rounded-full border ${t.pillBorder} ${t.pillBg} ${t.pillText}`}
+                  >
+                    <span>{item.icon}</span>
+                    <span className="font-medium">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 1 entrada = 1 árbol callout */}
+              <p style={{ fontSize: isStory ? 26 : isVertical ? 22 : 18 }}
+                className={`mt-2 font-semibold tracking-wide ${t.accent}`}>
+                Cada entrada planta un árbol real en Argentina
+              </p>
+            </>
+          )}
         </div>
 
         {/* Bottom — when & where */}
@@ -171,6 +224,7 @@ function Flyer({ format, theme }: { format: keyof typeof FORMATS; theme: Theme }
 export default function FlyerPage() {
   const [format, setFormat] = useState<keyof typeof FORMATS>("square");
   const [theme, setTheme] = useState<Theme>("dark");
+  const [variant, setVariant] = useState<Variant>("original");
   const [exporting, setExporting] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
   const { w, h } = FORMATS[format];
@@ -186,7 +240,7 @@ export default function FlyerPage() {
         cacheBust: true,
       });
       const link = document.createElement("a");
-      link.download = `BROTE-${FORMATS[format].label}-${theme}.png`;
+      link.download = `BROTE-${FORMATS[format].label}-${theme}${variant === "promo" ? "-promo" : ""}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -194,7 +248,7 @@ export default function FlyerPage() {
     } finally {
       setExporting(false);
     }
-  }, [format, theme, w, h, exporting]);
+  }, [format, theme, variant, w, h, exporting]);
 
   // Scale to fit viewport
   const maxW = 800;
@@ -246,6 +300,30 @@ export default function FlyerPage() {
             Claro
           </button>
         </div>
+
+        {/* Variant toggle */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setVariant("original")}
+            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              variant === "original"
+                ? "bg-white text-neutral-900"
+                : "bg-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            Original
+          </button>
+          <button
+            onClick={() => setVariant("promo")}
+            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              variant === "promo"
+                ? "bg-[#e8956b] text-white"
+                : "bg-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            Promo Early Bird
+          </button>
+        </div>
       </div>
 
       {/* Dimensions label */}
@@ -269,7 +347,7 @@ export default function FlyerPage() {
             transformOrigin: "top left",
           }}>
             <div ref={flyerRef}>
-              <Flyer format={format} theme={theme} />
+              <Flyer format={format} theme={theme} variant={variant} />
             </div>
           </div>
         </div>
