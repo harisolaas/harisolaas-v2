@@ -275,13 +275,13 @@ const es: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Comunidad",
-        title: "Iniciativa de plantaci\u00f3n de \u00e1rboles",
+        title: "BROTE \u2014 Fiesta de reforestaci\u00f3n",
         description:
-          "Tradici\u00f3n anual de cumplea\u00f1os \u2014 plantar \u00e1rboles con la comunidad. Construyendo algo que nos va a trascender a todos.",
-        status: "Anual",
+          "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Argentina. S\u00e1bado 28 de marzo, Palermo.",
+        status: "28 de marzo",
         cta: {
-          label: "Saber m\u00e1s",
-          href: "https://wa.me/5491122555110?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20la%20fiesta%20de%20reforestaci%C3%B3n",
+          label: "Quiero mi entrada",
+          href: "/es/brote",
         },
       },
       {
@@ -481,6 +481,36 @@ const es: Dictionary = {
           "Cada ticket planta un \u00e1rbol real en Argentina junto a Un \u00c1rbol, una ONG con m\u00e1s de 15 a\u00f1os y miles de \u00e1rboles plantados en el pa\u00eds.",
       },
     ],
+    lineup: {
+      toggle: "Ver el lineup",
+      items: [
+        {
+          time: "15:00",
+          title: "Apertura",
+          description:
+            "Caf\u00e9, pasteler\u00eda y encuentro. Un momento para llegar, conocer gente y acomodarse antes de que empiece todo.",
+          link: { url: "https://www.instagram.com/nuezabsas/", label: "Nueza" },
+        },
+        {
+          time: "15:30",
+          title: "Ximena en vivo",
+          description: "M\u00fasica ac\u00fastica para settear el mood.",
+          link: { url: "https://www.instagram.com/ximenasmusica/", label: "Ximena" },
+        },
+        {
+          time: "16:00",
+          title: "Un \u00c1rbol",
+          description:
+            "Charla sobre reforestaci\u00f3n y siembra colectiva. Cada uno hace su propio brote de planta nativa y se lo lleva a casa. Seguido de una siembra de intenci\u00f3n: una meditaci\u00f3n colectiva breve para cerrar ese momento.",
+          link: { url: "https://www.instagram.com/unarbol_ong/", label: "Un \u00c1rbol" },
+        },
+        {
+          time: "17:00",
+          title: "DJ set",
+          description: "Baile hasta el final.",
+        },
+      ],
+    },
     impact: {
       heading: "Tu entrada no se gasta. Se planta.",
       partner: {

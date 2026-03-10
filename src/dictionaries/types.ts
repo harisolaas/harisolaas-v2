@@ -45,6 +45,13 @@ export interface BroteExperienceItem {
   subtitle?: string;
 }
 
+export interface BroteLineupItem {
+  time: string;
+  title: string;
+  description: string;
+  link?: { url: string; label: string };
+}
+
 export interface BroteDict {
   meta: { title: string; description: string; ogDescription: string };
   hero: {
@@ -54,6 +61,10 @@ export interface BroteDict {
     cta: string;
   };
   experience: BroteExperienceItem[];
+  lineup: {
+    toggle: string;
+    items: BroteLineupItem[];
+  };
   impact: {
     heading: string;
     partner: { intro: string; name: string; rest: string };

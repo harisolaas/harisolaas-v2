@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 
 const FORMATS: Record<string, { label: string; w: number; h: number }> = {
@@ -221,10 +222,26 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
   );
 }
 
+function useUrlState() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const f = searchParams.get("f");
+  const format: keyof typeof FORMATS = f && f in FORMATS ? f : "square";
+  const theme: Theme = searchParams.get("t") === "light" ? "light" : "dark";
+  const variant: Variant = searchParams.get("v") === "promo" ? "promo" : "original";
+
+  const set = useCallback((updates: Partial<{ f: string; t: string; v: string }>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [k, v] of Object.entries(updates)) params.set(k, v);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
+
+  return { format, theme, variant, set };
+}
+
 export default function FlyerPage() {
-  const [format, setFormat] = useState<keyof typeof FORMATS>("square");
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [variant, setVariant] = useState<Variant>("original");
+  const { format, theme, variant, set } = useUrlState();
   const [exporting, setExporting] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
   const { w, h } = FORMATS[format];
@@ -263,7 +280,7 @@ export default function FlyerPage() {
           {Object.entries(FORMATS).map(([key, { label }]) => (
             <button
               key={key}
-              onClick={() => setFormat(key)}
+              onClick={() => set({ f: key })}
               className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
                 format === key
                   ? "bg-white text-neutral-900"
@@ -278,7 +295,7 @@ export default function FlyerPage() {
         {/* Theme toggle */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setTheme("dark")}
+            onClick={() => set({ t: "dark" })}
             className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors ${
               theme === "dark"
                 ? "bg-[#2D4A3E] text-[#FAF6F1]"
@@ -289,7 +306,7 @@ export default function FlyerPage() {
             Oscuro
           </button>
           <button
-            onClick={() => setTheme("light")}
+            onClick={() => set({ t: "light" })}
             className={`flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors ${
               theme === "light"
                 ? "bg-[#FAF6F1] text-[#2D4A3E]"
@@ -304,7 +321,7 @@ export default function FlyerPage() {
         {/* Variant toggle */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setVariant("original")}
+            onClick={() => set({ v: "original" })}
             className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
               variant === "original"
                 ? "bg-white text-neutral-900"
@@ -314,7 +331,7 @@ export default function FlyerPage() {
             Original
           </button>
           <button
-            onClick={() => setVariant("promo")}
+            onClick={() => set({ v: "promo" })}
             className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
               variant === "promo"
                 ? "bg-[#e8956b] text-white"

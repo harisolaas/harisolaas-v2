@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback, type ReactNode } from "react";
 import Image from "next/image";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import { broteConfig } from "@/data/brote";
 import type { BroteDict } from "@/dictionaries/types";
 import {
@@ -59,6 +59,7 @@ export default function BroteLanding({ dict, locale }: Props) {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [ctaHovered, setCtaHovered] = useState(false);
+  const [lineupOpen, setLineupOpen] = useState(false);
 
   useEffect(() => {
     initPostHog();
@@ -246,6 +247,99 @@ export default function BroteLanding({ dict, locale }: Props) {
                 </motion.div>
               ))}
             </div>
+          </div>
+        </Section>
+
+        {/* ───────── BLOCK 2.5 — Lineup accordion ───────── */}
+        <Section id="lineup" className="-mt-6 px-6 pb-4 md:-mt-8">
+          <div className="mx-auto max-w-2xl">
+            <div className="flex justify-center">
+              <button
+                onClick={() => setLineupOpen((o) => !o)}
+                className="group flex items-center gap-2 rounded-full border border-forest/20 px-6 py-3 text-sm font-semibold text-forest transition-all hover:border-forest/40 hover:bg-forest/5"
+              >
+                {dict.lineup.toggle}
+                <motion.svg
+                  animate={{ rotate: lineupOpen ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                  />
+                </motion.svg>
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {lineupOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  className="overflow-hidden"
+                >
+                  <div className="relative mt-8 ml-4">
+                    {/* Timeline line */}
+                    <div className="absolute left-0 top-0 bottom-0 w-px bg-sage/40" />
+
+                    {dict.lineup.items.map((item, i) => (
+                      <motion.div
+                        key={item.time}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: i * 0.08 }}
+                        className="relative mb-6 pl-8 last:mb-0"
+                      >
+                        {/* Dot */}
+                        <div className="absolute left-0 top-1.5 h-2.5 w-2.5 -translate-x-1 rounded-full bg-terracotta" />
+
+                        <span className="text-xs font-semibold uppercase tracking-widest text-terracotta">
+                          {item.time}
+                        </span>
+                        <h4 className="mt-1 font-serif text-base text-forest md:text-lg">
+                          {item.link ? (
+                            <a
+                              href={item.link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline decoration-terracotta/40 underline-offset-2 transition-colors hover:text-terracotta"
+                            >
+                              {item.title}
+                            </a>
+                          ) : (
+                            item.title
+                          )}
+                        </h4>
+                        <p className="mt-1 text-sm leading-relaxed text-charcoal/60">
+                          {item.description}
+                          {item.link && item.title !== item.link.label && (
+                            <>
+                              {" "}
+                              <a
+                                href={item.link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-medium text-terracotta/70 underline decoration-terracotta/30 underline-offset-2 transition-colors hover:text-terracotta"
+                              >
+                                @{item.link.label}
+                              </a>
+                            </>
+                          )}
+                        </p>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </Section>
 

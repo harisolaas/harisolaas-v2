@@ -266,13 +266,13 @@ const en: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Community",
-        title: "Tree Planting Initiative",
+        title: "BROTE \u2014 Reforestation party",
         description:
-          "Annual birthday tradition \u2014 planting trees with the community. Building something that will outlast all of us.",
-        status: "Annual",
+          "Live music, specialty coffee, DJ set, and an afternoon with purpose. Each ticket plants a real tree in Argentina. Saturday March 28, Palermo.",
+        status: "March 28",
         cta: {
-          label: "Learn More",
-          href: "https://wa.me/5491122555110?text=Hi%20I%27d%20like%20information%20about%20the%20tree%20planting%20initiative",
+          label: "Get my ticket",
+          href: "/en/brote",
         },
       },
       {
@@ -472,6 +472,36 @@ const en: Dictionary = {
           "Each ticket plants a real tree in Argentina with Un \u00c1rbol, an NGO with over 15 years and thousands of trees planted across the country.",
       },
     ],
+    lineup: {
+      toggle: "See the lineup",
+      items: [
+        {
+          time: "15:00",
+          title: "Opening",
+          description:
+            "Coffee, pastries, and meeting people. A moment to arrive, get comfortable and settle in before everything starts.",
+          link: { url: "https://www.instagram.com/nuezabsas/", label: "Nueza" },
+        },
+        {
+          time: "15:30",
+          title: "Ximena live",
+          description: "Acoustic music to set the mood.",
+          link: { url: "https://www.instagram.com/ximenasmusica/", label: "Ximena" },
+        },
+        {
+          time: "16:00",
+          title: "Un \u00c1rbol",
+          description:
+            "Talk about reforestation and collective planting. Everyone makes their own native plant sprout and takes it home. Followed by an intention planting: a brief collective meditation to close the moment.",
+          link: { url: "https://www.instagram.com/unarbol_ong/", label: "Un \u00c1rbol" },
+        },
+        {
+          time: "17:00",
+          title: "DJ set",
+          description: "Dancing until the end.",
+        },
+      ],
+    },
     impact: {
       heading: "Your ticket doesn\u2019t get spent. It gets planted.",
       partner: {
