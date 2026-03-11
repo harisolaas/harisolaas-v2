@@ -16,7 +16,7 @@ import TreeCounter from "@/components/TreeCounter";
 
 declare global {
   interface Window {
-    fbq: (...args: unknown[]) => void;
+    fbq?: (...args: unknown[]) => void;
   }
 }
 
@@ -73,14 +73,25 @@ export default function BroteLanding({ dict, locale }: Props) {
     trackSectionView("brote_hero");
     videoRef.current?.load();
 
-    // Meta Pixel — ViewContent
-    if (typeof window !== "undefined" && window.fbq) {
-      window.fbq("track", "ViewContent", {
-        content_name: "BROTE Landing",
-        content_category: "Event Ticket",
-        currency: "ARS",
-        value: broteConfig.earlyBirdPriceRaw,
-      });
+    // Meta Pixel — ViewContent (wait for fbq to load)
+    const fireViewContent = () => {
+      if (window.fbq) {
+        window.fbq("track", "ViewContent", {
+          content_name: "BROTE Landing",
+          content_category: "Event Ticket",
+          currency: "ARS",
+          value: broteConfig.earlyBirdPriceRaw,
+        });
+      }
+    };
+    if (window.fbq) {
+      fireViewContent();
+    } else {
+      // Pixel hasn't loaded yet — poll briefly
+      const interval = setInterval(() => {
+        if (window.fbq) { fireViewContent(); clearInterval(interval); }
+      }, 200);
+      setTimeout(() => clearInterval(interval), 5000);
     }
   }, []);
 
@@ -545,18 +556,27 @@ export default function BroteLanding({ dict, locale }: Props) {
 
       {/* Meta Pixel */}
       {process.env.NEXT_PUBLIC_META_PIXEL_ID && (
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`!function(f,b,e,v,n,t,s)
+        <>
+          <Script id="meta-pixel-init" strategy="afterInteractive">
+            {`!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
+n.queue=[];}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID}');
-fbq('track', 'PageView');`}
-        </Script>
+fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID}');`}
+          </Script>
+          <Script
+            id="meta-pixel-sdk"
+            src="https://connect.facebook.net/en_US/fbevents.js"
+            strategy="afterInteractive"
+            onLoad={() => {
+              if (window.fbq) {
+                window.fbq("track", "PageView");
+              }
+            }}
+          />
+        </>
       )}
     </>
   );

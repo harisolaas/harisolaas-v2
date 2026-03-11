@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { Resend } from "resend";
 import type { BroteTicket } from "@/lib/brote-types";
 import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 function auth(req: Request): boolean {
   const secret = req.headers.get("authorization");
@@ -59,6 +60,8 @@ export async function GET(req: Request) {
         hasMpToken: !!process.env.MP_ACCESS_TOKEN,
         hasMpWebhookSecret: !!process.env.MP_WEBHOOK_SECRET,
         hasResendFrom: !!process.env.RESEND_FROM_EMAIL,
+        hasMetaPixelId: !!process.env.META_PIXEL_ID,
+        hasMetaCapiToken: !!process.env.META_CAPI_TOKEN,
         baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
       },
     });
@@ -78,10 +81,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
+      testEventCode?: string;
     };
 
     const redis = await getRedis();
@@ -128,6 +132,35 @@ export async function POST(req: Request) {
         ok: true,
         to: ticket.buyerEmail,
         resendId: result.data?.id,
+      });
+    }
+
+    if (action === "test-meta") {
+      if (!testEventCode) {
+        return NextResponse.json(
+          { error: "testEventCode is required — get it from Meta Events Manager > Test Events" },
+          { status: 400 },
+        );
+      }
+
+      const result = await sendMetaEvent(
+        {
+          event_name: "Purchase",
+          event_id: `test-purchase-${Date.now()}`,
+          event_source_url: "https://www.harisolaas.com/es/brote",
+          user_data: {},
+          custom_data: { currency: "ARS", value: 1 },
+        },
+        { testEventCode },
+      );
+
+      return NextResponse.json({
+        ok: result.ok,
+        meta_response: result.response,
+        error: result.error,
+        hint: result.ok
+          ? "Check Meta Events Manager > Test Events tab for the event"
+          : "Check that META_PIXEL_ID and META_CAPI_TOKEN env vars are set",
       });
     }
 

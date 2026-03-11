@@ -12,7 +12,7 @@ interface CustomData {
   content_category?: string;
 }
 
-interface MetaEvent {
+export interface MetaEvent {
   event_name: string;
   event_id: string;
   event_source_url: string;
@@ -28,13 +28,17 @@ const API_VERSION = "v19.0";
  * Send an event to Meta Conversions API.
  * Fails silently — never blocks the purchase/webhook flow.
  */
-export async function sendMetaEvent(event: MetaEvent): Promise<void> {
+export async function sendMetaEvent(
+  event: MetaEvent,
+  options?: { testEventCode?: string },
+): Promise<{ ok: boolean; response?: unknown; error?: string }> {
   if (!PIXEL_ID || !TOKEN) {
-    console.warn("Meta CAPI: missing PIXEL_ID or TOKEN, skipping event:", event.event_name);
-    return;
+    const msg = "Meta CAPI: missing PIXEL_ID or TOKEN, skipping event: " + event.event_name;
+    console.warn(msg);
+    return { ok: false, error: msg };
   }
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     data: [
       {
         event_name: event.event_name,
@@ -48,6 +52,10 @@ export async function sendMetaEvent(event: MetaEvent): Promise<void> {
     ],
   };
 
+  if (options?.testEventCode) {
+    payload.test_event_code = options.testEventCode;
+  }
+
   try {
     const url = `https://graph.facebook.com/${API_VERSION}/${PIXEL_ID}/events?access_token=${TOKEN}`;
     const res = await fetch(url, {
@@ -56,11 +64,15 @@ export async function sendMetaEvent(event: MetaEvent): Promise<void> {
       body: JSON.stringify(payload),
     });
 
+    const body = await res.text();
     if (!res.ok) {
-      const text = await res.text();
-      console.error("Meta CAPI error:", res.status, text);
+      console.error("Meta CAPI error:", res.status, body);
+      return { ok: false, error: body };
     }
+
+    return { ok: true, response: JSON.parse(body) };
   } catch (err) {
     console.error("Meta CAPI fetch failed:", err);
+    return { ok: false, error: String(err) };
   }
 }
