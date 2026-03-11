@@ -573,7 +573,7 @@ const es: Dictionary = {
   broteUnArbol: {
     headline: "Una fiesta. Un \u00e1rbol. Tu tarde.",
     message: [
-      "Esta fiesta nace de la misma l\u00f3gica que comparten en Un \u00c1rbol: que el impacto real empieza con acci\u00f3n concreta.",
+      "Donar es lindo. Todav\u00eda m\u00e1s lindo es compartir un espacio de festejo con una comunidad que aporta todos los meses al medio ambiente.",
       "Para la comunidad de Un \u00c1rbol: $17.477 ARS \u2014 25% OFF sobre el precio final.",
       "Cada entrada planta un \u00e1rbol nativo en el AMBA.",
     ],
