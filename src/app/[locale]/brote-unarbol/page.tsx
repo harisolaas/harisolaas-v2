@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
@@ -42,5 +43,9 @@ export default async function BroteUnArbolPage({
   const { locale } = await params;
   const dict = await getDictionary(locale as Locale);
 
-  return <BroteUnArbol dict={dict.broteUnArbol} locale={locale} />;
+  return (
+    <Suspense>
+      <BroteUnArbol dict={dict.broteUnArbol} locale={locale} />
+    </Suspense>
+  );
 }

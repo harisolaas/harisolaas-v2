@@ -1,95 +1,45 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
-import { getRedis } from "@/lib/redis";
 import { broteConfig } from "@/data/brote";
-import { nanoid } from "nanoid";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
 
-function auth(req: Request): boolean {
-  const secret = req.headers.get("authorization");
-  return secret === `Bearer ${process.env.BROTE_ADMIN_SECRET}`;
-}
+const DISCOUNT_CODE = process.env.BROTE_UNARBOL_CODE || "MESUMOALPLANTEL";
 
-const PREFIX = "brote:unarbol:";
-
-// POST — validate code + checkout, or admin actions
+// POST — validate code + checkout
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { action } = body as { action: string };
-    const redis = await getRedis();
+    const { action, code } = body as { action: string; code?: string };
 
-    // ── Admin: generate codes ──
-    if (action === "generate") {
-      if (!auth(req)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const count = Math.min(body.count || 10, 100);
-      const codes: string[] = [];
-      for (let i = 0; i < count; i++) {
-        const code = `UNARBOL-${nanoid(6).toUpperCase()}`;
-        await redis.set(`${PREFIX}${code}`, "valid");
-        codes.push(code);
-      }
-      return NextResponse.json({ ok: true, codes });
-    }
-
-    // ── Admin: reset a used code ──
-    if (action === "reset") {
-      if (!auth(req)) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const { code } = body as { code: string };
-      const status = await redis.get(`${PREFIX}${code}`);
-      if (!status) {
-        return NextResponse.json({ error: "Code not found" }, { status: 404 });
-      }
-      await redis.set(`${PREFIX}${code}`, "valid");
-      return NextResponse.json({ ok: true, code, status: "valid" });
-    }
-
-    // ── Public: validate code ──
+    // ── Validate code ──
     if (action === "validate") {
-      const { code } = body as { code: string };
       if (!code) {
         return NextResponse.json({ error: "Missing code" }, { status: 400 });
       }
 
-      const normalized = code.trim().toUpperCase();
-      const status = await redis.get(`${PREFIX}${normalized}`);
-
-      if (!status) {
+      const valid = code.trim().toUpperCase() === DISCOUNT_CODE.toUpperCase();
+      if (!valid) {
         return NextResponse.json({ valid: false, reason: "invalid" });
       }
-      if (status === "used") {
-        return NextResponse.json({ valid: false, reason: "used" });
-      }
 
-      return NextResponse.json({ valid: true, code: normalized });
+      return NextResponse.json({ valid: true, code: code.trim().toUpperCase() });
     }
 
-    // ── Public: checkout with valid code ──
+    // ── Checkout with valid code ──
     if (action === "checkout") {
-      const { code } = body as { code: string };
       if (!code) {
         return NextResponse.json({ error: "Missing code" }, { status: 400 });
       }
 
-      const normalized = code.trim().toUpperCase();
-      const status = await redis.get(`${PREFIX}${normalized}`);
-
-      if (!status || status === "used") {
+      if (code.trim().toUpperCase() !== DISCOUNT_CODE.toUpperCase()) {
         return NextResponse.json(
-          { error: "Invalid or used code" },
+          { error: "Invalid code" },
           { status: 403 },
         );
       }
-
-      // Mark code as used
-      await redis.set(`${PREFIX}${normalized}`, "used");
 
       const baseUrl =
         process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
@@ -112,7 +62,7 @@ export async function POST(req: Request) {
           },
           auto_return: "approved",
           notification_url: `${baseUrl}/api/brote/webhook`,
-          metadata: { type: "ticket", source: "unarbol", code: normalized },
+          metadata: { type: "ticket", source: "unarbol" },
         },
       });
 
@@ -127,40 +77,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) {
     console.error("Un Árbol API error:", error);
-    return NextResponse.json(
-      { error: "Server error", message: String(error) },
-      { status: 500 },
-    );
-  }
-}
-
-// GET — admin: list all codes
-export async function GET(req: Request) {
-  if (!auth(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const redis = await getRedis();
-    const keys = await redis.keys(`${PREFIX}*`);
-    const codes: { code: string; status: string }[] = [];
-
-    for (const key of keys) {
-      const status = await redis.get(key);
-      codes.push({
-        code: key.replace(PREFIX, ""),
-        status: status || "unknown",
-      });
-    }
-
-    codes.sort((a, b) => a.code.localeCompare(b.code));
-
-    const valid = codes.filter((c) => c.status === "valid").length;
-    const used = codes.filter((c) => c.status === "used").length;
-
-    return NextResponse.json({ total: codes.length, valid, used, codes });
-  } catch (error) {
-    console.error("Un Árbol GET error:", error);
     return NextResponse.json(
       { error: "Server error", message: String(error) },
       { status: 500 },

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import type { BroteUnArbolDict } from "@/dictionaries/types";
 
@@ -10,11 +11,31 @@ interface Props {
 }
 
 export default function BroteUnArbol({ dict, locale }: Props) {
+  const searchParams = useSearchParams();
   const [code, setCode] = useState("");
   const [validCode, setValidCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Auto-fill and validate from URL param
+  useEffect(() => {
+    const urlCode = searchParams.get("code");
+    if (urlCode) {
+      setCode(urlCode.toUpperCase());
+      // Auto-validate
+      fetch("/api/brote/unarbol", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "validate", code: urlCode.trim() }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.valid) setValidCode(data.code);
+        })
+        .catch(() => {});
+    }
+  }, [searchParams]);
 
   const handleValidate = useCallback(async () => {
     if (!code.trim() || validating) return;
@@ -31,8 +52,6 @@ export default function BroteUnArbol({ dict, locale }: Props) {
 
       if (data.valid) {
         setValidCode(data.code);
-      } else if (data.reason === "used") {
-        setError(dict.codeUsed);
       } else {
         setError(dict.codeInvalid);
       }
