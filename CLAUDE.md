@@ -264,3 +264,128 @@ When someone finishes scrolling this site, they should think:
 5. Section 4 (Technology serves people): could show real products or human impact
 6. Section 5 (Joy): surfing, basketball, Art of Living, or candid personal shot
 7. Norway: transitional/personal moment (optional)
+
+---
+
+## BROTE — Event Ticketing System
+
+BROTE is a reforestation party (fiesta de reforestación). Each ticket plants a real tree in Argentina via partnership with Un Árbol NGO. The event is March 28, 2026 in Palermo, Buenos Aires. **The site is LIVE — do NOT push to main without explicit approval.**
+
+### Payment Flow (MercadoPago Checkout Pro)
+
+1. User clicks CTA → frontend POSTs to `/api/brote/checkout`
+2. Checkout endpoint creates an MP `Preference` with the ticket price → returns `init_point` URL
+3. User is redirected to MercadoPago to pay (credit, debit, cash, MP wallet)
+4. After payment → user lands on `/[locale]/brote/success` or `/brote/failure`
+5. MP sends async webhook POST to `/api/brote/webhook`
+6. Webhook: verifies HMAC signature → fetches payment from MP API → generates `BROTE-XXXXXXXX` ticket (nanoid) → stores in Redis → increments counter → sends email with QR code via Resend
+7. At the door: `/brote/gate` scans/validates ticket IDs via `/api/brote/validate`
+
+### Pricing (in `src/data/brote.ts`)
+
+| Tier | Price (ARS) | Config key |
+|---|---|---|
+| Early bird (until Mar 14) | $18.650 | `earlyBirdPriceRaw` |
+| Regular (door) | $23.313 | `ticketPriceRaw` |
+| Un Árbol community (25% OFF) | $17.477 | `unArbolPriceRaw` |
+
+### API Routes (`src/app/api/brote/`)
+
+| Route | Method | Purpose |
+|---|---|---|
+| `checkout/` | POST | Creates MP Preference for regular/early-bird ticket. Rate limited (5/IP/60s) |
+| `webhook/` | POST | Receives MP payment notifications. HMAC verification, idempotent (Redis `brote:payment:{id}` → ticketId), `emailSent` flag for crash recovery email retry |
+| `counter/` | GET | Returns ticket count from Redis |
+| `validate/` | POST | Actions: `check` (is ticket valid?) and `use` (mark used at door) |
+| `admin/` | GET/POST | System status, ticket lookup, email resend, payment lookup. Auth: `Bearer $BROTE_ADMIN_SECRET` |
+| `attendees/` | GET | Export attendee list. Auth required |
+| `unarbol/` | GET/POST | Un Árbol discount codes: validate code, checkout at $17.477, admin generate/reset/list codes |
+
+### Un Árbol Discount System (`/api/brote/unarbol`)
+
+Single-use codes stored in Redis (`brote:unarbol:{CODE}` → `"valid"` or `"used"`). Page at `/[locale]/brote-unarbol` (noindex, not in nav/sitemap). Flow: enter code → validate → show checkout CTA → checkout marks code as used + creates MP preference at discounted price.
+
+**Admin: generate codes:**
+```
+POST /api/brote/unarbol  (Auth: Bearer $BROTE_ADMIN_SECRET)
+{"action": "generate", "count": 20}
+```
+
+**Admin: list codes:** `GET /api/brote/unarbol` (Auth required)
+
+**Admin: reset used code:** `POST {"action": "reset", "code": "UNARBOL-XXXXXX"}` (Auth required)
+
+### Pages
+
+| Path | Purpose |
+|---|---|
+| `/[locale]/brote` | Main landing page — hero, experience grid, lineup accordion, impact section, pricing, about, practical details, final CTA |
+| `/[locale]/brote/success` | Post-payment confirmation with forest message, email instructions, WhatsApp fallback |
+| `/[locale]/brote/failure` | Failed/cancelled payment |
+| `/[locale]/brote-unarbol` | Un Árbol community discount page (noindex, code-gated) |
+| `/brote/flyer` | Internal flyer generator — 4 formats (1:1, 9:16, 16:9, 4:5), dark/light themes, original/promo variants, full-res PNG export. State lives in URL params (`?f=story&t=dark&v=promo`) |
+
+### Key Files
+
+| File | What it does |
+|---|---|
+| `src/components/BroteLanding.tsx` | Main landing — CTA calls `handleCheckout()` → POST `/api/brote/checkout` → redirect to MP |
+| `src/components/BroteUnArbol.tsx` | Un Árbol discount page — code validation + checkout |
+| `src/components/TreeCounter.tsx` | Animated SVG forest visualization (tickets vs goal). Dev buttons gated behind `NODE_ENV` |
+| `src/data/brote.ts` | Config: prices, currency, venue, early bird deadline, expected attendees |
+| `src/lib/brote-types.ts` | `BroteTicket` interface (id, paymentId, buyerEmail, buyerName, status, emailSent) |
+| `src/lib/brote-email.ts` | HTML email template with inline QR code (CID attachment) |
+| `src/lib/redis.ts` | Redis client singleton (node-redis v4, camelCase methods: `sMembers`, `sAdd`) |
+| `src/lib/meta-capi.ts` | Meta Conversions API helper — `sendMetaEvent()`, fails silently |
+| `src/app/brote/flyer/page.tsx` | Flyer generator with format/theme/variant toggles, html-to-image export |
+| `src/app/brote/flyer/layout.tsx` | Standalone layout (outside `[locale]`, needs its own html/body + font imports) |
+
+### Dependencies
+
+- `mercadopago` — MP SDK (Preference, Payment classes)
+- `redis` — node-redis v4 (camelCase methods)
+- `resend` — Transactional email (lazy-instantiated in webhook to avoid build-time crash)
+- `qrcode` — QR codes as data URLs
+- `nanoid` — Short unique ticket IDs
+- `html-to-image` — Client-side PNG export for flyer generator
+
+### Environment Variables
+
+| Var | Notes |
+|---|---|
+| `MP_ACCESS_TOKEN` | MercadoPago production token (starts with `APP_USR-`) |
+| `MP_WEBHOOK_SECRET` | HMAC signing secret from MP dashboard |
+| `REDIS_URL` | Redis connection string |
+| `RESEND_API_KEY` | Resend email API key |
+| `RESEND_FROM_EMAIL` | From address (default: `brote@harisolaas.com`) |
+| `NEXT_PUBLIC_BASE_URL` | **Must be `https://www.harisolaas.com`** (non-www gets 307, breaks MP webhook POSTs) |
+| `BROTE_ADMIN_SECRET` | Auth for admin/attendees/unarbol-admin endpoints |
+| `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel ID (client-side) |
+| `META_PIXEL_ID` | Same Pixel ID (server-side, used by CAPI) |
+| `META_CAPI_TOKEN` | Meta Conversions API token |
+
+### Redis Keys
+
+| Key | Value |
+|---|---|
+| `brote:ticket:{ticketId}` | JSON BroteTicket (includes `emailSent` flag) |
+| `brote:payment:{mpPaymentId}` | ticketId (idempotency) |
+| `brote:counter` | Integer ticket count |
+| `brote:attendees` | SET of JSON attendee objects |
+| `brote:unarbol:{CODE}` | `"valid"` or `"used"` |
+| `brote:checkout:{preferenceId}` | JSON: `{eventId, fbp, fbc, ip, ua}` for Meta CAPI (24h TTL) |
+
+### Known Issues
+
+- **www redirect**: Vercel 307 redirects non-www → www. All MP webhook URLs must use `www.harisolaas.com`
+- **Webhook signature 401s**: Some MP webhook calls fail HMAC verification. Debug logging added. Email retry on idempotent calls works as workaround
+- **Email crash recovery**: If webhook crashes after storing ticket but before email, `emailSent` flag lets retries pick up and send
+- **Can't self-pay on MP**: Buyer ≠ seller MP account. Test with incognito + different account
+- **Flyer route outside locale**: `/brote/flyer` is excluded from locale middleware in `src/proxy.ts` and has its own layout with html/body tags
+
+### Routing Notes
+
+- `src/proxy.ts` handles locale middleware. Matcher excludes: `_next`, `api`, `brote/flyer`, `favicon.ico`, static files
+- The flyer route (`/brote/flyer`) lives outside `[locale]` with a standalone layout
+- Dictionary content for BROTE is in `es.ts`/`en.ts` under `brote` and `broteUnArbol` keys
+- Types in `src/dictionaries/types.ts`: `BroteDict`, `BroteUnArbolDict`, `BroteLineupItem`, `BroteExperienceItem`
