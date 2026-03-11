@@ -212,18 +212,25 @@ export async function POST(req: Request) {
 
       const paymentAmount = payment.transaction_amount ?? 0;
 
-      sendMetaEvent({
-        event_name: "Purchase",
-        event_id: `brote-purchase-${ticket.id}`,
-        event_source_url: "https://www.harisolaas.com/es/brote",
-        user_data: {
-          client_ip_address: checkoutMeta.ip || undefined,
-          client_user_agent: checkoutMeta.ua || undefined,
-          fbp: checkoutMeta.fbp || undefined,
-          fbc: checkoutMeta.fbc || undefined,
-        },
-        custom_data: { currency: "ARS", value: paymentAmount },
-      }).catch(() => {}); // fire and forget
+      const ip = checkoutMeta.ip || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+      const ua = checkoutMeta.ua || req.headers.get("user-agent");
+
+      if (ip || ua) {
+        sendMetaEvent({
+          event_name: "Purchase",
+          event_id: `brote-purchase-${ticket.id}`,
+          event_source_url: "https://www.harisolaas.com/es/brote",
+          user_data: {
+            client_ip_address: ip || undefined,
+            client_user_agent: ua || undefined,
+            fbp: checkoutMeta.fbp || undefined,
+            fbc: checkoutMeta.fbc || undefined,
+          },
+          custom_data: { currency: "ARS", value: paymentAmount },
+        }).catch(() => {}); // fire and forget
+      } else {
+        console.warn("Meta CAPI: skipping Purchase event — no user_data available for ticket:", ticket.id);
+      }
     } catch (err) {
       console.error("Meta CAPI Purchase error (non-fatal):", err);
     }

@@ -148,7 +148,10 @@ export async function POST(req: Request) {
           event_name: "Purchase",
           event_id: `test-purchase-${Date.now()}`,
           event_source_url: "https://www.harisolaas.com/es/brote",
-          user_data: {},
+          user_data: {
+            client_ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1",
+            client_user_agent: req.headers.get("user-agent") || "test-agent",
+          },
           custom_data: { currency: "ARS", value: 1 },
         },
         { testEventCode },
