@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback, type ReactNode } from "react";
+import Script from "next/script";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import { broteConfig } from "@/data/brote";
@@ -12,6 +13,12 @@ import {
   trackLocaleSwitch,
 } from "@/lib/analytics";
 import TreeCounter from "@/components/TreeCounter";
+
+declare global {
+  interface Window {
+    fbq: (...args: unknown[]) => void;
+  }
+}
 
 /* ─── animated section wrapper ─── */
 
@@ -65,6 +72,16 @@ export default function BroteLanding({ dict, locale }: Props) {
     initPostHog();
     trackSectionView("brote_hero");
     videoRef.current?.load();
+
+    // Meta Pixel — ViewContent
+    if (typeof window !== "undefined" && window.fbq) {
+      window.fbq("track", "ViewContent", {
+        content_name: "BROTE Landing",
+        content_category: "Event Ticket",
+        currency: "ARS",
+        value: broteConfig.earlyBirdPriceRaw,
+      });
+    }
   }, []);
 
   const handleCheckout = useCallback(async () => {
@@ -72,11 +89,28 @@ export default function BroteLanding({ dict, locale }: Props) {
     setCheckoutLoading("ticket");
     trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
 
+    // Meta Pixel — InitiateCheckout with dedup event ID
+    const eventId = crypto.randomUUID();
+    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
+    const price = new Date() <= deadline ? broteConfig.earlyBirdPriceRaw : broteConfig.ticketPriceRaw;
+
+    if (typeof window !== "undefined" && window.fbq) {
+      window.fbq("track", "InitiateCheckout", {
+        currency: "ARS",
+        value: price,
+      }, { eventID: eventId });
+    }
+
+    // Read Meta cookies for server-side dedup
+    const cookies = document.cookie.split("; ");
+    const fbp = cookies.find((c) => c.startsWith("_fbp="))?.split("=")[1];
+    const fbc = cookies.find((c) => c.startsWith("_fbc="))?.split("=")[1];
+
     try {
       const res = await fetch("/api/brote/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "ticket" }),
+        body: JSON.stringify({ type: "ticket", eventId, fbp, fbc }),
       });
 
       const data = await res.json();
@@ -508,6 +542,22 @@ export default function BroteLanding({ dict, locale }: Props) {
           </div>
         </Section>
       </main>
+
+      {/* Meta Pixel */}
+      {process.env.NEXT_PUBLIC_META_PIXEL_ID && (
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {`!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID}');
+fbq('track', 'PageView');`}
+        </Script>
+      )}
     </>
   );
 }

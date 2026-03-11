@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { broteConfig } from "@/data/brote";
+import { getRedis } from "@/lib/redis";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -32,13 +34,19 @@ export async function POST(req: Request) {
       );
     }
 
+    const { eventId, fbp, fbc } = (await req.json()) as {
+      eventId?: string;
+      fbp?: string;
+      fbc?: string;
+    };
+
     // Early bird: check if we're before the deadline (end of day Argentina time, UTC-3)
     const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
     const isEarlyBird = new Date() <= deadline;
 
     const price = isEarlyBird ? broteConfig.earlyBirdPriceRaw : broteConfig.ticketPriceRaw;
     const title = `BROTE — Entrada${isEarlyBird ? " (Preventa)" : ""}`;
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://harisolaas.com";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 
     const preference = await new Preference(mp).create({
       body: {
@@ -61,6 +69,43 @@ export async function POST(req: Request) {
         metadata: { type: "ticket" },
       },
     });
+
+    // Store Meta tracking data in Redis for webhook to pick up
+    const preferenceId = preference.id;
+    if (preferenceId && (eventId || fbp || fbc)) {
+      try {
+        const redis = await getRedis();
+        await redis.set(
+          `brote:checkout:${preferenceId}`,
+          JSON.stringify({
+            eventId,
+            fbp,
+            fbc,
+            ip,
+            ua: req.headers.get("user-agent") || "",
+          }),
+          { EX: 86400 }, // 24h TTL
+        );
+      } catch (err) {
+        console.error("Failed to store checkout meta:", err);
+      }
+    }
+
+    // Fire Meta CAPI InitiateCheckout (server-side, dedup with browser event)
+    if (eventId) {
+      sendMetaEvent({
+        event_name: "InitiateCheckout",
+        event_id: eventId,
+        event_source_url: `${baseUrl}/es/brote`,
+        user_data: {
+          client_ip_address: ip,
+          client_user_agent: req.headers.get("user-agent") || undefined,
+          fbp: fbp || undefined,
+          fbc: fbc || undefined,
+        },
+        custom_data: { currency: "ARS", value: price },
+      }).catch(() => {}); // fire and forget
+    }
 
     const url = process.env.NODE_ENV === "development"
       ? preference.sandbox_init_point

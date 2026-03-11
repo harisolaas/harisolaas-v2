@@ -7,6 +7,7 @@ import QRCode from "qrcode";
 import { nanoid } from "nanoid";
 import type { BroteTicket } from "@/lib/brote-types";
 import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+import { sendMetaEvent } from "@/lib/meta-capi";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -98,6 +99,8 @@ export async function POST(req: Request) {
 
   let ticket: BroteTicket;
   let treeNumber: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let payment: any = null;
 
   if (existingTicketId) {
     // Already processed — but check if email was sent
@@ -114,7 +117,6 @@ export async function POST(req: Request) {
     treeNumber = Number(await redis.get("brote:counter")) || 1;
   } else {
     // New payment — fetch from MP and create ticket
-    let payment;
     try {
       payment = await new Payment(mp).get({ id: mpPaymentId });
     } catch (err) {
@@ -192,6 +194,38 @@ export async function POST(req: Request) {
     } catch (err) {
       console.error("Email send failed:", ticket.id, err);
       // Don't fail the webhook — MP will retry and we'll try email again
+    }
+  }
+
+  // Fire Meta CAPI Purchase event (only for new tickets, not email retries)
+  if (!existingTicketId && payment) {
+    try {
+      // MP stores preference_id on the payment object
+      const preferenceId = payment.preference_id as string | undefined;
+      let checkoutMeta: { eventId?: string; fbp?: string; fbc?: string; ip?: string; ua?: string } = {};
+
+      // Try to recover tracking data stored at checkout time
+      if (preferenceId) {
+        const raw = await redis.get(`brote:checkout:${preferenceId}`);
+        if (raw) checkoutMeta = JSON.parse(raw);
+      }
+
+      const paymentAmount = payment.transaction_amount ?? 0;
+
+      sendMetaEvent({
+        event_name: "Purchase",
+        event_id: `brote-purchase-${ticket.id}`,
+        event_source_url: "https://www.harisolaas.com/es/brote",
+        user_data: {
+          client_ip_address: checkoutMeta.ip || undefined,
+          client_user_agent: checkoutMeta.ua || undefined,
+          fbp: checkoutMeta.fbp || undefined,
+          fbc: checkoutMeta.fbc || undefined,
+        },
+        custom_data: { currency: "ARS", value: paymentAmount },
+      }).catch(() => {}); // fire and forget
+    } catch (err) {
+      console.error("Meta CAPI Purchase error (non-fatal):", err);
     }
   }
 
