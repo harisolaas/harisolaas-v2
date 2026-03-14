@@ -81,11 +81,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode, toEmail } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
       testEventCode?: string;
+      toEmail?: string;
     };
 
     const redis = await getRedis();
@@ -97,6 +98,9 @@ export async function POST(req: Request) {
       }
 
       const ticket: BroteTicket = JSON.parse(raw);
+      if (toEmail) {
+        ticket.buyerEmail = toEmail;
+      }
       if (!ticket.buyerEmail) {
         return NextResponse.json({ error: "No email on ticket" }, { status: 400 });
       }
