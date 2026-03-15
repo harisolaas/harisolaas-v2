@@ -157,7 +157,7 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
 
                 <p style={{ fontSize: isStory ? 22 : isVertical ? 18 : 15 }}
                   className={`mt-1 font-medium ${t.promoDeadline}`}>
-                  Hasta el 14 de marzo
+                  Hasta el 16 de marzo
                 </p>
               </div>
 
