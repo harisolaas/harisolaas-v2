@@ -520,7 +520,7 @@ const en: Dictionary = {
       cta: "I want my ticket",
       payment: "Pay with MercadoPago / card / bank transfer.",
       earlyBirdBadge: "Early bird — 20% OFF",
-      earlyBirdUntil: "Until March 14",
+      earlyBirdUntil: "Until March 16",
     },
     about: {
       intro: {

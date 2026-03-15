@@ -529,7 +529,7 @@ const es: Dictionary = {
       cta: "Quiero mi entrada",
       payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
       earlyBirdBadge: "Preventa \u2014 20% OFF",
-      earlyBirdUntil: "Hasta el 14 de marzo",
+      earlyBirdUntil: "Hasta el 16 de marzo",
     },
     about: {
       intro: {

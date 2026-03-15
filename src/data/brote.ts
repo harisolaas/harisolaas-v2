@@ -4,7 +4,7 @@ export const broteConfig = {
   ticketPriceRaw: 23313,
   earlyBirdPrice: "$18.650",
   earlyBirdPriceRaw: 18650,
-  earlyBirdDeadline: "2026-03-14", // YYYY-MM-DD, inclusive (Argentina time)
+  earlyBirdDeadline: "2026-03-16", // YYYY-MM-DD, inclusive (Argentina time)
   unArbolPrice: "$17.477",
   unArbolPriceRaw: 17477,
   currency: "ARS",
