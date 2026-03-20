@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
+import QRCode from "qrcode";
 
 const FORMATS: Record<string, { label: string; w: number; h: number }> = {
   square: { label: "1:1", w: 1080, h: 1080 },
@@ -12,7 +13,7 @@ const FORMATS: Record<string, { label: string; w: number; h: number }> = {
 };
 
 type Theme = "dark" | "light";
-type Variant = "original" | "promo" | "forest";
+type Variant = "original" | "promo" | "forest" | "qr" | "qr-direct";
 
 const ACTIVITIES = [
   { icon: "🎵", text: "Música en vivo" },
@@ -544,6 +545,158 @@ function ForestFlyer({ format, theme, treeCount }: {
   );
 }
 
+// --- QR Code Flyer ---
+
+const BROTE_LANDING_URL = "https://www.harisolaas.com/es/brote";
+const BROTE_CHECKOUT_URL = "https://www.harisolaas.com/api/brote/qr-checkout";
+
+function QRFlyer({ format, theme, direct }: { format: keyof typeof FORMATS; theme: Theme; direct: boolean }) {
+  const { w, h } = FORMATS[format];
+  const isStory = format === "story";
+  const isPost = format === "post";
+  const isLandscape = format === "landscape";
+  const t = themes[theme];
+  const isDark = theme === "dark";
+
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  const qrSize = isStory ? 520 : isPost ? 440 : isLandscape ? 340 : 400;
+
+  useEffect(() => {
+    const targetUrl = direct ? BROTE_CHECKOUT_URL : BROTE_LANDING_URL;
+    QRCode.toDataURL(targetUrl, {
+      width: qrSize * 2,
+      margin: 0,
+      color: {
+        dark: isDark ? "#FAF6F1" : "#2D4A3E",
+        light: "#00000000",
+      },
+      errorCorrectionLevel: "M",
+    }).then(setQrDataUrl).catch(console.error);
+  }, [isDark, qrSize, direct]);
+
+  const s = isStory ? 1 : isPost ? 0.85 : isLandscape ? 0.58 : 0.72;
+  const accentColor = isDark ? "#e8956b" : "#C4704B";
+
+  const px = isLandscape ? 140 : Math.round(70 * s + 24);
+  const py = isLandscape ? 60 : Math.round(70 * s + 30);
+
+  return (
+    <div
+      id="flyer-canvas"
+      style={{ width: w, height: h }}
+      className={`relative flex flex-col overflow-hidden ${t.bg}`}
+    >
+      <BackgroundLayers theme={theme} />
+
+      <div
+        className="relative z-10 flex flex-1 flex-col items-center justify-between"
+        style={{ padding: `${py}px ${px}px` }}
+      >
+        {/* Top: Title */}
+        <div className="flex flex-col items-center text-center">
+          <div
+            className={`h-[2px] ${t.decoLine}`}
+            style={{ width: Math.round(50 * s), marginBottom: Math.round(16 * s) }}
+          />
+          <h1
+            style={{ fontSize: Math.round(120 * s) }}
+            className={`font-serif font-bold leading-[0.85] tracking-tight ${t.title}`}
+          >
+            BROTE
+          </h1>
+          <p
+            style={{ fontSize: Math.round(44 * s), marginTop: Math.round(10 * s) }}
+            className={`font-serif italic tracking-wide ${t.subtitle}`}
+          >
+            Fiesta de reforestación
+          </p>
+        </div>
+
+        {/* Middle: QR Code */}
+        <div className="flex flex-col items-center" style={{ gap: Math.round(20 * s) }}>
+          <p
+            style={{ fontSize: Math.round(22 * s), letterSpacing: "0.15em" }}
+            className={`font-semibold uppercase ${t.subtitle}`}
+          >
+            {direct ? "Escaneá y comprá tu entrada" : "Escaneá y conocé más"}
+          </p>
+
+          {qrDataUrl && (
+            <div
+              className="flex items-center justify-center rounded-2xl"
+              style={{
+                width: qrSize,
+                height: qrSize,
+                padding: Math.round(24 * s),
+                backgroundColor: isDark ? "rgba(250,246,241,0.08)" : "rgba(45,74,62,0.05)",
+                border: `2px solid ${isDark ? "rgba(250,246,241,0.12)" : "rgba(45,74,62,0.1)"}`,
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={qrDataUrl}
+                alt="QR code to BROTE landing page"
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
+          )}
+
+          <p
+            style={{ fontSize: Math.round(22 * s), color: accentColor }}
+            className="font-semibold tracking-wide"
+          >
+            Cada entrada planta un árbol real 🌱
+          </p>
+        </div>
+
+        {/* Bottom: Event info */}
+        <div
+          className="flex flex-col items-center text-center"
+          style={{ gap: Math.round(10 * s) }}
+        >
+          <div className="flex items-center" style={{ gap: Math.round(12 * s) }}>
+            <div className={`h-[1px] ${t.divider}`} style={{ width: Math.round(30 * s) }} />
+            <span style={{ fontSize: Math.round(20 * s) }}>🌱</span>
+            <div className={`h-[1px] ${t.divider}`} style={{ width: Math.round(30 * s) }} />
+          </div>
+
+          <p
+            style={{ fontSize: Math.round(32 * s) }}
+            className={`font-serif font-bold ${t.date}`}
+          >
+            Sábado 28 de marzo
+          </p>
+
+          <p
+            style={{ fontSize: Math.round(20 * s) }}
+            className={`font-medium ${t.time}`}
+          >
+            14:00 a 19:00h · Costa Rica 5644, Palermo
+          </p>
+
+          <p
+            style={{
+              fontSize: Math.round(22 * s),
+              color: accentColor,
+              marginTop: Math.round(6 * s),
+              letterSpacing: "0.05em",
+            }}
+            className="font-semibold"
+          >
+            harisolaas.com/brote
+          </p>
+
+          <div
+            className={`h-[2px] ${t.decoLine}`}
+            style={{ width: Math.round(50 * s), marginTop: Math.round(4 * s) }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- URL state & page shell ---
 
 function useUrlState() {
@@ -554,7 +707,7 @@ function useUrlState() {
   const format: keyof typeof FORMATS = f && f in FORMATS ? f : "square";
   const theme: Theme = searchParams.get("t") === "light" ? "light" : "dark";
   const v = searchParams.get("v");
-  const variant: Variant = v === "promo" ? "promo" : v === "forest" ? "forest" : "original";
+  const variant: Variant = v === "promo" ? "promo" : v === "forest" ? "forest" : v === "qr" ? "qr" : v === "qr-direct" ? "qr-direct" : "original";
 
   const set = useCallback((updates: Partial<{ f: string; t: string; v: string }>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -701,6 +854,26 @@ function FlyerPageInner() {
           >
             Bosque
           </button>
+          <button
+            onClick={() => set({ v: "qr" })}
+            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              variant === "qr"
+                ? "bg-white text-neutral-900"
+                : "bg-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            QR Landing
+          </button>
+          <button
+            onClick={() => set({ v: "qr-direct" })}
+            className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              variant === "qr-direct"
+                ? "bg-[#e8956b] text-white"
+                : "bg-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            QR Compra
+          </button>
         </div>
 
         {/* Tree count control (forest variant) */}
@@ -754,6 +927,8 @@ function FlyerPageInner() {
             <div ref={flyerRef}>
               {variant === "forest" ? (
                 <ForestFlyer format={format} theme={theme} treeCount={displayCount} />
+              ) : variant === "qr" || variant === "qr-direct" ? (
+                <QRFlyer format={format} theme={theme} direct={variant === "qr-direct"} />
               ) : (
                 <Flyer format={format} theme={theme} variant={variant} />
               )}
