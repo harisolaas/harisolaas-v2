@@ -81,12 +81,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode, toEmail } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode, toEmail, giftName } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
       testEventCode?: string;
       toEmail?: string;
+      giftName?: string;
     };
 
     const redis = await getRedis();
@@ -168,6 +169,69 @@ export async function POST(req: Request) {
         hint: result.ok
           ? "Check Meta Events Manager > Test Events tab for the event"
           : "Check that META_PIXEL_ID and META_CAPI_TOKEN env vars are set",
+      });
+    }
+
+    if (action === "gift-ticket") {
+      if (!toEmail) {
+        return NextResponse.json({ error: "toEmail required" }, { status: 400 });
+      }
+
+      const { nanoid } = await import("nanoid");
+      const ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
+      const ticket: BroteTicket = {
+        id: ticketId,
+        type: "ticket",
+        paymentId: "GIFT",
+        buyerEmail: toEmail,
+        buyerName: giftName || "Invitado/a",
+        status: "valid",
+        createdAt: new Date().toISOString(),
+      };
+
+      await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
+      await redis.set(`brote:payment:GIFT-${ticketId}`, ticketId);
+      const treeNumber = await redis.incr("brote:counter");
+      await redis.sAdd("brote:attendees", JSON.stringify({
+        email: toEmail,
+        name: ticket.buyerName,
+        ticketId,
+        createdAt: ticket.createdAt,
+      }));
+
+      // Send email
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticketId}`;
+      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
+        width: 300,
+        margin: 2,
+        color: { dark: "#2D4A3E", light: "#FAF6F1" },
+      });
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+      const result = await resend.emails.send({
+        from: `BROTE <${fromEmail}>`,
+        to: toEmail,
+        subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
+        html: buildTicketEmailHtml(ticket, treeNumber),
+        attachments: [{
+          filename: "qr.png",
+          content: qrDataUrlToBuffer(qrDataUrl),
+          contentType: "image/png",
+          contentId: "qr",
+        }],
+      });
+
+      ticket.emailSent = true;
+      await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
+
+      return NextResponse.json({
+        ok: true,
+        ticketId,
+        treeNumber,
+        to: toEmail,
+        resendId: result.data?.id,
       });
     }
 
