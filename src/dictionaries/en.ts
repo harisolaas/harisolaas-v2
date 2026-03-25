@@ -587,6 +587,33 @@ const en: Dictionary = {
     loading: "Processing...",
     backLink: "Back to BROTE",
   },
+  broteCima: {
+    headline: "Run with CIMA. Plant with BROTE.",
+    message: [
+      "The CIMA community knows what it means to move with purpose. This time, every step plants a tree.",
+      "For the CIMA community: $17,477 ARS — 25% OFF the final price.",
+      "Each ticket plants a native tree in the Buenos Aires metro area.",
+    ],
+    includes: [
+      "Specialty coffee & pastries (Nueza)",
+      "Live music (Ximena) + DJ set (Gaspar Insfrán from Paraguay)",
+      "Reforestation talk + collective planting — take your plant home",
+      "Intention planting (collective meditation)",
+    ],
+    pricingTitle: "Pricing",
+    pricing: [
+      { label: "CIMA community (25% OFF)", price: "$17,477", highlight: true },
+      { label: "General presale", price: "$18,650" },
+      { label: "At the door", price: "$23,303" },
+    ],
+    codePlaceholder: "Enter your code",
+    codeButton: "Validate",
+    codeInvalid: "Invalid code. Check that it\u2019s correct.",
+    codeUsed: "This code has already been used.",
+    cta: "Get my ticket",
+    loading: "Processing...",
+    backLink: "Back to BROTE",
+  },
 };
 
 export default en;

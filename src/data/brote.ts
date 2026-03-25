@@ -7,6 +7,8 @@ export const broteConfig = {
   earlyBirdDeadline: "2026-03-16", // YYYY-MM-DD, inclusive (Argentina time)
   unArbolPrice: "$17.477",
   unArbolPriceRaw: 17477,
+  cimaPrice: "$17.477",
+  cimaPriceRaw: 17477,
   currency: "ARS",
 
   // Contact link for tree planting / donations

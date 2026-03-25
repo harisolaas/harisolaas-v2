@@ -177,4 +177,5 @@ export interface Dictionary {
   };
   brote: BroteDict;
   broteUnArbol: BroteUnArbolDict;
+  broteCima: BroteUnArbolDict;
 }
