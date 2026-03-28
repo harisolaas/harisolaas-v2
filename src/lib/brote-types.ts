@@ -8,4 +8,6 @@ export interface BroteTicket {
   createdAt: string;
   usedAt?: string;
   emailSent?: boolean;
+  coffeeRedeemed?: boolean;
+  coffeeRedeemedAt?: string;
 }

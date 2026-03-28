@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   try {
     const { ticketId, action } = (await req.json()) as {
       ticketId: string;
-      action: "check" | "use";
+      action: "check" | "use" | "redeem-coffee";
     };
 
     if (!ticketId) {
@@ -28,11 +28,13 @@ export async function POST(req: Request) {
       return NextResponse.json({
         valid: ticket.status === "valid",
         status: ticket.status,
+        coffeeRedeemed: !!ticket.coffeeRedeemed,
         ticket: {
           id: ticket.id,
           type: ticket.type,
           buyerName: ticket.buyerName,
           status: ticket.status,
+          coffeeRedeemed: !!ticket.coffeeRedeemed,
         },
       });
     }
@@ -43,6 +45,7 @@ export async function POST(req: Request) {
           valid: false,
           error: "already_used",
           usedAt: ticket.usedAt,
+          coffeeRedeemed: !!ticket.coffeeRedeemed,
         });
       }
 
@@ -53,11 +56,39 @@ export async function POST(req: Request) {
       return NextResponse.json({
         valid: true,
         status: "used",
+        coffeeRedeemed: !!ticket.coffeeRedeemed,
         ticket: {
           id: ticket.id,
           type: ticket.type,
           buyerName: ticket.buyerName,
           status: ticket.status,
+          coffeeRedeemed: !!ticket.coffeeRedeemed,
+        },
+      });
+    }
+
+    if (action === "redeem-coffee") {
+      if (ticket.coffeeRedeemed) {
+        return NextResponse.json({
+          valid: false,
+          error: "coffee_already_redeemed",
+          coffeeRedeemedAt: ticket.coffeeRedeemedAt,
+        });
+      }
+
+      ticket.coffeeRedeemed = true;
+      ticket.coffeeRedeemedAt = new Date().toISOString();
+      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
+
+      return NextResponse.json({
+        valid: true,
+        coffeeRedeemed: true,
+        ticket: {
+          id: ticket.id,
+          type: ticket.type,
+          buyerName: ticket.buyerName,
+          status: ticket.status,
+          coffeeRedeemed: true,
         },
       });
     }

@@ -8,6 +8,7 @@ interface TicketInfo {
   type: "ticket";
   buyerName: string;
   status: "valid" | "used";
+  coffeeRedeemed: boolean;
 }
 
 function GateContent() {
@@ -17,9 +18,10 @@ function GateContent() {
   const [ticketId, setTicketId] = useState(ticketParam);
   const [ticket, setTicket] = useState<TicketInfo | null>(null);
   const [status, setStatus] = useState<
-    "idle" | "loading" | "valid" | "used" | "not_found" | "marked"
+    "idle" | "loading" | "valid" | "used" | "not_found" | "marked" | "coffee_redeemed"
   >("idle");
   const [usedAt, setUsedAt] = useState<string | null>(null);
+  const [coffeeRedeemedAt, setCoffeeRedeemedAt] = useState<string | null>(null);
 
   const checkTicket = useCallback(
     async (id: string) => {
@@ -73,6 +75,29 @@ function GateContent() {
     }
   };
 
+  const redeemCoffee = async () => {
+    if (!ticket) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/brote/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticketId: ticket.id, action: "redeem-coffee" }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setTicket({ ...ticket, coffeeRedeemed: true });
+        setStatus("coffee_redeemed");
+      } else if (data.error === "coffee_already_redeemed") {
+        setTicket({ ...ticket, coffeeRedeemed: true });
+        setCoffeeRedeemedAt(data.coffeeRedeemedAt);
+        setStatus("coffee_redeemed");
+      }
+    } catch {
+      setStatus("not_found");
+    }
+  };
+
   const bg =
     status === "valid"
       ? "bg-green-600"
@@ -80,7 +105,9 @@ function GateContent() {
         ? "bg-red-600"
         : status === "marked"
           ? "bg-green-700"
-          : "bg-[#2D4A3E]";
+          : status === "coffee_redeemed"
+            ? "bg-amber-700"
+            : "bg-[#2D4A3E]";
 
   return (
     <main
@@ -162,6 +189,73 @@ function GateContent() {
                 {new Date(usedAt).toLocaleString("es-AR")}
               </p>
             )}
+            <p className="mt-1">
+              <strong>Bebida:</strong>{" "}
+              {ticket.coffeeRedeemed ? "✅ Canjeada" : "⏳ Pendiente"}
+            </p>
+          </div>
+          {!ticket.coffeeRedeemed && (
+            <button
+              onClick={redeemCoffee}
+              className="mt-6 w-full rounded-lg bg-amber-500 px-6 py-3 text-lg font-semibold text-white"
+            >
+              ☕ Canjear bebida
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setStatus("idle");
+              setTicket(null);
+              setTicketId("");
+            }}
+            className={`${!ticket.coffeeRedeemed ? "mt-3" : "mt-6"} w-full rounded-lg ${ticket.coffeeRedeemed ? "bg-white text-red-700 font-semibold" : "border border-white/30 text-sm text-white/70"} px-6 py-3`}
+          >
+            Verificar otro
+          </button>
+        </div>
+      ) : status === "marked" && ticket ? (
+        <div className="w-full max-w-sm">
+          <div className="mb-6 text-6xl">🎉</div>
+          <p className="text-2xl font-bold text-white">INGRESO REGISTRADO</p>
+          <p className="mt-2 text-white/80">
+            {ticket.buyerName} puede pasar.
+          </p>
+          {!ticket.coffeeRedeemed && (
+            <button
+              onClick={redeemCoffee}
+              className="mt-6 w-full rounded-lg bg-amber-500 px-6 py-3 text-lg font-semibold text-white"
+            >
+              ☕ Canjear bebida
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setStatus("idle");
+              setTicket(null);
+              setTicketId("");
+            }}
+            className={`${!ticket.coffeeRedeemed ? "mt-3" : "mt-6"} w-full rounded-lg ${ticket.coffeeRedeemed ? "bg-white text-green-700 font-semibold" : "border border-white/30 text-sm text-white/70"} px-6 py-3`}
+          >
+            Verificar otro
+          </button>
+        </div>
+      ) : status === "coffee_redeemed" && ticket ? (
+        <div className="w-full max-w-sm">
+          <div className="mb-6 text-6xl">☕</div>
+          <p className="text-2xl font-bold text-white">BEBIDA CANJEADA</p>
+          <div className="mt-4 rounded-lg bg-white/20 p-4 text-left text-white">
+            <p>
+              <strong>Nombre:</strong> {ticket.buyerName}
+            </p>
+            <p>
+              <strong>ID:</strong> {ticket.id}
+            </p>
+            {coffeeRedeemedAt && (
+              <p>
+                <strong>Canjeado:</strong>{" "}
+                {new Date(coffeeRedeemedAt).toLocaleString("es-AR")}
+              </p>
+            )}
           </div>
           <button
             onClick={() => {
@@ -169,25 +263,7 @@ function GateContent() {
               setTicket(null);
               setTicketId("");
             }}
-            className="mt-6 w-full rounded-lg bg-white px-6 py-3 text-lg font-semibold text-red-700"
-          >
-            Verificar otro
-          </button>
-        </div>
-      ) : status === "marked" ? (
-        <div className="w-full max-w-sm">
-          <div className="mb-6 text-6xl">🎉</div>
-          <p className="text-2xl font-bold text-white">INGRESO REGISTRADO</p>
-          <p className="mt-2 text-white/80">
-            {ticket?.buyerName} puede pasar.
-          </p>
-          <button
-            onClick={() => {
-              setStatus("idle");
-              setTicket(null);
-              setTicketId("");
-            }}
-            className="mt-6 w-full rounded-lg bg-white px-6 py-3 text-lg font-semibold text-green-700"
+            className="mt-6 w-full rounded-lg bg-white px-6 py-3 text-lg font-semibold text-amber-700"
           >
             Verificar otro
           </button>
