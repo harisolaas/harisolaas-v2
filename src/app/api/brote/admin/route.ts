@@ -3,7 +3,7 @@ import { getRedis } from "@/lib/redis";
 import QRCode from "qrcode";
 import { Resend } from "resend";
 import type { BroteTicket } from "@/lib/brote-types";
-import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+import { buildTicketEmailHtml, buildReminderEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 function auth(req: Request): boolean {
@@ -232,6 +232,55 @@ export async function POST(req: Request) {
         treeNumber,
         to: toEmail,
         resendId: result.data?.id,
+      });
+    }
+
+    if (action === "send-reminder") {
+      const counter = Number(await redis.get("brote:counter") ?? 0);
+      const treesRemaining = Math.max(0, 100 - counter);
+
+      // Get unique emails from attendees
+      const attendeesRaw = await redis.sMembers("brote:attendees");
+      const emails = new Set<string>();
+      for (const raw of attendeesRaw) {
+        try {
+          const a = JSON.parse(raw);
+          if (a.email) emails.add(a.email.toLowerCase());
+        } catch { /* skip */ }
+      }
+
+      if (emails.size === 0) {
+        return NextResponse.json({ error: "No attendees found" }, { status: 400 });
+      }
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+      const html = buildReminderEmailHtml(treesRemaining);
+
+      const results: { email: string; ok: boolean; error?: string }[] = [];
+      for (const email of emails) {
+        try {
+          await resend.emails.send({
+            from: `BROTE <${fromEmail}>`,
+            to: email,
+            subject: "¡Hoy es BROTE! 🌱 Te esperamos a las 14h",
+            html,
+          });
+          results.push({ email, ok: true });
+        } catch (err) {
+          results.push({ email, ok: false, error: String(err) });
+        }
+      }
+
+      const sent = results.filter((r) => r.ok).length;
+      const failed = results.filter((r) => !r.ok);
+
+      return NextResponse.json({
+        ok: true,
+        treesRemaining,
+        totalEmails: emails.size,
+        sent,
+        failed,
       });
     }
 
