@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
-import BroteLanding from "@/components/BroteLanding";
+import PlantLanding from "@/components/PlantLanding";
 
 export async function generateMetadata({
   params,
@@ -10,7 +10,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const dict = await getDictionary(locale as Locale);
-  const { meta } = dict.brote;
+  const { meta } = dict.plant;
 
   return {
     title: meta.title,
@@ -38,12 +38,15 @@ export async function generateMetadata({
 
 export default async function BrotePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { locale } = await params;
-
+  const query = await searchParams;
   const dict = await getDictionary(locale as Locale);
+  const utmMedium = typeof query.utm_medium === "string" ? query.utm_medium : undefined;
 
-  return <BroteLanding dict={dict.brote} locale={locale} />;
+  return <PlantLanding dict={dict.plant} locale={locale} utmMedium={utmMedium} />;
 }

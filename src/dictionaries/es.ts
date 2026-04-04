@@ -624,6 +624,72 @@ const es: Dictionary = {
     loading: "Procesando...",
     backLink: "Volver a BROTE",
   },
+  plant: {
+    meta: {
+      title: "BROTE — Plantación colectiva de árboles",
+      description: "100 árboles nacieron en BROTE. El 19 de abril los plantamos juntos en San Miguel. Sumate gratis.",
+      ogDescription: "100 árboles nacieron en BROTE. El 19 de abril los plantamos juntos en San Miguel.",
+    },
+    hero: {
+      headline: "100 árboles nacieron en BROTE.",
+      subheadline: "El 19 de abril los plantamos juntos en San Miguel.",
+      dateTime: "Domingo 19 de abril · San Miguel, Buenos Aires",
+      cta: "Quiero plantar",
+      welcomeBack: "¡Estuviste en BROTE! Qué bueno verte de vuelta 🌱",
+    },
+    counter: {
+      treesLabel: "100 árboles financiados",
+      treesAchievement: "Meta alcanzada ✓",
+      peopleLabel: "Ya somos {count} para plantar",
+      peopleCta: "Sumate",
+    },
+    recap: {
+      heading: "Así arrancó todo",
+      body: [
+        "El 28 de marzo hicimos BROTE: una fiesta de reforestación donde cada entrada plantó un árbol real.",
+        "Se sumaron más de 80 personas, sonó música en vivo, hubo café de especialidad y meditación colectiva. El resultado: 100 árboles nativos financiados.",
+        "Ahora llega el momento más lindo: ir a plantarlos juntos.",
+      ],
+    },
+    activities: [
+      { icon: "🌱", title: "Plantar árboles nativos", description: "Vas a poner tus manos en la tierra y plantar los árboles que financiamos en BROTE." },
+      { icon: "🧉", title: "Mañana al aire libre", description: "Un espacio para compartir, tomar unos mates y desconectar de la ciudad." },
+      { icon: "🌿", title: "Conocer a Un Árbol", description: "La ONG que hace posible la reforestación. Vas a conocer su trabajo de primera mano." },
+      { icon: "📍", title: "Conectar con la comunidad", description: "Gente que elige hacer algo por el planeta. Tu nueva tribu." },
+    ],
+    howToGetThere: {
+      heading: "Cómo llegar",
+      area: "Zona de San Miguel, provincia de Buenos Aires (~1 hora de Capital).",
+      registerPrompt: "Anotate y te mandamos la dirección exacta con link a Google Maps.",
+      transport: [
+        "Tren San Martín hasta estación San Miguel + corta distancia",
+        "En auto: ~1 hora desde Capital por Acceso Norte",
+        "Carpools: armamos grupos en el WhatsApp de la comunidad",
+      ],
+    },
+    registration: {
+      heading: "Anotate para plantar",
+      namePlaceholder: "Tu nombre",
+      emailPlaceholder: "Tu email",
+      cta: "Quiero plantar 🌱",
+      submitting: "Registrando...",
+      successHeading: "¡Listo!",
+      successMessage: "Te mandamos un email con la dirección exacta y todos los detalles.",
+      alreadyRegistered: "¡Ya estabas registrado/a! Revisá tu email para los detalles.",
+      errorMessage: "Algo salió mal. Intentá de nuevo.",
+    },
+    unArbol: {
+      heading: "Un Árbol",
+      body: [
+        "Un Árbol es una ONG con más de 15 años de experiencia en reforestación. Junto a ellos hicimos posible BROTE y ahora vamos a plantar los árboles que financiamos.",
+        "El 19 de abril nos reciben en su vivero para una jornada de plantación colectiva. Vos ponés las manos, ellos ponen el conocimiento.",
+      ],
+    },
+    closing: {
+      heading: "100 árboles esperan",
+      cta: "Quiero plantar 🌱",
+    },
+  },
 };
 
 export default es;

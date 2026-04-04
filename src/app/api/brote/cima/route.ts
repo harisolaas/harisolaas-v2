@@ -1,4 +1,16 @@
 import { NextResponse } from "next/server";
+
+// BROTE event ended March 28, 2026. CIMA discount checkout disabled.
+
+export async function POST() {
+  return NextResponse.json(
+    { error: "BROTE event has ended. Registration for tree planting is open at /brote" },
+    { status: 410 },
+  );
+}
+
+/* --- Original CIMA discount code (preserved for future events) ---
+
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { broteConfig } from "@/data/brote";
 
@@ -83,3 +95,4 @@ export async function POST(req: Request) {
     );
   }
 }
+*/

@@ -23,3 +23,16 @@ export const broteConfig = {
   // Used in "Si vienen X personas, son X árboles"
   expectedAttendees: 100,
 };
+
+export const plantConfig = {
+  eventDate: "2026-04-19",
+  eventDateDisplay: "Domingo 19 de abril",
+  eventTime: "Por confirmar",
+  locationArea: "San Miguel, provincia de Buenos Aires",
+  // Single source of truth for exact address — only shown in confirmation email
+  exactAddress: "Dirección exacta por confirmar",
+  exactAddressMapLink:
+    "https://www.google.com/maps/search/?api=1&query=San+Miguel+Buenos+Aires",
+  treesFinanced: 100,
+  registrationGoal: 50,
+};

@@ -614,6 +614,72 @@ const en: Dictionary = {
     loading: "Processing...",
     backLink: "Back to BROTE",
   },
+  plant: {
+    meta: {
+      title: "BROTE — Collective Tree Planting",
+      description: "100 trees were born at BROTE. On April 19 we plant them together in San Miguel. Free and open to all.",
+      ogDescription: "100 trees were born at BROTE. On April 19 we plant them together in San Miguel.",
+    },
+    hero: {
+      headline: "100 trees were born at BROTE.",
+      subheadline: "On April 19 we plant them together in San Miguel.",
+      dateTime: "Sunday April 19 · San Miguel, Buenos Aires",
+      cta: "I want to plant",
+      welcomeBack: "You were at BROTE! Great to see you again 🌱",
+    },
+    counter: {
+      treesLabel: "100 trees financed",
+      treesAchievement: "Goal reached ✓",
+      peopleLabel: "We\u2019re already {count} planters",
+      peopleCta: "Join us",
+    },
+    recap: {
+      heading: "How it all started",
+      body: [
+        "On March 28 we held BROTE: a reforestation party where every ticket planted a real tree.",
+        "Over 80 people showed up, with live music, specialty coffee and collective meditation. The result: 100 native trees financed.",
+        "Now comes the best part: planting them together.",
+      ],
+    },
+    activities: [
+      { icon: "🌱", title: "Plant native trees", description: "Get your hands in the soil and plant the trees we financed at BROTE." },
+      { icon: "🧉", title: "A morning outdoors", description: "A space to share, relax and disconnect from the city." },
+      { icon: "🌿", title: "Meet Un Árbol", description: "The NGO making reforestation happen. See their work firsthand." },
+      { icon: "📍", title: "Connect with the community", description: "People who choose to do something for the planet. Your new tribe." },
+    ],
+    howToGetThere: {
+      heading: "How to get there",
+      area: "San Miguel area, province of Buenos Aires (~1 hour from Capital).",
+      registerPrompt: "Register and we\u2019ll send you the exact address with a Google Maps link.",
+      transport: [
+        "San Martín train to San Miguel station + short ride",
+        "By car: ~1 hour from Capital via Acceso Norte",
+        "Carpools: we organize groups in the community WhatsApp",
+      ],
+    },
+    registration: {
+      heading: "Sign up to plant",
+      namePlaceholder: "Your name",
+      emailPlaceholder: "Your email",
+      cta: "I want to plant 🌱",
+      submitting: "Registering...",
+      successHeading: "You\u2019re in!",
+      successMessage: "We sent you an email with the exact address and all the details.",
+      alreadyRegistered: "You were already registered! Check your email for the details.",
+      errorMessage: "Something went wrong. Please try again.",
+    },
+    unArbol: {
+      heading: "Un Árbol",
+      body: [
+        "Un Árbol is an NGO with over 15 years of reforestation experience. Together we made BROTE possible and now we\u2019re planting the trees we financed.",
+        "On April 19 they welcome us at their nursery for a collective planting day. You bring the hands, they bring the knowledge.",
+      ],
+    },
+    closing: {
+      heading: "100 trees are waiting",
+      cta: "I want to plant 🌱",
+    },
+  },
 };
 
 export default en;

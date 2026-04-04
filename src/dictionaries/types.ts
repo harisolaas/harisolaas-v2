@@ -112,6 +112,59 @@ export interface BroteDict {
   };
 }
 
+export interface PlantActivityItem {
+  icon: string;
+  title: string;
+  description: string;
+}
+
+export interface PlantDict {
+  meta: { title: string; description: string; ogDescription: string };
+  hero: {
+    headline: string;
+    subheadline: string;
+    dateTime: string;
+    cta: string;
+    welcomeBack: string;
+  };
+  counter: {
+    treesLabel: string;
+    treesAchievement: string;
+    peopleLabel: string;
+    peopleCta: string;
+  };
+  recap: {
+    heading: string;
+    body: string[];
+  };
+  activities: PlantActivityItem[];
+  howToGetThere: {
+    heading: string;
+    area: string;
+    registerPrompt: string;
+    transport: string[];
+  };
+  registration: {
+    heading: string;
+    namePlaceholder: string;
+    emailPlaceholder: string;
+    cta: string;
+    submitting: string;
+    successHeading: string;
+    successMessage: string;
+    alreadyRegistered: string;
+    errorMessage: string;
+  };
+  unArbol: {
+    heading: string;
+    body: string[];
+  };
+  closing: {
+    heading: string;
+    cta: string;
+  };
+}
+
 export interface BroteUnArbolDict {
   headline: string;
   message: string[];
@@ -178,4 +231,5 @@ export interface Dictionary {
   brote: BroteDict;
   broteUnArbol: BroteUnArbolDict;
   broteCima: BroteUnArbolDict;
+  plant: PlantDict;
 }
