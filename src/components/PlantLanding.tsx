@@ -63,6 +63,97 @@ function getEmojiForSlot(index: number): string {
   return PEOPLE_EMOJIS[Math.floor(rand() * PEOPLE_EMOJIS.length)];
 }
 
+/* ─── static forest (reuses TreeCounter's generation logic) ─── */
+
+const GREENS = ["#2D4A3E", "#3A5F4F", "#4A7A5E", "#3E6B52", "#4F7D5F", "#5C8A6A"];
+
+function hillYAt(x: number): number {
+  const t = x / 100;
+  return 65 - Math.sin(t * Math.PI) * 12;
+}
+
+interface TreeData {
+  x: number;
+  baseY: number;
+  height: number;
+  canopyRx: number;
+  canopyRy: number;
+  lean: number;
+  shade: string;
+}
+
+function generateTrees(count: number): TreeData[] {
+  const posRand = seededRandom(42);
+  const shuffleRand = seededRandom(99);
+
+  const slotTrees: TreeData[] = [];
+  for (let i = 0; i < count; i++) {
+    const slot = (i + 0.5) / count;
+    const baseX = 8 + slot * 84;
+    const jitter = (posRand() - 0.5) * (60 / count);
+    const x = Math.max(6, Math.min(94, baseX + jitter));
+    const baseY = hillYAt(x) + 2;
+    const distFromCenter = Math.abs(x - 50) / 50;
+    const sizeFactor = 1 - distFromCenter * 0.2;
+    const height = (10 + posRand() * 8) * sizeFactor;
+    const canopyRx = (2.5 + posRand() * 2) * sizeFactor;
+    const canopyRy = (3 + posRand() * 2.5) * sizeFactor;
+    const lean = (posRand() - 0.5) * 1.5;
+    const shade = GREENS[Math.floor(posRand() * GREENS.length)];
+    slotTrees.push({ x, baseY, height, canopyRx, canopyRy, lean, shade });
+  }
+
+  const order = Array.from({ length: count }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(shuffleRand() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return order.map((idx) => slotTrees[idx]).sort((a, b) => a.baseY - b.baseY);
+}
+
+const STATIC_TREES = generateTrees(100);
+
+function StaticForest() {
+  return (
+    <svg
+      viewBox="0 0 100 70"
+      preserveAspectRatio="xMidYMax meet"
+      className="h-auto w-full"
+      role="img"
+      aria-label="100 árboles plantados"
+    >
+      <path
+        d="M0,65 Q25,56 50,53 Q75,56 100,65 L100,70 L0,70 Z"
+        fill="#A8B5A0"
+      />
+      {STATIC_TREES.map((t) => {
+        const trunkHeight = t.height * 0.35;
+        const trunkWidth = Math.max(1.2, t.height * 0.055);
+        const canopyCy = t.baseY - trunkHeight - t.canopyRy * 0.6;
+        return (
+          <g key={`t-${t.x.toFixed(2)}`}>
+            <rect
+              x={t.x - trunkWidth / 2 + t.lean * 0.3}
+              y={t.baseY - trunkHeight}
+              width={trunkWidth}
+              height={trunkHeight}
+              rx={0.4}
+              fill="#6B4F3A"
+            />
+            <ellipse
+              cx={t.x + t.lean}
+              cy={canopyCy}
+              rx={t.canopyRx}
+              ry={t.canopyRy}
+              fill={t.shade}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
 /* ─── scroll helper ─── */
 
 function scrollToRegistration() {
@@ -246,10 +337,8 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
           <div className="mx-auto max-w-2xl">
             {/* Trees — completed achievement */}
             <div className="rounded-2xl border border-sage/20 bg-white/70 p-6 text-center">
-              <div className="flex flex-wrap justify-center gap-1">
-                {Array.from({ length: 100 }).map((_, i) => (
-                  <span key={i} className="text-lg">🌳</span>
-                ))}
+              <div className="mx-auto max-w-sm">
+                <StaticForest />
               </div>
               <p className="mt-4 text-lg font-bold text-forest">
                 {dict.counter.treesLabel}
