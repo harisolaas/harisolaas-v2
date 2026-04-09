@@ -5,11 +5,12 @@ const FOOTER_HTML = `<tr><td style="padding:20px 24px 28px;text-align:center;bor
   <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
 </td></tr>`;
 
-function shellOpen(subtitle: string): string {
+function shellOpen(subtitle: string, preheader: string): string {
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#FAF6F1;font-family:system-ui,-apple-system,sans-serif">
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">${preheader}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6F1">
 <tr><td align="center" style="padding:40px 16px">
 <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
@@ -25,7 +26,7 @@ const SHELL_CLOSE = `${FOOTER_HTML}</table></td></tr></table></body></html>`;
 export function buildPlantInvite1Html(): string {
   const ctaUrl =
     "https://harisolaas.com/es/brote?utm_source=email&utm_medium=brote_buyers&utm_campaign=plantacion_email1";
-  return `${shellOpen("El segundo movimiento")}
+  return `${shellOpen("El segundo movimiento", "En serio, mejor seguí con tu domingo. Pero si lo abriste, ya fuiste.")}
 <tr><td style="padding:32px 24px 0;text-align:center">
   <div style="display:inline-block;background:#2D4A3E;border-radius:50%;width:80px;height:80px;line-height:80px;font-size:40px;text-align:center">🌱</div>
   <h2 style="margin:20px 0 0;color:#2D4A3E;font-size:26px;font-weight:700;line-height:1.2">Ya fuiste. Abriste el mail.</h2>
@@ -61,7 +62,7 @@ export function buildPlantInvite2Html(remaining?: number): string {
     typeof remaining === "number"
       ? `Quedan <strong style="color:#C4704B">${remaining}</strong> de 40 lugares.`
       : "Son 40 lugares.";
-  return `${shellOpen("El segundo movimiento")}
+  return `${shellOpen("El segundo movimiento", "Gratis, con cupo, y la dirección va por mail.")}
 <tr><td style="padding:32px 24px 0;text-align:center">
   <div style="display:inline-block;background:#2D4A3E;border-radius:50%;width:80px;height:80px;line-height:80px;font-size:40px;text-align:center">🌱</div>
   <h2 style="margin:20px 0 0;color:#2D4A3E;font-size:26px;font-weight:700;line-height:1.2">El 19 plantamos lo que BROTE hizo brotar.</h2>
