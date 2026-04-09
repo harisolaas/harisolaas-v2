@@ -108,7 +108,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode, audienceOverride } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
@@ -117,6 +117,7 @@ export async function POST(req: Request) {
       giftName?: string;
       variant?: 1 | 2;
       mode?: "preview" | "send";
+      audienceOverride?: string[];
     };
 
     const redis = await getRedis();
@@ -179,37 +180,49 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "variant must be 1 or 2" }, { status: 400 });
       }
 
-      // Build the audience: BROTE attendees minus anyone already plant-registered
-      const attendeesRaw: string[] = await redis.sMembers("brote:attendees");
-      const buyerEmails = new Set<string>();
-      for (const raw of attendeesRaw) {
-        try {
-          const a = JSON.parse(raw);
-          if (a.email) buyerEmails.add(String(a.email).toLowerCase());
-        } catch { /* skip */ }
-      }
+      let audience: string[];
+      let buyerEmailsSize = 0;
+      let plantEmailsSize = 0;
 
-      const plantKeys: string[] = await redis.keys("plant:registration:*");
-      const plantEmails = new Set<string>();
-      for (const k of plantKeys) {
-        const raw = await redis.get(k);
-        if (!raw) continue;
-        try {
-          const r = JSON.parse(raw);
-          if (r.email) plantEmails.add(String(r.email).toLowerCase());
-        } catch { /* skip */ }
-      }
+      if (Array.isArray(audienceOverride) && audienceOverride.length > 0) {
+        // Override mode — bypass exclusion logic, send to specified addresses only
+        audience = audienceOverride.map((e) => e.trim().toLowerCase()).filter(Boolean);
+      } else {
+        // Build the audience: BROTE attendees minus anyone already plant-registered
+        const attendeesRaw: string[] = await redis.sMembers("brote:attendees");
+        const buyerEmails = new Set<string>();
+        for (const raw of attendeesRaw) {
+          try {
+            const a = JSON.parse(raw);
+            if (a.email) buyerEmails.add(String(a.email).toLowerCase());
+          } catch { /* skip */ }
+        }
 
-      const audience = Array.from(buyerEmails).filter((e) => !plantEmails.has(e));
+        const plantKeys: string[] = await redis.keys("plant:registration:*");
+        const plantEmails = new Set<string>();
+        for (const k of plantKeys) {
+          const raw = await redis.get(k);
+          if (!raw) continue;
+          try {
+            const r = JSON.parse(raw);
+            if (r.email) plantEmails.add(String(r.email).toLowerCase());
+          } catch { /* skip */ }
+        }
+
+        audience = Array.from(buyerEmails).filter((e) => !plantEmails.has(e));
+        buyerEmailsSize = buyerEmails.size;
+        plantEmailsSize = plantEmails.size;
+      }
 
       if (m === "preview") {
         return NextResponse.json({
           ok: true,
           variant: v,
-          totalBuyers: buyerEmails.size,
-          alreadyRegistered: plantEmails.size,
+          totalBuyers: buyerEmailsSize,
+          alreadyRegistered: plantEmailsSize,
           audienceSize: audience.length,
           audienceSample: audience.slice(0, 10),
+          override: Boolean(audienceOverride && audienceOverride.length > 0),
         });
       }
 
