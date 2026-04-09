@@ -4,7 +4,12 @@ import QRCode from "qrcode";
 import { Resend } from "resend";
 import type { BroteTicket } from "@/lib/brote-types";
 import { buildTicketEmailHtml, buildReminderEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
-import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
+import {
+  buildPlantConfirmationEmailHtml,
+  buildPlantInvite1Html,
+  buildPlantInvite2Html,
+} from "@/lib/plant-email";
+import { plantConfig } from "@/data/brote";
 import type { PlantRegistration } from "@/lib/plant-types";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
@@ -103,13 +108,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode, toEmail, giftName } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
       testEventCode?: string;
       toEmail?: string;
       giftName?: string;
+      variant?: 1 | 2;
+      mode?: "preview" | "send";
     };
 
     const redis = await getRedis();
@@ -159,6 +166,105 @@ export async function POST(req: Request) {
         ok: true,
         to: ticket.buyerEmail,
         resendId: result.data?.id,
+      });
+    }
+
+    // ── Plant invite campaign: send Email 1 or Email 2 to BROTE party buyers ──
+    // Body: { action: "plant-invite-campaign", variant: 1 | 2, mode: "preview" | "send" }
+    if (action === "plant-invite-campaign") {
+      const v = variant;
+      const m = mode || "preview";
+
+      if (v !== 1 && v !== 2) {
+        return NextResponse.json({ error: "variant must be 1 or 2" }, { status: 400 });
+      }
+
+      // Build the audience: BROTE attendees minus anyone already plant-registered
+      const attendeesRaw: string[] = await redis.sMembers("brote:attendees");
+      const buyerEmails = new Set<string>();
+      for (const raw of attendeesRaw) {
+        try {
+          const a = JSON.parse(raw);
+          if (a.email) buyerEmails.add(String(a.email).toLowerCase());
+        } catch { /* skip */ }
+      }
+
+      const plantKeys: string[] = await redis.keys("plant:registration:*");
+      const plantEmails = new Set<string>();
+      for (const k of plantKeys) {
+        const raw = await redis.get(k);
+        if (!raw) continue;
+        try {
+          const r = JSON.parse(raw);
+          if (r.email) plantEmails.add(String(r.email).toLowerCase());
+        } catch { /* skip */ }
+      }
+
+      const audience = Array.from(buyerEmails).filter((e) => !plantEmails.has(e));
+
+      if (m === "preview") {
+        return NextResponse.json({
+          ok: true,
+          variant: v,
+          totalBuyers: buyerEmails.size,
+          alreadyRegistered: plantEmails.size,
+          audienceSize: audience.length,
+          audienceSample: audience.slice(0, 10),
+        });
+      }
+
+      // m === "send"
+      const plantCounter = Number(await redis.get("plant:counter") ?? 0);
+      const remaining = Math.max(0, plantConfig.capacity - plantCounter);
+
+      const subject =
+        v === 1
+          ? "Si le tenés miedo a la pala 🪏, no abrás este mail"
+          : `Quedan ${remaining} lugares para el 19 de abril`;
+
+      const html = v === 1 ? buildPlantInvite1Html() : buildPlantInvite2Html(remaining);
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+
+      const results: { email: string; ok: boolean; error?: string }[] = [];
+      for (const email of audience) {
+        try {
+          await resend.emails.send({
+            from: `BROTE <${fromEmail}>`,
+            to: email,
+            subject,
+            html,
+          });
+          results.push({ email, ok: true });
+        } catch (err) {
+          results.push({ email, ok: false, error: String(err) });
+        }
+      }
+
+      const sent = results.filter((r) => r.ok).length;
+      const failed = results.filter((r) => !r.ok);
+
+      // Mark this campaign as sent (audit trail)
+      await redis.set(
+        `plant:campaign:${v}:sent`,
+        JSON.stringify({
+          sentAt: new Date().toISOString(),
+          subject,
+          audienceSize: audience.length,
+          sent,
+          failedCount: failed.length,
+        }),
+      );
+
+      return NextResponse.json({
+        ok: true,
+        variant: v,
+        subject,
+        audienceSize: audience.length,
+        sent,
+        failed,
+        remaining,
       });
     }
 
