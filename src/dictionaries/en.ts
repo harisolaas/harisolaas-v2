@@ -621,7 +621,7 @@ const en: Dictionary = {
       ogDescription: "BROTE\u2019s second movement. Sunday April 19 at a nature reserve in San Miguel. Free, limited spots.",
     },
     hero: {
-      eyebrow: "SUNDAY APRIL 19 · 2:30 TO 5 PM · SAN MIGUEL",
+      eyebrow: "SUNDAY APRIL 19 · FROM 2:30 PM · SAN MIGUEL",
       title: "BROTE\u2019s second movement.",
       subtitle: "The party planted trees on a spreadsheet. On April 19 we meet to get our hands in the dirt with Un Árbol.",
       tag: "Free · 40 spots · Register to get the address",
@@ -699,7 +699,7 @@ const en: Dictionary = {
         },
         {
           q: "How long does it last?",
-          a: "2:30 to 5 PM. We plant, we meditate, we eat, we hang out. It\u2019s not a work shift — it\u2019s a Sunday afternoon.",
+          a: "We start at 2:30 PM and the reserve stays open until 7. You can leave earlier if you want — it\u2019s not a work shift, it\u2019s a Sunday afternoon. We plant, we meditate, we eat, we hang out.",
         },
         {
           q: "Restrooms and water?",

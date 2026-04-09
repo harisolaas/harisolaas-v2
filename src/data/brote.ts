@@ -27,7 +27,7 @@ export const broteConfig = {
 export const plantConfig = {
   eventDate: "2026-04-19",
   eventDateDisplay: "Domingo 19 de abril",
-  eventTime: "14:30 a 17:00",
+  eventTime: "14:30 a 19:00",
   locationArea: "Reserva natural en San Miguel, Buenos Aires",
   // Single source of truth for exact address — only shown in confirmation email
   exactAddress:
