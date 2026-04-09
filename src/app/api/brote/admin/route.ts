@@ -55,14 +55,19 @@ export async function GET(req: Request) {
       }
     }
 
-    // Plant registrations
+    // Plant registrations — read from the canonical plant:registration:* keys
+    // (the plant:registrations SET is a denormalized cache and doesn't include
+    // optional fields like `message`)
     const plantCounter = Number(await redis.get("plant:counter") ?? 0);
-    const plantRegistrationsRaw: string[] = await redis.sMembers("plant:registrations");
-    const plantRegistrations = plantRegistrationsRaw
-      .map((raw: string) => {
-        try { return JSON.parse(raw); } catch { return null; }
-      })
-      .filter(Boolean);
+    const plantKeys: string[] = await redis.keys("plant:registration:*");
+    const plantRegistrations = [];
+    for (const k of plantKeys) {
+      const raw = await redis.get(k);
+      if (!raw) continue;
+      try { plantRegistrations.push(JSON.parse(raw)); } catch { /* skip */ }
+    }
+    plantRegistrations.sort((a, b) => String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")));
+
     const plantWaitlistRaw: string[] = await redis.sMembers("plant:waitlist");
     const plantWaitlist = plantWaitlistRaw
       .map((raw: string) => {

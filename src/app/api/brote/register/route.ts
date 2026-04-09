@@ -122,6 +122,7 @@ export async function POST(req: Request) {
       name,
       groupType,
       carpool,
+      ...(message && { message }),
       registrationId,
       createdAt: registration.createdAt,
     }));
