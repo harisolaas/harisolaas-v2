@@ -172,8 +172,6 @@ function MessagesCarousel({
 
   if (items.length === 0) return null;
 
-  const current = items[index];
-
   return (
     <div
       className="mx-auto mb-12 max-w-xl"
@@ -184,15 +182,26 @@ function MessagesCarousel({
         {heading}
       </p>
 
-      <div className="relative mt-5 min-h-[180px]">
-        <AnimatePresence mode="wait">
+      {/*
+        Grid stack: every card lives in the same grid cell, so the cell
+        expands to the tallest one and the visible card just fades in/out.
+        No layout shift between rotations.
+      */}
+      <div
+        className="mt-5 grid"
+        style={{ gridTemplateAreas: '"stack"' }}
+      >
+        {items.map((item, i) => (
           <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            key={i}
+            style={{ gridArea: "stack" }}
+            initial={false}
+            animate={{ opacity: i === index ? 1 : 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="rounded-2xl border border-sage/20 bg-white/70 px-6 py-8 text-center"
+            aria-hidden={i !== index}
+            className={`rounded-2xl border border-sage/20 bg-white/70 px-6 py-8 text-center ${
+              i === index ? "pointer-events-auto" : "pointer-events-none"
+            }`}
           >
             <span
               aria-hidden
@@ -201,15 +210,15 @@ function MessagesCarousel({
               &ldquo;
             </span>
             <p className="mt-2 font-serif text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
-              {current.message}
+              {item.message}
             </p>
             <div className="mt-5 flex items-center justify-center">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-forest text-xs font-bold tracking-wider text-cream">
-                {current.initials}
+                {item.initials}
               </span>
             </div>
           </motion.div>
-        </AnimatePresence>
+        ))}
       </div>
 
       {items.length > 1 && (
