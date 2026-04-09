@@ -717,7 +717,7 @@ const es: Dictionary = {
         },
       ],
     },
-    messagesHeading: "Lo que dejaron los primeros",
+    messagesHeading: "Mensajes de aliento",
     registration: {
       heading: "Anotate para plantar",
       subtitle: "Gratis, pero con cupo. Quedan {remaining} de 40 lugares.",
@@ -732,7 +732,7 @@ const es: Dictionary = {
       carpoolLabel: "Puedo ofrecer lugar en mi auto desde Capital",
       messageLabel: "Dejá un mensaje para cebar a la próxima persona que venga a anotarse (opcional)",
       messagePlaceholder: "Ej: Vení a plantar conmigo, es gratis y va a estar hermoso 🌱",
-      cta: "Vengo el 19 🌱",
+      cta: "Voy el 19 🌱",
       submitting: "Reservando...",
       successHeading: "Listo.",
       successMessage: "Te mandamos la dirección exacta y los detalles por mail. Nos vemos el 19 con las manos listas.",
