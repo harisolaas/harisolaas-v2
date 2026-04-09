@@ -108,7 +108,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode, audienceOverride } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode, audienceOverride, registrationId, newEmail } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
@@ -118,6 +118,8 @@ export async function POST(req: Request) {
       variant?: 1 | 2;
       mode?: "preview" | "send";
       audienceOverride?: string[];
+      registrationId?: string;
+      newEmail?: string;
     };
 
     const redis = await getRedis();
@@ -278,6 +280,99 @@ export async function POST(req: Request) {
         sent,
         failed,
         remaining,
+      });
+    }
+
+    // ── Plant: fix the email address on a registration ──
+    // Body: { action: "plant-fix-email", registrationId: "PLANT-...", newEmail: "...", mode?: "preview"|"send" }
+    if (action === "plant-fix-email") {
+      if (!registrationId || !newEmail) {
+        return NextResponse.json(
+          { error: "registrationId and newEmail required" },
+          { status: 400 },
+        );
+      }
+      const newEmailNormalized = newEmail.trim().toLowerCase();
+
+      const regRaw = await redis.get(`plant:registration:${registrationId}`);
+      if (!regRaw) {
+        return NextResponse.json({ error: "Registration not found" }, { status: 404 });
+      }
+      const registration: PlantRegistration = JSON.parse(regRaw);
+      const oldEmail = registration.email;
+
+      if (oldEmail === newEmailNormalized) {
+        return NextResponse.json({ ok: true, noChange: true });
+      }
+
+      if (mode === "preview") {
+        return NextResponse.json({
+          ok: true,
+          preview: true,
+          registrationId,
+          oldEmail,
+          newEmail: newEmailNormalized,
+        });
+      }
+
+      // 1. Update plant:registration:{id}
+      registration.email = newEmailNormalized;
+      await redis.set(`plant:registration:${registrationId}`, JSON.stringify(registration));
+
+      // 2. Update plant:registrations SET — remove old entry, add new
+      const setMembers: string[] = await redis.sMembers("plant:registrations");
+      for (const raw of setMembers) {
+        try {
+          const m = JSON.parse(raw);
+          if (m.registrationId === registrationId) {
+            // Remove old entry
+            await (redis as unknown as { sRem: (key: string, val: string) => Promise<number> })
+              .sRem("plant:registrations", raw);
+            // Add new entry with updated email
+            const updated = { ...m, email: newEmailNormalized };
+            await redis.sAdd("plant:registrations", JSON.stringify(updated));
+            break;
+          }
+        } catch { /* skip */ }
+      }
+
+      // 3. Move community:person:{oldEmail} → community:person:{newEmail}
+      const personRaw = await redis.get(`community:person:${oldEmail}`);
+      if (personRaw) {
+        try {
+          const person = JSON.parse(personRaw);
+          person.email = newEmailNormalized;
+          await redis.set(`community:person:${newEmailNormalized}`, JSON.stringify(person));
+          // Delete old key — node-redis v4 method is `del`
+          await (redis as unknown as { del: (key: string) => Promise<number> })
+            .del(`community:person:${oldEmail}`);
+        } catch { /* skip */ }
+      }
+
+      // 4. Send confirmation email to the new address
+      let emailSent = false;
+      let emailError: string | undefined;
+      try {
+        const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+        const resend = new Resend(process.env.RESEND_API_KEY!);
+        await resend.emails.send({
+          from: `BROTE <${fromEmail}>`,
+          to: newEmailNormalized,
+          subject: "¡Te anotaste para plantar! 🌱 Detalles del evento",
+          html: buildPlantConfirmationEmailHtml(registration.name),
+        });
+        emailSent = true;
+      } catch (err) {
+        emailError = String(err);
+      }
+
+      return NextResponse.json({
+        ok: true,
+        registrationId,
+        oldEmail,
+        newEmail: newEmailNormalized,
+        emailSent,
+        emailError,
       });
     }
 

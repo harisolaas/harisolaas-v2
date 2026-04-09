@@ -32,8 +32,17 @@ function createMockRedis() {
       set.add(value);
       return had ? 0 : 1;
     },
+    async sRem(key: string, value: string): Promise<number> {
+      const set = sets.get(key);
+      if (!set) return 0;
+      return set.delete(value) ? 1 : 0;
+    },
     async sMembers(key: string): Promise<string[]> {
       return Array.from(sets.get(key) ?? []);
+    },
+    async del(key: string): Promise<number> {
+      const had = store.delete(key) || sets.delete(key);
+      return had ? 1 : 0;
     },
     async keys(pattern: string): Promise<string[]> {
       const re = new RegExp("^" + pattern.replace(/\*/g, ".*") + "$");

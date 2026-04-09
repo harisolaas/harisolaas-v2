@@ -3,10 +3,11 @@ import { nanoid } from "nanoid";
 import { Resend } from "resend";
 import { getRedis } from "@/lib/redis";
 import { plantConfig } from "@/data/brote";
-import type {
-  PlantRegistration,
-  CommunityPerson,
-  GroupType,
+import {
+  type PlantRegistration,
+  type CommunityPerson,
+  type GroupType,
+  isValidEmail,
 } from "@/lib/plant-types";
 import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
 
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
 
     // ── Waitlist flow ─────────────────────────────────────────────
     if (action === "waitlist") {
-      if (!email || !email.includes("@")) {
+      if (!isValidEmail(email)) {
         return NextResponse.json({ error: "Valid email required" }, { status: 400 });
       }
       await redis.sAdd("plant:waitlist", JSON.stringify({
@@ -68,7 +69,7 @@ export async function POST(req: Request) {
     const message = (body.message as string || "").trim().slice(0, 280) || undefined;
     const utm = body.utm as { source?: string; medium?: string; campaign?: string } | undefined;
 
-    if (!name || !email || !email.includes("@")) {
+    if (!name || !isValidEmail(email)) {
       return NextResponse.json({ error: "Name and valid email required" }, { status: 400 });
     }
     if (!isValidGroupType(groupType)) {

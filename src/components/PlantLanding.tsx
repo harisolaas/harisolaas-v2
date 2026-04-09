@@ -12,7 +12,7 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { toPng } from "html-to-image";
 import { plantConfig } from "@/data/brote";
 import type { PlantDict } from "@/dictionaries/types";
-import type { GroupType } from "@/lib/plant-types";
+import { type GroupType, isValidEmail } from "@/lib/plant-types";
 import {
   initPostHog,
   trackSectionView,
@@ -271,7 +271,11 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   }, []);
 
   const handleRegister = useCallback(async () => {
-    if (submitting || !name.trim() || !email.trim()) return;
+    if (submitting || !name.trim()) return;
+    if (!isValidEmail(email)) {
+      setError(dict.registration.errorMessage);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     trackCtaClick("plant_register", "/api/brote/register", "plant_registration");
@@ -314,7 +318,11 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   }, [submitting, name, email, groupType, carpool, message, utm, dict]);
 
   const handleWaitlist = useCallback(async () => {
-    if (submitting || !waitlistEmail.trim()) return;
+    if (submitting) return;
+    if (!isValidEmail(waitlistEmail)) {
+      setError(dict.registration.errorMessage);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -704,7 +712,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
 
                     <button
                       onClick={handleRegister}
-                      disabled={submitting || !name.trim() || !email.trim()}
+                      disabled={submitting || !name.trim() || !isValidEmail(email)}
                       className="mt-2 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
                     >
                       {submitting
@@ -734,7 +742,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                     />
                     <button
                       onClick={handleWaitlist}
-                      disabled={submitting || !waitlistEmail.trim()}
+                      disabled={submitting || !isValidEmail(waitlistEmail)}
                       className="w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
                     >
                       {submitting
