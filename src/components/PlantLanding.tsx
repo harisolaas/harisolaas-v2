@@ -199,24 +199,22 @@ function MessagesCarousel({
             animate={{ opacity: i === index ? 1 : 0 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             aria-hidden={i !== index}
-            className={`rounded-2xl border border-sage/20 bg-white/70 px-6 py-8 text-center ${
+            className={`flex flex-col items-center justify-center rounded-2xl border border-sage/20 bg-white/70 px-6 py-6 text-center ${
               i === index ? "pointer-events-auto" : "pointer-events-none"
             }`}
           >
             <span
               aria-hidden
-              className="block font-serif text-5xl leading-none text-terracotta/30"
+              className="block font-serif text-4xl leading-none text-terracotta/30"
             >
               &ldquo;
             </span>
-            <p className="mt-2 font-serif text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
+            <p className="mt-1 font-serif text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
               {item.message}
             </p>
-            <div className="mt-5 flex items-center justify-center">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-forest text-xs font-bold tracking-wider text-cream">
-                {item.initials}
-              </span>
-            </div>
+            <span className="mt-4 inline-flex h-8 w-8 items-center justify-center rounded-full bg-forest text-[11px] font-bold tracking-wider text-cream">
+              {item.initials}
+            </span>
           </motion.div>
         ))}
       </div>

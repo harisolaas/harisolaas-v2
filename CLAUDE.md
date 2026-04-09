@@ -13,6 +13,29 @@ Build a personal storytelling website for Harald Solaas (goes by Hari), a 31-yea
 
 ---
 
+## COPY & LANGUAGE CONVENTIONS
+
+### Spanish copy must be gender agnostic
+Avoid gendered forms like "solo/sola", "bienvenido/a", "todos". Rewrite around them — usually with neutral phrasings that read more natural than "/a" workarounds.
+
+| ❌ Avoid | ✅ Prefer |
+|---|---|
+| Solo / Sola | Por mi cuenta |
+| ¿Venís solo? | ¿Venís por tu cuenta? |
+| Bienvenido/a | Te damos la bienvenida · Qué bueno tenerte |
+| Todos | Toda la comunidad · Quienes vienen |
+| Anotado/a | En la lista · Anotaste tu lugar |
+
+This applies to landing copy, dictionaries (`src/dictionaries/es.ts`), and emails. When in doubt, find a phrasing that doesn't need a gendered word at all — that's almost always cleaner than `/a`.
+
+### Argentine voseo throughout
+Spanish copy uses voseo (vos, tenés, querés, anotate) — never tuteo (tú, tienes, quieres). The site speaks like an Argentine friend, not a neutral Spanish translator.
+
+### English mirror
+The English dictionary (`src/dictionaries/en.ts`) mirrors the Spanish but doesn't try to translate Argentine slang literally. Keep the warmth, drop the regionalisms.
+
+---
+
 ## DESIGN SPECIFICATIONS
 
 ### Color Palette

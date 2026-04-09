@@ -70,7 +70,7 @@ export function buildPlantInvite2Html(remaining?: number): string {
 
 <tr><td style="padding:24px 28px 0">
   <p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.65">La fiesta del 28 de marzo financi&oacute; &aacute;rboles nativos que Un &Aacute;rbol va a plantar por todo el pa&iacute;s. El <strong style="color:#2D4A3E">domingo 19 de abril</strong> vamos a una reserva en San Miguel a plantar una parte juntos, con las manos, en una tarde de meditaci&oacute;n, food trucks y sobremesa. Arrancamos 14:30 y la reserva queda abierta hasta las 19 &mdash; te qued&aacute;s lo que quieras.</p>
-  <p style="margin:0;color:#444;font-size:15px;line-height:1.65">Los primeros lugares se los llevaron los que vinieron a la fiesta. Si quer&eacute;s cerrar el ciclo con nosotros, anotate &mdash; ${seatsLine} La direcci&oacute;n la mandamos por mail solo a los que est&aacute;n en la lista.</p>
+  <p style="margin:0;color:#444;font-size:15px;line-height:1.65">Los primeros lugares se los llevaron quienes vinieron a la fiesta. Si quer&eacute;s cerrar el ciclo con nosotros, anotate &mdash; ${seatsLine} La direcci&oacute;n la mandamos por mail solo a quienes est&aacute;n en la lista.</p>
 </td></tr>
 
 <tr><td style="padding:24px 28px 0">
