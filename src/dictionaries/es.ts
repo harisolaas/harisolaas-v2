@@ -717,6 +717,7 @@ const es: Dictionary = {
         },
       ],
     },
+    messagesHeading: "Lo que dejaron los primeros",
     registration: {
       heading: "Anotate para plantar",
       subtitle: "Gratis, pero con cupo. Quedan {remaining} de 40 lugares.",

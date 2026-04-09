@@ -145,6 +145,92 @@ function ShareCard({
   );
 }
 
+/* ─── Messages carousel (auto-rotating, paused on hover) ─── */
+
+interface PlantMessage {
+  initials: string;
+  message: string;
+}
+
+function MessagesCarousel({
+  heading,
+  items,
+}: {
+  heading: string;
+  items: PlantMessage[];
+}) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (paused || items.length <= 1) return;
+    const t = setInterval(() => {
+      setIndex((i) => (i + 1) % items.length);
+    }, 6000);
+    return () => clearInterval(t);
+  }, [paused, items.length]);
+
+  if (items.length === 0) return null;
+
+  const current = items[index];
+
+  return (
+    <div
+      className="mx-auto mb-12 max-w-xl"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <p className="text-center text-xs font-semibold uppercase tracking-widest text-sage">
+        {heading}
+      </p>
+
+      <div className="relative mt-5 min-h-[180px]">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="rounded-2xl border border-sage/20 bg-white/70 px-6 py-8 text-center"
+          >
+            <span
+              aria-hidden
+              className="block font-serif text-5xl leading-none text-terracotta/30"
+            >
+              &ldquo;
+            </span>
+            <p className="mt-2 font-serif text-lg italic leading-relaxed text-charcoal/80 md:text-xl">
+              {current.message}
+            </p>
+            <div className="mt-5 flex items-center justify-center">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-forest text-xs font-bold tracking-wider text-cream">
+                {current.initials}
+              </span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {items.length > 1 && (
+        <div className="mt-5 flex justify-center gap-2">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`Mensaje ${i + 1}`}
+              className={`h-2 rounded-full transition-all ${
+                i === index ? "w-6 bg-forest" : "w-2 bg-sage/40 hover:bg-sage"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── FAQ accordion item ─── */
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -223,6 +309,9 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
 
+  // Plant messages from prior registrants
+  const [plantMessages, setPlantMessages] = useState<PlantMessage[]>([]);
+
   // Share flow
   const [exporting, setExporting] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
@@ -257,6 +346,14 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
         setRemaining(d.remaining ?? plantConfig.capacity);
         setIsFull(Boolean(d.full));
       })
+      .catch(() => {});
+  }, []);
+
+  // Fetch plant messages on mount
+  useEffect(() => {
+    fetch("/api/brote/plant-messages")
+      .then((r) => r.json())
+      .then((d) => setPlantMessages(d.messages ?? []))
       .catch(() => {});
   }, []);
 
@@ -610,6 +707,11 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
           id="registro"
           className="bg-cream-dark/30 px-6 py-16 md:py-24"
         >
+          <MessagesCarousel
+            heading={dict.messagesHeading}
+            items={plantMessages}
+          />
+
           <div className="mx-auto max-w-lg">
             <h2 className="text-center font-serif text-3xl text-forest md:text-4xl">
               {isFull

@@ -707,6 +707,7 @@ const en: Dictionary = {
         },
       ],
     },
+    messagesHeading: "What the first ones said",
     registration: {
       heading: "Sign up to plant",
       subtitle: "Free, but limited. {remaining} of 40 spots left.",

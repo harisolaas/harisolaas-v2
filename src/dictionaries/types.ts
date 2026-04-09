@@ -153,6 +153,7 @@ export interface PlantDict {
     faqHeading: string;
     faq: PlantFaqItem[];
   };
+  messagesHeading: string;
   registration: {
     heading: string;
     subtitle: string;
