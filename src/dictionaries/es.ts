@@ -631,7 +631,7 @@ const es: Dictionary = {
       ogDescription: "El segundo movimiento de BROTE. Domingo 19 de abril en una reserva de San Miguel. Gratis con cupo limitado.",
     },
     hero: {
-      eyebrow: "DOMINGO 19 DE ABRIL · 14 A 17H · SAN MIGUEL",
+      eyebrow: "DOMINGO 19 DE ABRIL · 14:30 A 17H · SAN MIGUEL",
       title: "El segundo movimiento de BROTE.",
       subtitle: "La fiesta plantó árboles en una planilla. El 19 nos encontramos a meter las manos en la tierra con Un Árbol.",
       tag: "Gratis · 40 lugares · Reservá tu lugar para recibir la dirección",
@@ -709,7 +709,7 @@ const es: Dictionary = {
         },
         {
           q: "¿Cuánto dura?",
-          a: "De 14 a 17h. Plantamos un rato, meditamos, comemos algo, nos quedamos charlando. No es jornada de trabajo — es tarde de domingo.",
+          a: "De 14:30 a 17h. Plantamos un rato, meditamos, comemos algo, nos quedamos charlando. No es jornada de trabajo — es tarde de domingo.",
         },
         {
           q: "¿Hay baños y agua?",

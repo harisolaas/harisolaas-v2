@@ -33,13 +33,13 @@ export function buildPlantInvite1Html(): string {
 </td></tr>
 
 <tr><td style="padding:24px 28px 0">
-  <p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.65">Vos viniste a la fiesta el 28 de marzo. Plantaste con la billetera y la pasaste hermoso. Ahora llega el segundo movimiento: el <strong style="color:#2D4A3E">domingo 19 de abril a las 14h</strong> nos encontramos en una reserva natural en San Miguel con Un &Aacute;rbol a meter las manos en la tierra y cerrar el ciclo.</p>
+  <p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.65">Vos viniste a la fiesta el 28 de marzo. Plantaste con la billetera y la pasaste hermoso. Ahora llega el segundo movimiento: el <strong style="color:#2D4A3E">domingo 19 de abril a las 14:30</strong> nos encontramos en una reserva natural en San Miguel con Un &Aacute;rbol a meter las manos en la tierra y cerrar el ciclo.</p>
   <p style="margin:0;color:#444;font-size:15px;line-height:1.65">No es jornada de trabajo. Es tarde de domingo: meditaci&oacute;n guiada, plantaci&oacute;n simb&oacute;lica, food trucks en la reserva y sobremesa con la comunidad. Gratis, pero son 40 lugares y la direcci&oacute;n exacta la mandamos por mail solo a los que est&aacute;n anotados.</p>
 </td></tr>
 
 <tr><td style="padding:24px 28px 0">
   <div style="padding:14px 20px;background:#FAF6F1;border-radius:12px;text-align:center">
-    <p style="margin:0;color:#2D4A3E;font-size:13px;font-weight:600">Domingo 19 de abril &middot; 14 a 17h &middot; Reserva en San Miguel &middot; Gratis con cupo</p>
+    <p style="margin:0;color:#2D4A3E;font-size:13px;font-weight:600">Domingo 19 de abril &middot; 14:30 a 17h &middot; Reserva en San Miguel &middot; Gratis con cupo</p>
   </div>
 </td></tr>
 
@@ -69,13 +69,13 @@ export function buildPlantInvite2Html(remaining?: number): string {
 </td></tr>
 
 <tr><td style="padding:24px 28px 0">
-  <p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.65">La fiesta del 28 de marzo financi&oacute; &aacute;rboles nativos que Un &Aacute;rbol va a plantar por todo el pa&iacute;s. El <strong style="color:#2D4A3E">domingo 19 de abril</strong> vamos a una reserva en San Miguel a plantar una parte juntos, con las manos, en una tarde de meditaci&oacute;n, food trucks y sobremesa. Tres horas, de 14 a 17.</p>
+  <p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.65">La fiesta del 28 de marzo financi&oacute; &aacute;rboles nativos que Un &Aacute;rbol va a plantar por todo el pa&iacute;s. El <strong style="color:#2D4A3E">domingo 19 de abril</strong> vamos a una reserva en San Miguel a plantar una parte juntos, con las manos, en una tarde de meditaci&oacute;n, food trucks y sobremesa. De 14:30 a 17.</p>
   <p style="margin:0;color:#444;font-size:15px;line-height:1.65">Los primeros lugares se los llevaron los que vinieron a la fiesta. Si quer&eacute;s cerrar el ciclo con nosotros, anotate &mdash; ${seatsLine} La direcci&oacute;n la mandamos por mail solo a los que est&aacute;n en la lista.</p>
 </td></tr>
 
 <tr><td style="padding:24px 28px 0">
   <div style="padding:14px 20px;background:#FAF6F1;border-radius:12px;text-align:center">
-    <p style="margin:0;color:#2D4A3E;font-size:13px;font-weight:600">Domingo 19 de abril &middot; 14 a 17h &middot; Reserva en San Miguel &middot; Gratis con cupo</p>
+    <p style="margin:0;color:#2D4A3E;font-size:13px;font-weight:600">Domingo 19 de abril &middot; 14:30 a 17h &middot; Reserva en San Miguel &middot; Gratis con cupo</p>
   </div>
 </td></tr>
 
