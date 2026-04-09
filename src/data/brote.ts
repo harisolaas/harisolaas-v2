@@ -27,12 +27,11 @@ export const broteConfig = {
 export const plantConfig = {
   eventDate: "2026-04-19",
   eventDateDisplay: "Domingo 19 de abril",
-  eventTime: "Por confirmar",
-  locationArea: "San Miguel, provincia de Buenos Aires",
+  eventTime: "14:00 a 17:00",
+  locationArea: "Reserva natural en San Miguel, Buenos Aires",
   // Single source of truth for exact address — only shown in confirmation email
   exactAddress: "Dirección exacta por confirmar",
   exactAddressMapLink:
     "https://www.google.com/maps/search/?api=1&query=San+Miguel+Buenos+Aires",
-  treesFinanced: 100,
-  registrationGoal: 50,
+  capacity: 40,
 };

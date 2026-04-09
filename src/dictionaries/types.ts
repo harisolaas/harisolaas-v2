@@ -118,49 +118,72 @@ export interface PlantActivityItem {
   description: string;
 }
 
+export interface PlantFaqItem {
+  q: string;
+  a: string;
+}
+
 export interface PlantDict {
   meta: { title: string; description: string; ogDescription: string };
   hero: {
-    headline: string;
-    subheadline: string;
-    dateTime: string;
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    tag: string;
     cta: string;
+    seatsLabel: string;
+    seatsFullLabel: string;
     welcomeBack: string;
   };
-  counter: {
-    treesLabel: string;
-    treesAchievement: string;
-    peopleLabel: string;
-    peopleCta: string;
+  ritual: {
+    title: string;
+    titleLine2: string;
+    body: string;
   };
-  recap: {
-    heading: string;
-    body: string[];
-  };
+  activitiesHeading: string;
   activities: PlantActivityItem[];
-  howToGetThere: {
+  unArbol: {
     heading: string;
-    area: string;
-    registerPrompt: string;
-    transport: string[];
+    body: string;
+    partnerLabel: string;
+  };
+  logistics: {
+    heading: string;
+    items: string[];
+    faqHeading: string;
+    faq: PlantFaqItem[];
   };
   registration: {
     heading: string;
+    subtitle: string;
+    subtitleFull: string;
+    helper: string;
     namePlaceholder: string;
     emailPlaceholder: string;
+    groupLabel: string;
+    groupSolo: string;
+    groupWithSomeone: string;
+    groupGroup: string;
+    carpoolLabel: string;
+    messageLabel: string;
+    messagePlaceholder: string;
     cta: string;
     submitting: string;
     successHeading: string;
     successMessage: string;
     alreadyRegistered: string;
     errorMessage: string;
+    shareButton: string;
+    shareDownload: string;
+    sharePrompt: string;
+    waitlistHeading: string;
+    waitlistSubtitle: string;
+    waitlistCta: string;
+    waitlistSuccess: string;
   };
-  unArbol: {
-    heading: string;
-    body: string[];
-  };
-  closing: {
-    heading: string;
+  finalCta: {
+    title: string;
+    subtitle: string;
     cta: string;
   };
 }
