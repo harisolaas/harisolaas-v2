@@ -4,6 +4,8 @@ import QRCode from "qrcode";
 import { Resend } from "resend";
 import type { BroteTicket } from "@/lib/brote-types";
 import { buildTicketEmailHtml, buildReminderEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
+import type { PlantRegistration } from "@/lib/plant-types";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 function auth(req: Request): boolean {
@@ -156,6 +158,51 @@ export async function POST(req: Request) {
       return NextResponse.json({
         ok: true,
         to: ticket.buyerEmail,
+        resendId: result.data?.id,
+      });
+    }
+
+    // ── Plant: resend confirmation email by registration ID or email ──
+    if (action === "plant-resend-email") {
+      let registration: PlantRegistration | null = null;
+
+      // Lookup by registrationId if provided, else by email via plant:registrations set
+      const regId = (await req.headers.get("x-registration-id")) || undefined;
+      const lookupEmail = toEmail?.toLowerCase();
+
+      if (regId) {
+        const raw = await redis.get(`plant:registration:${regId}`);
+        if (raw) registration = JSON.parse(raw);
+      } else if (lookupEmail) {
+        const allKeys = await redis.keys("plant:registration:*");
+        for (const k of allKeys) {
+          const raw = await redis.get(k);
+          if (!raw) continue;
+          const r: PlantRegistration = JSON.parse(raw);
+          if (r.email.toLowerCase() === lookupEmail) {
+            registration = r;
+            break;
+          }
+        }
+      }
+
+      if (!registration) {
+        return NextResponse.json({ error: "Plant registration not found" }, { status: 404 });
+      }
+
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      const resend = new Resend(process.env.RESEND_API_KEY!);
+      const result = await resend.emails.send({
+        from: `BROTE <${fromEmail}>`,
+        to: registration.email,
+        subject: "¡Te anotaste para plantar! 🌱 Detalles del evento",
+        html: buildPlantConfirmationEmailHtml(registration.name),
+      });
+
+      return NextResponse.json({
+        ok: true,
+        to: registration.email,
+        registrationId: registration.id,
         resendId: result.data?.id,
       });
     }
