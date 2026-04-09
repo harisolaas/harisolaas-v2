@@ -48,12 +48,32 @@ export async function GET(req: Request) {
       }
     }
 
+    // Plant registrations
+    const plantCounter = Number(await redis.get("plant:counter") ?? 0);
+    const plantRegistrationsRaw: string[] = await redis.sMembers("plant:registrations");
+    const plantRegistrations = plantRegistrationsRaw
+      .map((raw: string) => {
+        try { return JSON.parse(raw); } catch { return null; }
+      })
+      .filter(Boolean);
+    const plantWaitlistRaw: string[] = await redis.sMembers("plant:waitlist");
+    const plantWaitlist = plantWaitlistRaw
+      .map((raw: string) => {
+        try { return JSON.parse(raw); } catch { return null; }
+      })
+      .filter(Boolean);
+
     return NextResponse.json({
       status: "ok",
       counter,
       tickets: ticketKeys.length,
       payments: paymentKeys.length,
       ticketsWithoutEmail,
+      plant: {
+        counter: plantCounter,
+        registrations: plantRegistrations,
+        waitlist: plantWaitlist,
+      },
       env: {
         hasRedisUrl: !!process.env.REDIS_URL,
         hasResendKey: !!process.env.RESEND_API_KEY,

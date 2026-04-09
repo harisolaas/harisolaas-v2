@@ -30,8 +30,8 @@ export const plantConfig = {
   eventTime: "14:00 a 17:00",
   locationArea: "Reserva natural en San Miguel, Buenos Aires",
   // Single source of truth for exact address — only shown in confirmation email
-  exactAddress: "Dirección exacta por confirmar",
-  exactAddressMapLink:
-    "https://www.google.com/maps/search/?api=1&query=San+Miguel+Buenos+Aires",
+  exactAddress:
+    "Reserva Natural Urbana El Corredor — Tte. Ibañez 2200, Bella Vista, Buenos Aires",
+  exactAddressMapLink: "https://maps.app.goo.gl/1166qcBtTHpof4jY6",
   capacity: 40,
 };

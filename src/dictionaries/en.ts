@@ -666,9 +666,9 @@ const en: Dictionary = {
     logistics: {
       heading: "What you need to know",
       items: [
-        "Nature reserve in San Miguel (~1h from Capital via Acceso Norte)",
+        "Nature reserve in the San Miguel / Bella Vista area (~1h from Capital via Acceso Norte)",
         "The exact address and Google Maps link are sent by email when you register",
-        "San Martín train to San Miguel + short ride",
+        "San Martín train to Bella Vista + short ride",
         "We organize carpools from Capital — check it in the form",
       ],
       faqHeading: "Frequently asked",

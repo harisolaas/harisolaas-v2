@@ -676,9 +676,9 @@ const es: Dictionary = {
     logistics: {
       heading: "Lo que necesitás saber",
       items: [
-        "Reserva natural en San Miguel (~1h de Capital por Acceso Norte)",
+        "Reserva natural en zona San Miguel / Bella Vista (~1h de Capital por Acceso Norte)",
         "La dirección exacta y el link a Google Maps se mandan por email al anotarte",
-        "Tren San Martín hasta San Miguel + corto traslado",
+        "Tren San Martín hasta Bella Vista + corto traslado",
         "Armamos carpools desde Capital — marcalo en el form",
       ],
       faqHeading: "Preguntas frecuentes",
