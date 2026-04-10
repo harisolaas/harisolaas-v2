@@ -86,5 +86,31 @@ export async function POST(req: Request) {
     });
   }
 
+  // ── Fix campaign audit log (one-time correction) ──
+  if (action === "fix-campaign-log") {
+    const { variant: v, data } = body as {
+      variant: number;
+      data: { sent: number; audienceSize: number; subject?: string };
+    };
+    if (!v || !data) {
+      return NextResponse.json(
+        { error: "variant and data required" },
+        { status: 400 },
+      );
+    }
+    await redis.set(
+      `plant:campaign:${v}:sent`,
+      JSON.stringify({
+        sentAt: new Date().toISOString(),
+        subject: data.subject || "",
+        audienceSize: data.audienceSize,
+        sent: data.sent,
+        failedCount: 0,
+        note: "Manually corrected",
+      }),
+    );
+    return NextResponse.json({ ok: true, variant: v, data });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
