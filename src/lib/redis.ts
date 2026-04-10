@@ -4,16 +4,35 @@ import { createClient } from "redis";
 // Implements just the methods this codebase uses: get, set, incr, sMembers, sAdd, keys.
 function createMockRedis() {
   const store = new Map<string, string>();
+  const expiry = new Map<string, number>();
   const sets = new Map<string, Set<string>>();
+
+  function isExpired(key: string): boolean {
+    const exp = expiry.get(key);
+    if (exp && Date.now() > exp) {
+      store.delete(key);
+      expiry.delete(key);
+      return true;
+    }
+    return false;
+  }
 
   return {
     on: () => {},
     connect: async () => {},
     async get(key: string): Promise<string | null> {
+      if (isExpired(key)) return null;
       return store.get(key) ?? null;
     },
-    async set(key: string, value: string): Promise<string> {
+    async set(
+      key: string,
+      value: string,
+      options?: { EX?: number },
+    ): Promise<string> {
       store.set(key, value);
+      if (options?.EX) {
+        expiry.set(key, Date.now() + options.EX * 1000);
+      }
       return "OK";
     },
     async incr(key: string): Promise<number> {
