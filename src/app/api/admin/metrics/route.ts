@@ -82,21 +82,38 @@ export async function GET(req: Request) {
   } catch { /* skip */ }
 
   // ── Community metrics ───────────────────────────────────────
-  const returning = people.filter(
-    (p) =>
-      p.participations.some((e) => e.event === "brote") &&
-      p.participations.some((e) => e.event === "plant-2026-04"),
+  // Total unique BROTE buyers — from brote:attendees SET (the canonical source)
+  const broteAttendeesRaw: string[] = await redis.sMembers("brote:attendees");
+  const broteEmails = new Set<string>();
+  for (const raw of broteAttendeesRaw) {
+    try {
+      const a = JSON.parse(raw);
+      if (a.email) broteEmails.add(String(a.email).toLowerCase());
+    } catch { /* skip */ }
+  }
+  const broteAttendeeCount = broteEmails.size;
+
+  // Total community = union of BROTE buyers + plant registrants + community:person entries
+  const allCommunityEmails = new Set(broteEmails);
+  for (const p of people) {
+    if (p.email) allCommunityEmails.add(p.email.toLowerCase());
+  }
+  for (const r of plantRegs) {
+    if (r.email) allCommunityEmails.add(r.email.toLowerCase());
+  }
+  const totalCommunity = allCommunityEmails.size;
+
+  // Returning = plant registrants whose email is also in broteEmails
+  const plantEmails = new Set(plantRegs.map((r) => r.email.toLowerCase()));
+  const returningEmails = new Set(
+    Array.from(plantEmails).filter((e) => broteEmails.has(e)),
   );
-  const newOnly = people.filter(
-    (p) =>
-      p.participations.some((e) => e.event === "plant-2026-04") &&
-      !p.participations.some((e) => e.event === "brote"),
-  );
-  const broteAttendeeCount = new Set(
-    people
-      .filter((p) => p.participations.some((e) => e.event === "brote"))
-      .map((p) => p.email),
-  ).size;
+  const returningCount = returningEmails.size;
+
+  // New = plant registrants NOT in broteEmails
+  const newCount = plantRegs.filter(
+    (r) => !broteEmails.has(r.email.toLowerCase()),
+  ).length;
 
   // ── Plantation metrics ──────────────────────────────────────
   const remaining = Math.max(0, plantConfig.capacity - plantCounter);
@@ -168,7 +185,13 @@ export async function GET(req: Request) {
 
   // Avg days BROTE → Plant
   const daysArr: number[] = [];
-  for (const p of returning) {
+  // For avg days calculation, use community:person entries that have both events
+  const returningPeople = people.filter(
+    (p) =>
+      p.participations.some((e) => e.event === "brote") &&
+      p.participations.some((e) => e.event === "plant-2026-04"),
+  );
+  for (const p of returningPeople) {
     const broteDate = p.participations.find((e) => e.event === "brote")?.date;
     const plantDate = p.participations.find((e) => e.event === "plant-2026-04")?.date;
     if (broteDate && plantDate) {
@@ -191,12 +214,13 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     community: {
-      totalPeople: people.length,
-      returningCount: returning.length,
-      newCount: newOnly.length,
+      totalPeople: totalCommunity,
+      broteAttendees: broteAttendeeCount,
+      returningCount,
+      newCount,
       retentionRate:
         broteAttendeeCount > 0
-          ? Math.round((returning.length / broteAttendeeCount) * 1000) / 10
+          ? Math.round((returningCount / broteAttendeeCount) * 1000) / 10
           : 0,
     },
     plantation: {

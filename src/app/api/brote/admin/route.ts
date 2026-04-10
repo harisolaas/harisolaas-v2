@@ -265,17 +265,20 @@ export async function POST(req: Request) {
       const sent = results.filter((r) => r.ok).length;
       const failed = results.filter((r) => !r.ok);
 
-      // Mark this campaign as sent (audit trail)
-      await redis.set(
-        `plant:campaign:${v}:sent`,
-        JSON.stringify({
-          sentAt: new Date().toISOString(),
-          subject,
-          audienceSize: audience.length,
-          sent,
-          failedCount: failed.length,
-        }),
-      );
+      // Mark this campaign as sent (audit trail) — skip for override sends
+      // so test/manual sends don't overwrite the real campaign log
+      if (!audienceOverride || audienceOverride.length === 0) {
+        await redis.set(
+          `plant:campaign:${v}:sent`,
+          JSON.stringify({
+            sentAt: new Date().toISOString(),
+            subject,
+            audienceSize: audience.length,
+            sent,
+            failedCount: failed.length,
+          }),
+        );
+      }
 
       return NextResponse.json({
         ok: true,
