@@ -585,6 +585,22 @@ export async function POST(req: Request) {
       });
     }
 
+    if (action === "fix-campaign-log" && variant && mode) {
+      const data = { sent: Number(mode), audienceSize: Number(mode) };
+      await redis.set(
+        `plant:campaign:${variant}:sent`,
+        JSON.stringify({
+          sentAt: new Date().toISOString(),
+          subject: toEmail || "",
+          audienceSize: data.audienceSize,
+          sent: data.sent,
+          failedCount: 0,
+          note: "Manually corrected via admin",
+        }),
+      );
+      return NextResponse.json({ ok: true, variant, data });
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {
     console.error("Admin POST error:", err);
