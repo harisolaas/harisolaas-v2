@@ -1,0 +1,466 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { motion, useInView, AnimatePresence } from "framer-motion";
+import type { SinergiaDict } from "@/dictionaries/types";
+import { isValidEmail } from "@/lib/sinergia-types";
+import { sinergiaConfig } from "@/data/sinergia";
+
+function Section({
+  id,
+  children,
+  className = "",
+}: {
+  id: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.section
+      id={id}
+      ref={ref}
+      initial={{ opacity: 0, y: 18 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className={className}
+    >
+      {children}
+    </motion.section>
+  );
+}
+
+interface Props {
+  dict: SinergiaDict;
+  locale: string;
+}
+
+export default function SinergiaLanding({ dict, locale }: Props) {
+  const otherLocale = locale === "es" ? "en" : "es";
+  const localeLabel = locale === "es" ? "EN" : "ES";
+
+  const [remaining, setRemaining] = useState<number>(sinergiaConfig.capacity);
+  const [isFull, setIsFull] = useState(false);
+  const [sessionDate, setSessionDate] = useState<string>("");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [staysForDinner, setStaysForDinner] = useState<boolean | null>(null);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/sinergia/next-session")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.ok) {
+          setRemaining(d.remaining);
+          setIsFull(d.remaining === 0);
+          setSessionDate(d.date);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const scrollToRsvp = useCallback(() => {
+    document.getElementById("rsvp")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const handleRsvp = useCallback(async () => {
+    if (submitting) return;
+    if (!name.trim() || !isValidEmail(email) || staysForDinner === null) {
+      setError(dict.rsvp.errorMessage);
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/sinergia/rsvp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          staysForDinner,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        if (data.alreadyRegistered) setAlreadyRegistered(true);
+        if (typeof data.remaining === "number") {
+          setRemaining(data.remaining);
+          setIsFull(data.remaining === 0);
+        }
+        setSubmitted(true);
+      } else if (data.full) {
+        setIsFull(true);
+        setRemaining(0);
+        setError(dict.rsvp.subtitleFull);
+      } else {
+        setError(data.error || dict.rsvp.errorMessage);
+      }
+    } catch {
+      setError(dict.rsvp.errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting, name, email, staysForDinner, dict]);
+
+  const capacityStr = String(sinergiaConfig.capacity);
+  const seatsLabel = isFull
+    ? dict.hero.seatsFullLabel
+    : dict.hero.seatsLabel
+        .replace("{remaining}", String(remaining))
+        .replace("{capacity}", capacityStr);
+
+  const rsvpSubtitle = isFull
+    ? dict.rsvp.subtitleFull
+    : dict.rsvp.subtitle
+        .replace("{remaining}", String(remaining))
+        .replace("{capacity}", capacityStr);
+
+  return (
+    <>
+      <a
+        href={`/${otherLocale}/sinergia`}
+        className="fixed right-4 top-4 z-50 rounded-full border border-forest/30 bg-cream/80 px-3 py-1 text-xs font-semibold text-forest backdrop-blur transition-colors hover:border-forest/60"
+      >
+        {localeLabel}
+      </a>
+
+      <main className="overflow-hidden bg-cream text-charcoal">
+        {/* ───── HERO ───── */}
+        <section className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden bg-forest px-6 text-center">
+          <div
+            className="absolute inset-0 opacity-[0.06]"
+            style={{
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+              backgroundSize: "256px 256px",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 40%, rgba(196,112,75,0.18) 0%, rgba(45,74,62,0) 55%)",
+            }}
+          />
+
+          <div className="relative z-10 mx-auto max-w-2xl">
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="mb-6 text-xs font-semibold uppercase tracking-[0.22em] text-terracotta md:text-sm"
+            >
+              {dict.hero.eyebrow}
+            </motion.p>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="font-serif text-4xl leading-[1.05] tracking-tight text-cream md:text-6xl lg:text-7xl"
+            >
+              {dict.hero.title}
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-cream/85 md:text-lg"
+            >
+              {dict.hero.subtitle}
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              className="mt-8 flex flex-col items-center gap-3"
+            >
+              <button
+                onClick={scrollToRsvp}
+                className="inline-block cursor-pointer rounded-full bg-cream px-8 py-4 text-base font-semibold text-forest shadow-lg transition-all hover:bg-cream/90 hover:shadow-xl md:text-lg"
+              >
+                {dict.hero.cta}
+              </button>
+              <p
+                className={`text-xs font-semibold uppercase tracking-wider md:text-sm ${
+                  isFull ? "text-terracotta" : "text-cream/70"
+                }`}
+              >
+                {seatsLabel}
+              </p>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* ───── WHAT ───── */}
+        <Section id="what" className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-serif text-3xl leading-tight text-forest md:text-4xl lg:text-5xl">
+              {dict.what.heading}
+            </h2>
+            <p className="mt-6 text-base leading-relaxed text-charcoal/75 md:text-lg">
+              {dict.what.intro}
+            </p>
+
+            <ol className="mt-10 space-y-6">
+              {dict.what.schedule.map((item, i) => (
+                <motion.li
+                  key={item.time}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.4, delay: i * 0.08 }}
+                  className="grid grid-cols-[80px_1fr] gap-4 md:grid-cols-[100px_1fr] md:gap-6"
+                >
+                  <span className="pt-1 font-serif text-lg text-terracotta md:text-xl">
+                    {item.time}
+                  </span>
+                  <div className="border-l border-sage/30 pl-4 md:pl-6">
+                    <h3 className="font-serif text-xl text-forest md:text-2xl">
+                      {item.title}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-charcoal/70 md:text-base">
+                      {item.description}
+                    </p>
+                  </div>
+                </motion.li>
+              ))}
+            </ol>
+          </div>
+        </Section>
+
+        {/* ───── HOSTS ───── */}
+        <Section id="hosts" className="bg-cream-dark/40 px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-serif text-3xl text-forest md:text-4xl">
+              {dict.hosts.heading}
+            </h2>
+
+            <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="rounded-2xl border border-sage/20 bg-white/70 p-6">
+                <h3 className="font-serif text-2xl text-forest">
+                  {dict.hosts.hari.name}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-charcoal/75 md:text-base">
+                  {dict.hosts.hari.role}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-sage/20 bg-white/70 p-6">
+                <h3 className="font-serif text-2xl text-forest">
+                  {dict.hosts.coni.name}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-charcoal/75 md:text-base">
+                  {dict.hosts.coni.role}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-8 font-serif text-base italic text-charcoal/70 md:text-lg">
+              {dict.hosts.closing}
+            </p>
+          </div>
+        </Section>
+
+        {/* ───── FRICTIONS ───── */}
+        <Section id="frictions" className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-2xl">
+            <h2 className="font-serif text-3xl text-forest md:text-4xl">
+              {dict.frictions.heading}
+            </h2>
+
+            <ul className="mt-10 space-y-5">
+              {dict.frictions.items.map((item, i) => (
+                <motion.li
+                  key={item.title}
+                  initial={{ opacity: 0, x: -12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.4, delay: i * 0.1 }}
+                  className="border-l-2 border-terracotta pl-5"
+                >
+                  <h3 className="font-serif text-xl text-forest md:text-2xl">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-charcoal/75 md:text-base">
+                    {item.description}
+                  </p>
+                </motion.li>
+              ))}
+            </ul>
+          </div>
+        </Section>
+
+        {/* ───── RSVP ───── */}
+        <Section id="rsvp" className="bg-cream-dark/40 px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-lg">
+            <h2 className="text-center font-serif text-3xl text-forest md:text-4xl">
+              {dict.rsvp.heading}
+            </h2>
+            <p
+              className={`mt-3 text-center text-sm md:text-base ${
+                isFull ? "text-terracotta" : "text-charcoal/70"
+              }`}
+            >
+              {rsvpSubtitle}
+            </p>
+
+            <div className="mt-8">
+              <AnimatePresence mode="wait">
+                {!submitted && !isFull ? (
+                  <motion.div
+                    key="form"
+                    initial={{ opacity: 1 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="flex flex-col gap-3"
+                  >
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder={dict.rsvp.namePlaceholder}
+                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
+                    />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder={dict.rsvp.emailPlaceholder}
+                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
+                    />
+
+                    <div className="mt-2">
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-sage">
+                        {dict.rsvp.dinnerLabel}
+                      </label>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        {[
+                          { value: true, label: dict.rsvp.dinnerYes },
+                          { value: false, label: dict.rsvp.dinnerNo },
+                        ].map((opt) => (
+                          <button
+                            key={String(opt.value)}
+                            type="button"
+                            onClick={() => setStaysForDinner(opt.value)}
+                            className={`flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors ${
+                              staysForDinner === opt.value
+                                ? "border-forest bg-forest text-cream"
+                                : "border-sage/30 bg-white text-charcoal/70 hover:border-forest/40"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handleRsvp}
+                      disabled={
+                        submitting ||
+                        !name.trim() ||
+                        !isValidEmail(email) ||
+                        staysForDinner === null
+                      }
+                      className="mt-3 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
+                    >
+                      {submitting ? dict.rsvp.submitting : dict.rsvp.cta}
+                    </button>
+                    <p className="text-center text-xs text-charcoal/50">
+                      {dict.rsvp.helper}
+                    </p>
+                    {error && (
+                      <p className="text-center text-sm text-terracotta">
+                        {error}
+                      </p>
+                    )}
+                  </motion.div>
+                ) : isFull && !submitted ? (
+                  <motion.div
+                    key="full"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center gap-3 rounded-2xl border border-terracotta/30 bg-white/70 p-6 text-center"
+                  >
+                    <p className="text-base text-forest">
+                      {dict.rsvp.subtitleFull}
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="success"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center gap-4 text-center"
+                  >
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                      className="text-5xl"
+                    >
+                      🪵
+                    </motion.span>
+                    <h3 className="font-serif text-2xl text-forest">
+                      {dict.rsvp.successHeading}
+                    </h3>
+                    <p className="text-base text-charcoal/70">
+                      {alreadyRegistered
+                        ? dict.rsvp.alreadyRegistered
+                        : dict.rsvp.successMessage}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </Section>
+
+        {/* ───── FINAL ───── */}
+        <Section id="final" className="bg-forest px-6 py-20 text-center md:py-24">
+          <div className="mx-auto max-w-xl">
+            <h2 className="font-serif text-3xl text-cream md:text-4xl">
+              {dict.final.heading}
+            </h2>
+            <p className="mt-4 text-base text-cream/80 md:text-lg">
+              {dict.final.subtitle}
+            </p>
+            <button
+              onClick={scrollToRsvp}
+              className="mt-8 inline-block cursor-pointer rounded-full bg-cream px-8 py-4 text-base font-semibold text-forest shadow-md transition-all hover:bg-cream/90 hover:shadow-lg md:text-lg"
+            >
+              {dict.final.cta}
+            </button>
+            <p
+              className={`mt-4 text-xs font-semibold uppercase tracking-wider md:text-sm ${
+                isFull ? "text-terracotta" : "text-cream/60"
+              }`}
+            >
+              {seatsLabel}
+            </p>
+            {sessionDate && !isFull && (
+              <p className="mt-2 text-xs text-cream/50">
+                {sessionDate}
+              </p>
+            )}
+          </div>
+        </Section>
+      </main>
+    </>
+  );
+}

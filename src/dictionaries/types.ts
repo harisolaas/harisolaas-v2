@@ -204,6 +204,56 @@ export interface BroteUnArbolDict {
   backLink: string;
 }
 
+export interface SinergiaDict {
+  meta: { title: string; description: string; ogDescription: string };
+  hero: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    cta: string;
+    seatsLabel: string;
+    seatsFullLabel: string;
+  };
+  what: {
+    heading: string;
+    intro: string;
+    schedule: Array<{ time: string; title: string; description: string }>;
+  };
+  hosts: {
+    heading: string;
+    hari: { name: string; role: string };
+    coni: { name: string; role: string };
+    closing: string;
+  };
+  frictions: {
+    heading: string;
+    items: Array<{ title: string; description: string }>;
+  };
+  rsvp: {
+    heading: string;
+    subtitle: string;
+    subtitleFull: string;
+    helper: string;
+    namePlaceholder: string;
+    emailPlaceholder: string;
+    dinnerLabel: string;
+    dinnerYes: string;
+    dinnerNo: string;
+    cta: string;
+    submitting: string;
+    successHeading: string;
+    successMessage: string;
+    alreadyRegistered: string;
+    errorMessage: string;
+    micro: string;
+  };
+  final: {
+    heading: string;
+    subtitle: string;
+    cta: string;
+  };
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -256,4 +306,5 @@ export interface Dictionary {
   broteUnArbol: BroteUnArbolDict;
   broteCima: BroteUnArbolDict;
   plant: PlantDict;
+  sinergia: SinergiaDict;
 }

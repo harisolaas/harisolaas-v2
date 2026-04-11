@@ -742,6 +742,112 @@ const en: Dictionary = {
       cta: "Save your shovel 🌱",
     },
   },
+
+  sinergia: {
+    meta: {
+      title: "Sinergia — One Wednesday a week, come back to yourself",
+      description:
+        "A weekly meditation and reading/writing gathering. Wednesdays 7:30pm in Palermo, Buenos Aires. By donation, no experience required.",
+      ogDescription:
+        "One Wednesday a week, come back to yourself. 90 minutes of practice and a table to stay at if you want.",
+    },
+    hero: {
+      eyebrow: "Meditation + READING/WRITING gathering",
+      title: "One Wednesday a week, come back to yourself.",
+      subtitle:
+        "Wednesdays 7:30pm in Palermo. 90 minutes of practice and a table to stay at if you want. By donation, no experience required.",
+      cta: "Save your seat",
+      seatsLabel: "{remaining} of {capacity} seats left",
+      seatsFullLabel: "Full for this Wednesday",
+    },
+    what: {
+      heading: "What Sinergia is",
+      intro:
+        "Ninety minutes of practice, and a table to stay at if you want. Dinner is optional.",
+      schedule: [
+        {
+          time: "7:30pm",
+          title: "Meditation and pranayama",
+          description:
+            "We open by tuning everyone to the same frequency. Bastrika, pranayama, guided meditation.",
+        },
+        {
+          time: "8:00pm",
+          title: "Reading or writing",
+          description: "Time alone with a text, or with a blank page.",
+        },
+        {
+          time: "8:30pm",
+          title: "We share and listen",
+          description:
+            "Whatever came up. No debate, no obligation to speak.",
+        },
+        {
+          time: "9:00pm",
+          title: "Open dinner",
+          description: "Optional. If you stay, you stay.",
+        },
+      ],
+    },
+    hosts: {
+      heading: "Two of us hold this",
+      hari: {
+        name: "Hari",
+        role: "Leads the practice. Yoga and meditation teacher at Sky Campus.",
+      },
+      coni: {
+        name: "Coni",
+        role: "Brings the books. Holds the table with Hari.",
+      },
+      closing: "Sinergia lives inside Sky Campus, our home in Palermo.",
+    },
+    frictions: {
+      heading: "No strange conditions",
+      items: [
+        {
+          title: "By donation",
+          description: "You give what feels right. The practice isn\u2019t for sale.",
+        },
+        {
+          title: "No experience required",
+          description:
+            "If you\u2019ve never meditated, it\u2019s fine. We\u2019ll guide you on the spot.",
+        },
+        {
+          title: "Come when you can",
+          description:
+            "This isn\u2019t a course. Come one Wednesday, or every Wednesday. The table is set.",
+        },
+      ],
+    },
+    rsvp: {
+      heading: "Save your seat at the table",
+      subtitle:
+        "The table is small \u2014 only a few seats. We ask for the seat to make sure there\u2019s a chair for you. {remaining} of {capacity} left.",
+      subtitleFull:
+        "This Wednesday is full. Try again next week.",
+      helper: "We\u2019ll email you the address and how to get there.",
+      namePlaceholder: "Your name",
+      emailPlaceholder: "Your email",
+      dinnerLabel: "Staying for dinner?",
+      dinnerYes: "Yes, I\u2019ll stay",
+      dinnerNo: "No, just the practice",
+      cta: "Save my seat",
+      submitting: "Saving...",
+      successHeading: "Done.",
+      successMessage:
+        "We sent the address and details to your inbox. See you Wednesday.",
+      alreadyRegistered:
+        "You already had a seat for this Wednesday. Check your email.",
+      errorMessage: "Something went wrong. Please try again.",
+      micro: "We\u2019ll write to the address you leave.",
+    },
+    final: {
+      heading: "See you Wednesday.",
+      subtitle: "One hour a week that\u2019s just yours. The table is set.",
+      cta: "Save your seat",
+    },
+  },
 };
 
 export default en;

@@ -752,6 +752,115 @@ const es: Dictionary = {
       cta: "Reservá tu pala 🌱",
     },
   },
+
+  sinergia: {
+    meta: {
+      title: "Sinergia — Un miércoles por semana, volvés a vos",
+      description:
+        "Taller semanal de meditación y lectura/escritura. Miércoles 19:30 en Palermo. A colaboración, sin experiencia previa.",
+      ogDescription:
+        "Un miércoles por semana, volvés a vos. 90 minutos de práctica y una mesa para quedarte si querés.",
+    },
+    hero: {
+      eyebrow: "Taller de meditación y LECTURA/ESCRITURA",
+      title: "Un miércoles por semana, volvés a vos.",
+      subtitle:
+        "Miércoles 19:30 en Palermo. 90 minutos de práctica y una mesa para quedarte si querés. A colaboración, sin experiencia previa.",
+      cta: "Reservá tu lugar",
+      seatsLabel: "Quedan {remaining} de {capacity} lugares",
+      seatsFullLabel: "Cupo completo este miércoles",
+    },
+    what: {
+      heading: "Qué es Sinergia",
+      intro:
+        "Noventa minutos de práctica, y una mesa para quedarte si querés. La cena es opcional.",
+      schedule: [
+        {
+          time: "19:30",
+          title: "Meditación y pranayama",
+          description:
+            "Arrancamos sintonizando todos en la misma frecuencia. Bastrika, pranayama, meditación guiada.",
+        },
+        {
+          time: "20:00",
+          title: "Lectura o escritura",
+          description:
+            "Un rato a solas con un texto, o con una hoja en blanco.",
+        },
+        {
+          time: "20:30",
+          title: "Compartimos y escuchamos",
+          description:
+            "Lo que apareció. Sin debate, sin obligación de hablar.",
+        },
+        {
+          time: "21:00",
+          title: "Cena libre",
+          description: "Opcional. Si te quedás, te quedás.",
+        },
+      ],
+    },
+    hosts: {
+      heading: "Lo sostenemos dos",
+      hari: {
+        name: "Hari",
+        role: "Guía la práctica. Instructor de yoga y meditación en Sky Campus.",
+      },
+      coni: {
+        name: "Coni",
+        role: "Trae los libros. Sostiene la mesa con Hari.",
+      },
+      closing: "Sinergia vive dentro de Sky Campus, nuestra casa en Palermo.",
+    },
+    frictions: {
+      heading: "Sin condiciones raras",
+      items: [
+        {
+          title: "A colaboración",
+          description: "Ponés lo que sentís. La práctica no se compra.",
+        },
+        {
+          title: "Sin experiencia previa",
+          description:
+            "Si nunca meditaste, no importa. Te acompañamos en el momento.",
+        },
+        {
+          title: "Vení cuando puedas",
+          description:
+            "No es un curso. Venís un miércoles, o todos los miércoles. La mesa está.",
+        },
+      ],
+    },
+    rsvp: {
+      heading: "Reservá tu lugar en la mesa",
+      subtitle:
+        "La mesa es chica — entran pocos. Pedimos el lugar para asegurarnos de que haya silla para vos. Quedan {remaining} de {capacity}.",
+      subtitleFull:
+        "Se llenó el cupo de este miércoles. Volvé a intentar la semana que viene.",
+      helper:
+        "Te mandamos la dirección y cómo llegar por email.",
+      namePlaceholder: "Tu nombre",
+      emailPlaceholder: "Tu email",
+      dinnerLabel: "¿Te quedás a cenar?",
+      dinnerYes: "Sí, me quedo",
+      dinnerNo: "No, solo la práctica",
+      cta: "Reservar mi lugar",
+      submitting: "Reservando...",
+      successHeading: "Listo.",
+      successMessage:
+        "Te mandamos la dirección y los detalles por mail. Nos vemos el miércoles.",
+      alreadyRegistered:
+        "Ya tenías tu lugar para este miércoles. Revisá tu mail.",
+      errorMessage: "Algo salió mal. Intentá de nuevo.",
+      micro: "Te escribimos a la dirección que dejes.",
+    },
+    final: {
+      heading: "Te esperamos el miércoles.",
+      subtitle:
+        "Un rato por semana que es solo tuyo. La mesa está armada.",
+      cta: "Reservá tu lugar",
+    },
+  },
 };
 
 export default es;
