@@ -113,7 +113,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode, audienceOverride, registrationId, newEmail } = (await req.json()) as {
+    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode, audienceOverride, registrationId, newEmail, emails } = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
@@ -125,6 +125,7 @@ export async function POST(req: Request) {
       audienceOverride?: string[];
       registrationId?: string;
       newEmail?: string;
+      emails?: string[];
     };
 
     const redis = await getRedis();
@@ -599,6 +600,91 @@ export async function POST(req: Request) {
         }),
       );
       return NextResponse.json({ ok: true, variant, data });
+    }
+
+    // ── Plant: delete all registrations for given emails and fix counter ──
+    // Body: { action: "plant-delete-registrations", emails: ["a@b.com", ...], mode?: "preview"|"send" }
+    if (action === "plant-delete-registrations") {
+      if (!Array.isArray(emails) || emails.length === 0) {
+        return NextResponse.json({ error: "emails array required" }, { status: 400 });
+      }
+      const targetEmails = new Set(emails.map((e) => e.trim().toLowerCase()));
+      const m = mode || "preview";
+
+      // Find all plant:registration:* matching these emails
+      const allKeys: string[] = await redis.keys("plant:registration:*");
+      const toDelete: { key: string; reg: PlantRegistration }[] = [];
+      for (const k of allKeys) {
+        const raw = await redis.get(k);
+        if (!raw) continue;
+        try {
+          const reg: PlantRegistration = JSON.parse(raw);
+          if (targetEmails.has(reg.email.toLowerCase())) {
+            toDelete.push({ key: k, reg });
+          }
+        } catch { /* skip */ }
+      }
+
+      if (m === "preview") {
+        return NextResponse.json({
+          ok: true,
+          preview: true,
+          found: toDelete.map((d) => ({
+            id: d.reg.id,
+            email: d.reg.email,
+            name: d.reg.name,
+            createdAt: d.reg.createdAt,
+          })),
+          counterDecrement: toDelete.length,
+        });
+      }
+
+      // Delete registration keys
+      for (const d of toDelete) {
+        await (redis as unknown as { del: (key: string) => Promise<number> }).del(d.key);
+      }
+
+      // Clean plant:registrations SET
+      const setMembers: string[] = await redis.sMembers("plant:registrations");
+      for (const raw of setMembers) {
+        try {
+          const entry = JSON.parse(raw);
+          if (entry.email && targetEmails.has(entry.email.toLowerCase())) {
+            await (redis as unknown as { sRem: (key: string, val: string) => Promise<number> })
+              .sRem("plant:registrations", raw);
+          }
+        } catch { /* skip */ }
+      }
+
+      // Decrement counter
+      const currentCount = Number(await redis.get("plant:counter") ?? 0);
+      const newCount = Math.max(0, currentCount - toDelete.length);
+      await redis.set("plant:counter", String(newCount));
+
+      // Clean community:person entries — remove plant participation
+      for (const email of targetEmails) {
+        const personRaw = await redis.get(`community:person:${email}`);
+        if (!personRaw) continue;
+        try {
+          const person = JSON.parse(personRaw);
+          person.participations = (person.participations || []).filter(
+            (p: { event: string }) => p.event !== "plant-2026-04",
+          );
+          if (person.participations.length === 0) {
+            await (redis as unknown as { del: (key: string) => Promise<number> })
+              .del(`community:person:${email}`);
+          } else {
+            await redis.set(`community:person:${email}`, JSON.stringify(person));
+          }
+        } catch { /* skip */ }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        deleted: toDelete.map((d) => d.reg.id),
+        counterBefore: currentCount,
+        counterAfter: newCount,
+      });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
