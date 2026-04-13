@@ -240,8 +240,8 @@ export async function POST(req: Request) {
 
       const subject =
         v === 1
-          ? "Si le tenés miedo a la pala 🪏, no abrás este mail"
-          : `Quedan ${remaining} lugares para el 19 de abril`;
+          ? "BROTE — Si le tenés miedo a la pala 🪏, no abrás este mail"
+          : `BROTE — Quedan ${remaining} lugares para el 19 de abril`;
 
       const html = v === 1 ? buildPlantInvite1Html() : buildPlantInvite2Html(remaining);
 
