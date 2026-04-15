@@ -130,7 +130,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
         .replace("{capacity}", capacityStr);
 
   return (
-    <>
+    <div className="sinergia-theme">
       <a
         href={`/${otherLocale}/sinergia`}
         className="fixed right-4 top-4 z-50 rounded-full border border-forest/30 bg-cream/80 px-3 py-1 text-xs font-semibold text-forest backdrop-blur transition-colors hover:border-forest/60"
@@ -153,7 +153,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(circle at 50% 40%, rgba(196,112,75,0.18) 0%, rgba(45,74,62,0) 55%)",
+                "radial-gradient(circle at 50% 40%, rgba(217,122,58,0.22) 0%, rgba(14,107,168,0) 55%)",
             }}
           />
 
@@ -461,6 +461,6 @@ export default function SinergiaLanding({ dict, locale }: Props) {
           </div>
         </Section>
       </main>
-    </>
+    </div>
   );
 }

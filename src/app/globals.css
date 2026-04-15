@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@theme inline {
+@theme {
   --color-cream: #FAF6F1;
   --color-forest: #2D4A3E;
   --color-terracotta: #C4704B;
@@ -11,6 +11,7 @@
 
   --font-serif: var(--font-dm-serif);
   --font-sans: var(--font-source-sans);
+  --font-script: var(--font-dm-serif);
 }
 
 html {

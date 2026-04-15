@@ -749,13 +749,13 @@ const en: Dictionary = {
       description:
         "A weekly meditation and reading/writing gathering. Wednesdays 7:30pm in Palermo, Buenos Aires. By donation, no experience required.",
       ogDescription:
-        "One Wednesday a week, come back to yourself. 90 minutes of practice and a table to stay at if you want.",
+        "One Wednesday a week, come back to yourself. 90 minutes of connection and a table to stay at if you want.",
     },
     hero: {
       eyebrow: "Meditation + READING/WRITING gathering",
       title: "One Wednesday a week, come back to yourself.",
       subtitle:
-        "Wednesdays 7:30pm in Palermo. 90 minutes of practice and a table to stay at if you want. By donation, no experience required.",
+        "Wednesdays 7:30pm in Palermo. 90 minutes of connection and a table to stay at if you want. By donation, no experience required.",
       cta: "Save your seat",
       seatsLabel: "{remaining} of {capacity} seats left",
       seatsFullLabel: "Full for this Wednesday",
@@ -763,18 +763,19 @@ const en: Dictionary = {
     what: {
       heading: "What Sinergia is",
       intro:
-        "Ninety minutes of practice, and a table to stay at if you want. Dinner is optional.",
+        "Ninety minutes of connection, and a table to stay at if you want. Dinner is optional.",
       schedule: [
         {
           time: "7:30pm",
           title: "Meditation and pranayama",
           description:
-            "We open by tuning everyone to the same frequency. Bastrika, pranayama, guided meditation.",
+            "We open by tuning everyone to the same frequency. Breathwork, guided meditation.",
         },
         {
           time: "8:00pm",
           title: "Reading or writing",
-          description: "Time alone with a text, or with a blank page.",
+          description:
+            "Time alone with a text, or with a blank page of your choice. If you don’t know what to read, we have a library full of good options.",
         },
         {
           time: "8:30pm",
@@ -785,7 +786,7 @@ const en: Dictionary = {
         {
           time: "9:00pm",
           title: "Open dinner",
-          description: "Optional. If you stay, you stay.",
+          description: "Optional. Tasty, home-cooked food.",
         },
       ],
     },
@@ -806,7 +807,7 @@ const en: Dictionary = {
       items: [
         {
           title: "By donation",
-          description: "You give what feels right. The practice isn\u2019t for sale.",
+          description: "You contribute what feels right.",
         },
         {
           title: "No experience required",

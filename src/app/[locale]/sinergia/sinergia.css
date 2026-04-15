@@ -1,0 +1,53 @@
+/*
+ * Sinergia landing theme.
+ *
+ * Scoped to `.sinergia-theme` — overrides site-wide color + font tokens so
+ * Tailwind utilities (`bg-cream`, `text-forest`, `text-terracotta`, `font-serif`,
+ * `font-sans`) pick up Sinergia's palette and typography on this page only.
+ *
+ * Fonts:
+ * - Body (Aileron)   → self-hosted woff2 in /public/fonts/sinergia/
+ * - Display          → Unbounded via next/font/google (stand-in for Extenda 40 Hecto)
+ * - Script           → Dancing Script via next/font/google (stand-in for Madelyn)
+ */
+
+@font-face {
+  font-family: "Aileron";
+  src: url("/fonts/sinergia/aileron-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Aileron";
+  src: url("/fonts/sinergia/aileron-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+.sinergia-theme {
+  /* Palette */
+  --color-cream: #F1ECDA;
+  --color-cream-dark: #E5DEC6;
+  --color-forest: #0E6BA8;      /* deep blue — replaces forest green */
+  --color-terracotta: #D97A3A;  /* warm accent — replaces terracotta */
+  --color-tan: #D9D1B6;
+  --color-sage: #9BB4C9;        /* soft blue-gray — replaces sage */
+  --color-charcoal: #1F2A37;
+
+  /* Typography */
+  --font-sans: "Aileron", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-sinergia-display), "DM Serif Display", ui-serif, Georgia, serif;
+  --font-script: var(--font-sinergia-script), "Dancing Script", cursive;
+
+  color: var(--color-charcoal);
+  background-color: var(--color-cream);
+}
+
+/* Utility for the script accent */
+.sinergia-theme .font-script {
+  font-family: var(--font-script);
+  font-weight: 400;
+}

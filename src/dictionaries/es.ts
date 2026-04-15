@@ -759,13 +759,13 @@ const es: Dictionary = {
       description:
         "Taller semanal de meditación y lectura/escritura. Miércoles 19:30 en Palermo. A colaboración, sin experiencia previa.",
       ogDescription:
-        "Un miércoles por semana, volvés a vos. 90 minutos de práctica y una mesa para quedarte si querés.",
+        "Un miércoles por semana, volvés a vos. 90 minutos de conexión y una mesa para quedarte si querés.",
     },
     hero: {
       eyebrow: "Taller de meditación y LECTURA/ESCRITURA",
       title: "Un miércoles por semana, volvés a vos.",
       subtitle:
-        "Miércoles 19:30 en Palermo. 90 minutos de práctica y una mesa para quedarte si querés. A colaboración, sin experiencia previa.",
+        "Miércoles 19:30 en Palermo. 90 minutos de conexión y una mesa para quedarte si querés. A colaboración, sin experiencia previa.",
       cta: "Reservá tu lugar",
       seatsLabel: "Quedan {remaining} de {capacity} lugares",
       seatsFullLabel: "Cupo completo este miércoles",
@@ -773,19 +773,19 @@ const es: Dictionary = {
     what: {
       heading: "Qué es Sinergia",
       intro:
-        "Noventa minutos de práctica, y una mesa para quedarte si querés. La cena es opcional.",
+        "Noventa minutos de conexión, y una mesa para quedarte si querés. La cena es opcional.",
       schedule: [
         {
           time: "19:30",
           title: "Meditación y pranayama",
           description:
-            "Arrancamos sintonizando todos en la misma frecuencia. Bastrika, pranayama, meditación guiada.",
+            "Arrancamos sintonizando todos en la misma frecuencia. Breathwork (técnicas de respiración), meditación guiada.",
         },
         {
           time: "20:00",
           title: "Lectura o escritura",
           description:
-            "Un rato a solas con un texto, o con una hoja en blanco.",
+            "Un rato a solas con un texto, o con una hoja en blanco de tu elección. Si no sabés qué leer, tenemos una biblioteca llena de propuestas interesantes.",
         },
         {
           time: "20:30",
@@ -796,7 +796,7 @@ const es: Dictionary = {
         {
           time: "21:00",
           title: "Cena libre",
-          description: "Opcional. Si te quedás, te quedás.",
+          description: "Opcional. Comemos rico y casero.",
         },
       ],
     },
@@ -810,14 +810,14 @@ const es: Dictionary = {
         name: "Coni",
         role: "Trae los libros. Sostiene la mesa con Hari.",
       },
-      closing: "Sinergia vive dentro de Sky Campus, nuestra casa en Palermo.",
+      closing: "Sinergia vive dentro de Sky Campus, nuestra casa es en Palermo.",
     },
     frictions: {
       heading: "Sin condiciones raras",
       items: [
         {
           title: "A colaboración",
-          description: "Ponés lo que sentís. La práctica no se compra.",
+          description: "Colaborás con lo que sientas.",
         },
         {
           title: "Sin experiencia previa",

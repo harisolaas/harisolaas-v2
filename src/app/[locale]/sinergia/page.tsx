@@ -1,8 +1,22 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { Unbounded, Dancing_Script } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import SinergiaLanding from "@/components/SinergiaLanding";
+import "./sinergia.css";
+
+const unbounded = Unbounded({
+  subsets: ["latin"],
+  variable: "--font-sinergia-display",
+  display: "swap",
+});
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  variable: "--font-sinergia-script",
+  display: "swap",
+});
 
 export async function generateMetadata({
   params,
@@ -41,7 +55,9 @@ export default async function SinergiaPage({
 
   return (
     <Suspense>
-      <SinergiaLanding dict={dict.sinergia} locale={locale} />
+      <div className={`${unbounded.variable} ${dancingScript.variable}`}>
+        <SinergiaLanding dict={dict.sinergia} locale={locale} />
+      </div>
     </Suspense>
   );
 }
