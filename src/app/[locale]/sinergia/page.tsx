@@ -31,13 +31,20 @@ export async function generateMetadata({
     openGraph: {
       title: dict.sinergia.meta.title,
       description: dict.sinergia.meta.ogDescription,
-      images: [{ url: "https://www.harisolaas.com/og-image.jpg", width: 1200, height: 630 }],
+      images: [
+        {
+          url: "https://www.harisolaas.com/og-sinergia.png",
+          width: 1200,
+          height: 630,
+          alt: "Sinergia — Taller de meditación y lectura/escritura",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: dict.sinergia.meta.title,
       description: dict.sinergia.meta.ogDescription,
-      images: ["https://www.harisolaas.com/og-image.jpg"],
+      images: ["https://www.harisolaas.com/og-sinergia.png"],
     },
     icons: {
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪵</text></svg>",
