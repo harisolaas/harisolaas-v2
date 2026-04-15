@@ -1,4 +1,5 @@
 import { isValidEmail } from "@/lib/plant-types";
+import { sinergiaConfig } from "@/data/sinergia";
 
 export { isValidEmail };
 
@@ -51,7 +52,10 @@ export function nextSinergiaDate(now: Date = new Date()): string {
   const y = target.getUTCFullYear();
   const m = String(target.getUTCMonth() + 1).padStart(2, "0");
   const d = String(target.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  const natural = `${y}-${m}-${d}`;
+
+  const first = sinergiaConfig.firstSessionDate;
+  return first && natural < first ? first : natural;
 }
 
 export function formatSessionDateEs(iso: string): string {
