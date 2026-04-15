@@ -483,7 +483,7 @@ function CommunityContent({ data }: { data: Person[] | null }) {
           <tr className="border-b border-sage/15 text-xs uppercase tracking-wider text-charcoal/40">
             <th className="px-4 py-3">Nombre</th>
             <th className="px-4 py-3">Email</th>
-            <th className="px-4 py-3">Journey</th>
+            <th className="px-4 py-3">Eventos</th>
             <th className="px-4 py-3">Primera vez</th>
           </tr>
         </thead>
@@ -496,19 +496,26 @@ function CommunityContent({ data }: { data: Person[] | null }) {
               <td className="px-4 py-3 font-medium text-forest">{p.name}</td>
               <td className="px-4 py-3 text-charcoal/60">{p.email}</td>
               <td className="px-4 py-3">
-                {p.journey === "both" ? (
-                  <span className="rounded-full bg-forest/10 px-2 py-0.5 text-[10px] font-semibold text-forest">
-                    BROTE + Plantación
-                  </span>
-                ) : p.journey === "brote" ? (
-                  <span className="rounded-full bg-terracotta/10 px-2 py-0.5 text-[10px] font-semibold text-terracotta">
-                    Solo BROTE
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-semibold text-charcoal/60">
-                    Solo Plantación
-                  </span>
-                )}
+                <div className="flex flex-wrap gap-1.5">
+                  {p.hasBrote && (
+                    <span className="rounded-full bg-terracotta/10 px-2 py-0.5 text-[10px] font-semibold text-terracotta">
+                      BROTE
+                    </span>
+                  )}
+                  {p.hasPlant && (
+                    <span className="rounded-full bg-sage/20 px-2 py-0.5 text-[10px] font-semibold text-charcoal/70">
+                      Plantación
+                    </span>
+                  )}
+                  {p.hasSinergia && (
+                    <span
+                      title={p.lastSinergia ? `Última: ${p.lastSinergia}` : undefined}
+                      className="rounded-full bg-forest/10 px-2 py-0.5 text-[10px] font-semibold text-forest"
+                    >
+                      Sinergia{p.sinergiaCount > 1 ? ` ×${p.sinergiaCount}` : ""}
+                    </span>
+                  )}
+                </div>
               </td>
               <td className="whitespace-nowrap px-4 py-3 text-xs text-charcoal/40">
                 {p.firstSeen?.slice(0, 10)}

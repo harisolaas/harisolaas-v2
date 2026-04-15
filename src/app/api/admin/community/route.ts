@@ -4,6 +4,13 @@ import { requireAdminSession } from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
+interface Participation {
+  event: string;
+  role: string;
+  id: string;
+  date: string;
+}
+
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
@@ -16,17 +23,26 @@ export async function GET(req: Request) {
     if (!raw) continue;
     try {
       const person = JSON.parse(raw);
-      const hasBrote = person.participations?.some(
-        (p: { event: string }) => p.event === "brote",
-      );
-      const hasPlant = person.participations?.some(
-        (p: { event: string }) => p.event === "plant-2026-04",
-      );
+      const parts: Participation[] = person.participations ?? [];
+      const hasBrote = parts.some((p) => p.event === "brote");
+      const hasPlant = parts.some((p) => p.event === "plant-2026-04");
+      const sinergiaParts = parts.filter((p) => p.event.startsWith("sinergia-"));
+      const hasSinergia = sinergiaParts.length > 0;
+      const sinergiaCount = sinergiaParts.length;
+      const lastSinergia = sinergiaParts
+        .map((p) => p.event.replace("sinergia-", ""))
+        .sort()
+        .at(-1) ?? null;
+
       people.push({
         ...person,
-        hasBrote: Boolean(hasBrote),
-        hasPlant: Boolean(hasPlant),
-        journey: hasBrote && hasPlant ? "both" : hasBrote ? "brote" : "plant",
+        hasBrote,
+        hasPlant,
+        hasSinergia,
+        sinergiaCount,
+        lastSinergia,
+        // Kept for back-compat. Overview badge derived from the flags above.
+        journey: hasBrote && hasPlant ? "both" : hasBrote ? "brote" : hasPlant ? "plant" : "sinergia",
       });
     } catch { /* skip */ }
   }

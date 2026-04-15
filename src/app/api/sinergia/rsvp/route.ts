@@ -12,7 +12,10 @@ import {
   type SinergiaRsvp,
   type SinergiaSession,
 } from "@/lib/sinergia-types";
-import { buildSinergiaConfirmationEmailHtml } from "@/lib/sinergia-email";
+import {
+  buildSinergiaConfirmationEmailHtml,
+  buildSinergiaHostNotificationHtml,
+} from "@/lib/sinergia-email";
 
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
@@ -176,9 +179,11 @@ export async function POST(req: Request) {
       await redis.set(`community:person:${email}`, JSON.stringify(person));
     }
 
+    const remaining = Math.max(0, session.capacity - newCount);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
+
     // Send confirmation email
     try {
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
       await getResend().emails.send({
         from: `Sinergia <${fromEmail}>`,
         to: email,
@@ -193,7 +198,33 @@ export async function POST(req: Request) {
       console.error("Sinergia confirmation email failed:", err);
     }
 
-    const remaining = Math.max(0, session.capacity - newCount);
+    // Notify hosts
+    const notifyList = (process.env.SINERGIA_NOTIFY_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+
+    if (notifyList.length > 0) {
+      try {
+        await getResend().emails.send({
+          from: `Sinergia <${fromEmail}>`,
+          to: notifyList,
+          subject: `Nuevo RSVP Sinergia — ${name}`,
+          html: buildSinergiaHostNotificationHtml({
+            name,
+            email,
+            sessionDate,
+            staysForDinner,
+            totalRegistered: newCount,
+            remaining,
+            capacity: session.capacity,
+          }),
+        });
+      } catch (err) {
+        console.error("Sinergia host notification failed:", err);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       rsvpId,
