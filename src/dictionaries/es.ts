@@ -495,14 +495,20 @@ const es: Dictionary = {
           time: "15:30",
           title: "Ximena en vivo",
           description: "M\u00fasica ac\u00fastica para settear el mood.",
-          link: { url: "https://www.instagram.com/ximenasmusica/", label: "Ximena" },
+          link: {
+            url: "https://www.instagram.com/ximenasmusica/",
+            label: "Ximena",
+          },
         },
         {
           time: "16:00",
           title: "Un \u00c1rbol",
           description:
             "Charla sobre reforestaci\u00f3n y siembra colectiva. Cada uno hace su propio brote de planta nativa y se lo lleva a casa. Seguido de una siembra de intenci\u00f3n: una meditaci\u00f3n colectiva breve para cerrar ese momento.",
-          link: { url: "https://www.instagram.com/unarbol_ong/", label: "Un \u00c1rbol" },
+          link: {
+            url: "https://www.instagram.com/unarbol_ong/",
+            label: "Un \u00c1rbol",
+          },
         },
         {
           time: "17:00",
@@ -550,15 +556,15 @@ const es: Dictionary = {
     final: {
       heading: "\u00bfVen\u00eds?",
       cta: "Quiero mi entrada",
-      plantingPrompt:
-        "\u00bfNo pod\u00e9s venir pero quer\u00e9s ser parte?",
+      plantingPrompt: "\u00bfNo pod\u00e9s venir pero quer\u00e9s ser parte?",
       plantingCta: "Sumate a la plantaci\u00f3n",
     },
     success: {
       title: "BROTE \u2014 \u00a1Listo!",
       heading: "\u00a1Ya sos parte del bosque!",
       body: "Gracias a vos, un \u00e1rbol nuevo va a echar ra\u00edces en Argentina. Eso es real, y es gracias a tu decisi\u00f3n de hoy. Nos vemos el 28 de marzo para celebrarlo juntos.",
-      emailNote: "Tu entrada con el c\u00f3digo QR va a llegar al email que usaste en MercadoPago en los pr\u00f3ximos minutos. Revis\u00e1 tu bandeja de entrada y spam.",
+      emailNote:
+        "Tu entrada con el c\u00f3digo QR va a llegar al email que usaste en MercadoPago en los pr\u00f3ximos minutos. Revis\u00e1 tu bandeja de entrada y spam.",
       noEmail: "\u00bfNo te lleg\u00f3 el email? Escribime y lo resolvemos.",
       whatsappCta: "Escribime por WhatsApp",
       backLink: "Volver a BROTE",
@@ -585,13 +591,18 @@ const es: Dictionary = {
     ],
     pricingTitle: "Precios",
     pricing: [
-      { label: "Comunidad Un \u00c1rbol (25% OFF)", price: "$17.477", highlight: true },
+      {
+        label: "Comunidad Un \u00c1rbol (25% OFF)",
+        price: "$17.477",
+        highlight: true,
+      },
       { label: "Preventa general", price: "$18.650" },
       { label: "En puerta", price: "$23.303" },
     ],
     codePlaceholder: "Ingres\u00e1 tu c\u00f3digo",
     codeButton: "Validar",
-    codeInvalid: "C\u00f3digo inv\u00e1lido. Revis\u00e1 que est\u00e9 bien escrito.",
+    codeInvalid:
+      "C\u00f3digo inv\u00e1lido. Revis\u00e1 que est\u00e9 bien escrito.",
     codeUsed: "Este c\u00f3digo ya fue utilizado.",
     cta: "Quiero mi entrada",
     loading: "Procesando...",
@@ -627,13 +638,16 @@ const es: Dictionary = {
   plant: {
     meta: {
       title: "BROTE — El segundo movimiento",
-      description: "El 19 de abril cerramos el ciclo de BROTE: meditación, plantación con Un Árbol y sobremesa en una reserva de San Miguel. Gratis, 40 lugares, requiere registración.",
-      ogDescription: "El segundo movimiento de BROTE. Domingo 19 de abril en una reserva de San Miguel. Gratis con cupo limitado.",
+      description:
+        "El 19 de abril cerramos el ciclo de BROTE: meditación, plantación con Un Árbol y sobremesa en una reserva de San Miguel. Gratis, 40 lugares, requiere registración.",
+      ogDescription:
+        "El segundo movimiento de BROTE. Domingo 19 de abril en una reserva de San Miguel. Gratis con cupo limitado.",
     },
     hero: {
       eyebrow: "DOMINGO 19 DE ABRIL · DESDE LAS 14:30 · SAN MIGUEL",
       title: "El segundo movimiento de BROTE.",
-      subtitle: "La fiesta plantó árboles en una planilla. El 19 nos encontramos a meter las manos en la tierra con Un Árbol.",
+      subtitle:
+        "La fiesta plantó árboles en una planilla. El 19 nos encontramos a meter las manos en la tierra con Un Árbol.",
       tag: "Gratis · 40 lugares · Reservá tu lugar para recibir la dirección",
       cta: "Reservá tu pala 🌱",
       seatsLabel: "Quedan {remaining} de 40 lugares",
@@ -650,22 +664,26 @@ const es: Dictionary = {
       {
         icon: "🌱",
         title: "Manos en la tierra",
-        description: "Vas a hacer un pozo, acomodar las raíces, apretar el suelo y dejar un árbol nativo en pie.",
+        description:
+          "Vas a hacer un pozo, acomodar las raíces, apretar el suelo y dejar un árbol nativo en pie.",
       },
       {
         icon: "🧘",
         title: "Meditación guiada",
-        description: "Antes de plantar, un rato sentados en silencio. Para llegar bien, para bajar el ruido de la ciudad y aparecer enteros frente a la tierra.",
+        description:
+          "Antes de plantar, un rato sentados en silencio. Para llegar bien, para bajar el ruido de la ciudad y aparecer enteros frente a la tierra.",
       },
       {
         icon: "🌮",
         title: "Food trucks y sobremesa",
-        description: "Hay food trucks en la reserva, música tranquila y lugar para quedarse. Venís a plantar, pero también a pasarla bien una tarde de domingo.",
+        description:
+          "Hay food trucks en la reserva, música tranquila y lugar para quedarse. Venís a plantar, pero también a pasarla bien una tarde de domingo.",
       },
       {
         icon: "🌿",
         title: "Un Árbol te cuenta",
-        description: "La ONG que viene restaurando bosques nativos hace 15 años. Vas a conocer su trabajo de primera mano y entender a dónde van los árboles que no plantamos ese día — Un Árbol los sigue plantando por todo el país cuando corresponde.",
+        description:
+          "La ONG que viene restaurando bosques nativos hace 15 años. Vas a conocer su trabajo de primera mano y entender a dónde van los árboles que no plantamos ese día — Un Árbol los sigue plantando por todo el país cuando corresponde.",
       },
     ],
     unArbol: {
@@ -705,7 +723,7 @@ const es: Dictionary = {
         },
         {
           q: "¿Puedo ir con mi hijo/a?",
-          a: "Sí, desde los 8 años. Los más chicos plantan mejor que nosotros. Anotalos como \"con alguien\" en el form.",
+          a: 'Sí, desde los 8 años. Los más chicos plantan mejor que nosotros. Anotalos como "con alguien" en el form.',
         },
         {
           q: "¿Cuánto dura?",
@@ -721,8 +739,10 @@ const es: Dictionary = {
     registration: {
       heading: "Anotate para plantar",
       subtitle: "Gratis, pero con cupo. Quedan {remaining} de 40 lugares.",
-      subtitleFull: "Se llenaron los 40 lugares. Dejá tu mail para la lista de espera.",
-      helper: "Dejanos tu nombre y email. Te mandamos la dirección exacta, el horario y todo lo que necesitás saber.",
+      subtitleFull:
+        "Se llenaron los 40 lugares. Dejá tu mail para la lista de espera.",
+      helper:
+        "Dejanos tu nombre y email. Te mandamos la dirección exacta, el horario y todo lo que necesitás saber.",
       namePlaceholder: "Tu nombre",
       emailPlaceholder: "Tu email",
       groupLabel: "¿Venís por tu cuenta o con alguien?",
@@ -730,19 +750,24 @@ const es: Dictionary = {
       groupWithSomeone: "Con alguien",
       groupGroup: "Con un grupo (3+)",
       carpoolLabel: "Puedo ofrecer lugar en mi auto desde Capital",
-      messageLabel: "Dejá un mensaje para cebar a la próxima persona que venga a anotarse (opcional)",
-      messagePlaceholder: "Ej: Vení a plantar conmigo, es gratis y va a estar hermoso 🌱",
+      messageLabel:
+        "Dejá un mensaje para cebar a la próxima persona que venga a anotarse (opcional)",
+      messagePlaceholder:
+        "Ej: Vení a plantar conmigo, es gratis y va a estar hermoso 🌱",
       cta: "Voy el 19 🌱",
       submitting: "Reservando...",
       successHeading: "Listo.",
-      successMessage: "Te mandamos la dirección exacta y los detalles por mail. Nos vemos el 19 con las manos listas.",
-      alreadyRegistered: "Ya estabas en la lista. Revisá tu mail para los detalles.",
+      successMessage:
+        "Te mandamos la dirección exacta y los detalles por mail. Nos vemos el 19 con las manos listas.",
+      alreadyRegistered:
+        "Ya estabas en la lista. Revisá tu mail para los detalles.",
       errorMessage: "Algo salió mal. Intentá de nuevo.",
       shareButton: "Compartir en stories",
       shareDownload: "Descargar imagen",
       sharePrompt: "Subilo a tu story y ayudanos a seguir hyppeando 🌱",
       waitlistHeading: "Lista de espera",
-      waitlistSubtitle: "Se llenaron los 40 lugares. Dejá tu mail y te avisamos si se libera uno.",
+      waitlistSubtitle:
+        "Se llenaron los 40 lugares. Dejá tu mail y te avisamos si se libera uno.",
       waitlistCta: "Anotarme en la lista",
       waitlistSuccess: "Listo, te avisamos si se libera un lugar.",
     },
@@ -763,9 +788,9 @@ const es: Dictionary = {
     },
     hero: {
       eyebrow: "Taller de meditación y LECTURA/ESCRITURA",
-      title: "Un miércoles por semana, volvés a vos.",
+      title: "Una hora a la semana para volver a vos.",
       subtitle:
-        "Miércoles 19:30 en Palermo. 90 minutos de conexión y una mesa para quedarte si querés. A colaboración, sin experiencia previa.",
+        "Miércoles 19:30 en Palermo. A colaboración, sin experiencia previa.",
       cta: "Reservá tu lugar",
       seatsLabel: "Quedan {remaining} de {capacity} lugares",
       seatsFullLabel: "Cupo completo este miércoles",
@@ -790,8 +815,7 @@ const es: Dictionary = {
         {
           time: "20:30",
           title: "Compartimos y escuchamos",
-          description:
-            "Lo que apareció. Sin debate, sin obligación de hablar.",
+          description: "Lo que apareció. Sin debate, sin obligación de hablar.",
         },
         {
           time: "21:00",
@@ -808,12 +832,13 @@ const es: Dictionary = {
       },
       coni: {
         name: "Coni",
-        role: "Trae los libros. Sostiene la mesa con Hari.",
+        role: "Meditadora. Motor, soporte y guía del espacio lúdico.",
       },
-      closing: "Sinergia vive dentro de Sky Campus, nuestra casa es en Palermo.",
+      closing:
+        "Sinergia vive dentro de Sky Campus, nuestra casa es en Palermo.",
     },
     frictions: {
-      heading: "Sin condiciones raras",
+      heading: "¿Cómo funciona?",
       items: [
         {
           title: "A colaboración",
@@ -827,18 +852,17 @@ const es: Dictionary = {
         {
           title: "Vení cuando puedas",
           description:
-            "No es un curso. Venís un miércoles, o todos los miércoles. La mesa está.",
+            "No es un curso. Venís un miércoles, o todos los miércoles. El espacio está.",
         },
       ],
     },
     rsvp: {
-      heading: "Reservá tu lugar en la mesa",
+      heading: "Reservá tu espacio",
       subtitle:
-        "La mesa es chica — entran pocos. Pedimos el lugar para asegurarnos de que haya silla para vos. Quedan {remaining} de {capacity}.",
+        "Pedimos el lugar para asegurarnos de que haya un lugar para vos. Quedan {remaining} de {capacity}.",
       subtitleFull:
         "Se llenó el cupo de este miércoles. Volvé a intentar la semana que viene.",
-      helper:
-        "Te mandamos la dirección y cómo llegar por email.",
+      helper: "Te mandamos la dirección y cómo llegar por email.",
       namePlaceholder: "Tu nombre",
       emailPlaceholder: "Tu email",
       dinnerLabel: "¿Te quedás a cenar?",
@@ -856,8 +880,7 @@ const es: Dictionary = {
     },
     final: {
       heading: "Te esperamos el miércoles.",
-      subtitle:
-        "Un rato por semana que es solo tuyo. La mesa está armada.",
+      subtitle: "Un rato por semana que es solo tuyo.",
       cta: "Reservá tu lugar",
     },
   },

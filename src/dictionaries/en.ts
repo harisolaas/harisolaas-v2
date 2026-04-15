@@ -753,9 +753,9 @@ const en: Dictionary = {
     },
     hero: {
       eyebrow: "Meditation + READING/WRITING gathering",
-      title: "One Wednesday a week, come back to yourself.",
+      title: "One hour a week to come back to yourself.",
       subtitle:
-        "Wednesdays 7:30pm in Palermo. 90 minutes of connection and a table to stay at if you want. By donation, no experience required.",
+        "Wednesdays 7:30pm in Palermo. By donation, no experience required.",
       cta: "Save your seat",
       seatsLabel: "{remaining} of {capacity} seats left",
       seatsFullLabel: "Full for this Wednesday",
@@ -798,12 +798,12 @@ const en: Dictionary = {
       },
       coni: {
         name: "Coni",
-        role: "Brings the books. Holds the table with Hari.",
+        role: "Meditator. Engine, support, and guide of the creative space.",
       },
       closing: "Sinergia lives inside Sky Campus, our home in Palermo.",
     },
     frictions: {
-      heading: "No strange conditions",
+      heading: "How it works",
       items: [
         {
           title: "By donation",
@@ -817,14 +817,14 @@ const en: Dictionary = {
         {
           title: "Come when you can",
           description:
-            "This isn\u2019t a course. Come one Wednesday, or every Wednesday. The table is set.",
+            "This isn\u2019t a course. Come one Wednesday, or every Wednesday. The space is here.",
         },
       ],
     },
     rsvp: {
-      heading: "Save your seat at the table",
+      heading: "Save your spot",
       subtitle:
-        "The table is small \u2014 only a few seats. We ask for the seat to make sure there\u2019s a chair for you. {remaining} of {capacity} left.",
+        "We ask for the spot to make sure there\u2019s a place for you. {remaining} of {capacity} left.",
       subtitleFull:
         "This Wednesday is full. Try again next week.",
       helper: "We\u2019ll email you the address and how to get there.",
@@ -845,7 +845,7 @@ const en: Dictionary = {
     },
     final: {
       heading: "See you Wednesday.",
-      subtitle: "One hour a week that\u2019s just yours. The table is set.",
+      subtitle: "One hour a week that\u2019s just yours.",
       cta: "Save your seat",
     },
   },
