@@ -414,7 +414,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                       transition={{ type: "spring", stiffness: 300, damping: 15 }}
                       className="text-5xl"
                     >
-                      🪵
+                      📓
                     </motion.span>
                     <h3 className="font-serif text-2xl text-forest">
                       {dict.rsvp.successHeading}
