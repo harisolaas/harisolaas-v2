@@ -745,11 +745,11 @@ const en: Dictionary = {
 
   sinergia: {
     meta: {
-      title: "Sinergia — One Wednesday a week, come back to yourself",
+      title: "Sinergia — One hour a week to come back to yourself",
       description:
         "A weekly meditation and reading/writing gathering. Wednesdays 7:30pm in Palermo, Buenos Aires. By donation, no experience required.",
       ogDescription:
-        "One Wednesday a week, come back to yourself. 90 minutes of connection and a table to stay at if you want.",
+        "One hour a week, come back to yourself. 90 minutes of connection and a table to stay at if you want.",
     },
     hero: {
       eyebrow: "Meditation + READING/WRITING gathering",

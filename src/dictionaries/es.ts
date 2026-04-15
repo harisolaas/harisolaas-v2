@@ -780,11 +780,11 @@ const es: Dictionary = {
 
   sinergia: {
     meta: {
-      title: "Sinergia — Un miércoles por semana, volvés a vos",
+      title: "Sinergia — Una hora a la semana para volver a vos",
       description:
         "Taller semanal de meditación y lectura/escritura. Miércoles 19:30 en Palermo. A colaboración, sin experiencia previa.",
       ogDescription:
-        "Un miércoles por semana, volvés a vos. 90 minutos de conexión y una mesa para quedarte si querés.",
+        "Una hora por semana, volvés a vos. 90 minutos de conexión y una mesa para quedarte si querés.",
     },
     hero: {
       eyebrow: "Taller de meditación y LECTURA/ESCRITURA",

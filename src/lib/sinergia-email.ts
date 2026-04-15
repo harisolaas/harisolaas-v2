@@ -92,6 +92,78 @@ export function buildSinergiaReminderEmailHtml({
 </html>`;
 }
 
+interface ErratumParams {
+  name: string;
+  oldDate: string; // e.g. "2026-04-15"
+  newDate: string; // e.g. "2026-04-22"
+}
+
+export function buildSinergiaErratumEmailHtml({
+  name,
+  oldDate,
+  newDate,
+}: ErratumParams): string {
+  const oldLabel = formatSessionDateEs(oldDate);
+  const newLabel = formatSessionDateEs(newDate);
+  const { time, exactAddress, exactAddressMapLink, venueName } = sinergiaConfig;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
+<tr><td align="center" style="padding:40px 16px">
+<table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(14,107,168,0.10)">
+
+<tr><td style="background:${BLUE};padding:36px 24px;text-align:center">
+  <p style="margin:0 0 8px;color:${CREAM};font-family:${BODY_STACK};font-size:11px;letter-spacing:2.5px;text-transform:uppercase">Fe de erratas</p>
+  <h1 style="margin:0;color:${CREAM};font-family:${DISPLAY_STACK};font-size:28px;letter-spacing:3px;font-weight:700">SINERGIA</h1>
+</td></tr>
+
+<tr><td style="padding:32px 24px 8px">
+  <h2 style="margin:0 0 12px;color:${BLUE};font-family:${DISPLAY_STACK};font-size:22px;font-weight:600">Hola ${name},</h2>
+  <p style="margin:0 0 12px;color:${CHARCOAL};font-family:${BODY_STACK};font-size:15px;line-height:1.7">
+    Hubo un error en el mail de confirmación que te mandamos: decía que nos veíamos <span style="text-decoration:line-through;color:${MUTED}">${oldLabel}</span>, pero en realidad Sinergia arranca el miércoles que viene.
+  </p>
+  <p style="margin:0 0 16px;color:${CHARCOAL};font-family:${BODY_STACK};font-size:15px;line-height:1.7">
+    Te mantuvimos el lugar para esa fecha. Todo lo demás sigue igual.
+  </p>
+</td></tr>
+
+<tr><td style="padding:16px 24px 0">
+  <div style="padding:18px 20px;background:${CREAM};border-radius:12px;border:1px solid ${CREAM_DARK}">
+    <p style="margin:0 0 10px;color:${ACCENT};font-family:${BODY_STACK};font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">Nueva fecha</p>
+    <p style="margin:0 0 4px;color:${BLUE};font-family:${DISPLAY_STACK};font-size:20px;font-weight:600">${newLabel}</p>
+    <p style="margin:0;color:${MUTED};font-family:${BODY_STACK};font-size:14px">${time} &middot; ${venueName} &middot; ${exactAddress}</p>
+  </div>
+</td></tr>
+
+<tr><td style="padding:24px 24px 8px;text-align:center">
+  <a href="${exactAddressMapLink}" style="display:inline-block;background:${ACCENT};color:#ffffff;font-family:${BODY_STACK};font-size:14px;font-weight:600;padding:13px 28px;border-radius:50px;text-decoration:none;letter-spacing:0.4px">Abrir en Google Maps</a>
+</td></tr>
+
+<tr><td style="padding:16px 24px 28px;text-align:center">
+  <p style="margin:0;color:${MUTED};font-family:${SCRIPT_STACK};font-size:20px">Perdón por la confusión — nos vemos ahí.</p>
+</td></tr>
+
+<tr><td style="padding:22px 24px 28px;text-align:center;border-top:1px solid ${CREAM_DARK};background:#fdfbf5">
+  <p style="margin:0 0 6px;color:${MUTED};font-family:${BODY_STACK};font-size:12px">Sinergia &middot; Hari &amp; Coni &middot; Sky Campus</p>
+  <p style="margin:0;color:${MUTED};opacity:0.65;font-family:${BODY_STACK};font-size:11px">harisolaas.com/sinergia</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
 interface HostNotifyParams {
   name: string;
   email: string;
