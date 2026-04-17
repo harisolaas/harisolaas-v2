@@ -16,6 +16,6 @@ if (!url) {
 
 const pool = new Pool({ connectionString: url });
 
-export const db = drizzle(pool, { schema });
+export const db = drizzle(pool, { schema, casing: "snake_case" });
 export { schema };
 export type DB = typeof db;
