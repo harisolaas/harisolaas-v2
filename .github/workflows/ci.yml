@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    name: Build + lint + test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Build runs the TypeScript type-checker for Next routes.
+        # DATABASE_URL must be present at build time only to satisfy the
+        # module-load-time check in src/db/index.ts; no queries run.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED_DEV }}
+          REDIS_URL: "redis://localhost:6379"
+          MP_ACCESS_TOKEN: "build-time-placeholder"
+          RESEND_API_KEY: "build-time-placeholder"
+        run: npm run build
+
+      - name: Test
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED_DEV }}
+        run: npm test
+        # Tests are only run if the DB secrets are configured. On first-time
+        # setups this step will fail with a clear error — see docs/specs/01
+        # for the one-time GitHub Actions secret setup.
