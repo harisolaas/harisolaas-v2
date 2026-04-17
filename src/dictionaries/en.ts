@@ -224,13 +224,13 @@ const en: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Teaching",
-        title: "Art of Living Workshops",
+        title: "Sinergia \u2014 Meditation + reading/writing",
         description:
-          "Next dates for meditation and breathing technique courses. Learn Sudarshan Kriya and tools for managing stress, anxiety, and emotional wellbeing.",
-        status: "Upcoming",
+          "Weekly gathering on Wednesdays at 7:30pm in Palermo. Meditation, time with a book or a blank page, and an optional dinner to stay for. By donation, no experience required.",
+        status: "Every Wednesday",
         cta: {
-          label: "See Upcoming Dates",
-          href: "https://wa.me/5491122555110?text=Hi%20I%27d%20like%20information%20about%20the%20meditation%20workshops",
+          label: "Save your seat",
+          href: "/en/sinergia",
         },
       },
       {
@@ -266,13 +266,13 @@ const en: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Community",
-        title: "BROTE \u2014 Reforestation party",
+        title: "BROTE \u2014 The Second Movement",
         description:
-          "Live music, specialty coffee, DJ set, and an afternoon with purpose. Each ticket plants a real tree in Argentina. Saturday March 28, Palermo.",
-        status: "March 28",
+          "We close the BROTE cycle with meditation, planting alongside Un \u00c1rbol, and an afternoon at a nature reserve in San Miguel. Free, 40 spots, registration required.",
+        status: "April 19",
         cta: {
-          label: "Get my ticket",
-          href: "/en/brote",
+          label: "Save your spot",
+          href: "/en/brote-cima",
         },
       },
       {

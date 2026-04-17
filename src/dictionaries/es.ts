@@ -233,13 +233,13 @@ const es: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Ense\u00f1anza",
-        title: "Talleres de El Arte de Vivir",
+        title: "Sinergia \u2014 Meditaci\u00f3n y lectura/escritura",
         description:
-          "Pr\u00f3ximas fechas para cursos de meditaci\u00f3n y t\u00e9cnicas de respiraci\u00f3n. Aprend\u00e9 Sudarshan Kriya y herramientas para manejar el estr\u00e9s, la ansiedad y el bienestar emocional.",
-        status: "Pr\u00f3ximamente",
+          "Encuentro semanal los mi\u00e9rcoles a las 19:30 en Palermo. Meditaci\u00f3n, un rato con un libro o una hoja en blanco, y una cena opcional para quedarte. A colaboraci\u00f3n, sin experiencia previa.",
+        status: "Cada mi\u00e9rcoles",
         cta: {
-          label: "Ver pr\u00f3ximas fechas",
-          href: "https://wa.me/5491122555110?text=Hola%20quiero%20informaci%C3%B3n%20sobre%20los%20talleres%20de%20meditaci%C3%B3n",
+          label: "Reserv\u00e1 tu lugar",
+          href: "/es/sinergia",
         },
       },
       {
@@ -275,13 +275,13 @@ const es: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Comunidad",
-        title: "BROTE \u2014 Fiesta de reforestaci\u00f3n",
+        title: "BROTE \u2014 El segundo movimiento",
         description:
-          "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Argentina. S\u00e1bado 28 de marzo, Palermo.",
-        status: "28 de marzo",
+          "Cerramos el ciclo de BROTE con meditaci\u00f3n, plantaci\u00f3n junto a Un \u00c1rbol y una tarde en una reserva de San Miguel. Gratis, 40 lugares, requiere registraci\u00f3n.",
+        status: "19 de abril",
         cta: {
-          label: "Quiero mi entrada",
-          href: "/es/brote",
+          label: "Reserv\u00e1 tu lugar",
+          href: "/es/brote-cima",
         },
       },
       {
