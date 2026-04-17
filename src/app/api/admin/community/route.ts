@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { desc, eq } from "drizzle-orm";
+import { db, schema } from "@/db";
 import { requireAdminSession } from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
-interface Participation {
+interface ParticipationSummary {
   event: string;
   role: string;
   id: string;
@@ -15,39 +16,73 @@ export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
 
-  const redis = await getRedis();
-  const keys: string[] = await redis.keys("community:person:*");
-  const people = [];
-  for (const k of keys) {
-    const raw = await redis.get(k);
-    if (!raw) continue;
-    try {
-      const person = JSON.parse(raw);
-      const parts: Participation[] = person.participations ?? [];
-      const hasBrote = parts.some((p) => p.event === "brote");
-      const hasPlant = parts.some((p) => p.event === "plant-2026-04");
-      const sinergiaParts = parts.filter((p) => p.event.startsWith("sinergia-"));
-      const hasSinergia = sinergiaParts.length > 0;
-      const sinergiaCount = sinergiaParts.length;
-      const lastSinergia = sinergiaParts
-        .map((p) => p.event.replace("sinergia-", ""))
-        .sort()
-        .at(-1) ?? null;
+  // Fetch all people + their participations in two queries; join in memory.
+  const [peopleRows, participationRows] = await Promise.all([
+    db.select().from(schema.people).orderBy(desc(schema.people.firstSeen)),
+    db
+      .select({
+        personId: schema.participations.personId,
+        event: schema.participations.eventId,
+        role: schema.participations.role,
+        id: schema.participations.id,
+        date: schema.participations.date,
+        eventType: schema.events.type,
+        eventSeries: schema.events.series,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.events,
+        eq(schema.events.id, schema.participations.eventId),
+      ),
+  ]);
 
-      people.push({
-        ...person,
-        hasBrote,
-        hasPlant,
-        hasSinergia,
-        sinergiaCount,
-        lastSinergia,
-        // Kept for back-compat. Overview badge derived from the flags above.
-        journey: hasBrote && hasPlant ? "both" : hasBrote ? "brote" : hasPlant ? "plant" : "sinergia",
-      });
-    } catch { /* skip */ }
+  const byPerson = new Map<number, typeof participationRows>();
+  for (const row of participationRows) {
+    const list = byPerson.get(row.personId) ?? [];
+    list.push(row);
+    byPerson.set(row.personId, list);
   }
-  people.sort(
-    (a, b) => String(b.firstSeen ?? "").localeCompare(String(a.firstSeen ?? "")),
-  );
+
+  const people = peopleRows.map((p) => {
+    const parts = byPerson.get(p.id) ?? [];
+    const summary: ParticipationSummary[] = parts.map((r) => ({
+      event: r.event,
+      role: r.role,
+      id: r.id,
+      date: r.date.toISOString(),
+    }));
+    const hasBrote = parts.some((r) => r.eventType === "brote");
+    const hasPlant = parts.some((r) => r.eventType === "plant");
+    const sinergiaParts = parts.filter(
+      (r) => r.eventType === "sinergia" || r.eventSeries === "sinergia",
+    );
+    const hasSinergia = sinergiaParts.length > 0;
+    const sinergiaCount = sinergiaParts.length;
+    const lastSinergia = sinergiaParts
+      .map((r) => r.event.replace("sinergia-", ""))
+      .sort()
+      .at(-1) ?? null;
+
+    return {
+      email: p.email,
+      name: p.name,
+      firstSeen: p.firstSeen.toISOString(),
+      participations: summary,
+      hasBrote,
+      hasPlant,
+      hasSinergia,
+      sinergiaCount,
+      lastSinergia,
+      journey:
+        hasBrote && hasPlant
+          ? "both"
+          : hasBrote
+            ? "brote"
+            : hasPlant
+              ? "plant"
+              : "sinergia",
+    };
+  });
+
   return NextResponse.json({ people });
 }

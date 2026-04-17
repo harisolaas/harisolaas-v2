@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { eq, sql } from "drizzle-orm";
+import { db, schema } from "@/db";
+
+const PLANT_EVENT_ID = "plant-2026-04";
 
 export const dynamic = "force-dynamic";
 
 function getInitials(name: string): string {
   if (!name) return "?";
-  // If "name" looks like an email, just take the first letter
   if (name.includes("@")) return name.charAt(0).toUpperCase();
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -24,21 +26,26 @@ function shuffle<T>(arr: T[]): T[] {
 
 export async function GET() {
   try {
-    const redis = await getRedis();
-    const keys: string[] = await redis.keys("plant:registration:*");
+    const rows = await db
+      .select({
+        name: schema.people.name,
+        message: sql<string>`metadata->>'message'`,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(eq(schema.participations.eventId, PLANT_EVENT_ID));
+
     const messages: { initials: string; message: string }[] = [];
-    for (const k of keys) {
-      const raw = await redis.get(k);
-      if (!raw) continue;
-      try {
-        const r = JSON.parse(raw);
-        if (r.message && typeof r.message === "string" && r.message.trim()) {
-          messages.push({
-            initials: getInitials(r.name || ""),
-            message: r.message.trim(),
-          });
-        }
-      } catch { /* skip */ }
+    for (const r of rows) {
+      if (r.message && typeof r.message === "string" && r.message.trim()) {
+        messages.push({
+          initials: getInitials(r.name || ""),
+          message: r.message.trim(),
+        });
+      }
     }
     return NextResponse.json({ messages: shuffle(messages) });
   } catch {

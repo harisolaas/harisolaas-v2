@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
-import type { BroteTicket } from "@/lib/brote-types";
+import { eq, sql } from "drizzle-orm";
+import { db, schema } from "@/db";
 
 export async function POST(req: Request) {
   try {
@@ -16,85 +16,119 @@ export async function POST(req: Request) {
       );
     }
 
-    const redis = await getRedis();
-    const raw = await redis.get(`brote:ticket:${ticketId}`);
-    if (!raw) {
+    const rows = await db
+      .select({
+        id: schema.participations.id,
+        status: schema.participations.status,
+        usedAt: schema.participations.usedAt,
+        metadata: schema.participations.metadata,
+        buyerName: schema.people.name,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(eq(schema.participations.id, ticketId))
+      .limit(1);
+
+    if (rows.length === 0) {
       return NextResponse.json({ valid: false, error: "not_found" });
     }
 
-    const ticket: BroteTicket = JSON.parse(raw);
+    const row = rows[0];
+    const metadata = (row.metadata as Record<string, unknown>) ?? {};
+    const coffeeRedeemed = Boolean(metadata.coffeeRedeemed);
+
+    // Legacy response shape expects string status: 'valid' | 'used'.
+    const legacyStatus = row.status === "used" ? "used" : "valid";
 
     if (action === "check") {
       return NextResponse.json({
-        valid: ticket.status === "valid",
-        status: ticket.status,
-        coffeeRedeemed: !!ticket.coffeeRedeemed,
+        valid: row.status !== "used" && row.status !== "cancelled",
+        status: legacyStatus,
+        coffeeRedeemed,
         ticket: {
-          id: ticket.id,
-          type: ticket.type,
-          buyerName: ticket.buyerName,
-          status: ticket.status,
-          coffeeRedeemed: !!ticket.coffeeRedeemed,
+          id: row.id,
+          type: "ticket",
+          buyerName: row.buyerName,
+          status: legacyStatus,
+          coffeeRedeemed,
         },
       });
     }
 
     if (action === "use") {
-      if (ticket.status === "used") {
+      if (row.status === "used") {
         return NextResponse.json({
           valid: false,
           error: "already_used",
-          usedAt: ticket.usedAt,
-          coffeeRedeemed: !!ticket.coffeeRedeemed,
+          usedAt: row.usedAt?.toISOString(),
+          coffeeRedeemed,
         });
       }
 
-      ticket.status = "used";
-      ticket.usedAt = new Date().toISOString();
-      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
+      await db
+        .update(schema.participations)
+        .set({
+          status: "used",
+          usedAt: sql`NOW()`,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(schema.participations.id, ticketId));
 
       return NextResponse.json({
         valid: true,
         status: "used",
-        coffeeRedeemed: !!ticket.coffeeRedeemed,
+        coffeeRedeemed,
         ticket: {
-          id: ticket.id,
-          type: ticket.type,
-          buyerName: ticket.buyerName,
-          status: ticket.status,
-          coffeeRedeemed: !!ticket.coffeeRedeemed,
+          id: row.id,
+          type: "ticket",
+          buyerName: row.buyerName,
+          status: "used",
+          coffeeRedeemed,
         },
       });
     }
 
     if (action === "redeem-coffee") {
-      if (ticket.coffeeRedeemed) {
+      if (coffeeRedeemed) {
         return NextResponse.json({
           valid: false,
           error: "coffee_already_redeemed",
-          coffeeRedeemedAt: ticket.coffeeRedeemedAt,
+          coffeeRedeemedAt: metadata.coffeeRedeemedAt,
         });
       }
 
-      ticket.coffeeRedeemed = true;
-      ticket.coffeeRedeemedAt = new Date().toISOString();
-      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
+      const nowIso = new Date().toISOString();
+      await db
+        .update(schema.participations)
+        .set({
+          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({
+            ...metadata,
+            coffeeRedeemed: true,
+            coffeeRedeemedAt: nowIso,
+          })}::jsonb`,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(schema.participations.id, ticketId));
 
       return NextResponse.json({
         valid: true,
         coffeeRedeemed: true,
         ticket: {
-          id: ticket.id,
-          type: ticket.type,
-          buyerName: ticket.buyerName,
-          status: ticket.status,
+          id: row.id,
+          type: "ticket",
+          buyerName: row.buyerName,
+          status: legacyStatus,
           coffeeRedeemed: true,
         },
       });
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch {
+  } catch (err) {
+    console.error("validate error:", err);
     return NextResponse.json(
       { valid: false, error: "Server error" },
       { status: 500 },
