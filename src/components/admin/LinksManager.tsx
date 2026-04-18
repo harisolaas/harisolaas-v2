@@ -322,7 +322,7 @@ function CreateLinkForm({
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [destination, setDestination] = useState<string>(
-    initial?.destination ?? "/es/plantacion",
+    initial?.destination ?? "/es/brote",
   );
   const [customDestination, setCustomDestination] = useState<string>("");
   const [channel, setChannel] = useState<ChannelKey>(

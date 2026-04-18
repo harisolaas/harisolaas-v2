@@ -61,8 +61,7 @@ export function isChannelKey(value: unknown): value is ChannelKey {
 
 export const KNOWN_DESTINATIONS: { path: string; display: string }[] = [
   { path: "/es", display: "Home (/es)" },
-  { path: "/es/brote", display: "BROTE (/es/brote)" },
-  { path: "/es/plantacion", display: "Plantación (/es/plantacion)" },
+  { path: "/es/brote", display: "Plantación / BROTE (/es/brote)" },
   { path: "/es/sinergia", display: "Sinergia (/es/sinergia)" },
 ];
 
