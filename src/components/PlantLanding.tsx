@@ -323,12 +323,14 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   const [exporting, setExporting] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
 
-  // UTM
+  // UTM + link slug (utm_content)
   const [utm, setUtm] = useState<{
     source?: string;
     medium?: string;
     campaign?: string;
+    content?: string;
   }>({});
+  const [linkSlug, setLinkSlug] = useState<string | undefined>(undefined);
 
   // Hero video
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -364,14 +366,17 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
       .catch(() => {});
   }, []);
 
-  // Capture UTM
+  // Capture UTM + utm_content (link slug)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const u: typeof utm = {};
     if (params.get("utm_source")) u.source = params.get("utm_source")!;
     if (params.get("utm_medium")) u.medium = params.get("utm_medium")!;
     if (params.get("utm_campaign")) u.campaign = params.get("utm_campaign")!;
+    if (params.get("utm_content")) u.content = params.get("utm_content")!;
     if (Object.keys(u).length > 0) setUtm(u);
+    const slug = params.get("utm_content");
+    if (slug) setLinkSlug(slug);
   }, []);
 
   const handleRegister = useCallback(async () => {
@@ -395,6 +400,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
           carpool,
           ...(message.trim() && { message: message.trim() }),
           ...(Object.keys(utm).length > 0 && { utm }),
+          ...(linkSlug && { linkSlug }),
         }),
       });
       const data = await res.json();

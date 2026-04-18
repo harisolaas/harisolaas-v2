@@ -59,6 +59,26 @@ export default function SinergiaLanding({ dict, locale }: Props) {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [utm, setUtm] = useState<{
+    source?: string;
+    medium?: string;
+    campaign?: string;
+    content?: string;
+  }>({});
+  const [linkSlug, setLinkSlug] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const u: typeof utm = {};
+    if (params.get("utm_source")) u.source = params.get("utm_source")!;
+    if (params.get("utm_medium")) u.medium = params.get("utm_medium")!;
+    if (params.get("utm_campaign")) u.campaign = params.get("utm_campaign")!;
+    if (params.get("utm_content")) u.content = params.get("utm_content")!;
+    if (Object.keys(u).length > 0) setUtm(u);
+    const slug = params.get("utm_content");
+    if (slug) setLinkSlug(slug);
+  }, []);
+
   useEffect(() => {
     fetch("/api/sinergia/next-session")
       .then((r) => r.json())
@@ -92,6 +112,8 @@ export default function SinergiaLanding({ dict, locale }: Props) {
           name: name.trim(),
           email: email.trim(),
           staysForDinner,
+          ...(Object.keys(utm).length > 0 && { utm }),
+          ...(linkSlug && { linkSlug }),
         }),
       });
       const data = await res.json();
@@ -114,7 +136,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, staysForDinner, dict]);
+  }, [submitting, name, email, staysForDinner, dict, utm, linkSlug]);
 
   const capacityStr = String(sinergiaConfig.capacity);
   const seatsLabel = isFull

@@ -10,7 +10,7 @@ This file is the entry point for picking up Spec 01/02/03 work between sessions.
 
 - **Spec 01 (Postgres migration): LIVE.** PR #1 squashed to `main` at commit `8d87ba1`. All handlers read/write Postgres via `src/lib/community.ts` → `recordParticipation()`.
 - **Spec 02 (Dashboard): NOT STARTED.** Spec at `docs/specs/02-dashboard.md`.
-- **Spec 03 (Link builder): NOT STARTED.** Spec at `docs/specs/03-link-builder.md`.
+- **Spec 03 (Link builder): IN REVIEW.** PR open on branch `spec-03-link-builder`. Implementation uses Postgres `links` + `link_clicks` tables (not Redis — spec doc updated to reflect this). Admin UI at `/admin/links`, redirect at `/go/[slug]`, attribution helper in `src/lib/attribution.ts`.
 
 ### Infra snapshot
 
