@@ -94,12 +94,14 @@ export async function recordParticipation(
 
   const status: ParticipationStatus = params.status ?? "confirmed";
 
-  // A cookie-provided linkSlug can reference a link that was later deleted.
-  // Rather than failing the whole signup on FK violation, drop the slug
-  // (and its mirror on attribution) if the target row no longer exists.
-  const attribution = await sanitizeAttribution(params.attribution);
-
   return db.transaction(async (tx) => {
+    // A cookie-provided linkSlug can reference a link that was later deleted.
+    // Rather than failing the whole signup on FK violation, drop the slug
+    // (and its mirror on attribution) if the target row no longer exists.
+    // Run inside the tx so there's no TOCTOU gap between the existence check
+    // and the subsequent INSERT.
+    const attribution = await sanitizeAttribution(tx, params.attribution);
+
     // 1. Upsert person. Uses the xmax trick: xmax = 0 iff this row was
     //    freshly INSERTed (ON CONFLICT DO UPDATE sets xmax to the txn id).
     const personResult = await tx.execute<{
@@ -398,12 +400,15 @@ function toPgArrayLiteral(values: readonly string[]): string {
  * violations on signup when a user's `haris_link` cookie outlived the link
  * it referenced.
  */
+type QueryRunner = Pick<typeof db, "execute">;
+
 async function sanitizeAttribution(
+  runner: QueryRunner,
   attribution: AttributionTouch | undefined,
 ): Promise<AttributionTouch | undefined> {
   if (!attribution?.linkSlug) return attribution;
 
-  const res = await db.execute<{ exists: boolean }>(sql`
+  const res = await runner.execute<{ exists: boolean }>(sql`
     SELECT EXISTS(SELECT 1 FROM links WHERE slug = ${attribution.linkSlug}) AS exists
   `);
   if (res.rows?.[0]?.exists) return attribution;
