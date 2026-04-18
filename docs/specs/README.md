@@ -2,6 +2,8 @@
 
 Three independent but related projects that together turn the current "BROTE Admin" page into a proper community CRM.
 
+**Picking up from a previous session? Start with [NEXT.md](./NEXT.md)** — it tracks what's been shipped, what's in flight, and what's on deck.
+
 ## The three projects
 
 1. **[01 — Data model restructure](./01-data-model.md)** — make `community:person:{email}` the single source of truth, promote events to first-class entities, unify write paths, migrate existing data. Foundational; touches Redis schema and every write handler.
