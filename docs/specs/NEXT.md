@@ -2,7 +2,7 @@
 
 This file is the entry point for picking up Spec 01/02/03 work between sessions. It's a working log, not a polished doc — update it as things move.
 
-**Last updated: 2026-04-18** — Spec 01 shipped to production earlier today.
+**Last updated: 2026-04-18** — Spec 01 shipped earlier today; Spec 03 (link builder) shipped the same evening.
 
 ---
 
@@ -10,7 +10,7 @@ This file is the entry point for picking up Spec 01/02/03 work between sessions.
 
 - **Spec 01 (Postgres migration): LIVE.** PR #1 squashed to `main` at commit `8d87ba1`. All handlers read/write Postgres via `src/lib/community.ts` → `recordParticipation()`.
 - **Spec 02 (Dashboard): NOT STARTED.** Spec at `docs/specs/02-dashboard.md`.
-- **Spec 03 (Link builder): IN REVIEW.** PR open on branch `spec-03-link-builder`. Implementation uses Postgres `links` + `link_clicks` tables (not Redis — spec doc updated to reflect this). Admin UI at `/admin/links`, redirect at `/go/[slug]`, attribution helper in `src/lib/attribution.ts`.
+- **Spec 03 (Link builder): LIVE.** PR #3 squashed to `main` at commit `ad21ec7`. Postgres `links` + `link_clicks` tables, `/go/[slug]` redirect, admin UI at `/admin/links`, shared `buildAttribution` helper wired into plant register + Sinergia RSVP. Stale cookies (cookie slug → deleted link) are dropped inside the `recordParticipation` transaction so signups never FK-fail. Backfill script at `scripts/backfill-link-attribution.ts` — not yet run against prod.
 
 ### Infra snapshot
 
@@ -35,6 +35,19 @@ This file is the entry point for picking up Spec 01/02/03 work between sessions.
 ---
 
 ## Time-sensitive work
+
+### 🟡 Now — run Spec 03 backfill on prod
+
+`scripts/backfill-link-attribution.ts` is written and tested on dev but has NOT been run on prod. It creates archived `links` rows for every distinct (source, medium, campaign) combo already sitting on `participations.attribution`, then stamps the matching participations with `link_slug` so historical attribution shows up on Spec 02's Campañas/Panorama views later.
+
+```bash
+vercel env pull .env.local --environment=production
+npx tsx scripts/backfill-link-attribution.ts --dry-run   # inspect combos
+npx tsx scripts/backfill-link-attribution.ts --execute   # apply
+vercel env pull .env.local --environment=preview         # switch back!
+```
+
+Expected combos on prod: the 2 plant email campaigns (`plantacion_email1`, `plantacion_email2`) plus whatever IG pushes had UTMs.
 
 ### 🟡 Now — watch the plant event (2026-04-19)
 
