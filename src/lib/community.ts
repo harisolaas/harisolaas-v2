@@ -3,7 +3,6 @@ import { db, schema } from "@/db";
 import type {
   Event,
   NewParticipation,
-  NewPerson,
   Participation,
   Person,
 } from "@/db/schema";
