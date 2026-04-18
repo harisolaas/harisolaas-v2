@@ -1,25 +1,94 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import QRCode from "qrcode";
 import { Resend } from "resend";
+import { db, schema } from "@/db";
+import { getRedis } from "@/lib/redis";
+import { recordParticipation } from "@/lib/community";
+import { plantConfig } from "@/data/brote";
 import type { BroteTicket } from "@/lib/brote-types";
-import { buildTicketEmailHtml, buildReminderEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+import {
+  buildReminderEmailHtml,
+  buildTicketEmailHtml,
+  qrDataUrlToBuffer,
+} from "@/lib/brote-email";
 import {
   buildPlantConfirmationEmailHtml,
   buildPlantInvite1Html,
   buildPlantInvite2Html,
 } from "@/lib/plant-email";
-import { plantConfig } from "@/data/brote";
-import type { PlantRegistration } from "@/lib/plant-types";
 import { sendMetaEvent } from "@/lib/meta-capi";
+
+const BROTE_EVENT_ID = "brote-2026-03-28";
+const PLANT_EVENT_ID = "plant-2026-04";
 
 function auth(req: Request): boolean {
   const secret = req.headers.get("authorization");
   return secret === `Bearer ${process.env.BROTE_ADMIN_SECRET}`;
 }
 
-// GET /api/brote/admin — system status
-// GET /api/brote/admin?ticket=BROTE-XXXX — lookup ticket
+async function loadTicket(ticketId: string): Promise<BroteTicket | null> {
+  const rows = await db
+    .select({
+      id: schema.participations.id,
+      paymentId: schema.participations.externalPaymentId,
+      status: schema.participations.status,
+      createdAt: schema.participations.createdAt,
+      usedAt: schema.participations.usedAt,
+      metadata: schema.participations.metadata,
+      email: schema.people.email,
+      name: schema.people.name,
+    })
+    .from(schema.participations)
+    .innerJoin(
+      schema.people,
+      eq(schema.people.id, schema.participations.personId),
+    )
+    .where(eq(schema.participations.id, ticketId))
+    .limit(1);
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  const meta = (r.metadata as Record<string, unknown>) ?? {};
+  return {
+    id: r.id,
+    type: "ticket",
+    paymentId: r.paymentId ?? "",
+    buyerEmail: r.email ?? "",
+    buyerName: r.name,
+    status: r.status === "used" ? "used" : "valid",
+    createdAt: r.createdAt.toISOString(),
+    usedAt: r.usedAt?.toISOString(),
+    emailSent: Boolean(meta.emailSent),
+    coffeeRedeemed: Boolean(meta.coffeeRedeemed),
+    coffeeRedeemedAt: meta.coffeeRedeemedAt as string | undefined,
+  };
+}
+
+async function countBroteTickets(): Promise<number> {
+  const res = await db
+    .select({ n: count() })
+    .from(schema.participations)
+    .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
+  return Number(res[0]?.n ?? 0);
+}
+
+async function countPlantConfirmed(): Promise<number> {
+  const res = await db
+    .select({ n: count() })
+    .from(schema.participations)
+    .where(
+      and(
+        eq(schema.participations.eventId, PLANT_EVENT_ID),
+        eq(schema.participations.status, "confirmed"),
+      ),
+    );
+  return Number(res[0]?.n ?? 0);
+}
+
+// ------------------------------------------------------------
+// GET — status or ticket lookup
+// ------------------------------------------------------------
 export async function GET(req: Request) {
   if (!auth(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -29,57 +98,96 @@ export async function GET(req: Request) {
   const ticketId = url.searchParams.get("ticket");
 
   try {
-    const redis = await getRedis();
-
-    // Ticket lookup
     if (ticketId) {
-      const raw = await redis.get(`brote:ticket:${ticketId}`);
-      if (!raw) {
+      const ticket = await loadTicket(ticketId);
+      if (!ticket) {
         return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
       }
-      return NextResponse.json({ ticket: JSON.parse(raw) });
+      return NextResponse.json({ ticket });
     }
 
-    // System status
-    const counter = Number(await redis.get("brote:counter") ?? 0);
-    const ticketKeys = await redis.keys("brote:ticket:*");
-    const paymentKeys = await redis.keys("brote:payment:*");
+    // System status.
+    const counter = await countBroteTickets();
 
-    // Check for tickets missing email
-    const ticketsWithoutEmail: string[] = [];
-    for (const key of ticketKeys) {
-      const raw = await redis.get(key);
-      if (raw) {
-        const t: BroteTicket = JSON.parse(raw);
-        if (!t.emailSent) ticketsWithoutEmail.push(t.id);
-      }
-    }
-
-    // Plant registrations — read from the canonical plant:registration:* keys
-    // (the plant:registrations SET is a denormalized cache and doesn't include
-    // optional fields like `message`)
-    const plantCounter = Number(await redis.get("plant:counter") ?? 0);
-    const plantKeys: string[] = await redis.keys("plant:registration:*");
-    const plantRegistrations = [];
-    for (const k of plantKeys) {
-      const raw = await redis.get(k);
-      if (!raw) continue;
-      try { plantRegistrations.push(JSON.parse(raw)); } catch { /* skip */ }
-    }
-    plantRegistrations.sort((a, b) => String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? "")));
-
-    const plantWaitlistRaw: string[] = await redis.sMembers("plant:waitlist");
-    const plantWaitlist = plantWaitlistRaw
-      .map((raw: string) => {
-        try { return JSON.parse(raw); } catch { return null; }
+    // Tickets missing email-sent flag.
+    const missingEmailRows = await db
+      .select({
+        id: schema.participations.id,
+        metadata: schema.participations.metadata,
       })
-      .filter(Boolean);
+      .from(schema.participations)
+      .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
+    const ticketsWithoutEmail = missingEmailRows
+      .filter((r) => {
+        const m = (r.metadata as Record<string, unknown>) ?? {};
+        return !m.emailSent;
+      })
+      .map((r) => r.id);
+
+    // Payments — count distinct external_payment_id on brote.
+    const paymentsRes = await db.execute<{ n: number }>(sql`
+      SELECT COUNT(DISTINCT external_payment_id)::int AS n
+      FROM participations
+      WHERE event_id = ${BROTE_EVENT_ID} AND external_payment_id IS NOT NULL
+    `);
+    const payments = Number(paymentsRes.rows?.[0]?.n ?? 0);
+
+    const plantCounter = await countPlantConfirmed();
+
+    const plantRows = await db
+      .select({
+        id: schema.participations.id,
+        email: schema.people.email,
+        name: schema.people.name,
+        createdAt: schema.participations.createdAt,
+        metadata: schema.participations.metadata,
+        attribution: schema.participations.attribution,
+        status: schema.participations.status,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(eq(schema.participations.eventId, PLANT_EVENT_ID))
+      .orderBy(schema.participations.createdAt);
+
+    const plantRegistrations = plantRows
+      .filter((r) => r.status !== "waitlist")
+      .map((r) => {
+        const m = (r.metadata as Record<string, unknown>) ?? {};
+        const a = (r.attribution as Record<string, unknown> | null) ?? null;
+        return {
+          id: r.id,
+          email: r.email,
+          name: r.name,
+          groupType: m.groupType,
+          carpool: Boolean(m.carpool),
+          message: m.message as string | undefined,
+          status: r.status === "waitlist" ? "waitlist" : "registered",
+          createdAt: r.createdAt.toISOString(),
+          utm: a
+            ? {
+                source: a.source as string | undefined,
+                medium: a.medium as string | undefined,
+                campaign: a.campaign as string | undefined,
+              }
+            : undefined,
+        };
+      });
+
+    const plantWaitlist = plantRows
+      .filter((r) => r.status === "waitlist")
+      .map((r) => ({
+        email: r.email,
+        createdAt: r.createdAt.toISOString(),
+      }));
 
     return NextResponse.json({
       status: "ok",
       counter,
-      tickets: ticketKeys.length,
-      payments: paymentKeys.length,
+      tickets: counter,
+      payments,
       ticketsWithoutEmail,
       plant: {
         counter: plantCounter,
@@ -95,6 +203,7 @@ export async function GET(req: Request) {
         hasMetaPixelId: !!process.env.META_PIXEL_ID,
         hasMetaCapiToken: !!process.env.META_CAPI_TOKEN,
         baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
       },
     });
   } catch (err) {
@@ -106,14 +215,16 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/brote/admin — actions: resend-email, lookup-payment
+// ------------------------------------------------------------
+// POST — actions
+// ------------------------------------------------------------
 export async function POST(req: Request) {
   if (!auth(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { action, ticketId, paymentId, testEventCode, toEmail, giftName, variant, mode, audienceOverride, registrationId, newEmail, emails } = (await req.json()) as {
+    const body = (await req.json()) as {
       action: string;
       ticketId?: string;
       paymentId?: string;
@@ -127,25 +238,34 @@ export async function POST(req: Request) {
       newEmail?: string;
       emails?: string[];
     };
+    const {
+      action,
+      ticketId,
+      paymentId,
+      testEventCode,
+      toEmail,
+      giftName,
+      variant,
+      mode,
+      audienceOverride,
+      registrationId,
+      newEmail,
+      emails,
+    } = body;
 
-    const redis = await getRedis();
-
+    // ── resend-email (BROTE ticket) ──
     if (action === "resend-email" && ticketId) {
-      const raw = await redis.get(`brote:ticket:${ticketId}`);
-      if (!raw) {
+      const ticket = await loadTicket(ticketId);
+      if (!ticket) {
         return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
       }
-
-      const ticket: BroteTicket = JSON.parse(raw);
-      if (toEmail) {
-        ticket.buyerEmail = toEmail;
-      }
-      if (!ticket.buyerEmail) {
+      const sendTo = toEmail ?? ticket.buyerEmail;
+      if (!sendTo) {
         return NextResponse.json({ error: "No email on ticket" }, { status: 400 });
       }
 
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-      const treeNumber = Number(await redis.get("brote:counter") ?? 1);
+      const treeNumber = await countBroteTickets();
       const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticket.id}`;
       const qrDataUrl = await QRCode.toDataURL(qrUrl, {
         width: 300,
@@ -157,33 +277,39 @@ export async function POST(req: Request) {
       const resend = new Resend(process.env.RESEND_API_KEY!);
       const result = await resend.emails.send({
         from: `BROTE <${fromEmail}>`,
-        to: ticket.buyerEmail,
+        to: sendTo,
         subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-        html: buildTicketEmailHtml(ticket, treeNumber),
-        attachments: [{
-          filename: "qr.png",
-          content: qrDataUrlToBuffer(qrDataUrl),
-          contentType: "image/png",
-          contentId: "qr",
-        }],
+        html: buildTicketEmailHtml({ ...ticket, buyerEmail: sendTo }, treeNumber),
+        attachments: [
+          {
+            filename: "qr.png",
+            content: qrDataUrlToBuffer(qrDataUrl),
+            contentType: "image/png",
+            contentId: "qr",
+          },
+        ],
       });
 
-      ticket.emailSent = true;
-      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
+      // Mark email sent.
+      await db
+        .update(schema.participations)
+        .set({
+          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({ emailSent: true })}::jsonb`,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(schema.participations.id, ticket.id));
 
       return NextResponse.json({
         ok: true,
-        to: ticket.buyerEmail,
+        to: sendTo,
         resendId: result.data?.id,
       });
     }
 
-    // ── Plant invite campaign: send Email 1 or Email 2 to BROTE party buyers ──
-    // Body: { action: "plant-invite-campaign", variant: 1 | 2, mode: "preview" | "send" }
+    // ── plant-invite-campaign ──
     if (action === "plant-invite-campaign") {
       const v = variant;
       const m = mode || "preview";
-
       if (v !== 1 && v !== 2) {
         return NextResponse.json({ error: "variant must be 1 or 2" }, { status: 400 });
       }
@@ -193,33 +319,38 @@ export async function POST(req: Request) {
       let plantEmailsSize = 0;
 
       if (Array.isArray(audienceOverride) && audienceOverride.length > 0) {
-        // Override mode — bypass exclusion logic, send to specified addresses only
         audience = audienceOverride.map((e) => e.trim().toLowerCase()).filter(Boolean);
       } else {
-        // Build the audience: BROTE attendees minus anyone already plant-registered
-        const attendeesRaw: string[] = await redis.sMembers("brote:attendees");
-        const buyerEmails = new Set<string>();
-        for (const raw of attendeesRaw) {
-          try {
-            const a = JSON.parse(raw);
-            if (a.email) buyerEmails.add(String(a.email).toLowerCase());
-          } catch { /* skip */ }
-        }
+        // Set of BROTE buyer emails minus those already plant-registered.
+        const audienceRes = await db.execute<{ email: string }>(sql`
+          SELECT LOWER(p.email) AS email
+          FROM people p
+          JOIN participations brote
+            ON brote.person_id = p.id AND brote.event_id = ${BROTE_EVENT_ID}
+          WHERE p.email IS NOT NULL
+            AND NOT EXISTS (
+              SELECT 1 FROM participations plant
+              WHERE plant.person_id = p.id AND plant.event_id = ${PLANT_EVENT_ID}
+            )
+          GROUP BY p.id
+        `);
+        audience = audienceRes.rows.map((r) => r.email);
 
-        const plantKeys: string[] = await redis.keys("plant:registration:*");
-        const plantEmails = new Set<string>();
-        for (const k of plantKeys) {
-          const raw = await redis.get(k);
-          if (!raw) continue;
-          try {
-            const r = JSON.parse(raw);
-            if (r.email) plantEmails.add(String(r.email).toLowerCase());
-          } catch { /* skip */ }
-        }
+        const broteEmailsRes = await db.execute<{ n: number }>(sql`
+          SELECT COUNT(DISTINCT p.email)::int AS n
+          FROM people p
+          JOIN participations ON participations.person_id = p.id
+          WHERE participations.event_id = ${BROTE_EVENT_ID} AND p.email IS NOT NULL
+        `);
+        buyerEmailsSize = Number(broteEmailsRes.rows[0]?.n ?? 0);
 
-        audience = Array.from(buyerEmails).filter((e) => !plantEmails.has(e));
-        buyerEmailsSize = buyerEmails.size;
-        plantEmailsSize = plantEmails.size;
+        const plantEmailsRes = await db.execute<{ n: number }>(sql`
+          SELECT COUNT(DISTINCT p.email)::int AS n
+          FROM people p
+          JOIN participations ON participations.person_id = p.id
+          WHERE participations.event_id = ${PLANT_EVENT_ID} AND p.email IS NOT NULL
+        `);
+        plantEmailsSize = Number(plantEmailsRes.rows[0]?.n ?? 0);
       }
 
       if (m === "preview") {
@@ -234,17 +365,13 @@ export async function POST(req: Request) {
         });
       }
 
-      // m === "send"
-      const plantCounter = Number(await redis.get("plant:counter") ?? 0);
+      const plantCounter = await countPlantConfirmed();
       const remaining = Math.max(0, plantConfig.capacity - plantCounter);
-
       const subject =
         v === 1
           ? "BROTE — Si le tenés miedo a la pala 🪏, no abrás este mail"
           : `BROTE — Quedan ${remaining} lugares para el 19 de abril`;
-
       const html = v === 1 ? buildPlantInvite1Html() : buildPlantInvite2Html(remaining);
-
       const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
       const resend = new Resend(process.env.RESEND_API_KEY!);
 
@@ -262,13 +389,11 @@ export async function POST(req: Request) {
           results.push({ email, ok: false, error: String(err) });
         }
       }
-
       const sent = results.filter((r) => r.ok).length;
       const failed = results.filter((r) => !r.ok);
 
-      // Mark this campaign as sent (audit trail) — skip for override sends
-      // so test/manual sends don't overwrite the real campaign log
       if (!audienceOverride || audienceOverride.length === 0) {
+        const redis = await getRedis();
         await redis.set(
           `plant:campaign:${v}:sent`,
           JSON.stringify({
@@ -292,8 +417,7 @@ export async function POST(req: Request) {
       });
     }
 
-    // ── Plant: fix the email address on a registration ──
-    // Body: { action: "plant-fix-email", registrationId: "PLANT-...", newEmail: "...", mode?: "preview"|"send" }
+    // ── plant-fix-email ──
     if (action === "plant-fix-email") {
       if (!registrationId || !newEmail) {
         return NextResponse.json(
@@ -301,16 +425,31 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
-      const newEmailNormalized = newEmail.trim().toLowerCase();
+      const newEmailNormalized = newEmail.trim();
 
-      const regRaw = await redis.get(`plant:registration:${registrationId}`);
-      if (!regRaw) {
-        return NextResponse.json({ error: "Registration not found" }, { status: 404 });
+      const rows = await db
+        .select({
+          personId: schema.participations.personId,
+          oldEmail: schema.people.email,
+          name: schema.people.name,
+        })
+        .from(schema.participations)
+        .innerJoin(
+          schema.people,
+          eq(schema.people.id, schema.participations.personId),
+        )
+        .where(eq(schema.participations.id, registrationId))
+        .limit(1);
+      if (rows.length === 0) {
+        return NextResponse.json(
+          { error: "Registration not found" },
+          { status: 404 },
+        );
       }
-      const registration: PlantRegistration = JSON.parse(regRaw);
-      const oldEmail = registration.email;
+      const reg = rows[0];
+      const oldEmail = reg.oldEmail ?? "";
 
-      if (oldEmail === newEmailNormalized) {
+      if ((oldEmail ?? "").toLowerCase() === newEmailNormalized.toLowerCase()) {
         return NextResponse.json({ ok: true, noChange: true });
       }
 
@@ -324,41 +463,13 @@ export async function POST(req: Request) {
         });
       }
 
-      // 1. Update plant:registration:{id}
-      registration.email = newEmailNormalized;
-      await redis.set(`plant:registration:${registrationId}`, JSON.stringify(registration));
+      // Update the person's email (citext guarantees uniqueness across case).
+      await db
+        .update(schema.people)
+        .set({ email: newEmailNormalized, updatedAt: sql`NOW()` })
+        .where(eq(schema.people.id, reg.personId));
 
-      // 2. Update plant:registrations SET — remove old entry, add new
-      const setMembers: string[] = await redis.sMembers("plant:registrations");
-      for (const raw of setMembers) {
-        try {
-          const m = JSON.parse(raw);
-          if (m.registrationId === registrationId) {
-            // Remove old entry
-            await (redis as unknown as { sRem: (key: string, val: string) => Promise<number> })
-              .sRem("plant:registrations", raw);
-            // Add new entry with updated email
-            const updated = { ...m, email: newEmailNormalized };
-            await redis.sAdd("plant:registrations", JSON.stringify(updated));
-            break;
-          }
-        } catch { /* skip */ }
-      }
-
-      // 3. Move community:person:{oldEmail} → community:person:{newEmail}
-      const personRaw = await redis.get(`community:person:${oldEmail}`);
-      if (personRaw) {
-        try {
-          const person = JSON.parse(personRaw);
-          person.email = newEmailNormalized;
-          await redis.set(`community:person:${newEmailNormalized}`, JSON.stringify(person));
-          // Delete old key — node-redis v4 method is `del`
-          await (redis as unknown as { del: (key: string) => Promise<number> })
-            .del(`community:person:${oldEmail}`);
-        } catch { /* skip */ }
-      }
-
-      // 4. Send confirmation email to the new address
+      // Send confirmation email to the new address.
       let emailSent = false;
       let emailError: string | undefined;
       try {
@@ -368,7 +479,7 @@ export async function POST(req: Request) {
           from: `BROTE <${fromEmail}>`,
           to: newEmailNormalized,
           subject: "¡Te anotaste para plantar! 🌱 Detalles del evento",
-          html: buildPlantConfirmationEmailHtml(registration.name),
+          html: buildPlantConfirmationEmailHtml(reg.name),
         });
         emailSent = true;
       } catch (err) {
@@ -385,32 +496,64 @@ export async function POST(req: Request) {
       });
     }
 
-    // ── Plant: resend confirmation email by registration ID or email ──
+    // ── plant-resend-email ──
     if (action === "plant-resend-email") {
-      let registration: PlantRegistration | null = null;
+      const regId = req.headers.get("x-registration-id") || undefined;
+      const lookupEmail = toEmail?.trim();
 
-      // Lookup by registrationId if provided, else by email via plant:registrations set
-      const regId = (await req.headers.get("x-registration-id")) || undefined;
-      const lookupEmail = toEmail?.toLowerCase();
+      let rows: {
+        id: string;
+        name: string;
+        email: string | null;
+      }[] = [];
 
       if (regId) {
-        const raw = await redis.get(`plant:registration:${regId}`);
-        if (raw) registration = JSON.parse(raw);
+        rows = await db
+          .select({
+            id: schema.participations.id,
+            name: schema.people.name,
+            email: schema.people.email,
+          })
+          .from(schema.participations)
+          .innerJoin(
+            schema.people,
+            eq(schema.people.id, schema.participations.personId),
+          )
+          .where(eq(schema.participations.id, regId))
+          .limit(1);
       } else if (lookupEmail) {
-        const allKeys = await redis.keys("plant:registration:*");
-        for (const k of allKeys) {
-          const raw = await redis.get(k);
-          if (!raw) continue;
-          const r: PlantRegistration = JSON.parse(raw);
-          if (r.email.toLowerCase() === lookupEmail) {
-            registration = r;
-            break;
-          }
-        }
+        rows = await db
+          .select({
+            id: schema.participations.id,
+            name: schema.people.name,
+            email: schema.people.email,
+          })
+          .from(schema.participations)
+          .innerJoin(
+            schema.people,
+            eq(schema.people.id, schema.participations.personId),
+          )
+          .where(
+            and(
+              eq(schema.participations.eventId, PLANT_EVENT_ID),
+              eq(schema.people.email, lookupEmail),
+            ),
+          )
+          .limit(1);
       }
 
-      if (!registration) {
-        return NextResponse.json({ error: "Plant registration not found" }, { status: 404 });
+      if (rows.length === 0) {
+        return NextResponse.json(
+          { error: "Plant registration not found" },
+          { status: 404 },
+        );
+      }
+      const registration = rows[0];
+      if (!registration.email) {
+        return NextResponse.json(
+          { error: "Registration has no email" },
+          { status: 400 },
+        );
       }
 
       const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
@@ -430,6 +573,7 @@ export async function POST(req: Request) {
       });
     }
 
+    // ── test-meta (no DB dependency) ──
     if (action === "test-meta") {
       if (!testEventCode) {
         return NextResponse.json(
@@ -444,7 +588,8 @@ export async function POST(req: Request) {
           event_id: `test-purchase-${Date.now()}`,
           event_source_url: "https://www.harisolaas.com/es/brote",
           user_data: {
-            client_ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1",
+            client_ip_address:
+              req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1",
             client_user_agent: req.headers.get("user-agent") || "test-agent",
           },
           custom_data: { currency: "ARS", value: 1 },
@@ -462,41 +607,43 @@ export async function POST(req: Request) {
       });
     }
 
+    // ── gift-ticket ──
     if (action === "gift-ticket") {
       if (!toEmail) {
         return NextResponse.json({ error: "toEmail required" }, { status: 400 });
       }
 
-      const { nanoid } = await import("nanoid");
-      const ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
-      const ticket: BroteTicket = {
-        id: ticketId,
-        type: "ticket",
-        paymentId: "GIFT",
-        buyerEmail: toEmail,
-        buyerName: giftName || "Invitado/a",
-        status: "valid",
-        createdAt: new Date().toISOString(),
-      };
-
-      await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
-      await redis.set(`brote:payment:GIFT-${ticketId}`, ticketId);
-      const treeNumber = await redis.incr("brote:counter");
-      await redis.sAdd("brote:attendees", JSON.stringify({
+      const newTicketId = `BROTE-${nanoid(8).toUpperCase()}`;
+      const giftedName = giftName || "Invitado/a";
+      await recordParticipation({
         email: toEmail,
-        name: ticket.buyerName,
-        ticketId,
-        createdAt: ticket.createdAt,
-      }));
+        name: giftedName,
+        eventId: BROTE_EVENT_ID,
+        participationId: newTicketId,
+        role: "attendee",
+        status: "confirmed",
+        externalPaymentId: `GIFT-${newTicketId}`,
+      });
 
-      // Send email
+      const treeNumber = await countBroteTickets();
+
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticketId}`;
+      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${newTicketId}`;
       const qrDataUrl = await QRCode.toDataURL(qrUrl, {
         width: 300,
         margin: 2,
         color: { dark: "#2D4A3E", light: "#FAF6F1" },
       });
+
+      const ticketForTemplate: BroteTicket = {
+        id: newTicketId,
+        type: "ticket",
+        paymentId: `GIFT-${newTicketId}`,
+        buyerEmail: toEmail,
+        buyerName: giftedName,
+        status: "valid",
+        createdAt: new Date().toISOString(),
+      };
 
       const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
       const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -504,42 +651,53 @@ export async function POST(req: Request) {
         from: `BROTE <${fromEmail}>`,
         to: toEmail,
         subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-        html: buildTicketEmailHtml(ticket, treeNumber),
-        attachments: [{
-          filename: "qr.png",
-          content: qrDataUrlToBuffer(qrDataUrl),
-          contentType: "image/png",
-          contentId: "qr",
-        }],
+        html: buildTicketEmailHtml(ticketForTemplate, treeNumber),
+        attachments: [
+          {
+            filename: "qr.png",
+            content: qrDataUrlToBuffer(qrDataUrl),
+            contentType: "image/png",
+            contentId: "qr",
+          },
+        ],
       });
 
-      ticket.emailSent = true;
-      await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
+      // Mark email sent on the participation.
+      await db
+        .update(schema.participations)
+        .set({
+          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({ emailSent: true })}::jsonb`,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(schema.participations.id, newTicketId));
 
       return NextResponse.json({
         ok: true,
-        ticketId,
+        ticketId: newTicketId,
         treeNumber,
         to: toEmail,
         resendId: result.data?.id,
       });
     }
 
+    // ── send-reminder ──
     if (action === "send-reminder") {
-      const counter = Number(await redis.get("brote:counter") ?? 0);
+      const counter = await countBroteTickets();
       const treesRemaining = Math.max(0, 100 - counter);
 
-      // Get unique emails from attendees
-      const attendeesRaw = await redis.sMembers("brote:attendees");
-      const emails = new Set<string>();
-      for (const raw of attendeesRaw) {
-        try {
-          const a = JSON.parse(raw);
-          if (a.email) emails.add(a.email.toLowerCase());
-        } catch { /* skip */ }
-      }
+      const rows = await db
+        .select({ email: schema.people.email })
+        .from(schema.participations)
+        .innerJoin(
+          schema.people,
+          eq(schema.people.id, schema.participations.personId),
+        )
+        .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
+      const emailsSet = new Set(
+        rows.map((r) => r.email?.toLowerCase()).filter((e): e is string => !!e),
+      );
 
-      if (emails.size === 0) {
+      if (emailsSet.size === 0) {
         return NextResponse.json({ error: "No attendees found" }, { status: 400 });
       }
 
@@ -548,7 +706,7 @@ export async function POST(req: Request) {
       const html = buildReminderEmailHtml(treesRemaining);
 
       const results: { email: string; ok: boolean; error?: string }[] = [];
-      for (const email of emails) {
+      for (const email of emailsSet) {
         try {
           await resend.emails.send({
             from: `BROTE <${fromEmail}>`,
@@ -561,33 +719,38 @@ export async function POST(req: Request) {
           results.push({ email, ok: false, error: String(err) });
         }
       }
-
       const sent = results.filter((r) => r.ok).length;
       const failed = results.filter((r) => !r.ok);
 
       return NextResponse.json({
         ok: true,
         treesRemaining,
-        totalEmails: emails.size,
+        totalEmails: emailsSet.size,
         sent,
         failed,
       });
     }
 
+    // ── lookup-payment ──
     if (action === "lookup-payment" && paymentId) {
-      const ticketIdForPayment = await redis.get(`brote:payment:${paymentId}`);
-      if (!ticketIdForPayment) {
+      const rows = await db
+        .select({
+          id: schema.participations.id,
+        })
+        .from(schema.participations)
+        .where(eq(schema.participations.externalPaymentId, paymentId))
+        .limit(1);
+      if (rows.length === 0) {
         return NextResponse.json({ error: "Payment not found" }, { status: 404 });
       }
-      const raw = await redis.get(`brote:ticket:${ticketIdForPayment}`);
-      return NextResponse.json({
-        ticketId: ticketIdForPayment,
-        ticket: raw ? JSON.parse(raw) : null,
-      });
+      const ticket = await loadTicket(rows[0].id);
+      return NextResponse.json({ ticketId: rows[0].id, ticket });
     }
 
+    // ── fix-campaign-log (Redis) ──
     if (action === "fix-campaign-log" && variant && mode) {
       const data = { sent: Number(mode), audienceSize: Number(mode) };
+      const redis = await getRedis();
       await redis.set(
         `plant:campaign:${variant}:sent`,
         JSON.stringify({
@@ -602,88 +765,64 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, variant, data });
     }
 
-    // ── Plant: delete all registrations for given emails and fix counter ──
-    // Body: { action: "plant-delete-registrations", emails: ["a@b.com", ...], mode?: "preview"|"send" }
+    // ── plant-delete-registrations ──
     if (action === "plant-delete-registrations") {
       if (!Array.isArray(emails) || emails.length === 0) {
-        return NextResponse.json({ error: "emails array required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "emails array required" },
+          { status: 400 },
+        );
       }
-      const targetEmails = new Set(emails.map((e) => e.trim().toLowerCase()));
+      const targetEmails = emails.map((e) => e.trim()).filter(Boolean);
       const m = mode || "preview";
 
-      // Find all plant:registration:* matching these emails
-      const allKeys: string[] = await redis.keys("plant:registration:*");
-      const toDelete: { key: string; reg: PlantRegistration }[] = [];
-      for (const k of allKeys) {
-        const raw = await redis.get(k);
-        if (!raw) continue;
-        try {
-          const reg: PlantRegistration = JSON.parse(raw);
-          if (targetEmails.has(reg.email.toLowerCase())) {
-            toDelete.push({ key: k, reg });
-          }
-        } catch { /* skip */ }
-      }
+      const rows = await db
+        .select({
+          id: schema.participations.id,
+          email: schema.people.email,
+          name: schema.people.name,
+          createdAt: schema.participations.createdAt,
+        })
+        .from(schema.participations)
+        .innerJoin(
+          schema.people,
+          eq(schema.people.id, schema.participations.personId),
+        )
+        .where(
+          and(
+            eq(schema.participations.eventId, PLANT_EVENT_ID),
+            inArray(schema.people.email, targetEmails),
+          ),
+        );
 
       if (m === "preview") {
         return NextResponse.json({
           ok: true,
           preview: true,
-          found: toDelete.map((d) => ({
-            id: d.reg.id,
-            email: d.reg.email,
-            name: d.reg.name,
-            createdAt: d.reg.createdAt,
+          found: rows.map((r) => ({
+            id: r.id,
+            email: r.email,
+            name: r.name,
+            createdAt: r.createdAt.toISOString(),
           })),
-          counterDecrement: toDelete.length,
+          counterDecrement: rows.length,
         });
       }
 
-      // Delete registration keys
-      for (const d of toDelete) {
-        await (redis as unknown as { del: (key: string) => Promise<number> }).del(d.key);
+      const counterBefore = await countPlantConfirmed();
+      const ids = rows.map((r) => r.id);
+      if (ids.length > 0) {
+        await db
+          .delete(schema.participations)
+          .where(inArray(schema.participations.id, ids));
       }
-
-      // Clean plant:registrations SET
-      const setMembers: string[] = await redis.sMembers("plant:registrations");
-      for (const raw of setMembers) {
-        try {
-          const entry = JSON.parse(raw);
-          if (entry.email && targetEmails.has(entry.email.toLowerCase())) {
-            await (redis as unknown as { sRem: (key: string, val: string) => Promise<number> })
-              .sRem("plant:registrations", raw);
-          }
-        } catch { /* skip */ }
-      }
-
-      // Decrement counter
-      const currentCount = Number(await redis.get("plant:counter") ?? 0);
-      const newCount = Math.max(0, currentCount - toDelete.length);
-      await redis.set("plant:counter", String(newCount));
-
-      // Clean community:person entries — remove plant participation
-      for (const email of targetEmails) {
-        const personRaw = await redis.get(`community:person:${email}`);
-        if (!personRaw) continue;
-        try {
-          const person = JSON.parse(personRaw);
-          person.participations = (person.participations || []).filter(
-            (p: { event: string }) => p.event !== "plant-2026-04",
-          );
-          if (person.participations.length === 0) {
-            await (redis as unknown as { del: (key: string) => Promise<number> })
-              .del(`community:person:${email}`);
-          } else {
-            await redis.set(`community:person:${email}`, JSON.stringify(person));
-          }
-        } catch { /* skip */ }
-      }
+      const counterAfter = await countPlantConfirmed();
 
       return NextResponse.json({
         ok: true,
-        deleted: toDelete.map((d) => d.reg.id),
-        counterBefore: currentCount,
-        counterAfter: newCount,
+        deleted: ids,
+        counterBefore,
+        counterAfter,
       });
     }
 

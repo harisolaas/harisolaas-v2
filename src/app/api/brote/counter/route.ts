@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { and, count, eq, inArray } from "drizzle-orm";
+import { db, schema } from "@/db";
+
+const BROTE_EVENT_ID = "brote-2026-03-28";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const redis = await getRedis();
-    const count = Number((await redis.get("brote:counter")) ?? 0);
-    return NextResponse.json({ count });
+    const res = await db
+      .select({ n: count() })
+      .from(schema.participations)
+      .where(
+        and(
+          eq(schema.participations.eventId, BROTE_EVENT_ID),
+          inArray(schema.participations.status, ["confirmed", "used"]),
+        ),
+      );
+    return NextResponse.json({ count: Number(res[0]?.n ?? 0) });
   } catch {
     return NextResponse.json({ count: 0 });
   }

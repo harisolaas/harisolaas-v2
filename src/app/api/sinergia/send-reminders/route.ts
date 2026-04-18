@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { and, eq } from "drizzle-orm";
+import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
-import {
-  nextSinergiaDate,
-  type SinergiaAttendeeEntry,
-} from "@/lib/sinergia-types";
+import { nextSinergiaDate } from "@/lib/sinergia-types";
 import { buildSinergiaReminderEmailHtml } from "@/lib/sinergia-email";
 
 // Runs via Vercel Cron (see vercel.json) every Wednesday at 13:00 UTC = 10:00 ART.
@@ -30,11 +29,25 @@ export async function GET(req: Request) {
       });
     }
 
-    const rsvpsSetKey = `sinergia:session:${sessionDate}:rsvps`;
-    const raw = await redis.sMembers(rsvpsSetKey);
-    const attendees: SinergiaAttendeeEntry[] = (raw ?? []).map((r: string) =>
-      JSON.parse(r),
-    );
+    const eventId = `sinergia-${sessionDate}`;
+    const attendees = await db
+      .select({
+        rsvpId: schema.participations.id,
+        email: schema.people.email,
+        name: schema.people.name,
+        metadata: schema.participations.metadata,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(
+        and(
+          eq(schema.participations.eventId, eventId),
+          eq(schema.participations.status, "confirmed"),
+        ),
+      );
 
     const resend = new Resend(process.env.RESEND_API_KEY!);
     const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
@@ -44,11 +57,16 @@ export async function GET(req: Request) {
     let failed = 0;
 
     for (const a of attendees) {
+      if (!a.email) {
+        skipped++;
+        continue;
+      }
       const flagKey = `sinergia:rsvp:${a.rsvpId}:reminder`;
       if (await redis.get(flagKey)) {
         skipped++;
         continue;
       }
+      const meta = (a.metadata as Record<string, unknown>) ?? {};
       try {
         await resend.emails.send({
           from: `Sinergia <${fromEmail}>`,
@@ -57,7 +75,7 @@ export async function GET(req: Request) {
           html: buildSinergiaReminderEmailHtml({
             name: a.name,
             sessionDate,
-            staysForDinner: a.staysForDinner,
+            staysForDinner: Boolean(meta.staysForDinner),
           }),
         });
         await redis.set(flagKey, "1");

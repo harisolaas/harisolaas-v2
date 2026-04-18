@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import { and, count, eq, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { getRedis } from "@/lib/redis";
 import { Resend } from "resend";
 import QRCode from "qrcode";
 import { nanoid } from "nanoid";
-import type { BroteTicket } from "@/lib/brote-types";
+import { getRedis } from "@/lib/redis";
+import { db, schema } from "@/db";
+import { recordParticipation } from "@/lib/community";
 import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import type { BroteTicket } from "@/lib/brote-types";
+
+const BROTE_EVENT_ID = "brote-2026-03-28";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -29,7 +34,6 @@ function verifySignature(req: Request, body: string): boolean {
     console.warn("Webhook missing signature headers:", {
       hasSignature: !!xSignature,
       hasRequestId: !!xRequestId,
-      // Log all headers for debugging (redact auth)
       headers: Object.fromEntries(
         [...new Headers(req.headers)].filter(([k]) => !k.includes("auth")),
       ),
@@ -48,7 +52,6 @@ function verifySignature(req: Request, body: string): boolean {
   const hash = parts.v1;
   if (!ts || !hash) return false;
 
-  // Parse the data.id from the body
   let dataId: string;
   try {
     const parsed = JSON.parse(body);
@@ -82,7 +85,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Only process payment notifications
   if (parsed.type !== "payment") {
     return NextResponse.json({ ok: true });
   }
@@ -94,29 +96,57 @@ export async function POST(req: Request) {
 
   const redis = await getRedis();
 
-  // Idempotency: check if we already processed this payment
+  // Idempotency: Redis maps MP payment id → ticket id. Fast path for retries.
   const existingTicketId = await redis.get(`brote:payment:${mpPaymentId}`);
 
-  let ticket: BroteTicket;
-  let treeNumber: number;
+  let ticketId: string;
+  let buyerEmail: string;
+  let buyerName: string;
+  let participationMetadata: Record<string, unknown> = {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let payment: any = null;
 
   if (existingTicketId) {
-    // Already processed — but check if email was sent
-    const raw = await redis.get(`brote:ticket:${existingTicketId}`);
-    if (!raw) {
+    // Participation already exists. Load it to decide whether to retry email.
+    const existing = await db
+      .select({
+        id: schema.participations.id,
+        metadata: schema.participations.metadata,
+        email: schema.people.email,
+        name: schema.people.name,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(eq(schema.participations.id, existingTicketId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      // Redis mapping exists but DB row doesn't — orphaned state.
+      // Log and treat as success to avoid a webhook retry loop.
+      console.warn("Orphaned MP idempotency key:", {
+        mpPaymentId,
+        existingTicketId,
+      });
       return NextResponse.json({ ok: true, ticketId: existingTicketId });
     }
-    ticket = JSON.parse(raw);
-    if (ticket.emailSent) {
-      return NextResponse.json({ ok: true, ticketId: existingTicketId });
+
+    const row = existing[0];
+    const meta = (row.metadata as Record<string, unknown>) ?? {};
+    if (meta.emailSent) {
+      return NextResponse.json({ ok: true, ticketId: row.id });
     }
-    // Email wasn't sent — fall through to retry it
-    console.log("Retrying email for existing ticket:", existingTicketId);
-    treeNumber = Number(await redis.get("brote:counter")) || 1;
+
+    // Email wasn't sent — fall through to retry it.
+    console.log("Retrying email for existing ticket:", row.id);
+    ticketId = row.id;
+    buyerEmail = row.email ?? "";
+    buyerName = row.name ?? "Asistente";
+    participationMetadata = meta;
   } else {
-    // New payment — fetch from MP and create ticket
+    // New payment — fetch from MP and create participation.
     try {
       payment = await new Payment(mp).get({ id: mpPaymentId });
     } catch (err) {
@@ -128,45 +158,75 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, status: payment.status });
     }
 
-    const buyerEmail = payment.payer?.email || "";
-    const buyerName =
+    buyerEmail = payment.payer?.email || "";
+    buyerName =
       [payment.payer?.first_name, payment.payer?.last_name]
         .filter(Boolean)
         .join(" ") || "Asistente";
 
-    console.log("Webhook processing:", { mpPaymentId, status: payment.status, buyerEmail, buyerName });
-
-    const ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
-
-    ticket = {
-      id: ticketId,
-      type: "ticket",
-      paymentId: mpPaymentId,
+    console.log("Webhook processing:", {
+      mpPaymentId,
+      status: payment.status,
       buyerEmail,
       buyerName,
-      status: "valid",
-      createdAt: new Date().toISOString(),
-    };
+    });
 
-    // Store in Redis
-    await redis.set(`brote:ticket:${ticketId}`, JSON.stringify(ticket));
-    await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
-    treeNumber = await redis.incr("brote:counter");
+    ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
 
-    // Store attendee for export
-    await redis.sAdd("brote:attendees", JSON.stringify({
+    // Recover Meta CAPI attribution data from checkout stash (24h TTL).
+    const preferenceId = payment.preference_id as string | undefined;
+    let attribution: Record<string, string> | undefined;
+    if (preferenceId) {
+      const raw = await redis.get(`brote:checkout:${preferenceId}`);
+      if (raw) {
+        try {
+          const meta = JSON.parse(raw);
+          if (meta.source || meta.medium || meta.campaign || meta.linkSlug) {
+            attribution = {
+              ...(meta.source && { source: meta.source }),
+              ...(meta.medium && { medium: meta.medium }),
+              ...(meta.campaign && { campaign: meta.campaign }),
+              ...(meta.linkSlug && { linkSlug: meta.linkSlug }),
+              capturedAt: new Date().toISOString(),
+            };
+          }
+        } catch {
+          /* ignore malformed stash */
+        }
+      }
+    }
+
+    await recordParticipation({
       email: buyerEmail,
       name: buyerName,
-      ticketId,
-      createdAt: ticket.createdAt,
-    }));
+      eventId: BROTE_EVENT_ID,
+      participationId: ticketId,
+      role: "attendee",
+      status: "confirmed",
+      externalPaymentId: mpPaymentId,
+      priceCents: Math.round(Number(payment.transaction_amount ?? 0) * 100),
+      currency: payment.currency_id ?? "ARS",
+      attribution: attribution
+        ? { ...attribution, capturedAt: attribution.capturedAt }
+        : undefined,
+    });
+
+    // Save MP → ticket idempotency mapping for webhook retries.
+    await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
   }
 
-  // Send email (runs for both new tickets and retries)
+  // Tree number for the email = ticket count for this event (display-only).
+  const treeCountRes = await db
+    .select({ n: count() })
+    .from(schema.participations)
+    .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
+  const treeNumber = Number(treeCountRes[0]?.n ?? 1);
+
+  // Send email (runs for both new tickets and retries).
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-  if (ticket.buyerEmail) {
+  if (buyerEmail) {
     try {
-      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticket.id}`;
+      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticketId}`;
       const qrDataUrl = await QRCode.toDataURL(qrUrl, {
         width: 300,
         margin: 2,
@@ -174,37 +234,66 @@ export async function POST(req: Request) {
       });
 
       const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
+      // buildTicketEmailHtml expects a BroteTicket shape for its template.
+      const ticketForTemplate: BroteTicket = {
+        id: ticketId,
+        type: "ticket",
+        paymentId: mpPaymentId,
+        buyerEmail,
+        buyerName,
+        status: "valid",
+        createdAt: new Date().toISOString(),
+      };
       await getResend().emails.send({
         from: `BROTE <${fromEmail}>`,
-        to: ticket.buyerEmail,
+        to: buyerEmail,
         subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-        html: buildTicketEmailHtml(ticket, treeNumber),
-        attachments: [{
-          filename: "qr.png",
-          content: qrDataUrlToBuffer(qrDataUrl),
-          contentType: "image/png",
-          contentId: "qr",
-        }],
+        html: buildTicketEmailHtml(ticketForTemplate, treeNumber),
+        attachments: [
+          {
+            filename: "qr.png",
+            content: qrDataUrlToBuffer(qrDataUrl),
+            contentType: "image/png",
+            contentId: "qr",
+          },
+        ],
       });
 
-      // Mark email as sent
-      ticket.emailSent = true;
-      await redis.set(`brote:ticket:${ticket.id}`, JSON.stringify(ticket));
-      console.log("Email sent:", { to: ticket.buyerEmail, ticketId: ticket.id });
+      // Mark email as sent in participation metadata.
+      await db
+        .update(schema.participations)
+        .set({
+          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({
+            ...participationMetadata,
+            emailSent: true,
+          })}::jsonb`,
+          updatedAt: sql`NOW()`,
+        })
+        .where(eq(schema.participations.id, ticketId));
+
+      console.log("Email sent:", { to: buyerEmail, ticketId });
     } catch (err) {
-      console.error("Email send failed:", ticket.id, err);
-      // Don't fail the webhook — MP will retry and we'll try email again
+      console.error("Email send failed:", ticketId, err);
+      // Don't fail the webhook — MP will retry and we'll try email again.
     }
   }
 
-  // Fire Meta CAPI Purchase event (only for new tickets, not email retries)
-  if (!existingTicketId && payment) {
+  // Fire Meta CAPI Purchase event — production only, new tickets only.
+  if (
+    !existingTicketId &&
+    payment &&
+    process.env.VERCEL_ENV === "production"
+  ) {
     try {
-      // MP stores preference_id on the payment object
       const preferenceId = payment.preference_id as string | undefined;
-      let checkoutMeta: { eventId?: string; fbp?: string; fbc?: string; ip?: string; ua?: string } = {};
+      let checkoutMeta: {
+        eventId?: string;
+        fbp?: string;
+        fbc?: string;
+        ip?: string;
+        ua?: string;
+      } = {};
 
-      // Try to recover tracking data stored at checkout time
       if (preferenceId) {
         const raw = await redis.get(`brote:checkout:${preferenceId}`);
         if (raw) checkoutMeta = JSON.parse(raw);
@@ -212,13 +301,15 @@ export async function POST(req: Request) {
 
       const paymentAmount = payment.transaction_amount ?? 0;
 
-      const ip = checkoutMeta.ip || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+      const ip =
+        checkoutMeta.ip ||
+        req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
       const ua = checkoutMeta.ua || req.headers.get("user-agent");
 
       if (ip || ua) {
         sendMetaEvent({
           event_name: "Purchase",
-          event_id: `brote-purchase-${ticket.id}`,
+          event_id: `brote-purchase-${ticketId}`,
           event_source_url: "https://www.harisolaas.com/es/brote",
           user_data: {
             client_ip_address: ip || undefined,
@@ -229,12 +320,15 @@ export async function POST(req: Request) {
           custom_data: { currency: "ARS", value: paymentAmount },
         }).catch(() => {}); // fire and forget
       } else {
-        console.warn("Meta CAPI: skipping Purchase event — no user_data available for ticket:", ticket.id);
+        console.warn(
+          "Meta CAPI: skipping Purchase event — no user_data available for ticket:",
+          ticketId,
+        );
       }
     } catch (err) {
       console.error("Meta CAPI Purchase error (non-fatal):", err);
     }
   }
 
-  return NextResponse.json({ ok: true, ticketId: ticket.id });
+  return NextResponse.json({ ok: true, ticketId });
 }

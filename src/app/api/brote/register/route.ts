@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
-import { getRedis } from "@/lib/redis";
+import { and, count, eq } from "drizzle-orm";
+import { db, schema } from "@/db";
 import { plantConfig } from "@/data/brote";
 import {
-  type PlantRegistration,
-  type CommunityPerson,
-  type GroupType,
-  isValidEmail,
-} from "@/lib/plant-types";
+  CapacityReachedError,
+  recordParticipation,
+} from "@/lib/community";
+import { type GroupType, isValidEmail } from "@/lib/plant-types";
 import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
 
-// Rate limit: 5 requests per IP per 60s
+const PLANT_EVENT_ID = "plant-2026-04";
+
+// Rate limit: 5 requests per IP per 60s.
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const RATE_WINDOW = 60_000;
@@ -37,28 +40,53 @@ function isValidGroupType(v: unknown): v is GroupType {
   return v === "solo" || v === "con-alguien" || v === "grupo";
 }
 
+async function countConfirmed(eventId: string): Promise<number> {
+  const res = await db
+    .select({ n: count() })
+    .from(schema.participations)
+    .where(
+      and(
+        eq(schema.participations.eventId, eventId),
+        eq(schema.participations.status, "confirmed"),
+      ),
+    );
+  return Number(res[0]?.n ?? 0);
+}
+
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (isRateLimited(ip)) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     const body = await req.json();
     const action = body.action as string | undefined;
-    const email = (body.email as string || "").trim().toLowerCase();
-
-    const redis = await getRedis();
+    const email = (body.email as string || "").trim();
 
     // ── Waitlist flow ─────────────────────────────────────────────
     if (action === "waitlist") {
       if (!isValidEmail(email)) {
-        return NextResponse.json({ error: "Valid email required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "Valid email required" },
+          { status: 400 },
+        );
       }
-      await redis.sAdd("plant:waitlist", JSON.stringify({
+
+      // Deterministic id so a re-POSTed waitlist stays idempotent.
+      const hash = createHash("sha1").update(email.toLowerCase()).digest("hex");
+      const waitlistId = `PLANT-WL-${hash.slice(0, 8).toUpperCase()}`;
+
+      await recordParticipation({
         email,
-        createdAt: new Date().toISOString(),
-      }));
+        name: email, // no name captured on the waitlist form
+        eventId: PLANT_EVENT_ID,
+        participationId: waitlistId,
+        role: "planter",
+        status: "waitlist",
+      });
+
       return NextResponse.json({ ok: true, waitlisted: true });
     }
 
@@ -66,111 +94,72 @@ export async function POST(req: Request) {
     const name = (body.name as string || "").trim();
     const groupType = body.groupType;
     const carpool = Boolean(body.carpool);
-    const message = (body.message as string || "").trim().slice(0, 280) || undefined;
-    const utm = body.utm as { source?: string; medium?: string; campaign?: string } | undefined;
+    const message =
+      (body.message as string || "").trim().slice(0, 280) || undefined;
+    const utm = body.utm as
+      | { source?: string; medium?: string; campaign?: string }
+      | undefined;
 
     if (!name || !isValidEmail(email)) {
-      return NextResponse.json({ error: "Name and valid email required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Name and valid email required" },
+        { status: 400 },
+      );
     }
     if (!isValidGroupType(groupType)) {
       return NextResponse.json({ error: "Invalid group type" }, { status: 400 });
     }
 
-    // Check capacity
-    const currentCount = Number(await redis.get("plant:counter") ?? 0);
-    if (currentCount >= plantConfig.capacity) {
-      return NextResponse.json(
-        { ok: false, full: true, error: "Capacity reached" },
-        { status: 409 },
-      );
-    }
-
-    // Idempotency: check if this email already registered for planting
-    const existingPersonRaw = await redis.get(`community:person:${email}`);
-    if (existingPersonRaw) {
-      const person: CommunityPerson = JSON.parse(existingPersonRaw);
-      const plantParticipation = person.participations.find((p) => p.event === "plant-2026-04");
-      if (plantParticipation) {
-        const remaining = Math.max(0, plantConfig.capacity - currentCount);
-        return NextResponse.json({
-          ok: true,
-          alreadyRegistered: true,
-          registrationId: plantParticipation.id,
-          remaining,
-        });
-      }
-    }
-
-    // Create registration
     const registrationId = `PLANT-${nanoid(8).toUpperCase()}`;
-    const registration: PlantRegistration = {
-      id: registrationId,
-      email,
-      name,
-      groupType,
-      carpool,
-      status: "registered",
-      ...(message && { message }),
-      createdAt: new Date().toISOString(),
-      ...(utm && { utm }),
-    };
+    const attribution = utm
+      ? {
+          source: utm.source,
+          medium: utm.medium,
+          campaign: utm.campaign,
+          capturedAt: new Date().toISOString(),
+        }
+      : undefined;
 
-    await redis.set(`plant:registration:${registrationId}`, JSON.stringify(registration));
-    const newCount = await redis.incr("plant:counter");
-    await redis.sAdd("plant:registrations", JSON.stringify({
-      email,
-      name,
-      groupType,
-      carpool,
-      ...(message && { message }),
-      registrationId,
-      createdAt: registration.createdAt,
-    }));
-
-    // Create or update community person
-    const now = new Date().toISOString();
-    const plantParticipation = {
-      event: "plant-2026-04",
-      role: "planter",
-      id: registrationId,
-      date: now,
-    };
-
-    if (existingPersonRaw) {
-      const person: CommunityPerson = JSON.parse(existingPersonRaw);
-      person.participations.push(plantParticipation);
-      if (name && name !== person.name) person.name = name;
-      await redis.set(`community:person:${email}`, JSON.stringify(person));
-    } else {
-      const person: CommunityPerson = {
+    let result;
+    try {
+      result = await recordParticipation({
         email,
         name,
-        firstSeen: now,
-        participations: [plantParticipation],
-      };
-
-      // Lazy-link BROTE attendance by email
-      const attendeesRaw = await redis.sMembers("brote:attendees");
-      for (const raw of attendeesRaw) {
-        try {
-          const a = JSON.parse(raw);
-          if (a.email && a.email.toLowerCase() === email) {
-            person.firstSeen = a.createdAt || now;
-            person.participations.unshift({
-              event: "brote",
-              role: "attendee",
-              id: a.ticketId || "unknown",
-              date: a.createdAt || now,
-            });
-            break;
-          }
-        } catch { /* skip */ }
+        eventId: PLANT_EVENT_ID,
+        participationId: registrationId,
+        role: "planter",
+        status: "confirmed",
+        attribution,
+        metadata: {
+          groupType,
+          carpool,
+          ...(message ? { message } : {}),
+        },
+      });
+    } catch (err) {
+      if (err instanceof CapacityReachedError) {
+        return NextResponse.json(
+          { ok: false, full: true, error: "Capacity reached" },
+          { status: 409 },
+        );
       }
-
-      await redis.set(`community:person:${email}`, JSON.stringify(person));
+      throw err;
     }
 
-    // Send confirmation email (fire-and-forget style)
+    const confirmedCount = await countConfirmed(PLANT_EVENT_ID);
+    const remaining = Math.max(0, plantConfig.capacity - confirmedCount);
+
+    // Idempotent re-submission by the same email.
+    if (!result.created && !result.promoted) {
+      return NextResponse.json({
+        ok: true,
+        alreadyRegistered: true,
+        registrationId: result.participationId,
+        remaining,
+      });
+    }
+
+    // Fire-and-forget confirmation email.
     try {
       const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
       await getResend().emails.send({
@@ -183,8 +172,11 @@ export async function POST(req: Request) {
       console.error("Plant registration email failed:", err);
     }
 
-    const remaining = Math.max(0, plantConfig.capacity - newCount);
-    return NextResponse.json({ ok: true, registrationId, remaining });
+    return NextResponse.json({
+      ok: true,
+      registrationId: result.participationId,
+      remaining,
+    });
   } catch (error) {
     console.error("Registration error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

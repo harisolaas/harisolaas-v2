@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
-import { getRedis } from "@/lib/redis";
+import { and, count, eq } from "drizzle-orm";
+import { db, schema } from "@/db";
 import { sinergiaConfig } from "@/data/sinergia";
-import type { CommunityPerson } from "@/lib/plant-types";
 import {
-  communityEventForSession,
-  isValidEmail,
-  nextSinergiaDate,
-  type SinergiaAttendeeEntry,
-  type SinergiaRsvp,
-  type SinergiaSession,
-} from "@/lib/sinergia-types";
+  CapacityReachedError,
+  recordParticipation,
+} from "@/lib/community";
+import { isValidEmail, nextSinergiaDate } from "@/lib/sinergia-types";
 import {
   buildSinergiaConfirmationEmailHtml,
   buildSinergiaHostNotificationHtml,
@@ -38,16 +35,51 @@ function getResend() {
   return _resend;
 }
 
+async function ensureSinergiaEvent(sessionDate: string): Promise<string> {
+  const eventId = `sinergia-${sessionDate}`;
+  const eventDate = new Date(`${sessionDate}T19:30:00-03:00`);
+  const status = eventDate < new Date() ? "past" : "upcoming";
+
+  await db
+    .insert(schema.events)
+    .values({
+      id: eventId,
+      type: "sinergia",
+      series: "sinergia",
+      name: `Sinergia — ${sessionDate}`,
+      date: eventDate,
+      capacity: sinergiaConfig.capacity,
+      status,
+    })
+    .onConflictDoNothing();
+
+  return eventId;
+}
+
+async function countConfirmed(eventId: string): Promise<number> {
+  const res = await db
+    .select({ n: count() })
+    .from(schema.participations)
+    .where(
+      and(
+        eq(schema.participations.eventId, eventId),
+        eq(schema.participations.status, "confirmed"),
+      ),
+    );
+  return Number(res[0]?.n ?? 0);
+}
+
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     if (isRateLimited(ip)) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
     const body = await req.json();
     const name = ((body.name as string) || "").trim();
-    const email = ((body.email as string) || "").trim().toLowerCase();
+    const email = ((body.email as string) || "").trim();
     const staysForDinner = Boolean(body.staysForDinner);
 
     if (!name || !isValidEmail(email)) {
@@ -57,132 +89,48 @@ export async function POST(req: Request) {
       );
     }
 
-    const redis = await getRedis();
     const sessionDate = nextSinergiaDate();
-    const sessionKey = `sinergia:session:${sessionDate}`;
-    const counterKey = `${sessionKey}:counter`;
-    const rsvpsSetKey = `${sessionKey}:rsvps`;
+    const eventId = await ensureSinergiaEvent(sessionDate);
 
-    // Ensure session exists
-    let session: SinergiaSession;
-    const sessionRaw = await redis.get(sessionKey);
-    if (sessionRaw) {
-      session = JSON.parse(sessionRaw);
-    } else {
-      session = {
-        date: sessionDate,
-        capacity: sinergiaConfig.capacity,
-        status: "open",
-      };
-      await redis.set(sessionKey, JSON.stringify(session));
-    }
-
-    // Idempotency: check if this email already RSVP'd for this session
-    const personEventId = communityEventForSession(sessionDate);
-    const existingPersonRaw = await redis.get(`community:person:${email}`);
-    if (existingPersonRaw) {
-      const person: CommunityPerson = JSON.parse(existingPersonRaw);
-      const existing = person.participations.find(
-        (p) => p.event === personEventId,
-      );
-      if (existing) {
-        const count = Number((await redis.get(counterKey)) ?? 0);
-        const remaining = Math.max(0, session.capacity - count);
-        return NextResponse.json({
-          ok: true,
-          alreadyRegistered: true,
-          rsvpId: existing.id,
-          sessionDate,
-          remaining,
-        });
-      }
-    }
-
-    // Capacity check
-    const currentCount = Number((await redis.get(counterKey)) ?? 0);
-    if (currentCount >= session.capacity) {
-      return NextResponse.json(
-        { ok: false, full: true, error: "Capacity reached" },
-        { status: 409 },
-      );
-    }
-
-    // Create RSVP
     const rsvpId = `SIN-${nanoid(8).toUpperCase()}`;
-    const createdAt = new Date().toISOString();
-    const rsvp: SinergiaRsvp = {
-      id: rsvpId,
-      sessionDate,
-      email,
-      name,
-      staysForDinner,
-      createdAt,
-      status: "registered",
-    };
 
-    await redis.set(`sinergia:rsvp:${rsvpId}`, JSON.stringify(rsvp));
-    const newCount = await redis.incr(counterKey);
-    const attendeeEntry: SinergiaAttendeeEntry = {
-      email,
-      name,
-      staysForDinner,
-      rsvpId,
-      createdAt,
-    };
-    await redis.sAdd(rsvpsSetKey, JSON.stringify(attendeeEntry));
-
-    // Update session status if it just filled
-    if (newCount >= session.capacity) {
-      session.status = "full";
-      await redis.set(sessionKey, JSON.stringify(session));
-    }
-
-    // Update community:person
-    const participation = {
-      event: personEventId,
-      role: "participant",
-      id: rsvpId,
-      date: createdAt,
-    };
-
-    if (existingPersonRaw) {
-      const person: CommunityPerson = JSON.parse(existingPersonRaw);
-      person.participations.push(participation);
-      if (name && name !== person.name) person.name = name;
-      await redis.set(`community:person:${email}`, JSON.stringify(person));
-    } else {
-      const person: CommunityPerson = {
+    let result;
+    try {
+      result = await recordParticipation({
         email,
         name,
-        firstSeen: createdAt,
-        participations: [participation],
-      };
-
-      // Lazy-link BROTE attendance by email
-      const attendeesRaw = await redis.sMembers("brote:attendees");
-      for (const raw of attendeesRaw) {
-        try {
-          const a = JSON.parse(raw);
-          if (a.email && a.email.toLowerCase() === email) {
-            person.firstSeen = a.createdAt || createdAt;
-            person.participations.unshift({
-              event: "brote",
-              role: "attendee",
-              id: a.ticketId || "unknown",
-              date: a.createdAt || createdAt,
-            });
-            break;
-          }
-        } catch { /* skip */ }
+        eventId,
+        participationId: rsvpId,
+        role: "rsvp",
+        status: "confirmed",
+        metadata: { staysForDinner },
+      });
+    } catch (err) {
+      if (err instanceof CapacityReachedError) {
+        return NextResponse.json(
+          { ok: false, full: true, error: "Capacity reached" },
+          { status: 409 },
+        );
       }
-
-      await redis.set(`community:person:${email}`, JSON.stringify(person));
+      throw err;
     }
 
-    const remaining = Math.max(0, session.capacity - newCount);
+    const confirmedCount = await countConfirmed(eventId);
+    const remaining = Math.max(0, sinergiaConfig.capacity - confirmedCount);
+
+    if (!result.created && !result.promoted) {
+      return NextResponse.json({
+        ok: true,
+        alreadyRegistered: true,
+        rsvpId: result.participationId,
+        sessionDate,
+        remaining,
+      });
+    }
+
     const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
 
-    // Send confirmation email
+    // Confirmation email.
     try {
       await getResend().emails.send({
         from: `Sinergia <${fromEmail}>`,
@@ -198,7 +146,7 @@ export async function POST(req: Request) {
       console.error("Sinergia confirmation email failed:", err);
     }
 
-    // Notify hosts
+    // Host notification.
     const notifyList = (process.env.SINERGIA_NOTIFY_EMAILS || "")
       .split(",")
       .map((e) => e.trim())
@@ -215,9 +163,9 @@ export async function POST(req: Request) {
             email,
             sessionDate,
             staysForDinner,
-            totalRegistered: newCount,
+            totalRegistered: confirmedCount,
             remaining,
-            capacity: session.capacity,
+            capacity: sinergiaConfig.capacity,
           }),
         });
       } catch (err) {
@@ -227,7 +175,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      rsvpId,
+      rsvpId: result.participationId,
       sessionDate,
       remaining,
     });

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { asc, eq } from "drizzle-orm";
 import { Resend } from "resend";
+import { db, schema } from "@/db";
+import { getRedis } from "@/lib/redis";
 import { requireAdminSession } from "@/lib/admin-api-auth";
 import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
-import type { PlantRegistration } from "@/lib/plant-types";
+
+const PLANT_EVENT_ID = "plant-2026-04";
 
 export async function POST(req: Request) {
   const session = await requireAdminSession(req);
@@ -11,7 +14,6 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const { action } = body as { action: string };
-  const redis = await getRedis();
 
   // ── Plant: resend confirmation email ──
   if (action === "plant-resend-email") {
@@ -20,27 +22,35 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "email required" }, { status: 400 });
     }
 
-    const keys: string[] = await redis.keys("plant:registration:*");
-    let registration: PlantRegistration | null = null;
-    for (const k of keys) {
-      const raw = await redis.get(k);
-      if (!raw) continue;
-      const r: PlantRegistration = JSON.parse(raw);
-      if (r.email.toLowerCase() === email) {
-        registration = r;
-        break;
-      }
-    }
+    const rows = await db
+      .select({
+        id: schema.participations.id,
+        name: schema.people.name,
+        email: schema.people.email,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(eq(schema.participations.eventId, PLANT_EVENT_ID))
+      .limit(200);
 
+    const registration = rows.find(
+      (r) => (r.email ?? "").toLowerCase() === email,
+    );
     if (!registration) {
-      return NextResponse.json({ error: "Registration not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Registration not found" },
+        { status: 404 },
+      );
     }
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
     const resend = new Resend(process.env.RESEND_API_KEY!);
     const result = await resend.emails.send({
       from: `BROTE <${fromEmail}>`,
-      to: registration.email,
+      to: registration.email!,
       subject: "¡Te anotaste para plantar! 🌱 Detalles del evento",
       html: buildPlantConfirmationEmailHtml(registration.name),
     });
@@ -48,45 +58,61 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, resendId: result.data?.id });
   }
 
-  // ── Export registrations as CSV ──
+  // ── Export plant registrations as CSV ──
   if (action === "export-csv") {
-    const keys: string[] = await redis.keys("plant:registration:*");
-    const rows: string[] = [
-      "id,name,email,groupType,carpool,message,utmSource,utmMedium,utmCampaign,createdAt",
-    ];
-    for (const k of keys) {
-      const raw = await redis.get(k);
-      if (!raw) continue;
-      try {
-        const r = JSON.parse(raw);
-        const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
-        rows.push(
-          [
-            esc(r.id),
-            esc(r.name),
-            esc(r.email),
-            esc(r.groupType),
-            r.carpool ? "true" : "false",
-            esc(r.message || ""),
-            esc(r.utm?.source || ""),
-            esc(r.utm?.medium || ""),
-            esc(r.utm?.campaign || ""),
-            esc(r.createdAt),
-          ].join(","),
-        );
-      } catch { /* skip */ }
+    const rows = await db
+      .select({
+        id: schema.participations.id,
+        email: schema.people.email,
+        name: schema.people.name,
+        createdAt: schema.participations.createdAt,
+        metadata: schema.participations.metadata,
+        attribution: schema.participations.attribution,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(eq(schema.participations.eventId, PLANT_EVENT_ID))
+      .orderBy(asc(schema.participations.createdAt));
+
+    const header =
+      "id,name,email,groupType,carpool,message,utmSource,utmMedium,utmCampaign,createdAt";
+    const esc = (v: string) => `"${(v || "").replace(/"/g, '""')}"`;
+
+    const csvRows: string[] = [header];
+    for (const r of rows) {
+      const m = (r.metadata as Record<string, unknown>) ?? {};
+      const a = (r.attribution as Record<string, unknown> | null) ?? null;
+      csvRows.push(
+        [
+          esc(r.id),
+          esc(r.name),
+          esc(r.email ?? ""),
+          esc((m.groupType as string) ?? ""),
+          m.carpool ? "true" : "false",
+          esc((m.message as string) ?? ""),
+          esc((a?.source as string) ?? ""),
+          esc((a?.medium as string) ?? ""),
+          esc((a?.campaign as string) ?? ""),
+          esc(r.createdAt.toISOString()),
+        ].join(","),
+      );
     }
 
-    return new NextResponse(rows.join("\n"), {
+    return new NextResponse(csvRows.join("\n"), {
       status: 200,
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="registrations-${new Date().toISOString().slice(0, 10)}.csv"`,
+        "Content-Disposition": `attachment; filename="registrations-${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv"`,
       },
     });
   }
 
-  // ── Fix campaign audit log (one-time correction) ──
+  // ── Campaign log correction (still in Redis per spec) ──
   if (action === "fix-campaign-log") {
     const { variant: v, data } = body as {
       variant: number;
@@ -98,6 +124,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    const redis = await getRedis();
     await redis.set(
       `plant:campaign:${v}:sent`,
       JSON.stringify({
