@@ -10,7 +10,7 @@ This file is the entry point for picking up Spec 01/02/03 work between sessions.
 
 - **Spec 01 (Postgres migration): LIVE.** PR #1 squashed to `main` at commit `8d87ba1`. All handlers read/write Postgres via `src/lib/community.ts` → `recordParticipation()`.
 - **Spec 02 (Dashboard): NOT STARTED.** Spec at `docs/specs/02-dashboard.md`.
-- **Spec 03 (Link builder): LIVE.** PR #3 squashed to `main` at commit `ad21ec7`. Postgres `links` + `link_clicks` tables, `/go/[slug]` redirect, admin UI at `/admin/links`, shared `buildAttribution` helper wired into plant register + Sinergia RSVP. Stale cookies (cookie slug → deleted link) are dropped inside the `recordParticipation` transaction so signups never FK-fail. Backfill script at `scripts/backfill-link-attribution.ts` — not yet run against prod.
+- **Spec 03 (Link builder): LIVE.** PR #3 squashed to `main` at commit `ad21ec7`. Postgres `links` + `link_clicks` tables, `/go/[slug]` redirect, admin UI at `/admin/links`, shared `buildAttribution` helper wired into plant register + Sinergia RSVP. Stale cookies (cookie slug → deleted link) are dropped inside the `recordParticipation` transaction so signups never FK-fail. Backfill ran against prod (1 link, 1 participation stamped).
 
 ### Infra snapshot
 
@@ -34,20 +34,29 @@ This file is the entry point for picking up Spec 01/02/03 work between sessions.
 
 ---
 
+## Rollout checklist — every spec
+
+Every PR that adds a Drizzle migration or scripted data change must go through these steps before it's considered "shipped." Merging to `main` is *not* the end of the job.
+
+1. **Merge PR.** Vercel auto-deploys code to prod.
+2. **Apply migrations to prod.** Vercel's build does NOT run migrations. You have to do this manually:
+   ```bash
+   vercel env pull .env.local --environment=production
+   npx drizzle-kit migrate
+   vercel env pull .env.local --environment=preview    # switch back immediately
+   ```
+   Without this step, handlers will throw "relation … does not exist" against prod while dev tests happily pass.
+3. **Run one-shot scripts** (backfills, cleanups) on prod while `.env.local` is still pointed there, then switch env back.
+4. **Smoke test a user-facing flow** on the live site. Landing → signup → check the admin UI shows the new row. A 500 here would've caught Spec 03's missed migration immediately.
+5. **Update NEXT.md**: mark the spec LIVE, record what migrated, note any residual TODOs.
+
+### 🟥 Known incident — 2026-04-18
+
+Spec 03's PR #3 merged to `main`, Vercel auto-deployed code, but the `0001_peaceful_bucky.sql` migration was never applied to the prod Neon branch. Creating a link via `/admin/links` surfaced as "Error de red" (HTML 500 page, `res.json()` threw, caught into the generic error message). Resolved by running `npx drizzle-kit migrate` against prod. Going forward, step 2 above is mandatory.
+
+---
+
 ## Time-sensitive work
-
-### 🟡 Now — run Spec 03 backfill on prod
-
-`scripts/backfill-link-attribution.ts` is written and tested on dev but has NOT been run on prod. It creates archived `links` rows for every distinct (source, medium, campaign) combo already sitting on `participations.attribution`, then stamps the matching participations with `link_slug` so historical attribution shows up on Spec 02's Campañas/Panorama views later.
-
-```bash
-vercel env pull .env.local --environment=production
-npx tsx scripts/backfill-link-attribution.ts --dry-run   # inspect combos
-npx tsx scripts/backfill-link-attribution.ts --execute   # apply
-vercel env pull .env.local --environment=preview         # switch back!
-```
-
-Expected combos on prod: the 2 plant email campaigns (`plantacion_email1`, `plantacion_email2`) plus whatever IG pushes had UTMs.
 
 ### 🟡 Now — watch the plant event (2026-04-19)
 
