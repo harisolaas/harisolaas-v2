@@ -20,22 +20,23 @@ export default function ComunidadShell({ email }: { email: string }) {
   // Always start from "panorama" so SSR + first client render match. The
   // URL hash is read in a post-mount effect to avoid a hydration mismatch.
   const [tab, setTab] = useState<Tab>("panorama");
-  const [hydrated, setHydrated] = useState(false);
 
+  // User-driven tab changes write the hash; the initial default doesn't.
+  // This keeps `/admin` clean on first load while still letting users share
+  // `/admin#personas`-style deep links after they click around.
+  const selectTab = useCallback((next: Tab) => {
+    setTab(next);
+    if (typeof window !== "undefined") {
+      window.location.hash = next;
+    }
+  }, []);
+
+  // On mount, pick up a deep-link hash if present. No hash = stay on Panorama
+  // and leave the URL untouched.
   useEffect(() => {
     const initial = readTabFromHash();
     if (initial) setTab(initial);
-    setHydrated(true);
   }, []);
-
-  // Keep the URL hash in sync so refreshes + deep links land on the same tab.
-  // Skipped before hydration so we don't dirty the URL on the initial render.
-  useEffect(() => {
-    if (!hydrated || typeof window === "undefined") return;
-    if (window.location.hash.replace("#", "") !== tab) {
-      window.location.hash = tab;
-    }
-  }, [tab, hydrated]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -87,7 +88,7 @@ export default function ComunidadShell({ email }: { email: string }) {
           {TABS.map((t) => (
             <button
               key={t.key}
-              onClick={() => setTab(t.key)}
+              onClick={() => selectTab(t.key)}
               className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                 tab === t.key
                   ? "border-forest text-forest"
@@ -102,12 +103,12 @@ export default function ComunidadShell({ email }: { email: string }) {
 
       <main className="mx-auto max-w-6xl px-4 py-6 md:px-6 md:py-8">
         {tab === "panorama" && <PanoramaTab onNavigateEvent={(id) => {
-          setTab("eventos");
           // Hacky cross-tab deep-link: stash in sessionStorage so EventosTab
           // picks it up on mount. Good enough for v1.
           if (typeof window !== "undefined") {
             window.sessionStorage.setItem("selected-event-id", id);
           }
+          selectTab("eventos");
         }} />}
         {tab === "personas" && <PersonasTab />}
         {tab === "eventos" && <EventosTab />}

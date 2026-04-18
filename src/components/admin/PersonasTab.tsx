@@ -60,27 +60,21 @@ export default function PersonasTab() {
   }, [search, eventFilter, sourceFilter, tagFilter]);
 
   const refreshFacets = useCallback(async () => {
-    const res = await fetch("/api/admin/people");
+    const res = await fetch("/api/admin/people/facets");
     if (!res.ok) return;
-    const json = (await res.json()) as { people: Persona[] };
-    const evt = new Map<string, string>();
-    const src = new Set<string>();
-    const tags = new Set<string>();
-    for (const p of json.people) {
-      for (const part of p.participations) {
-        evt.set(part.eventId, part.eventName);
-      }
-      const ft = p.firstTouch;
-      if (ft && typeof ft === "object") {
-        const s = (ft as Record<string, unknown>).source;
-        if (typeof s === "string" && s.length > 0) src.add(s);
-      }
-      for (const tag of p.tags) tags.add(tag);
-    }
+    const json = (await res.json()) as {
+      events: { id: string; name: string }[];
+      sources: string[];
+      tags: string[];
+    };
     setFacets({
-      eventOptions: Array.from(evt.entries()).sort(),
-      sourceOptions: Array.from(src).sort(),
-      tagOptions: Array.from(tags).sort(),
+      // Sort events by human-readable name, not id. The facets endpoint
+      // already returns them sorted but we re-sort defensively.
+      eventOptions: json.events
+        .map((e) => [e.id, e.name] as [string, string])
+        .sort((a, b) => a[1].localeCompare(b[1])),
+      sourceOptions: json.sources,
+      tagOptions: json.tags,
     });
   }, []);
 

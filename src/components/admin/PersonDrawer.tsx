@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface PersonDetail {
   person: {
@@ -49,6 +49,9 @@ export default function PersonDrawer({
   const [notesDraft, setNotesDraft] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+  // Synchronous guard against double-submits. `savingNotes` lags behind
+  // because React batches state updates; a ref is flipped immediately.
+  const notesSaveInFlight = useRef(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,20 +86,29 @@ export default function PersonDrawer({
   );
 
   const saveNotes = useCallback(async () => {
-    if (!data || notesDraft === (data.person.notes ?? "")) return;
+    if (!data) return;
+    if (notesSaveInFlight.current) return;
+    if (notesDraft === (data.person.notes ?? "")) return;
+    notesSaveInFlight.current = true;
     setSavingNotes(true);
     try {
       await patch({ notes: notesDraft || null });
     } finally {
+      notesSaveInFlight.current = false;
       setSavingNotes(false);
     }
   }, [data, notesDraft, patch]);
 
   // Fire-and-forget flush of any unsaved notes draft. Used from paths that
   // skip the textarea's onBlur (Escape key, backdrop click) so typed-but-
-  // not-blurred notes don't silently vanish when the drawer unmounts.
+  // not-blurred notes don't silently vanish when the drawer unmounts. The
+  // in-flight ref avoids a double-PATCH when blur + click both run (backdrop).
   const closeDrawer = useCallback(() => {
-    if (data && notesDraft !== (data.person.notes ?? "")) {
+    if (
+      data &&
+      !notesSaveInFlight.current &&
+      notesDraft !== (data.person.notes ?? "")
+    ) {
       void patch({ notes: notesDraft || null });
     }
     onClose();
