@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   bigint,
   bigserial,
+  boolean,
   check,
   customType,
   index,
@@ -179,6 +180,60 @@ export const memberships = pgTable(
 );
 
 // ============================================================
+// links (Spec 03 — tracked short links)
+// ============================================================
+export const links = pgTable(
+  "links",
+  {
+    slug: text().primaryKey(),
+    destination: text().notNull(),
+    label: text().notNull(),
+    channel: text().notNull(),
+    source: text().notNull(),
+    medium: text().notNull(),
+    campaign: text(),
+    resourceUrl: text(),
+    note: text(),
+    createdDate: text().notNull(), // YYYY-MM-DD, the date embedded in slug
+    createdBy: text().notNull(),
+    status: text().notNull().default("active"),
+    version: integer().notNull().default(1),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("links_status_check", sql`${t.status} IN ('active','archived','disabled')`),
+    index("links_channel_idx").on(t.channel),
+    index("links_campaign_idx")
+      .on(t.campaign)
+      .where(sql`${t.campaign} IS NOT NULL`),
+    index("links_created_at_idx").on(t.createdAt.desc()),
+    index("links_status_idx").on(t.status),
+  ],
+);
+
+// ============================================================
+// link_clicks (append-only; bots filtered before insert)
+// ============================================================
+export const linkClicks = pgTable(
+  "link_clicks",
+  {
+    id: bigserial({ mode: "number" }).primaryKey(),
+    linkSlug: text()
+      .notNull()
+      .references(() => links.slug, { onDelete: "cascade" }),
+    clickedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    userAgent: text(),
+    referer: text(),
+    ipHash: text(),
+    isBot: boolean().notNull().default(false),
+  },
+  (t) => [
+    index("link_clicks_slug_clicked_idx").on(t.linkSlug, t.clickedAt.desc()),
+  ],
+);
+
+// ============================================================
 // participations
 // ============================================================
 export const participations = pgTable(
@@ -200,7 +255,7 @@ export const participations = pgTable(
 
     // attribution
     attribution: jsonb(),
-    linkSlug: text(), // FK constraint added in Spec 03
+    linkSlug: text().references(() => links.slug, { onDelete: "set null" }),
 
     // referrals
     referredByPersonId: bigint({ mode: "number" }).references(() => people.id, {
@@ -264,3 +319,7 @@ export type Membership = typeof memberships.$inferSelect;
 export type NewMembership = typeof memberships.$inferInsert;
 export type Package = typeof packages.$inferSelect;
 export type NewPackage = typeof packages.$inferInsert;
+export type Link = typeof links.$inferSelect;
+export type NewLink = typeof links.$inferInsert;
+export type LinkClick = typeof linkClicks.$inferSelect;
+export type NewLinkClick = typeof linkClicks.$inferInsert;

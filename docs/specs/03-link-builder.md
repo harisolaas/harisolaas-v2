@@ -44,16 +44,14 @@ interface TrackedLink {
 }
 ```
 
-### Redis keys
+### Storage (updated post–Spec 01)
 
-- `link:{slug}` → TrackedLink JSON
-- `link:index` (SET of slug) — enumerate all links
-- `link:by-channel:{channel}` (SET of slug) — fast rollup
-- `link:by-campaign:{campaign}` (SET of slug) — fast rollup
-- `link:{slug}:clicks` (counter INCR'd at redirect time)
-- `link:{slug}:clicks:daily:{YYYY-MM-DD}` (counter per day, for sparkline charts)
+Links live in Postgres, not Redis. The original Redis-keys design here predates the Postgres migration (Spec 01) and has been superseded:
 
-Attributed signups are derived at read time by scanning `community:person:*.participations[].attribution.linkSlug == slug`. For perf, add a secondary index: `link:{slug}:participations` (SET of participationId) populated at participation write time.
+- `links` table — one row per tracked link. FK target for `participations.link_slug`.
+- `link_clicks` table — append-only row per GET `/go/{slug}`. Bot-UA hits are stored with `is_bot = true` so they can be audited but excluded from visible counts.
+- Rollups (clicks, signups, CVR, stickiness) are derived SQL queries in `src/app/api/admin/links/**`.
+- Daily sparklines come from `date_trunc('day', clicked_at)` over `link_clicks`.
 
 ### Channel → UTM mapping
 

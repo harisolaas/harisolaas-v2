@@ -8,6 +8,7 @@ import {
   CapacityReachedError,
   recordParticipation,
 } from "@/lib/community";
+import { buildAttribution } from "@/lib/attribution";
 import { isValidEmail, nextSinergiaDate } from "@/lib/sinergia-types";
 import {
   buildSinergiaConfirmationEmailHtml,
@@ -93,6 +94,7 @@ export async function POST(req: Request) {
     const eventId = await ensureSinergiaEvent(sessionDate);
 
     const rsvpId = `SIN-${nanoid(8).toUpperCase()}`;
+    const attribution = buildAttribution({ req, body });
 
     let result;
     try {
@@ -103,6 +105,7 @@ export async function POST(req: Request) {
         participationId: rsvpId,
         role: "rsvp",
         status: "confirmed",
+        attribution,
         metadata: { staysForDinner },
       });
     } catch (err) {

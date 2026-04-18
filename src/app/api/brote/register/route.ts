@@ -9,6 +9,7 @@ import {
   CapacityReachedError,
   recordParticipation,
 } from "@/lib/community";
+import { buildAttribution } from "@/lib/attribution";
 import { type GroupType, isValidEmail } from "@/lib/plant-types";
 import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
 
@@ -96,10 +97,6 @@ export async function POST(req: Request) {
     const carpool = Boolean(body.carpool);
     const message =
       (body.message as string || "").trim().slice(0, 280) || undefined;
-    const utm = body.utm as
-      | { source?: string; medium?: string; campaign?: string }
-      | undefined;
-
     if (!name || !isValidEmail(email)) {
       return NextResponse.json(
         { error: "Name and valid email required" },
@@ -111,14 +108,7 @@ export async function POST(req: Request) {
     }
 
     const registrationId = `PLANT-${nanoid(8).toUpperCase()}`;
-    const attribution = utm
-      ? {
-          source: utm.source,
-          medium: utm.medium,
-          campaign: utm.campaign,
-          capturedAt: new Date().toISOString(),
-        }
-      : undefined;
+    const attribution = buildAttribution({ req, body });
 
     let result;
     try {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import MetricCard from "./MetricCard";
 import ProgressBar from "./ProgressBar";
 import RegistrationTimeline from "./RegistrationTimeline";
@@ -151,6 +152,12 @@ export default function DashboardShell({ email }: { email: string }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:px-6">
           <h1 className="font-serif text-xl text-forest">BROTE Admin</h1>
           <div className="flex items-center gap-4">
+            <Link
+              href="/admin/links"
+              className="text-xs text-charcoal/60 hover:text-forest"
+            >
+              Enlaces
+            </Link>
             <span className="hidden text-xs text-charcoal/40 md:block">
               {email}
             </span>
