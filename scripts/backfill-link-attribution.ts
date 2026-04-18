@@ -37,13 +37,14 @@ if (!process.env.DATABASE_URL) {
 
 const BACKFILL_USER = "backfill@harisolaas.com";
 
-interface Combo {
+type Combo = {
   source: string | null;
   medium: string | null;
   campaign: string | null;
   participations: number;
   earliest_created: string;
-}
+  [key: string]: unknown;
+};
 
 function sanitize(s: string | null | undefined): string {
   if (!s) return "x";
