@@ -68,15 +68,6 @@ export default function PersonDrawer({
     load();
   }, [load]);
 
-  // Close on Escape.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const patch = useCallback(
     async (body: Record<string, unknown>) => {
       const res = await fetch(`/api/admin/people/${personId}`, {
@@ -101,6 +92,25 @@ export default function PersonDrawer({
     }
   }, [data, notesDraft, patch]);
 
+  // Fire-and-forget flush of any unsaved notes draft. Used from paths that
+  // skip the textarea's onBlur (Escape key, backdrop click) so typed-but-
+  // not-blurred notes don't silently vanish when the drawer unmounts.
+  const closeDrawer = useCallback(() => {
+    if (data && notesDraft !== (data.person.notes ?? "")) {
+      void patch({ notes: notesDraft || null });
+    }
+    onClose();
+  }, [data, notesDraft, patch, onClose]);
+
+  // Close on Escape (flushes notes first).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeDrawer();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [closeDrawer]);
+
   const addTag = useCallback(async () => {
     const t = tagsInput.trim();
     if (!data || !t) return;
@@ -123,7 +133,7 @@ export default function PersonDrawer({
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
-        onClick={onClose}
+        onClick={closeDrawer}
         aria-label="Cerrar"
         className="absolute inset-0 bg-charcoal/30 backdrop-blur-sm"
       />
@@ -142,7 +152,7 @@ export default function PersonDrawer({
             </h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={closeDrawer}
             className="rounded-full border border-sage/30 px-3 py-1 text-xs text-charcoal/60 hover:bg-sage/10"
           >
             Cerrar

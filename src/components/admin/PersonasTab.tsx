@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import PersonDrawer from "./PersonDrawer";
 
 interface Persona {
@@ -34,6 +34,16 @@ export default function PersonasTab() {
   const [tagFilter, setTagFilter] = useState("");
   const [openId, setOpenId] = useState<number | null>(null);
 
+  // Dropdown facets come from an unfiltered fetch that runs once on mount +
+  // once after any mutation (so tags added in the drawer show up). Computing
+  // facets from the filtered `data` caused the "stuck filter" UX — picking
+  // one event removed all other events from the dropdown.
+  const [facets, setFacets] = useState<{
+    eventOptions: [string, string][];
+    sourceOptions: string[];
+    tagOptions: string[];
+  }>({ eventOptions: [], sourceOptions: [], tagOptions: [] });
+
   const refresh = useCallback(async () => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
@@ -49,20 +59,14 @@ export default function PersonasTab() {
     setData(json.people);
   }, [search, eventFilter, sourceFilter, tagFilter]);
 
-  // Debounced refresh on filter change.
-  useEffect(() => {
-    const t = setTimeout(() => {
-      refresh();
-    }, 200);
-    return () => clearTimeout(t);
-  }, [refresh]);
-
-  const { eventOptions, sourceOptions, tagOptions } = useMemo(() => {
-    if (!data) return { eventOptions: [], sourceOptions: [], tagOptions: [] };
+  const refreshFacets = useCallback(async () => {
+    const res = await fetch("/api/admin/people");
+    if (!res.ok) return;
+    const json = (await res.json()) as { people: Persona[] };
     const evt = new Map<string, string>();
     const src = new Set<string>();
     const tags = new Set<string>();
-    for (const p of data) {
+    for (const p of json.people) {
       for (const part of p.participations) {
         evt.set(part.eventId, part.eventName);
       }
@@ -73,12 +77,27 @@ export default function PersonasTab() {
       }
       for (const tag of p.tags) tags.add(tag);
     }
-    return {
+    setFacets({
       eventOptions: Array.from(evt.entries()).sort(),
       sourceOptions: Array.from(src).sort(),
       tagOptions: Array.from(tags).sort(),
-    };
-  }, [data]);
+    });
+  }, []);
+
+  // Populate the dropdowns once on mount.
+  useEffect(() => {
+    refreshFacets();
+  }, [refreshFacets]);
+
+  // Debounced refresh on filter change.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      refresh();
+    }, 200);
+    return () => clearTimeout(t);
+  }, [refresh]);
+
+  const { eventOptions, sourceOptions, tagOptions } = facets;
 
   return (
     <div className="space-y-4">
@@ -201,7 +220,10 @@ export default function PersonasTab() {
         <PersonDrawer
           personId={openId}
           onClose={() => setOpenId(null)}
-          onMutated={refresh}
+          onMutated={() => {
+            refresh();
+            refreshFacets();
+          }}
         />
       )}
     </div>

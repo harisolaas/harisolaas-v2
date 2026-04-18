@@ -17,13 +17,25 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function ComunidadShell({ email }: { email: string }) {
-  const [tab, setTab] = useState<Tab>(readTabFromHash() ?? "panorama");
+  // Always start from "panorama" so SSR + first client render match. The
+  // URL hash is read in a post-mount effect to avoid a hydration mismatch.
+  const [tab, setTab] = useState<Tab>("panorama");
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const initial = readTabFromHash();
+    if (initial) setTab(initial);
+    setHydrated(true);
+  }, []);
 
   // Keep the URL hash in sync so refreshes + deep links land on the same tab.
+  // Skipped before hydration so we don't dirty the URL on the initial render.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.location.hash = tab;
-  }, [tab]);
+    if (!hydrated || typeof window === "undefined") return;
+    if (window.location.hash.replace("#", "") !== tab) {
+      window.location.hash = tab;
+    }
+  }, [tab, hydrated]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
