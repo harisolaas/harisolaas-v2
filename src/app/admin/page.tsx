@@ -1,7 +1,11 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { validateSession, SESSION_COOKIE_NAME } from "@/lib/admin-auth";
-import DashboardShell from "@/components/admin/DashboardShell";
+import ComunidadShell from "@/components/admin/ComunidadShell";
+
+export const metadata = {
+  title: "Comunidad",
+};
 
 export default async function AdminPage() {
   const cookieStore = await cookies();
@@ -16,5 +20,5 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
-  return <DashboardShell email={session.email} />;
+  return <ComunidadShell email={session.email} />;
 }
