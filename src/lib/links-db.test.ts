@@ -115,6 +115,38 @@ describe("links schema + FK behavior", () => {
     ).rejects.toThrow();
   });
 
+  it("recordParticipation drops a stale linkSlug instead of failing on FK", async () => {
+    // Simulates the "user's cookie points at a deleted link" scenario.
+    const result = await recordParticipation({
+      email: `${EMAIL_PREFIX}stale@example.com`,
+      name: "Stale Cookie",
+      eventId: EVT,
+      participationId: "TEST-LINKS-STALE",
+      role: "planter",
+      attribution: {
+        linkSlug: "this-link-was-deleted",
+        source: "instagram",
+        medium: "story",
+        capturedAt: new Date().toISOString(),
+      },
+    });
+    expect(result.created).toBe(true);
+
+    const rows = await db.execute<{
+      link_slug: string | null;
+      attribution: unknown;
+    }>(sql`
+      SELECT link_slug, attribution FROM participations WHERE id = 'TEST-LINKS-STALE'
+    `);
+    const row = rows.rows?.[0];
+    expect(row?.link_slug).toBeNull();
+    // The rest of the attribution (source, medium) should survive.
+    const att = row?.attribution as Record<string, unknown> | null;
+    expect(att?.source).toBe("instagram");
+    expect(att?.medium).toBe("story");
+    expect(att?.linkSlug).toBeUndefined();
+  });
+
   it("ON DELETE SET NULL clears participation.link_slug when link is deleted", async () => {
     // Insert a confirmed participation via SLUG_C (no signups yet, so deletable)
     await recordParticipation({

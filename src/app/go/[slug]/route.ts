@@ -3,7 +3,11 @@ import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { LINK_COOKIE_NAME } from "@/lib/attribution";
-import { buildDestinationUrl, isBotUserAgent } from "@/lib/links";
+import {
+  buildDestinationUrl,
+  deriveCampaignFromDestination,
+  isBotUserAgent,
+} from "@/lib/links";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +39,13 @@ export async function GET(
   }
 
   const campaign =
-    link.campaign && link.campaign.length > 0 ? link.campaign : undefined;
+    link.campaign && link.campaign.length > 0
+      ? link.campaign
+      : deriveCampaignFromDestination(link.destination);
   const destination = buildDestinationUrl(link.destination, {
     source: link.source,
     medium: link.medium,
-    campaign: campaign ?? deriveCampaignFallback(link.destination),
+    campaign,
     slug: link.slug,
   });
 
@@ -75,18 +81,4 @@ export async function GET(
     secure: true,
   });
   return res;
-}
-
-function deriveCampaignFallback(destination: string): string {
-  try {
-    const url = destination.startsWith("http")
-      ? new URL(destination)
-      : new URL(destination, "https://www.harisolaas.com");
-    const segments = url.pathname.split("/").filter(Boolean);
-    const last = segments[segments.length - 1];
-    if (!last || last === "es" || last === "en") return "home";
-    return last;
-  } catch {
-    return "home";
-  }
 }

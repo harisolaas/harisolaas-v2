@@ -130,7 +130,6 @@ export async function PATCH(
 ) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
-  void session;
 
   const { slug } = await params;
   const body = (await req.json()) as {
@@ -176,7 +175,6 @@ export async function DELETE(
 ) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
-  void session;
 
   const { slug } = await params;
 

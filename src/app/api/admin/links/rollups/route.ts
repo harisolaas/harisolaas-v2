@@ -11,7 +11,6 @@ type Grouping = "channel" | "campaign";
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
-  void session;
 
   const url = new URL(req.url);
   const by = url.searchParams.get("by") as Grouping | null;

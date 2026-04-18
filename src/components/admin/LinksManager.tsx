@@ -371,29 +371,11 @@ function CreateLinkForm({
         setError(data.error ?? "Error creando el enlace");
         return;
       }
-      // Re-fetch list entry would be ideal, but POST returns the row in raw
-      // shape (drizzle column names). Normalize to LinkRow for the result screen.
-      const row = data.link as Record<string, unknown>;
-      onCreated({
-        slug: row.slug as string,
-        destination: row.destination as string,
-        label: row.label as string,
-        channel: row.channel as string,
-        source: row.source as string,
-        medium: row.medium as string,
-        campaign: (row.campaign as string | null) ?? null,
-        resourceUrl: (row.resourceUrl as string | null) ?? null,
-        note: (row.note as string | null) ?? null,
-        createdDate: row.createdDate as string,
-        createdBy: row.createdBy as string,
-        status: row.status as LinkRow["status"],
-        version: row.version as number,
-        createdAt: row.createdAt as string,
-        updatedAt: row.updatedAt as string,
-        clicks: 0,
-        signups: 0,
-        sticky: 0,
-      });
+      // POST returns the Drizzle row (camelCase). A brand-new link has no
+      // clicks or signups yet, so we zero those aggregates for the result
+      // screen rather than doing a second fetch.
+      const row = data.link as Omit<LinkRow, "clicks" | "signups" | "sticky">;
+      onCreated({ ...row, clicks: 0, signups: 0, sticky: 0 });
     } catch {
       setError("Error de red");
     } finally {

@@ -94,6 +94,11 @@ export async function recordParticipation(
 
   const status: ParticipationStatus = params.status ?? "confirmed";
 
+  // A cookie-provided linkSlug can reference a link that was later deleted.
+  // Rather than failing the whole signup on FK violation, drop the slug
+  // (and its mirror on attribution) if the target row no longer exists.
+  const attribution = await sanitizeAttribution(params.attribution);
+
   return db.transaction(async (tx) => {
     // 1. Upsert person. Uses the xmax trick: xmax = 0 iff this row was
     //    freshly INSERTed (ON CONFLICT DO UPDATE sets xmax to the txn id).
@@ -107,7 +112,7 @@ export async function recordParticipation(
         ${name},
         ${params.phone ?? null},
         ${params.instagram ?? null},
-        ${params.attribution ? JSON.stringify(params.attribution) : null}::jsonb,
+        ${attribution ? JSON.stringify(attribution) : null}::jsonb,
         ${
           params.communicationOptIns
             ? sql`${toPgArrayLiteral(params.communicationOptIns)}::text[]`
@@ -210,8 +215,8 @@ export async function recordParticipation(
         buyerPersonId: personId,
         role: params.role,
         status,
-        attribution: params.attribution ?? null,
-        linkSlug: params.attribution?.linkSlug ?? null,
+        attribution: attribution ?? null,
+        linkSlug: attribution?.linkSlug ?? null,
         referralNote: params.referralNote ?? null,
         externalPaymentId: params.externalPaymentId ?? null,
         priceCents: params.priceCents ?? null,
@@ -385,4 +390,25 @@ function mergeMetadata(
  */
 function toPgArrayLiteral(values: readonly string[]): string {
   return "{" + values.map((v) => JSON.stringify(v)).join(",") + "}";
+}
+
+/**
+ * If attribution.linkSlug points at a link row that doesn't exist, strip it
+ * (and the duplicated `content` field when it matches). Prevents FK
+ * violations on signup when a user's `haris_link` cookie outlived the link
+ * it referenced.
+ */
+async function sanitizeAttribution(
+  attribution: AttributionTouch | undefined,
+): Promise<AttributionTouch | undefined> {
+  if (!attribution?.linkSlug) return attribution;
+
+  const res = await db.execute<{ exists: boolean }>(sql`
+    SELECT EXISTS(SELECT 1 FROM links WHERE slug = ${attribution.linkSlug}) AS exists
+  `);
+  if (res.rows?.[0]?.exists) return attribution;
+
+  const { linkSlug: _stale, ...rest } = attribution;
+  void _stale;
+  return rest;
 }

@@ -139,15 +139,15 @@ export async function POST(req: Request) {
 
   const label = (body.label ?? "").trim() || formatAutoLabel(channel, createdDate);
   const meta = CHANNELS[channel];
-  const campaign = normalizeOptional(body.campaign);
+  const campaign = normalizeOptional(body.campaign) ?? deriveCampaignFromDestination(destination);
   const resourceUrl = normalizeOptional(body.resourceUrl);
   const note = normalizeOptional(body.note);
 
-  // Try to insert with a fresh slug; on collision retry once.
+  // Try to insert with a fresh slug; retry once on collision.
+  // onConflictDoNothing only suppresses unique-violation on the slug PK —
+  // any other error still bubbles up so we can return a real message.
   const tryOnce = async () => {
     const slug = generateSlug(channel, createdDate);
-    const effectiveCampaign =
-      campaign ?? deriveCampaignFromDestination(destination);
     const inserted = await db
       .insert(schema.links)
       .values({
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
         channel,
         source: meta.source,
         medium: meta.medium,
-        campaign: campaign ?? effectiveCampaign,
+        campaign,
         resourceUrl: resourceUrl ?? null,
         note: note ?? null,
         createdDate,
@@ -174,8 +174,8 @@ export async function POST(req: Request) {
   if (!row) row = await tryOnce();
   if (!row) {
     return NextResponse.json(
-      { error: "slug collision — retry" },
-      { status: 500 },
+      { error: "Slug collision after retry — try again" },
+      { status: 503 },
     );
   }
 

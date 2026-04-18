@@ -289,8 +289,9 @@ export default function LinkDetail({
                         className="flex items-center justify-between gap-4 px-4 py-3"
                       >
                         <div>
+                          {/* TODO(spec-02): link to /admin/people/[id] drilldown */}
                           <Link
-                            href={`/admin`}
+                            href="#"
                             className="font-medium text-forest hover:underline"
                           >
                             {s.personName}
