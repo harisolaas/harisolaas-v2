@@ -131,10 +131,8 @@ export function buildPlantReminderEmailHtml(
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#444">
       <tr><td style="padding:4px 0;width:70px;color:#2D4A3E;font-weight:600">15:15</td><td style="padding:4px 0">Bienvenida</td></tr>
       <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">15:30</td><td style="padding:4px 0">Plantaci&oacute;n de especies nativas</td></tr>
-      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:00</td><td style="padding:4px 0">Actividades para chicos</td></tr>
-      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:30</td><td style="padding:4px 0">Limpieza del r&iacute;o &middot; Safari de bichos</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:30</td><td style="padding:4px 0">Limpieza del r&iacute;o</td></tr>
       <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:45</td><td style="padding:4px 0">Segunda plantaci&oacute;n</td></tr>
-      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">17:40</td><td style="padding:4px 0">Show de circo</td></tr>
       <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">18:10</td><td style="padding:4px 0">Sorteos &middot; Cierre con fog&oacute;n</td></tr>
     </table>
     <p style="margin:12px 0 0;color:#666;font-size:12px;line-height:1.5">Durante toda la jornada: kits, stand de Vida Silvestre, patio de comidas y feria de emprendedores.</p>
