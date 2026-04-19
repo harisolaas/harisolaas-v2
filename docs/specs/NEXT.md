@@ -2,14 +2,14 @@
 
 This file is the entry point for picking up Spec 01/02/03 work between sessions. It's a working log, not a polished doc — update it as things move.
 
-**Last updated: 2026-04-18** — Spec 01 shipped earlier today; Spec 03 (link builder) shipped the same evening.
+**Last updated: 2026-04-18** — Spec 01 shipped early in the day; Spec 03 (link builder) later that evening; Spec 02 (Comunidad dashboard) overnight. All three specs are LIVE on prod.
 
 ---
 
 ## Current state of the world
 
 - **Spec 01 (Postgres migration): LIVE.** PR #1 squashed to `main` at commit `8d87ba1`. All handlers read/write Postgres via `src/lib/community.ts` → `recordParticipation()`.
-- **Spec 02 (Dashboard): IN REVIEW.** PR open on branch `spec-02-comunidad`. Rename to Comunidad, 4 tabs (Panorama / Personas / Eventos / Campañas), person + event drilldown drawers. No schema changes. Deferred: growth chart, activity feed, traffic lights, saved views, bulk CSV.
+- **Spec 02 (Dashboard): LIVE.** PR #7 squashed to `main` at commit `88c1532`. Rename to Comunidad, 4 tabs (Panorama / Personas / Eventos / Campañas), person + event drilldown drawers. Deferred: growth chart, activity feed, traffic lights, saved views, bulk CSV, merge-person. Old `DashboardShell.tsx` + its now-unused endpoints (`/community`, `/metrics`, `/registrations`, `/tickets`, `/actions`) are still in the tree — remove in a follow-up cleanup PR after the new shell soaks.
 - **Spec 03 (Link builder): LIVE.** PR #3 squashed to `main` at commit `ad21ec7`. Postgres `links` + `link_clicks` tables, `/go/[slug]` redirect, admin UI at `/admin/links`, shared `buildAttribution` helper wired into plant register + Sinergia RSVP. Stale cookies (cookie slug → deleted link) are dropped inside the `recordParticipation` transaction so signups never FK-fail. Backfill ran against prod (1 link, 1 participation stamped).
 
 ### Infra snapshot
