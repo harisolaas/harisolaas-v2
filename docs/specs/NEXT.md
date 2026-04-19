@@ -9,7 +9,7 @@ This file is the entry point for picking up Spec 01/02/03 work between sessions.
 ## Current state of the world
 
 - **Spec 01 (Postgres migration): LIVE.** PR #1 squashed to `main` at commit `8d87ba1`. All handlers read/write Postgres via `src/lib/community.ts` → `recordParticipation()`.
-- **Spec 02 (Dashboard): NOT STARTED.** Spec at `docs/specs/02-dashboard.md`.
+- **Spec 02 (Dashboard): IN REVIEW.** PR open on branch `spec-02-comunidad`. Rename to Comunidad, 4 tabs (Panorama / Personas / Eventos / Campañas), person + event drilldown drawers. No schema changes. Deferred: growth chart, activity feed, traffic lights, saved views, bulk CSV.
 - **Spec 03 (Link builder): LIVE.** PR #3 squashed to `main` at commit `ad21ec7`. Postgres `links` + `link_clicks` tables, `/go/[slug]` redirect, admin UI at `/admin/links`, shared `buildAttribution` helper wired into plant register + Sinergia RSVP. Stale cookies (cookie slug → deleted link) are dropped inside the `recordParticipation` transaction so signups never FK-fail. Backfill ran against prod (1 link, 1 participation stamped).
 
 ### Infra snapshot
