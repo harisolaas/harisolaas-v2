@@ -90,6 +90,97 @@ export function buildPlantInvite2Html(remaining?: number): string {
 ${SHELL_CLOSE}`;
 }
 
+/* ─── Day-of reminder for confirmed plant registrants ─── */
+export function buildPlantReminderEmailHtml(
+  name: string,
+  waUrl: string,
+): string {
+  const { exactAddress, exactAddressMapLink } = plantConfig;
+  const firstName = name.trim().split(/\s+/)[0] || name;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#FAF6F1;font-family:system-ui,-apple-system,sans-serif">
+<div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all">Hoy plantamos. 14:30 en la Reserva El Corredor, San Miguel.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF6F1">
+<tr><td align="center" style="padding:40px 16px">
+<table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+<!-- Header -->
+<tr><td style="background:#2D4A3E;padding:40px 24px;text-align:center">
+  <h1 style="margin:0;color:#FAF6F1;font-size:36px;letter-spacing:3px;font-weight:700">BROTE</h1>
+  <p style="margin:10px 0 0;color:#A8B5A0;font-size:14px;letter-spacing:1px">Hoy plantamos</p>
+</td></tr>
+
+<!-- Hero -->
+<tr><td style="padding:32px 24px 0;text-align:center">
+  <div style="display:inline-block;background:#2D4A3E;border-radius:50%;width:80px;height:80px;line-height:80px;font-size:40px;text-align:center">🌱</div>
+  <h2 style="margin:20px 0 0;color:#2D4A3E;font-size:26px;font-weight:700;line-height:1.2">Llegó el d&iacute;a, ${firstName}.</h2>
+</td></tr>
+
+<tr><td style="padding:20px 28px 0">
+  <p style="margin:0 0 16px;color:#444;font-size:15px;line-height:1.65">Hoy <strong style="color:#2D4A3E">domingo 19 de abril a las 14:30</strong> nos encontramos en la Reserva Natural Urbana El Corredor, junto con Un &Aacute;rbol, la Municipalidad de San Miguel y la Fundaci&oacute;n Vida Silvestre. Va a estar lindo &mdash; lleg&aacute; con tiempo y qued&aacute;te lo que puedas.</p>
+  <p style="margin:0;color:#444;font-size:15px;line-height:1.65"><strong style="color:#2D4A3E">Cuando llegues:</strong> acercate a la cuadrilla de Un &Aacute;rbol (van a estar identificados) o busc&aacute;me a m&iacute; directamente. Desde ah&iacute; te sumamos a todo.</p>
+</td></tr>
+
+<!-- Schedule -->
+<tr><td style="padding:24px 28px 0">
+  <div style="padding:16px 20px;background:#FAF6F1;border-radius:12px">
+    <p style="margin:0 0 12px;color:#2D4A3E;font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Cronograma</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#444">
+      <tr><td style="padding:4px 0;width:70px;color:#2D4A3E;font-weight:600">15:15</td><td style="padding:4px 0">Bienvenida</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">15:30</td><td style="padding:4px 0">Plantaci&oacute;n de especies nativas</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:00</td><td style="padding:4px 0">Actividades para chicos</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:30</td><td style="padding:4px 0">Limpieza del r&iacute;o &middot; Safari de bichos</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">16:45</td><td style="padding:4px 0">Segunda plantaci&oacute;n</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">17:40</td><td style="padding:4px 0">Show de circo</td></tr>
+      <tr><td style="padding:4px 0;color:#2D4A3E;font-weight:600">18:10</td><td style="padding:4px 0">Sorteos &middot; Cierre con fog&oacute;n</td></tr>
+    </table>
+    <p style="margin:12px 0 0;color:#666;font-size:12px;line-height:1.5">Durante toda la jornada: kits, stand de Vida Silvestre, patio de comidas y feria de emprendedores.</p>
+  </div>
+</td></tr>
+
+<!-- Address CTA -->
+<tr><td style="padding:24px 28px 0">
+  <p style="margin:0 0 6px;color:#2D4A3E;font-size:13px;font-weight:600">D&oacute;nde</p>
+  <p style="margin:0 0 14px;color:#666;font-size:13px;line-height:1.5">${exactAddress}</p>
+  <div style="text-align:center">
+    <a href="${exactAddressMapLink}" style="display:inline-block;background:#2D4A3E;color:#ffffff;font-size:14px;font-weight:600;padding:12px 24px;border-radius:50px;text-decoration:none;letter-spacing:0.3px">Abrir en Google Maps</a>
+  </div>
+</td></tr>
+
+<!-- What to bring -->
+<tr><td style="padding:20px 28px 0">
+  <div style="padding:14px 20px;background:#FAF6F1;border-radius:12px">
+    <p style="margin:0 0 6px;color:#2D4A3E;font-size:13px;font-weight:600">Qu&eacute; llevar</p>
+    <p style="margin:0;color:#666;font-size:13px;line-height:1.55">Ropa que no te importe ensuciar &middot; Zapatillas cerradas &middot; Gorra &middot; Agua &middot; Guantes de jard&iacute;n si ten&eacute;s &middot; Plata o tarjeta para el patio de comidas</p>
+  </div>
+</td></tr>
+
+<!-- WhatsApp CTA -->
+<tr><td style="padding:24px 28px 0;text-align:center">
+  <p style="margin:0 0 12px;color:#444;font-size:14px;line-height:1.55">&iquest;Dudas, se te complic&oacute; algo o necesit&aacute;s coordinar para llegar?</p>
+  <a href="${waUrl}" style="display:inline-block;background:#C4704B;color:#ffffff;font-size:16px;font-weight:600;padding:14px 32px;border-radius:50px;text-decoration:none;letter-spacing:0.3px">Escrib&iacute;me por WhatsApp</a>
+</td></tr>
+
+<tr><td style="padding:24px 28px 28px;text-align:center">
+  <p style="margin:0;color:#888;font-size:13px;font-style:italic">Nos vemos en la reserva. 🌳</p>
+</td></tr>
+
+<!-- Footer -->
+<tr><td style="padding:20px 24px 28px;text-align:center;border-top:1px solid #f0f0f0">
+  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE &middot; Un &Aacute;rbol &middot; El Arte de Vivir</p>
+  <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
 export function buildPlantConfirmationEmailHtml(name: string): string {
   const { eventDateDisplay, eventTime, exactAddress, exactAddressMapLink } =
     plantConfig;
