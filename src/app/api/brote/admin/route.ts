@@ -18,6 +18,7 @@ import {
   buildPlantInvite1Html,
   buildPlantInvite2Html,
 } from "@/lib/plant-email";
+import { runPlantReminderCampaign } from "@/lib/plant-reminder";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 const BROTE_EVENT_ID = "brote-2026-03-28";
@@ -415,6 +416,18 @@ export async function POST(req: Request) {
         failed,
         remaining,
       });
+    }
+
+    // ── plant-send-reminder ──
+    // Day-of reminder for every confirmed plant registrant. Tracked WhatsApp
+    // CTA is upserted by the helper so clicks land in link_clicks. Same
+    // logic runs unattended via the /api/cron/plant-reminder cron.
+    if (action === "plant-send-reminder") {
+      const result = await runPlantReminderCampaign({
+        mode: mode === "send" ? "send" : "preview",
+        audienceOverride,
+      });
+      return NextResponse.json(result);
     }
 
     // ── plant-fix-email ──
