@@ -17,8 +17,8 @@ import {
   buildPlantConfirmationEmailHtml,
   buildPlantInvite1Html,
   buildPlantInvite2Html,
-  buildPlantReminderEmailHtml,
 } from "@/lib/plant-email";
+import { runPlantReminderCampaign } from "@/lib/plant-reminder";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 const BROTE_EVENT_ID = "brote-2026-03-28";
@@ -419,125 +419,15 @@ export async function POST(req: Request) {
     }
 
     // ── plant-send-reminder ──
-    // Sends the day-of reminder to every confirmed plant registrant, with a
-    // WhatsApp CTA routed through /go/<slug> so clicks land in link_clicks.
-    // The tracked link is upserted on first call (idempotent slug).
+    // Day-of reminder for every confirmed plant registrant. Tracked WhatsApp
+    // CTA is upserted by the helper so clicks land in link_clicks. Same
+    // logic runs unattended via the /api/cron/plant-reminder cron.
     if (action === "plant-send-reminder") {
-      const m = mode || "preview";
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-      const waSlug = "email-plant-reminder-20260419";
-      const waDestination =
-        "https://wa.me/5491122555110?text=" +
-        encodeURIComponent(
-          "Hola Hari, me anoté para la plantación de hoy, te consulto...",
-        );
-
-      // Upsert the tracked WhatsApp link so clicks get recorded in link_clicks.
-      await db
-        .insert(schema.links)
-        .values({
-          slug: waSlug,
-          destination: waDestination,
-          label: "Email · Recordatorio plantación 19 abr · WhatsApp Hari",
-          channel: "email-campaign",
-          source: "email",
-          medium: "campaign",
-          campaign: "plantacion_reminder_day_of",
-          createdDate: "2026-04-19",
-          createdBy: "plant-send-reminder",
-          note: "Auto-created by plant-send-reminder admin action.",
-        })
-        .onConflictDoNothing();
-
-      const waUrl = `${baseUrl}/go/${waSlug}`;
-
-      const rows = await db
-        .select({
-          email: schema.people.email,
-          name: schema.people.name,
-          status: schema.participations.status,
-        })
-        .from(schema.participations)
-        .innerJoin(
-          schema.people,
-          eq(schema.people.id, schema.participations.personId),
-        )
-        .where(eq(schema.participations.eventId, PLANT_EVENT_ID));
-
-      // Confirmed only — skip waitlist.
-      const registrants = rows
-        .filter((r) => r.status !== "waitlist" && r.email)
-        .map((r) => ({
-          email: (r.email ?? "").toLowerCase(),
-          name: r.name,
-        }))
-        .filter((r) => r.email);
-
-      // Dedupe by email, keep first name seen.
-      const byEmail = new Map<string, string>();
-      for (const r of registrants) {
-        if (!byEmail.has(r.email)) byEmail.set(r.email, r.name);
-      }
-      let audience = Array.from(byEmail.entries()).map(([email, name]) => ({
-        email,
-        name,
-      }));
-
-      // audienceOverride: list of emails to send to instead (test runs).
-      // Names still come from the DB when we have them; otherwise "Hola".
-      if (Array.isArray(audienceOverride) && audienceOverride.length > 0) {
-        const overrideSet = new Set(
-          audienceOverride.map((e) => e.trim().toLowerCase()).filter(Boolean),
-        );
-        audience = Array.from(overrideSet).map((email) => ({
-          email,
-          name: byEmail.get(email) ?? "",
-        }));
-      }
-
-      if (m === "preview") {
-        return NextResponse.json({
-          ok: true,
-          audienceSize: audience.length,
-          audienceSample: audience.slice(0, 10).map((a) => a.email),
-          waSlug,
-          waUrl,
-          override: Boolean(audienceOverride && audienceOverride.length > 0),
-        });
-      }
-
-      const subject = "Hoy plantamos 🌱 Te esperamos a las 14:30 en la reserva";
-      const fromEmail =
-        process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-      const resend = new Resend(process.env.RESEND_API_KEY!);
-
-      const results: { email: string; ok: boolean; error?: string }[] = [];
-      for (const { email, name } of audience) {
-        try {
-          await resend.emails.send({
-            from: `BROTE <${fromEmail}>`,
-            to: email,
-            subject,
-            html: buildPlantReminderEmailHtml(name || "amigo", waUrl),
-          });
-          results.push({ email, ok: true });
-        } catch (err) {
-          results.push({ email, ok: false, error: String(err) });
-        }
-      }
-      const sent = results.filter((r) => r.ok).length;
-      const failed = results.filter((r) => !r.ok);
-
-      return NextResponse.json({
-        ok: true,
-        subject,
-        waSlug,
-        waUrl,
-        audienceSize: audience.length,
-        sent,
-        failed,
+      const result = await runPlantReminderCampaign({
+        mode: mode === "send" ? "send" : "preview",
+        audienceOverride,
       });
+      return NextResponse.json(result);
     }
 
     // ── plant-fix-email ──
