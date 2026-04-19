@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { getRedis } from "@/lib/redis";
 import { buildPlantReminderEmailHtml } from "./plant-email";
 
 const PLANT_EVENT_ID = "plant-2026-04";
@@ -21,6 +22,7 @@ export interface PlantReminderResult {
   audienceSize: number;
   audienceSample?: string[];
   sent?: number;
+  skipped?: number;
   failed?: { email: string; error: string }[];
   override: boolean;
 }
@@ -61,6 +63,7 @@ export async function runPlantReminderCampaign(opts: {
 
   const rows = await db
     .select({
+      rsvpId: schema.participations.id,
       email: schema.people.email,
       name: schema.people.name,
       status: schema.participations.status,
@@ -74,31 +77,40 @@ export async function runPlantReminderCampaign(opts: {
 
   const registrants = rows
     .filter((r) => r.status !== "waitlist" && r.email)
-    .map((r) => ({ email: (r.email ?? "").toLowerCase(), name: r.name }))
-    .filter((r) => r.email);
+    .map((r) => ({
+      rsvpId: r.rsvpId,
+      email: (r.email ?? "").toLowerCase(),
+      name: r.name,
+    }));
 
-  const byEmail = new Map<string, string>();
+  // Dedupe by email (if the same person has two registrations, only one mail).
+  const byEmail = new Map<string, { rsvpId: string; name: string }>();
   for (const r of registrants) {
-    if (!byEmail.has(r.email)) byEmail.set(r.email, r.name);
+    if (!byEmail.has(r.email)) {
+      byEmail.set(r.email, { rsvpId: r.rsvpId, name: r.name });
+    }
   }
 
   const override = Boolean(
     opts.audienceOverride && opts.audienceOverride.length > 0,
   );
-  let audience = Array.from(byEmail.entries()).map(([email, name]) => ({
-    email,
-    name,
-  }));
+  let audience: { email: string; rsvpId: string; name: string }[] = Array.from(
+    byEmail.entries(),
+  ).map(([email, v]) => ({ email, rsvpId: v.rsvpId, name: v.name }));
   if (override) {
     const overrideSet = new Set(
       opts
         .audienceOverride!.map((e) => e.trim().toLowerCase())
         .filter(Boolean),
     );
-    audience = Array.from(overrideSet).map((email) => ({
-      email,
-      name: byEmail.get(email) ?? "",
-    }));
+    audience = Array.from(overrideSet).map((email) => {
+      const existing = byEmail.get(email);
+      return {
+        email,
+        rsvpId: existing?.rsvpId ?? `override:${email}`,
+        name: existing?.name ?? "",
+      };
+    });
   }
 
   if (opts.mode === "preview") {
@@ -116,26 +128,35 @@ export async function runPlantReminderCampaign(opts: {
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
   const resend = new Resend(process.env.RESEND_API_KEY!);
+  // Per-rsvp idempotency flag mirroring the Sinergia reminder pattern. If the
+  // cron retries or someone curls the URL after it fires, recipients already
+  // flagged are skipped rather than re-emailed.
+  const redis = await getRedis();
 
-  const results: { email: string; ok: boolean; error?: string }[] = [];
-  for (const { email, name } of audience) {
+  let sent = 0;
+  let skipped = 0;
+  const failed: { email: string; error: string }[] = [];
+
+  for (const { email, rsvpId, name } of audience) {
+    const flagKey = `plant:rsvp:${rsvpId}:day-of-reminder`;
+    if (await redis.get(flagKey)) {
+      skipped++;
+      continue;
+    }
     try {
       await resend.emails.send({
         from: `BROTE <${fromEmail}>`,
         to: email,
         subject: SUBJECT,
-        html: buildPlantReminderEmailHtml(name || "amigo", waUrl),
+        html: buildPlantReminderEmailHtml(name, waUrl),
       });
-      results.push({ email, ok: true });
+      await redis.set(flagKey, "1");
+      sent++;
     } catch (err) {
-      results.push({ email, ok: false, error: String(err) });
+      console.error(`plant reminder failed for ${email}:`, err);
+      failed.push({ email, error: String(err) });
     }
   }
-
-  const sent = results.filter((r) => r.ok).length;
-  const failed = results
-    .filter((r) => !r.ok)
-    .map((r) => ({ email: r.email, error: r.error ?? "unknown" }));
 
   return {
     ok: true,
@@ -145,6 +166,7 @@ export async function runPlantReminderCampaign(opts: {
     waUrl,
     audienceSize: audience.length,
     sent,
+    skipped,
     failed,
     override,
   };

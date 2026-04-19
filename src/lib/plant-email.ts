@@ -96,7 +96,8 @@ export function buildPlantReminderEmailHtml(
   waUrl: string,
 ): string {
   const { exactAddress, exactAddressMapLink } = plantConfig;
-  const firstName = name.trim().split(/\s+/)[0] || name;
+  const firstName = (name ?? "").trim().split(/\s+/)[0] ?? "";
+  const greeting = firstName ? `Lleg&oacute; el d&iacute;a, ${firstName}.` : `Lleg&oacute; el d&iacute;a.`;
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -116,7 +117,7 @@ export function buildPlantReminderEmailHtml(
 <!-- Hero -->
 <tr><td style="padding:32px 24px 0;text-align:center">
   <div style="display:inline-block;background:#2D4A3E;border-radius:50%;width:80px;height:80px;line-height:80px;font-size:40px;text-align:center">🌱</div>
-  <h2 style="margin:20px 0 0;color:#2D4A3E;font-size:26px;font-weight:700;line-height:1.2">Llegó el d&iacute;a, ${firstName}.</h2>
+  <h2 style="margin:20px 0 0;color:#2D4A3E;font-size:26px;font-weight:700;line-height:1.2">${greeting}</h2>
 </td></tr>
 
 <tr><td style="padding:20px 28px 0">
