@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { runPlantReminderCampaign } from "@/lib/plant-reminder";
 
+export const dynamic = "force-dynamic";
+
 const PLANT_EVENT_DATE = "2026-04-19";
 
 // Vercel cron — see vercel.json. Fires at 13:00 UTC on 2026-04-19 (10:00 ART).
