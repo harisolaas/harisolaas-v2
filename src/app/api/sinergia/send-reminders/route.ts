@@ -5,6 +5,8 @@ import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { nextSinergiaDate } from "@/lib/sinergia-types";
 import { buildSinergiaReminderEmailHtml } from "@/lib/sinergia-email";
+import { sendBulkEmails } from "@/lib/bulk-email";
+import { notifyAdminOfCampaign } from "@/lib/admin-alert";
 
 // Runs via Vercel Cron (see vercel.json) every Wednesday at 13:00 UTC = 10:00 ART.
 // Manual trigger: GET with `Authorization: Bearer $CRON_SECRET`.
@@ -49,26 +51,21 @@ export async function GET(req: Request) {
         ),
       );
 
+    const audience = attendees.filter(
+      (a): a is typeof a & { email: string } => Boolean(a.email),
+    );
+    const missingEmail = attendees.length - audience.length;
+
     const resend = new Resend(process.env.RESEND_API_KEY!);
     const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
 
-    let sent = 0;
-    let skipped = 0;
-    let failed = 0;
-
-    for (const a of attendees) {
-      if (!a.email) {
-        skipped++;
-        continue;
-      }
-      const flagKey = `sinergia:rsvp:${a.rsvpId}:reminder`;
-      if (await redis.get(flagKey)) {
-        skipped++;
-        continue;
-      }
-      const meta = (a.metadata as Record<string, unknown>) ?? {};
-      try {
-        await resend.emails.send({
+    const result = await sendBulkEmails({
+      audience,
+      resend,
+      getEmail: (a) => a.email,
+      build: (a) => {
+        const meta = (a.metadata as Record<string, unknown>) ?? {};
+        return {
           from: `Sinergia <${fromEmail}>`,
           to: a.email,
           subject: "Hoy miércoles — nos vemos a las 19:30",
@@ -77,22 +74,37 @@ export async function GET(req: Request) {
             sessionDate,
             staysForDinner: Boolean(meta.staysForDinner),
           }),
-        });
-        await redis.set(flagKey, "1");
-        sent++;
-      } catch (err) {
-        console.error(`Sinergia reminder failed for ${a.email}:`, err);
-        failed++;
-      }
-    }
+        };
+      },
+      shouldSkip: async (a) =>
+        Boolean(await redis.get(`sinergia:rsvp:${a.rsvpId}:reminder`)),
+      onSent: async (a) => {
+        await redis.set(`sinergia:rsvp:${a.rsvpId}:reminder`, "1");
+      },
+      logPrefix: "sinergia-reminder",
+    });
+
+    const adminAlert = await notifyAdminOfCampaign({
+      campaign: `sinergia-reminder-${sessionDate}`,
+      audienceSize: audience.length,
+      sent: result.sent,
+      skipped: result.skipped,
+      failed: result.failed,
+      note:
+        missingEmail > 0
+          ? `${missingEmail} confirmed attendees had no email on file and were not counted.`
+          : undefined,
+    });
 
     return NextResponse.json({
       ok: true,
       sessionDate,
       total: attendees.length,
-      sent,
-      skipped,
-      failed,
+      audienceSize: audience.length,
+      sent: result.sent,
+      skipped: result.skipped + missingEmail,
+      failed: result.failed,
+      adminAlert,
     });
   } catch (err) {
     console.error("Sinergia send-reminders failed:", err);
