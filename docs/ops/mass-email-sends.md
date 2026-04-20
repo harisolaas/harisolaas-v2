@@ -20,13 +20,34 @@ That's exactly what happened on 2026-04-19 (see incident log below).
   free tier's 2 req/s limit).
 - Lets callers plug in idempotency via `shouldSkip` / `onSent` callbacks
   (typically Redis flags so retries don't double-send).
-- Returns `{sent, skipped, failed: [{email, error: {name, message, statusCode}}]}`.
+- Returns `{sent, skipped, failed, warnings}`:
+  - `failed[]` — email did NOT go out. Safe to retry after fixing the
+    cause (see recovery below).
+  - `warnings[]` — email DID go out, but `onSent` threw so the
+    idempotency flag wasn't set. **Do not clear flags and retry** for
+    these addresses; a blind retry will double-send. Set the flag
+    manually if you want to suppress the next run's re-attempt.
 
 Every bulk-sending route then calls `notifyAdminOfCampaign()` from
-`src/lib/admin-alert.ts`. That helper emails `h.solaas1@gmail.com`
-whenever a run finishes with `failed.length > 0` **or** a
-non-zero `audienceSize - sent - skipped` gap. Best-effort: never throws,
-so it can run at the tail of a cron handler without wrapping.
+`src/lib/admin-alert.ts`. That helper emails the admin whenever a run
+finishes with **failures**, **warnings**, or a **reconciliation gap**
+(see definitions below). Best-effort: never throws, so it can run at
+the tail of a cron handler without wrapping.
+
+The admin recipient is configured via the `ADMIN_ALERT_EMAIL` env var
+(falls back to `h.solaas1@gmail.com` if unset — preserves current prod
+behavior but should be set explicitly on any fork / new deployment).
+
+Three distinct alert conditions, each actionable in a different way:
+
+- **`failed.length > 0`** — emails that didn't go out. Classify by
+  error code and retry (see recovery).
+- **`warnings.length > 0`** — emails that went out but whose
+  idempotency flag didn't get set. **Do NOT clear flags and retry.**
+- **`gap = audienceSize - sent - skipped - failed.length > 0`** —
+  every recipient should end up in exactly one bucket. `gap > 0`
+  means the helper lost track of someone. Real bug — investigate in
+  Vercel logs, don't just retry.
 
 **Caveat:** if Resend is rate-limiting the main campaign hard enough,
 the alert email itself can 429. That failure surfaces as
@@ -77,8 +98,18 @@ When the admin alert email lands (or you notice a gap some other way):
      will keep failing until you do.
    - `monthly_quota_exceeded` / `daily_quota_exceeded` → bump the Resend
      plan or wait for reset; don't retry in the meantime.
+   - `ambiguous_response` → the SDK returned neither data nor error.
+     Could be SDK drift. Check Resend's dashboard to see whether the
+     email actually went out before retrying.
    - Anything 5xx → Resend-side, usually safe to retry after a few
      minutes.
+
+   **Warnings are separate.** `onSent hook threw` means the email
+   was delivered but the idempotency flag isn't set. Options:
+   (a) accept that the next cron run will re-send — harmless if the
+   campaign is one-shot and the cron won't fire again; or (b) set
+   the Redis flag manually for each warning email to suppress the
+   resend. Never clear a warning's flag.
 4. **Clear the stale flags for failed recipients only.** The
    failing-recipient emails never actually sent, so the flag (if set) is
    wrong. Delete each `plant:rsvp:<id>:day-of-reminder` (or equivalent

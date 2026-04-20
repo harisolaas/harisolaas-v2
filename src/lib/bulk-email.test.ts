@@ -137,10 +137,12 @@ describe("sendBulkEmails", () => {
     });
   });
 
-  it("counts a delivered email as sent even when onSent throws", async () => {
+  it("counts a delivered email as sent even when onSent throws, and records a warning", async () => {
     // Regression guard: a Redis hiccup in the idempotency callback must
-    // not abort the campaign mid-flight, drop the current send from the
-    // tally, or re-raise the error. The email already went out.
+    // not abort the campaign, drop the delivery from `sent`, or re-raise.
+    // The warning bucket surfaces the flag corruption to the admin alert
+    // without lying about delivery (so the runbook can say: do NOT clear
+    // flags and retry — you'd double-send).
     const sender = makeSender(() => ok());
     const audience: Recipient[] = [
       { email: "a@x.com", name: "A", rsvpId: "1" },
@@ -162,13 +164,46 @@ describe("sendBulkEmails", () => {
 
       expect(result.sent).toBe(2);
       expect(result.failed).toHaveLength(0);
+      expect(result.warnings).toHaveLength(2);
+      expect(result.warnings[0]).toMatchObject({ email: "a@x.com" });
+      expect(result.warnings[0].reason).toMatch(/onSent hook threw/);
+      expect(result.warnings[0].reason).toMatch(/double-send/);
       expect(sender.calls).toHaveLength(2);
-      // Loud log for each failed onSent so the flag corruption is visible.
       expect(
         errorSpy.mock.calls.some((args) =>
           String(args[0]).includes("onSent failed"),
         ),
       ).toBe(true);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("treats an ambiguous {data: null, error: null} response as a failure", async () => {
+    // Defensive against SDK drift — if Resend ever returns a shape that
+    // isn't in its current discriminated union, we must not silently count
+    // it as success (would re-open the 2026-04-19 class of bug).
+    const sender = makeSender(
+      () =>
+        ({ data: null, error: null, headers: null } as unknown as CreateEmailResponse),
+    );
+    const onSent = vi.fn();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      const result = await sendBulkEmails({
+        audience: [{ email: "a@x.com", name: "A", rsvpId: "1" }] as Recipient[],
+        resend: sender,
+        getEmail: (r) => r.email,
+        build: (r) => ({ from: "x", to: r.email, subject: "s", html: "<p/>" }),
+        onSent,
+        throttleMs: 0,
+      });
+
+      expect(result.sent).toBe(0);
+      expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].error.name).toBe("ambiguous_response");
+      expect(onSent).not.toHaveBeenCalled();
     } finally {
       errorSpy.mockRestore();
     }

@@ -10,10 +10,20 @@ export type BulkEmailFailure = {
   error: { name: string; message: string; statusCode: number | null };
 };
 
+// Email was delivered successfully but something went wrong after the fact
+// (e.g. the idempotency-flag callback threw). The recipient IS in `sent`;
+// this bucket exists so the admin alert fires and so the runbook can tell
+// the operator *not* to clear flags and retry (which would double-send).
+export type BulkEmailWarning = {
+  email: string;
+  reason: string;
+};
+
 export type BulkEmailResult = {
   sent: number;
   skipped: number;
   failed: BulkEmailFailure[];
+  warnings: BulkEmailWarning[];
 };
 
 export interface SendBulkEmailsOpts<T> {
@@ -54,6 +64,7 @@ export async function sendBulkEmails<T>(
   let sent = 0;
   let skipped = 0;
   const failed: BulkEmailFailure[] = [];
+  const warnings: BulkEmailWarning[] = [];
 
   for (let i = 0; i < opts.audience.length; i++) {
     const recipient = opts.audience[i];
@@ -88,29 +99,47 @@ export async function sendBulkEmails<T>(
           statusCode: sendResult.error.statusCode ?? null,
         },
       });
-    } else if (sendResult) {
-      // The email went out — count as sent before onSent so a Redis hiccup
-      // in the callback doesn't drop the delivery from the tally. A thrown
-      // onSent leaves the idempotency flag unset (loud log, next retry
-      // will double-send this recipient) but never corrupts the counters
-      // or aborts the campaign mid-flight.
+    } else if (sendResult?.data) {
+      // The email went out. Count as sent before onSent so a Redis hiccup
+      // in the callback doesn't drop the delivery from the tally — the
+      // delivery count stays honest, and the warning fires separately.
       sent++;
       if (opts.onSent) {
         try {
           await opts.onSent(recipient);
         } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
           console.error(
             `${prefix} onSent failed for ${email} — email delivered but flag unset:`,
             err,
           );
+          warnings.push({
+            email,
+            reason: `onSent hook threw: ${msg}. Email was delivered but the idempotency flag is NOT set — a blind retry will double-send this recipient.`,
+          });
         }
       }
+    } else if (sendResult) {
+      // SDK returned `{data: null, error: null}` — shouldn't happen per
+      // Resend's types, but treat it as a failure rather than silently
+      // counting as success. Defensive against SDK drift.
+      console.error(
+        `${prefix} ambiguous response for ${email}: no data and no error`,
+      );
+      failed.push({
+        email,
+        error: {
+          name: "ambiguous_response",
+          message: "Resend returned neither data nor error",
+          statusCode: null,
+        },
+      });
     }
 
     if (throttle > 0 && i < opts.audience.length - 1) await sleep(throttle);
   }
 
-  return { sent, skipped, failed };
+  return { sent, skipped, failed, warnings };
 }
 
 function sleep(ms: number): Promise<void> {

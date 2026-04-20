@@ -30,6 +30,7 @@ export interface PlantReminderResult {
   sent?: number;
   skipped?: number;
   failed?: { email: string; error: string }[];
+  warnings?: { email: string; reason: string }[];
   override: boolean;
   adminAlert?: { notified: boolean; reason?: string };
 }
@@ -168,6 +169,7 @@ export async function runPlantReminderCampaign(opts: {
     sent: result.sent,
     skipped: result.skipped,
     failed: result.failed,
+    warnings: result.warnings,
     note: override ? "Run used audienceOverride (not the full DB audience)." : undefined,
   });
 
@@ -184,6 +186,7 @@ export async function runPlantReminderCampaign(opts: {
       email: f.email,
       error: `${f.error.name}: ${f.error.message}`,
     })),
+    warnings: result.warnings,
     override,
     adminAlert,
   };

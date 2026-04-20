@@ -90,20 +90,27 @@ export async function GET(req: Request) {
       sent: result.sent,
       skipped: result.skipped,
       failed: result.failed,
+      warnings: result.warnings,
       note:
         missingEmail > 0
-          ? `${missingEmail} confirmed attendees had no email on file and were not counted.`
+          ? `${missingEmail} confirmed attendees had no email on file and were not in the audience.`
           : undefined,
     });
 
+    // `skipped` reflects the send loop only (already-flagged recipients) so
+    // `sent + skipped + failed.length` reconciles against `audienceSize`.
+    // `missingEmail` surfaces separately — those confirmed attendees never
+    // entered the audience in the first place.
     return NextResponse.json({
       ok: true,
       sessionDate,
       total: attendees.length,
       audienceSize: audience.length,
+      missingEmail,
       sent: result.sent,
-      skipped: result.skipped + missingEmail,
+      skipped: result.skipped,
       failed: result.failed,
+      warnings: result.warnings,
       adminAlert,
     });
   } catch (err) {
