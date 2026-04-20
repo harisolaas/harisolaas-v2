@@ -118,7 +118,14 @@ export async function createSession(
   // Side index so we can revoke all of a user's sessions at once when the
   // owner changes their role/scope. Scoped by userId; env-fallback sessions
   // (userId=null) don't get indexed because only the repo owner uses them.
+  //
+  // We prune already-expired session IDs before adding the new one so
+  // the index doesn't accumulate stale members when the same user logs
+  // in many times. The TTL is reset to SESSION_TTL on every login, which
+  // means an actively-used account's index key stays alive; inactivity
+  // for >SESSION_TTL naturally clears it.
   if (payload.userId !== null) {
+    await pruneStaleSessionIndex(payload.userId);
     await redis.sAdd(
       `admin:user-sessions:${payload.userId}`,
       sessionId,
@@ -188,16 +195,37 @@ export async function destroySession(sessionId: string): Promise<void> {
 
 // Revokes every active session for a given admin user. Called from the
 // access-management UI whenever an owner changes a user's role or scope.
+// The returned count reflects sessions that were actually live (not
+// already-expired IDs sitting stale in the index).
 export async function revokeUserSessions(userId: number): Promise<number> {
   const redis = await getRedis();
   const ids = await redis.sMembers(`admin:user-sessions:${userId}`);
   if (ids.length === 0) return 0;
   const del = redis as unknown as { del: (k: string) => Promise<number> };
+  let killed = 0;
   for (const id of ids) {
-    await del.del(`admin:session:${id}`);
+    const n = await del.del(`admin:session:${id}`);
+    if (n > 0) killed += 1;
   }
   await del.del(`admin:user-sessions:${userId}`);
-  return ids.length;
+  return killed;
+}
+
+// Drops session IDs from the user's index whose underlying session key
+// has naturally expired. Called from createSession so the index doesn't
+// accumulate stale IDs across frequent logins. Cheap: the index is tiny
+// (1-2 active sessions per user) and EXISTS is O(1).
+async function pruneStaleSessionIndex(userId: number): Promise<void> {
+  const redis = await getRedis();
+  const indexKey = `admin:user-sessions:${userId}`;
+  const ids = await redis.sMembers(indexKey);
+  if (ids.length === 0) return;
+  for (const id of ids) {
+    const n = await redis.exists(`admin:session:${id}`);
+    if (n === 0) {
+      await redis.sRem(indexKey, id);
+    }
+  }
 }
 
 // Cookie helpers

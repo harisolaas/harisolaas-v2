@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { asc, inArray } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdminSession } from "@/lib/admin-api-auth";
 import type { AdminRole, AdminScope } from "@/lib/admin-auth";
@@ -125,6 +125,25 @@ export async function POST(req: Request) {
   }
 
   if (allowed.length > 0) {
+    // Pre-validate the event IDs so an unknown ID surfaces as a 400 with
+    // a clear message instead of a pg FK-violation bubbling up as 500.
+    const present = await db
+      .select({ id: schema.events.id })
+      .from(schema.events)
+      .where(inArray(schema.events.id, allowed));
+    const presentIds = new Set(present.map((r) => r.id));
+    const missing = allowed.filter((id) => !presentIds.has(id));
+    if (missing.length > 0) {
+      // Clean up the just-created admin_users row so the endpoint is
+      // effectively atomic from the client's perspective.
+      await db
+        .delete(schema.adminUsers)
+        .where(eq(schema.adminUsers.id, created.id));
+      return NextResponse.json(
+        { error: `unknown event id(s): ${missing.join(", ")}` },
+        { status: 400 },
+      );
+    }
     await db
       .insert(schema.adminUserEventScopes)
       .values(allowed.map((eventId) => ({ adminUserId: created.id, eventId })))

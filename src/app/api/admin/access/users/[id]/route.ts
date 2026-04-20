@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { requireAdminSession } from "@/lib/admin-api-auth";
 import { revokeUserSessions } from "@/lib/admin-auth";
@@ -40,6 +40,12 @@ export async function PATCH(
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
   const current = existing[0];
+  // Use email as a fallback self-check too — env-fallback owner sessions
+  // have userId=null, so the id-equality check alone would let them
+  // demote the matching row.
+  const isSelf =
+    session.userId === id ||
+    session.email.toLowerCase() === current.email.toLowerCase();
 
   const body = (await req.json()) as {
     role?: string;
@@ -75,7 +81,7 @@ export async function PATCH(
   // ADMIN_EMAILS would still rescue them, but silent self-lockouts are
   // worth surfacing explicitly.)
   if (
-    session.userId === id &&
+    isSelf &&
     (current.role as AdminRole) === "owner" &&
     nextRole !== "owner"
   ) {
@@ -109,6 +115,20 @@ export async function PATCH(
         .delete(schema.adminUserEventScopes)
         .where(eq(schema.adminUserEventScopes.adminUserId, id));
     } else {
+      // Pre-validate event IDs so an unknown ID surfaces as 400 rather
+      // than a raw pg FK-violation 500.
+      const present = await db
+        .select({ id: schema.events.id })
+        .from(schema.events)
+        .where(inArray(schema.events.id, allowed));
+      const presentIds = new Set(present.map((r) => r.id));
+      const missing = allowed.filter((e) => !presentIds.has(e));
+      if (missing.length > 0) {
+        return NextResponse.json(
+          { error: `unknown event id(s): ${missing.join(", ")}` },
+          { status: 400 },
+        );
+      }
       await db
         .delete(schema.adminUserEventScopes)
         .where(
@@ -170,20 +190,33 @@ export async function DELETE(
     return NextResponse.json({ error: "invalid id" }, { status: 400 });
   }
 
-  if (session.userId === id) {
+  // Fetch the target first so we can check self-deletion by email too —
+  // env-fallback sessions have userId=null, so the id-equality check
+  // alone lets an env-fallback owner delete their own admin_users row.
+  const target = await db
+    .select({
+      id: schema.adminUsers.id,
+      email: schema.adminUsers.email,
+    })
+    .from(schema.adminUsers)
+    .where(eq(schema.adminUsers.id, id))
+    .limit(1);
+  if (target.length === 0) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+  if (
+    session.userId === id ||
+    session.email.toLowerCase() === target[0].email.toLowerCase()
+  ) {
     return NextResponse.json(
       { error: "owners cannot delete themselves" },
       { status: 400 },
     );
   }
 
-  const deleted = await db
+  await db
     .delete(schema.adminUsers)
-    .where(eq(schema.adminUsers.id, id))
-    .returning();
-  if (deleted.length === 0) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
+    .where(eq(schema.adminUsers.id, id));
 
   const revoked = await revokeUserSessions(id);
   return NextResponse.json({ ok: true, sessionsRevoked: revoked });

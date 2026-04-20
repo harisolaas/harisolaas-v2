@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   requireAdminSession,
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   const typeFilter = url.searchParams.get("type") ?? "";
   const statusFilter = url.searchParams.get("status") ?? "";
 
-  const conditions = [];
+  const conditions: SQL[] = [];
   if (typeFilter) conditions.push(sql`e.type = ${typeFilter}`);
   if (statusFilter) conditions.push(sql`e.status = ${statusFilter}`);
   const scopeClause = scopeEventIdsClause(session, sql`e.id`);
