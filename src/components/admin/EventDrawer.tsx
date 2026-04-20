@@ -38,10 +38,17 @@ interface EventDetail {
     role: string;
     status: string;
     createdAt: string;
+    usedAt: string | null;
     attribution: Record<string, unknown> | null;
     linkSlug: string | null;
   }[];
 }
+
+// Statuses where it makes sense to toggle attendance from the drawer.
+// `no_show` is included so operators can reverse a mistake. Waitlist,
+// cancelled, and pending are excluded — you wouldn't mark someone
+// attended if they weren't confirmed in the first place.
+const ATTENDABLE_STATUSES = new Set(["confirmed", "used", "no_show"]);
 
 export default function EventDrawer({
   eventId,
@@ -52,6 +59,11 @@ export default function EventDrawer({
 }) {
   const [data, setData] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  // Track pending toggles so the row can show a subtle "saving…" state
+  // without blocking the rest of the list.
+  const [pending, setPending] = useState<Set<string>>(new Set());
+  // Per-row error message, cleared on next successful toggle or close.
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -64,6 +76,54 @@ export default function EventDrawer({
     setData(await res.json());
     setLoading(false);
   }, [eventId]);
+
+  const toggleAttendance = useCallback(
+    async (participationId: string, currentStatus: string) => {
+      const nextStatus = currentStatus === "used" ? "confirmed" : "used";
+      setPending((p) => new Set(p).add(participationId));
+      setErrors((e) => {
+        if (!e[participationId]) return e;
+        const n = { ...e };
+        delete n[participationId];
+        return n;
+      });
+      try {
+        const res = await fetch(
+          `/api/admin/participations/${participationId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: nextStatus }),
+          },
+        );
+        if (!res.ok) {
+          if (res.status === 401) {
+            window.location.href = "/admin/login";
+            return;
+          }
+          setErrors((e) => ({
+            ...e,
+            [participationId]: `No se pudo guardar (${res.status}). Reintentá.`,
+          }));
+          return;
+        }
+        await load();
+      } catch (err) {
+        setErrors((e) => ({
+          ...e,
+          [participationId]:
+            err instanceof Error ? err.message : "Error de red. Reintentá.",
+        }));
+      } finally {
+        setPending((p) => {
+          const n = new Set(p);
+          n.delete(participationId);
+          return n;
+        });
+      }
+    },
+    [load],
+  );
 
   useEffect(() => {
     load();
@@ -205,9 +265,12 @@ export default function EventDrawer({
 
             {/* Participants */}
             <section className="rounded-xl border border-sage/20 bg-white">
-              <div className="border-b border-sage/10 px-4 py-3">
+              <div className="flex items-baseline justify-between border-b border-sage/10 px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-charcoal/60">
                   Participantes ({data.participants.length})
+                </p>
+                <p className="text-[10px] text-charcoal/40">
+                  Asistieron: {data.counts.used}
                 </p>
               </div>
               {data.participants.length === 0 ? (
@@ -216,29 +279,70 @@ export default function EventDrawer({
                 </p>
               ) : (
                 <ul className="divide-y divide-sage/10">
-                  {data.participants.map((p) => (
-                    <li
-                      key={p.participationId}
-                      className="flex items-center justify-between gap-4 px-4 py-3"
-                    >
-                      <div>
-                        <p className="font-medium text-forest">
-                          {p.personName}
-                        </p>
-                        <p className="text-[10px] text-charcoal/50">
-                          {p.personEmail ?? "—"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[11px] uppercase text-charcoal/60">
-                          {p.status}
-                        </p>
-                        <p className="text-[10px] text-charcoal/40">
-                          {p.createdAt.slice(0, 10)}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
+                  {data.participants.map((p) => {
+                    const canToggle = ATTENDABLE_STATUSES.has(p.status);
+                    const attended = p.status === "used";
+                    const isPending = pending.has(p.participationId);
+                    return (
+                      <li
+                        key={p.participationId}
+                        className="flex items-center justify-between gap-4 px-4 py-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium text-forest">
+                            {p.personName}
+                          </p>
+                          <p className="truncate text-[10px] text-charcoal/50">
+                            {p.personEmail ?? "—"}
+                          </p>
+                          {attended && p.usedAt && (
+                            <p className="mt-0.5 text-[10px] text-forest/70">
+                              Asistió {formatDateTimeArg(p.usedAt)}
+                            </p>
+                          )}
+                          {errors[p.participationId] && (
+                            <p
+                              role="alert"
+                              className="mt-0.5 text-[10px] text-terracotta"
+                            >
+                              {errors[p.participationId]}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {!canToggle && (
+                            <span className="text-[11px] uppercase text-charcoal/50">
+                              {p.status}
+                            </span>
+                          )}
+                          {canToggle && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleAttendance(p.participationId, p.status)
+                              }
+                              disabled={isPending}
+                              aria-pressed={attended}
+                              aria-busy={isPending}
+                              className={
+                                "min-w-[110px] rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition " +
+                                (attended
+                                  ? "border-forest bg-forest text-cream hover:bg-forest/90"
+                                  : "border-sage/40 bg-white text-charcoal/70 hover:border-forest/40 hover:text-forest") +
+                                (isPending ? " opacity-50" : "")
+                              }
+                            >
+                              {isPending
+                                ? "Guardando…"
+                                : attended
+                                  ? "Asistió"
+                                  : "Marcar"}
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>
@@ -247,6 +351,21 @@ export default function EventDrawer({
       </aside>
     </div>
   );
+}
+
+function formatDateTimeArg(iso: string): string {
+  // The API returns UTC timestamps; render in ART so operators see the wall
+  // clock they were using at the event. Include the year so stamps are
+  // unambiguous across repeated event editions (e.g. plantación 2026 vs 2027).
+  const d = new Date(iso);
+  return d.toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function StatBox({ label, value }: { label: string; value: number | string }) {

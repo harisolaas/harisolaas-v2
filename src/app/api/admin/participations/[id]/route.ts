@@ -30,8 +30,10 @@ export async function PATCH(
     metadata?: Record<string, unknown>;
   };
 
-  if (body.status && !VALID_STATUSES.has(body.status)) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  if (body.status !== undefined) {
+    if (typeof body.status !== "string" || !VALID_STATUSES.has(body.status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
   }
 
   const update: Record<string, unknown> = { updatedAt: sql`NOW()` };
@@ -41,7 +43,19 @@ export async function PATCH(
   if (body.referralNote !== undefined) {
     update.referralNote = body.referralNote;
   }
-  if (body.status !== undefined) update.status = body.status;
+  if (body.status !== undefined) {
+    update.status = body.status;
+    // Enforce the invariant `status === 'used' ⇔ usedAt IS NOT NULL`.
+    // BROTE's gate flow writes both in one UPDATE (status='used',
+    // usedAt=NOW()), so the dashboard does the same. COALESCE preserves
+    // a prior BROTE stamp on redundant 'used' PATCHes; any other status
+    // clears the column so no stale timestamp survives.
+    if (body.status === "used") {
+      update.usedAt = sql`COALESCE(${schema.participations.usedAt}, NOW())`;
+    } else {
+      update.usedAt = null;
+    }
+  }
   if (body.role !== undefined) update.role = body.role;
   if (body.metadata !== undefined) {
     update.metadata = sql`${schema.participations.metadata} || ${JSON.stringify(body.metadata)}::jsonb`;
