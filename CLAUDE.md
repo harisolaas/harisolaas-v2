@@ -13,6 +13,19 @@ Build a personal storytelling website for Harald Solaas (goes by Hari), a 31-yea
 
 ---
 
+## WORKFLOW FOR AGENTS
+
+Two non-negotiable operational conventions for anyone (human or agent) opening work in this repo:
+
+1. **Site is LIVE — do NOT push to main without explicit approval.** A clean review does not constitute merge approval. Wait for an explicit "ship" / "merge" / "mergealo" from the repo owner.
+2. **Every PR goes through the review lifecycle** — Copilot auto-review + author self-review + addressing both sets of feedback — before handing off for merge. See [`docs/ops/pr-review.md`](docs/ops/pr-review.md) for the operational steps (open PR → self-review → fetch Copilot comments → merge findings → fix → verify → resolve threads → hand off).
+
+Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo).
+
+Prod-migration note: Vercel does NOT auto-run `drizzle-kit migrate`. Every migration PR needs a manual step against the prod Neon branch. See recent rollout docs / recent commits for the pattern.
+
+---
+
 ## COPY & LANGUAGE CONVENTIONS
 
 ### Spanish copy must be gender agnostic
