@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CHANNELS, type ChannelKey } from "@/lib/links";
+import PersonEmailAutocomplete from "./PersonEmailAutocomplete";
 
 interface LinkData {
   slug: string;
@@ -439,11 +440,10 @@ export default function LinkDetail({
                       </label>
                       <div className="mt-2">
                         <EditField label="Atribuir a (email)">
-                          <input
-                            type="email"
+                          <PersonEmailAutocomplete
                             value={referrerEmail}
-                            onChange={(e) => setReferrerEmail(e.target.value)}
-                            placeholder="connie@ejemplo.com"
+                            onChange={setReferrerEmail}
+                            placeholder="empezá a escribir un email…"
                             className="w-full rounded-lg border border-sage/30 bg-white px-2 py-1.5 text-sm text-charcoal placeholder-charcoal/30"
                           />
                         </EditField>
