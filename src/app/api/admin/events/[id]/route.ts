@@ -122,6 +122,7 @@ export async function GET(
     role: string;
     status: string;
     created_at: string;
+    used_at: string | null;
     attribution: Record<string, unknown> | null;
     link_slug: string | null;
   }>(sql`
@@ -133,6 +134,7 @@ export async function GET(
       p.role,
       p.status,
       p.created_at,
+      p.used_at,
       p.attribution,
       p.link_slug
     FROM participations p
@@ -148,6 +150,7 @@ export async function GET(
     role: r.role,
     status: r.status,
     createdAt: r.created_at,
+    usedAt: r.used_at,
     attribution: r.attribution,
     linkSlug: r.link_slug,
   }));

@@ -41,7 +41,18 @@ export async function PATCH(
   if (body.referralNote !== undefined) {
     update.referralNote = body.referralNote;
   }
-  if (body.status !== undefined) update.status = body.status;
+  if (body.status !== undefined) {
+    update.status = body.status;
+    // Mirror BROTE's gate flow: when a participation transitions into
+    // 'used' we stamp usedAt; when it transitions out of 'used' we clear
+    // it. Keeps the "Asistieron" counter and timestamp consistent across
+    // BROTE ticket scans and manual dashboard check-ins.
+    if (body.status === "used") {
+      update.usedAt = sql`COALESCE(${schema.participations.usedAt}, NOW())`;
+    } else {
+      update.usedAt = sql`CASE WHEN ${schema.participations.status} = 'used' THEN NULL ELSE ${schema.participations.usedAt} END`;
+    }
+  }
   if (body.role !== undefined) update.role = body.role;
   if (body.metadata !== undefined) {
     update.metadata = sql`${schema.participations.metadata} || ${JSON.stringify(body.metadata)}::jsonb`;
