@@ -31,7 +31,7 @@ export async function GET(
   const link = linkRows[0];
 
   // Resolve the optional referrer to a display name/email so the admin
-  // UI can show "Attribuir a: Connie (connie@…)" without a second fetch.
+  // UI can show "Atribuir a: <name> (<email>)" without a second fetch.
   let referredBy:
     | { id: number; email: string | null; name: string | null }
     | null = null;

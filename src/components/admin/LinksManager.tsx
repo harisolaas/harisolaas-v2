@@ -9,6 +9,7 @@ import {
   formatAutoLabel,
   type ChannelKey,
 } from "@/lib/links";
+import PersonEmailAutocomplete from "./PersonEmailAutocomplete";
 
 interface LinkRow {
   slug: string;
@@ -542,12 +543,10 @@ function CreateLinkForm({
               </label>
               <div className="mt-3">
                 <Field label="Atribuir a (email, opcional)">
-                  <input
-                    type="email"
+                  <PersonEmailAutocomplete
                     value={referrerEmail}
-                    onChange={(e) => setReferrerEmail(e.target.value)}
-                    placeholder="connie@ejemplo.com"
-                    className="w-full rounded-lg border border-sage/30 bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal/30"
+                    onChange={setReferrerEmail}
+                    placeholder="empezá a escribir un email…"
                   />
                 </Field>
                 <p className="mt-1 text-[11px] text-charcoal/50">
