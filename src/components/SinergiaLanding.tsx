@@ -164,7 +164,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, staysForDinner, dict, utm, linkSlug]);
+  }, [submitting, name, email, staysForDinner, dict, utm, linkSlug, hasOverride]);
 
   const capacityStr = String(sinergiaConfig.capacity);
   const seatsLabel = isFull

@@ -51,18 +51,15 @@ export interface RecordParticipationParams {
   /** Override opt-in defaults for non-site signups. */
   communicationOptIns?: string[];
   /**
-   * When true, skip the event capacity check — used by invite links that
-   * deliberately allow signups past the cap. Callers should only set this
-   * after verifying the request came from a trusted source (e.g. a `links`
-   * row with `bypassCapacity=true`).
+   * When set, the slug is resolved inside the signup transaction. If the
+   * resulting link is active with `bypassCapacity=true`, the capacity
+   * check is skipped and `referred_by_person_id` is stamped from the
+   * link row. Resolving inside the tx closes the race window where an
+   * admin could archive the link between request resolution and insert
+   * and the signup would still bypass — status is re-checked at write
+   * time.
    */
-  bypassCapacity?: boolean;
-  /**
-   * Stamp this person as the referrer on the participation. Used when an
-   * invite link has `referredByPersonId` set so every signup via that link
-   * gets auto-attributed to the host without needing a separate flow.
-   */
-  referredByPersonId?: number;
+  bypassLinkSlug?: string;
 }
 
 export interface RecordParticipationResult {
@@ -115,6 +112,30 @@ export async function recordParticipation(
     // and the subsequent INSERT.
     const attribution = await sanitizeAttribution(tx, params.attribution);
 
+    // Resolve the override link inside the tx so archiving between the
+    // request hitting the server and the participation insert kills the
+    // bypass (and thus enforces capacity as expected). A row-level lock
+    // isn't needed — we only read the row, and archiving is monotonic
+    // (active → archived doesn't flip back during a signup).
+    let bypassCapacity = false;
+    let referredByPersonId: number | undefined;
+    if (params.bypassLinkSlug) {
+      const linkRes = await tx.execute<{
+        status: string;
+        bypass_capacity: boolean;
+        referred_by_person_id: number | null;
+      }>(sql`
+        SELECT status, bypass_capacity, referred_by_person_id
+        FROM links WHERE slug = ${params.bypassLinkSlug}
+        LIMIT 1
+      `);
+      const row = linkRes.rows?.[0];
+      if (row && row.status === "active") {
+        bypassCapacity = Boolean(row.bypass_capacity);
+        referredByPersonId = row.referred_by_person_id ?? undefined;
+      }
+    }
+
     // 1. Upsert person. Uses the xmax trick: xmax = 0 iff this row was
     //    freshly INSERTed (ON CONFLICT DO UPDATE sets xmax to the txn id).
     const personResult = await tx.execute<{
@@ -154,7 +175,7 @@ export async function recordParticipation(
     //    waitlist row to confirmed IS subject to capacity (it grows the count
     //    by 1), so no exception here. `bypassCapacity` skips this entirely —
     //    invite links deliberately overflow the cap.
-    if (status === "confirmed" && !params.bypassCapacity) {
+    if (status === "confirmed" && !bypassCapacity) {
       const eventRow = await tx.execute<{ capacity: number | null }>(
         sql`SELECT capacity FROM events WHERE id = ${params.eventId} FOR UPDATE`,
       );
@@ -233,7 +254,7 @@ export async function recordParticipation(
         status,
         attribution: attribution ?? null,
         linkSlug: attribution?.linkSlug ?? null,
-        referredByPersonId: params.referredByPersonId ?? null,
+        referredByPersonId: referredByPersonId ?? null,
         referralNote: params.referralNote ?? null,
         externalPaymentId: params.externalPaymentId ?? null,
         priceCents: params.priceCents ?? null,
