@@ -96,6 +96,10 @@ export async function POST(req: Request) {
     const rsvpId = `SIN-${nanoid(8).toUpperCase()}`;
     const attribution = buildAttribution({ req, body });
 
+    // Pass the slug to recordParticipation; it resolves the link inside
+    // the signup transaction so the bypass flag + referrer are read at
+    // write time, not here. Closes the kill-switch race where an admin
+    // archives the link between this handler starting and the insert.
     let result;
     try {
       result = await recordParticipation({
@@ -107,6 +111,7 @@ export async function POST(req: Request) {
         status: "confirmed",
         attribution,
         metadata: { staysForDinner },
+        bypassLinkSlug: attribution?.linkSlug,
       });
     } catch (err) {
       if (err instanceof CapacityReachedError) {

@@ -185,6 +185,108 @@ describe("recordParticipation", () => {
     expect(drill!.participations[0].externalPaymentId).toBe("MP-XYZ");
   });
 
+  it("bypassLinkSlug confirms a signup past a sold-out cap and stamps the referrer", async () => {
+    // Seed a referrer + an active bypass link pointing at them.
+    const { person: referrer } = await (
+      await import("./community")
+    ).upsertPerson({
+      email: "test-community-bp-ref@example.com",
+      name: "Referrer",
+    });
+    const slug = "test-bypass-link-active";
+    await db.execute(sql`
+      INSERT INTO links (
+        slug, destination, label, channel, source, medium,
+        created_date, created_by, status, bypass_capacity, referred_by_person_id
+      ) VALUES (
+        ${slug}, '/es/sinergia', 'test', 'wa-personal', 'whatsapp', 'invite',
+        '2026-04-20', 'test', 'active', true, ${referrer.id}
+      )
+    `);
+
+    // Fill the 2-seat cap.
+    await recordParticipation({
+      email: "test-community-bp1@example.com",
+      name: "BP1",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-BP000001",
+      role: "planter",
+    });
+    await recordParticipation({
+      email: "test-community-bp2@example.com",
+      name: "BP2",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-BP000002",
+      role: "planter",
+    });
+
+    // Bypass should succeed even though the event is full; link resolution
+    // happens inside the tx, so flags come from the DB row.
+    const bypassed = await recordParticipation({
+      email: "test-community-bp3@example.com",
+      name: "BP3",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-BP000003",
+      role: "planter",
+      bypassLinkSlug: slug,
+    });
+    expect(bypassed.created).toBe(true);
+
+    const drill = await getPersonByEmail("test-community-bp3@example.com");
+    expect(drill!.participations).toHaveLength(1);
+    expect(drill!.participations[0].status).toBe("confirmed");
+    expect(Number(drill!.participations[0].referredByPersonId)).toBe(
+      Number(referrer.id),
+    );
+
+    // Cleanup the test link.
+    await db.execute(sql`DELETE FROM links WHERE slug = ${slug}`);
+  });
+
+  it("bypassLinkSlug for an archived link enforces capacity (kill-switch)", async () => {
+    // Seed an archived bypass link — should be treated as non-override.
+    const slug = "test-bypass-link-archived";
+    await db.execute(sql`
+      INSERT INTO links (
+        slug, destination, label, channel, source, medium,
+        created_date, created_by, status, bypass_capacity
+      ) VALUES (
+        ${slug}, '/es/sinergia', 'test', 'wa-personal', 'whatsapp', 'invite',
+        '2026-04-20', 'test', 'archived', true
+      )
+    `);
+
+    // Fill the cap.
+    await recordParticipation({
+      email: "test-community-kill1@example.com",
+      name: "K1",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-KILL0001",
+      role: "planter",
+    });
+    await recordParticipation({
+      email: "test-community-kill2@example.com",
+      name: "K2",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-KILL0002",
+      role: "planter",
+    });
+
+    // A signup with the archived slug should hit the normal capacity path.
+    await expect(
+      recordParticipation({
+        email: "test-community-kill3@example.com",
+        name: "K3",
+        eventId: TEST_EVENT_CAPPED,
+        participationId: "TEST-KILL0003",
+        role: "planter",
+        bypassLinkSlug: slug,
+      }),
+    ).rejects.toBeInstanceOf(CapacityReachedError);
+
+    await db.execute(sql`DELETE FROM links WHERE slug = ${slug}`);
+  });
+
   it("enforces capacity — exceeding the cap throws CapacityReachedError", async () => {
     // capacity is 2 on TEST_EVENT_CAPPED
     await recordParticipation({

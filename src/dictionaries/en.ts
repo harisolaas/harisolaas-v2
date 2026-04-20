@@ -827,6 +827,8 @@ const en: Dictionary = {
         "We ask for the spot to make sure there\u2019s a place for you. {remaining} of {capacity} left.",
       subtitleFull:
         "This Wednesday is full. Try again next week.",
+      subtitleOverride:
+        "You have an invite to come even though it's full. Sign up below.",
       helper: "We\u2019ll email you the address and how to get there.",
       namePlaceholder: "Your name",
       emailPlaceholder: "Your email",

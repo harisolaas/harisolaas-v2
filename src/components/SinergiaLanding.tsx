@@ -42,12 +42,29 @@ interface Props {
   locale: string;
 }
 
+// Reads the `haris_link` cookie set by `/go/[slug]`. Mirrors the fallback
+// used on the server side by `buildAttribution` so cookie-only visitors
+// (no utm_content in URL) still flow through the override path.
+function readHarisLinkCookie(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  for (const part of document.cookie.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === "haris_link") return decodeURIComponent(rest.join("="));
+  }
+  return undefined;
+}
+
 export default function SinergiaLanding({ dict, locale }: Props) {
   const otherLocale = locale === "es" ? "en" : "es";
   const localeLabel = locale === "es" ? "EN" : "ES";
 
   const [remaining, setRemaining] = useState<number>(sinergiaConfig.capacity);
   const [isFull, setIsFull] = useState(false);
+  // When the landing arrives via a capacity-bypass invite link, the
+  // backend returns `override: true` and we keep the form visible even
+  // when remaining===0, swapping the default "lleno" card for an
+  // invite-specific hint.
+  const [hasOverride, setHasOverride] = useState(false);
   const [sessionDate, setSessionDate] = useState<string>("");
 
   const [name, setName] = useState("");
@@ -75,17 +92,26 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     if (params.get("utm_campaign")) u.campaign = params.get("utm_campaign")!;
     if (params.get("utm_content")) u.content = params.get("utm_content")!;
     if (Object.keys(u).length > 0) setUtm(u);
-    const slug = params.get("utm_content");
+    // URL wins, fallback to the `haris_link` cookie set by /go/[slug] so
+    // a user who clicked through yesterday and lands directly on sinergia
+    // today still gets recognized as an override invitee.
+    const slug = params.get("utm_content") ?? readHarisLinkCookie();
     if (slug) setLinkSlug(slug);
-  }, []);
 
-  useEffect(() => {
-    fetch("/api/sinergia/next-session")
+    // Pass the slug to next-session so the backend can tell us whether
+    // this is an override invite. Coalesces the two effects so the fetch
+    // sees the slug synchronously (state wouldn't be settled in time).
+    const qs = slug ? `?link=${encodeURIComponent(slug)}` : "";
+    fetch(`/api/sinergia/next-session${qs}`)
       .then((r) => r.json())
       .then((d) => {
         if (d?.ok) {
           setRemaining(d.remaining);
-          setIsFull(d.remaining === 0);
+          const override = Boolean(d.override);
+          setHasOverride(override);
+          // Only show the "lleno" card when remaining===0 AND the user
+          // doesn't carry an override invite.
+          setIsFull(d.remaining === 0 && !override);
           setSessionDate(d.date);
         }
       })
@@ -121,7 +147,9 @@ export default function SinergiaLanding({ dict, locale }: Props) {
         if (data.alreadyRegistered) setAlreadyRegistered(true);
         if (typeof data.remaining === "number") {
           setRemaining(data.remaining);
-          setIsFull(data.remaining === 0);
+          // Preserve override state — the form stays visible for
+          // any subsequent interactions while the slug is active.
+          setIsFull(data.remaining === 0 && !hasOverride);
         }
         setSubmitted(true);
       } else if (data.full) {
@@ -136,7 +164,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, staysForDinner, dict, utm, linkSlug]);
+  }, [submitting, name, email, staysForDinner, dict, utm, linkSlug, hasOverride]);
 
   const capacityStr = String(sinergiaConfig.capacity);
   const seatsLabel = isFull
@@ -145,11 +173,16 @@ export default function SinergiaLanding({ dict, locale }: Props) {
         .replace("{remaining}", String(remaining))
         .replace("{capacity}", capacityStr);
 
+  // When the landing has an override invite and the event is already
+  // full, swap the "quedan X de Y" subtitle for a dedicated invite hint
+  // so the copy matches the user's situation.
   const rsvpSubtitle = isFull
     ? dict.rsvp.subtitleFull
-    : dict.rsvp.subtitle
-        .replace("{remaining}", String(remaining))
-        .replace("{capacity}", capacityStr);
+    : hasOverride && remaining === 0
+      ? dict.rsvp.subtitleOverride
+      : dict.rsvp.subtitle
+          .replace("{remaining}", String(remaining))
+          .replace("{capacity}", capacityStr);
 
   return (
     <div className="sinergia-theme">
