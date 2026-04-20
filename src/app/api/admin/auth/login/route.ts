@@ -23,7 +23,16 @@ export async function POST(req: Request) {
     }
 
     const token = await createMagicLinkToken(normalized);
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+    // Derive the origin from the request so preview deploys get links
+    // back to themselves instead of prod. `NEXT_PUBLIC_BASE_URL` is the
+    // prod domain on every Vercel deploy, so using it here meant clicking
+    // the magic link always landed you on prod regardless of which
+    // deploy you requested it from.
+    const host = req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") ?? "https";
+    const baseUrl = host
+      ? `${proto}://${host}`
+      : process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
     const loginUrl = `${baseUrl}/api/admin/auth/verify?token=${token}`;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";

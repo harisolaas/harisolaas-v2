@@ -9,7 +9,14 @@ import {
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const token = url.searchParams.get("token") || "";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+  // Redirect targets mirror the deploy the user verified from. If the
+  // magic-link email was sent by a preview deploy (login/route.ts also
+  // derives from the request), verify keeps them on that preview.
+  const host = req.headers.get("host");
+  const proto = req.headers.get("x-forwarded-proto") ?? "https";
+  const baseUrl = host
+    ? `${proto}://${host}`
+    : process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 
   if (!token) {
     return NextResponse.redirect(`${baseUrl}/admin/login?error=invalid`);
