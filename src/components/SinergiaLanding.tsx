@@ -42,6 +42,18 @@ interface Props {
   locale: string;
 }
 
+// Reads the `haris_link` cookie set by `/go/[slug]`. Mirrors the fallback
+// used on the server side by `buildAttribution` so cookie-only visitors
+// (no utm_content in URL) still flow through the override path.
+function readHarisLinkCookie(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  for (const part of document.cookie.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === "haris_link") return decodeURIComponent(rest.join("="));
+  }
+  return undefined;
+}
+
 export default function SinergiaLanding({ dict, locale }: Props) {
   const otherLocale = locale === "es" ? "en" : "es";
   const localeLabel = locale === "es" ? "EN" : "ES";
@@ -80,7 +92,10 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     if (params.get("utm_campaign")) u.campaign = params.get("utm_campaign")!;
     if (params.get("utm_content")) u.content = params.get("utm_content")!;
     if (Object.keys(u).length > 0) setUtm(u);
-    const slug = params.get("utm_content");
+    // URL wins, fallback to the `haris_link` cookie set by /go/[slug] so
+    // a user who clicked through yesterday and lands directly on sinergia
+    // today still gets recognized as an override invitee.
+    const slug = params.get("utm_content") ?? readHarisLinkCookie();
     if (slug) setLinkSlug(slug);
 
     // Pass the slug to next-session so the backend can tell us whether
