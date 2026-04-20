@@ -34,12 +34,23 @@ const DRY_RUN = !flag("--execute");
 const ADMIN_EMAIL = value("--admin-email");
 
 function dbHost(): string {
-  const url = process.env.DATABASE_URL_UNPOOLED ?? "";
-  try {
-    return new URL(url).host;
-  } catch {
-    return "(unparseable)";
+  // The db client in `@/db` connects via DATABASE_URL (pooled); the
+  // unpooled URL is for drizzle-kit migrations. Read the pooled one first
+  // so the printed host always matches what writes will hit. Fall back
+  // to UNPOOLED so an operator with only the migration URL still sees
+  // something meaningful.
+  for (const url of [
+    process.env.DATABASE_URL,
+    process.env.DATABASE_URL_UNPOOLED,
+  ]) {
+    if (!url) continue;
+    try {
+      return new URL(url).host;
+    } catch {
+      /* try the next one */
+    }
   }
+  return "(unparseable)";
 }
 
 // Fixture dataset. Realistic enough to populate each admin tab without
@@ -164,7 +175,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     personEmail: `preview-${k}@example.com`,
     eventId: "preview-brote",
     role: "attendee",
-    status: i < 7 ? "used" : i === 7 ? "no_show" : "confirmed",
+    status: i < 7 ? "used" : i === 7 ? "no_show" : "cancelled",
   })),
   // Plant (upcoming) — confirmed + a couple waitlist.
   ...[
@@ -316,7 +327,7 @@ async function main() {
         },
         ${usedAtSql}
       FROM people WHERE email = ${p.personEmail}
-      ON CONFLICT (id) DO NOTHING
+      ON CONFLICT DO NOTHING
     `);
   }
   console.log(`✓ participations`);
