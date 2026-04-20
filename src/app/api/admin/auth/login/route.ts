@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
     await getResend().emails.send({
-      from: `BROTE Admin <${fromEmail}>`,
+      from: `Comunidad harisolaas <${fromEmail}>`,
       to: normalized,
       subject: "Tu link de acceso al admin",
       html: buildMagicLinkEmailHtml(loginUrl),
