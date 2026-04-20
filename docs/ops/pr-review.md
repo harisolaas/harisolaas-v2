@@ -61,7 +61,8 @@ Read the diff as if someone else wrote it. Things to check:
 - **Accessibility** (UI PRs): semantic HTML, `aria-*` attributes on
   interactive controls, readable labels during loading states.
 
-Write the review as a comment on the PR or in-chat. Structured:
+Write the review as a comment on the PR (or, if you're an agent
+reviewing before posting, as chat output to the requester). Structure:
 
 > - **Must-fix**: blockers.
 > - **Should-have**: strong suggestions.
@@ -69,7 +70,8 @@ Write the review as a comment on the PR or in-chat. Structured:
 
 ### 3. Fetch Copilot's inline comments
 
-They usually land 1–2 minutes after PR creation. Fetch them:
+They typically land within a few minutes of PR creation (sometimes
+longer). Fetch them:
 
 ```sh
 gh api repos/harisolaas/harisolaas-v2/pulls/<N>/comments \
@@ -109,9 +111,9 @@ For UI PRs, also:
 npx next build
 ```
 
-You cannot click through the UI from the CLI. If the PR touches UI,
-flag that in the PR body and rely on the Vercel preview + the
-requester's smoke test.
+If you're working from the CLI (or as an agent without a browser),
+you can't click through the UI yourself. Flag that in the PR body and
+rely on the Vercel preview + the requester's smoke test.
 
 ### 7. Resolve Copilot's threads
 

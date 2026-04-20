@@ -22,7 +22,7 @@ Two non-negotiable operational conventions for anyone (human or agent) opening w
 
 Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo).
 
-Prod-migration note: Vercel does NOT auto-run `drizzle-kit migrate`. Every migration PR needs a manual step against the prod Neon branch. See recent rollout docs / recent commits for the pattern.
+**Prod-migration note:** Vercel does NOT auto-run `drizzle-kit migrate`. Any PR that changes `src/db/schema.ts` needs a manual migration step against the prod Neon branch — apply the generated SQL from `src/db/migrations/` after merge, before the new code serves traffic.
 
 ---
 
