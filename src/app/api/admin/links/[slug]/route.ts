@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertFullAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +15,8 @@ export async function GET(
 ) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   const { slug } = await params;
 
@@ -128,8 +133,10 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const session = await requireAdminSession(req);
+  const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   const { slug } = await params;
   const body = (await req.json()) as {
@@ -173,8 +180,10 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const session = await requireAdminSession(req);
+  const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   const { slug } = await params;
 

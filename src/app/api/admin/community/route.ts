@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { desc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertFullAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +18,8 @@ interface ParticipationSummary {
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   // Fetch all people + their participations in two queries; join in memory.
   const [peopleRows, participationRows] = await Promise.all([

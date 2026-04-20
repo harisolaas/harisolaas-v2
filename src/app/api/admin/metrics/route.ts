@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { and, count, countDistinct, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertFullAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 import { plantConfig } from "@/data/brote";
 
 const BROTE_EVENT_ID = "brote-2026-03-28";
@@ -13,6 +16,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+  // metrics mixes multiple events (brote + plant) in one payload, so it's
+  // treated as cross-event and hidden from scoped users.
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   // ── Community totals ────────────────────────────────────────
   const [totalPeopleRes] = await db

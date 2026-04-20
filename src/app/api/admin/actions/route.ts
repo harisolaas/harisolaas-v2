@@ -3,11 +3,21 @@ import { asc, eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertCanWriteEvent,
+  assertEventAccess,
+  assertFullAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
 
 const PLANT_EVENT_ID = "plant-2026-04";
 
+// Per-branch role/scope gating. Each action block asserts what it needs
+// rather than gating once at the top — some actions are event-scoped
+// (plant resend, CSV export), others are global ops (fix-campaign-log).
+// When adding a new action, explicitly call out the access requirement;
+// don't let it inherit a broader default.
 export async function POST(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
@@ -16,7 +26,11 @@ export async function POST(req: Request) {
   const { action } = body as { action: string };
 
   // ── Plant: resend confirmation email ──
+  // Write action bound to the plant event.
   if (action === "plant-resend-email") {
+    const denied = assertCanWriteEvent(session, PLANT_EVENT_ID);
+    if (denied) return denied;
+
     const email = (body.email as string || "").trim().toLowerCase();
     if (!email) {
       return NextResponse.json({ error: "email required" }, { status: 400 });
@@ -59,7 +73,11 @@ export async function POST(req: Request) {
   }
 
   // ── Export plant registrations as CSV ──
+  // Read access to the plant event is enough — exports don't mutate state.
   if (action === "export-csv") {
+    const denied = assertEventAccess(session, PLANT_EVENT_ID);
+    if (denied) return denied;
+
     const rows = await db
       .select({
         id: schema.participations.id,
@@ -113,7 +131,15 @@ export async function POST(req: Request) {
   }
 
   // ── Campaign log correction (still in Redis per spec) ──
+  // Global ops — only for users with full access; and specifically an
+  // editor write (not a viewer).
   if (action === "fix-campaign-log") {
+    const deniedScope = assertFullAccess(session);
+    if (deniedScope) return deniedScope;
+    if (session.role === "viewer") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { variant: v, data } = body as {
       variant: number;
       data: { sent: number; audienceSize: number; subject?: string };

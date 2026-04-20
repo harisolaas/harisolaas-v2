@@ -15,7 +15,10 @@ export async function POST(req: Request) {
     const normalized = (email || "").trim().toLowerCase();
 
     // Always return ok — never reveal whether the email is in the allowlist
-    if (!normalized || !normalized.includes("@") || !isAllowedEmail(normalized)) {
+    if (!normalized || !normalized.includes("@")) {
+      return NextResponse.json({ ok: true });
+    }
+    if (!(await isAllowedEmail(normalized))) {
       return NextResponse.json({ ok: true });
     }
 

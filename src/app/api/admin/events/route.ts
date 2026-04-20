@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  requireAdminSession,
+  scopeEventIdsClause,
+} from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,17 @@ export async function GET(req: Request) {
   const typeFilter = url.searchParams.get("type") ?? "";
   const statusFilter = url.searchParams.get("status") ?? "";
 
+  const conditions = [];
+  if (typeFilter) conditions.push(sql`e.type = ${typeFilter}`);
+  if (statusFilter) conditions.push(sql`e.status = ${statusFilter}`);
+  const scopeClause = scopeEventIdsClause(session, sql`e.id`);
+  if (scopeClause) conditions.push(scopeClause);
+
+  const whereClause =
+    conditions.length > 0
+      ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+      : sql``;
+
   const rows = await db.execute<EventListRow>(sql`
     SELECT
       e.id,
@@ -47,14 +61,7 @@ export async function GET(req: Request) {
       )::int AS signups_last_7d
     FROM events e
     LEFT JOIN participations p ON p.event_id = e.id
-    ${typeFilter ? sql`WHERE e.type = ${typeFilter}` : sql``}
-    ${
-      statusFilter
-        ? typeFilter
-          ? sql`AND e.status = ${statusFilter}`
-          : sql`WHERE e.status = ${statusFilter}`
-        : sql``
-    }
+    ${whereClause}
     GROUP BY e.id
     ORDER BY e.date DESC
   `);

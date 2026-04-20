@@ -25,7 +25,7 @@ const STATUS_FILTERS: { key: string; label: string }[] = [
   { key: "cancelled", label: "Cancelados" },
 ];
 
-export default function EventosTab() {
+export default function EventosTab({ canWrite = true }: { canWrite?: boolean }) {
   const [events, setEvents] = useState<EventRow[] | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("");
@@ -167,6 +167,7 @@ export default function EventosTab() {
       {openId && (
         <EventDrawer
           eventId={openId}
+          canWrite={canWrite}
           onClose={() => setOpenId(null)}
         />
       )}

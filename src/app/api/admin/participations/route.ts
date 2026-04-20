@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, isNotNull, isNull, sql, type SQL } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertEventAccess,
+  requireAdminSession,
+  scopeEventIdsClause,
+} from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +26,11 @@ export async function GET(req: Request) {
   );
   const offset = Math.max(0, Number(url.searchParams.get("offset") ?? 0));
 
+  if (eventId) {
+    const denied = assertEventAccess(session, eventId);
+    if (denied) return denied;
+  }
+
   const conditions: SQL[] = [];
   if (eventId) conditions.push(eq(schema.participations.eventId, eventId));
   if (status) conditions.push(eq(schema.participations.status, status));
@@ -35,6 +44,11 @@ export async function GET(req: Request) {
     conditions.push(isNotNull(schema.participations.referralNote));
     conditions.push(isNull(schema.participations.referredByPersonId));
   }
+  const scopeClause = scopeEventIdsClause(
+    session,
+    sql`${schema.participations.eventId}`,
+  );
+  if (scopeClause) conditions.push(scopeClause);
 
   const rows = await db
     .select({

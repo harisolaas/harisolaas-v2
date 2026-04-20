@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertFullAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +13,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   const res = await db.execute<{
     total_links: number;

@@ -8,9 +8,21 @@ import { recordParticipation } from "@/lib/community";
 // "Asistieron" counters and the attendance toggle go out of sync with
 // the usedAt column.
 
-vi.mock("@/lib/admin-api-auth", () => ({
-  requireAdminSession: async () => ({ email: "test@example.com" }),
-}));
+vi.mock("@/lib/admin-api-auth", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@/lib/admin-api-auth")>();
+  return {
+    ...actual,
+    requireAdminSession: async () => ({
+      email: "test@example.com",
+      userId: null,
+      role: "owner" as const,
+      scope: "all" as const,
+      allowedEventIds: [],
+      createdAt: new Date().toISOString(),
+    }),
+  };
+});
 
 // Imported AFTER the mock so the route picks up the mocked auth.
 const { PATCH } = await import("./route");
