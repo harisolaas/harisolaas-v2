@@ -8,7 +8,7 @@ export function buildMagicLinkEmailHtml(loginUrl: string): string {
 <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
 
 <tr><td style="background:#2D4A3E;padding:32px 24px;text-align:center">
-  <h1 style="margin:0;color:#FAF6F1;font-size:28px;letter-spacing:2px;font-weight:700">BROTE Admin</h1>
+  <h1 style="margin:0;color:#FAF6F1;font-size:22px;letter-spacing:1px;font-weight:700">Comunidad &ldquo;harisolaas&rdquo; Admin</h1>
 </td></tr>
 
 <tr><td style="padding:32px 28px;text-align:center">
