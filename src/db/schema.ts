@@ -198,6 +198,18 @@ export const links = pgTable(
     createdBy: text().notNull(),
     status: text().notNull().default("active"),
     version: integer().notNull().default(1),
+    // When true, signups attributed to this link skip the event capacity
+    // check — used for invite links (e.g. a host sharing with friends
+    // past a sold-out cap). Defaults false so existing links are
+    // unaffected.
+    bypassCapacity: boolean().notNull().default(false),
+    // Optional: every participation created via this link gets this
+    // person stamped as the referrer, so "who brought whom" attribution
+    // is automatic.
+    referredByPersonId: bigint({ mode: "number" }).references(
+      () => people.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

@@ -9,6 +9,7 @@ import {
   recordParticipation,
 } from "@/lib/community";
 import { buildAttribution } from "@/lib/attribution";
+import { resolveOverrideLink } from "@/lib/override-link";
 import { isValidEmail, nextSinergiaDate } from "@/lib/sinergia-types";
 import {
   buildSinergiaConfirmationEmailHtml,
@@ -96,6 +97,11 @@ export async function POST(req: Request) {
     const rsvpId = `SIN-${nanoid(8).toUpperCase()}`;
     const attribution = buildAttribution({ req, body });
 
+    // If the signup rode in on an invite link with bypassCapacity=true,
+    // skip the capacity check and stamp the referrer. Resolved server-side
+    // against the link row so a crafted request body can't spoof it.
+    const override = await resolveOverrideLink(attribution?.linkSlug);
+
     let result;
     try {
       result = await recordParticipation({
@@ -107,6 +113,8 @@ export async function POST(req: Request) {
         status: "confirmed",
         attribution,
         metadata: { staysForDinner },
+        bypassCapacity: override.bypassCapacity,
+        referredByPersonId: override.referredByPersonId,
       });
     } catch (err) {
       if (err instanceof CapacityReachedError) {

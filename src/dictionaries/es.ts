@@ -862,6 +862,8 @@ const es: Dictionary = {
         "Pedimos el lugar para asegurarnos de que haya un lugar para vos. Quedan {remaining} de {capacity}.",
       subtitleFull:
         "Se llenó el cupo de este miércoles. Volvé a intentar la semana que viene.",
+      subtitleOverride:
+        "Tenés una invitación para entrar aunque esté lleno. Anotate igual.",
       helper: "Te mandamos la dirección y cómo llegar por email.",
       namePlaceholder: "Tu nombre",
       emailPlaceholder: "Tu email",

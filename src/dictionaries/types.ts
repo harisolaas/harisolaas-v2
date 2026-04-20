@@ -233,6 +233,9 @@ export interface SinergiaDict {
     heading: string;
     subtitle: string;
     subtitleFull: string;
+    /** Banner shown at the top of the form when the user lands with a
+     * capacity-bypass invite link and the event is already full. */
+    subtitleOverride: string;
     helper: string;
     namePlaceholder: string;
     emailPlaceholder: string;

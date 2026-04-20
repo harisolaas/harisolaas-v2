@@ -50,6 +50,19 @@ export interface RecordParticipationParams {
   referralNote?: string;
   /** Override opt-in defaults for non-site signups. */
   communicationOptIns?: string[];
+  /**
+   * When true, skip the event capacity check — used by invite links that
+   * deliberately allow signups past the cap. Callers should only set this
+   * after verifying the request came from a trusted source (e.g. a `links`
+   * row with `bypassCapacity=true`).
+   */
+  bypassCapacity?: boolean;
+  /**
+   * Stamp this person as the referrer on the participation. Used when an
+   * invite link has `referredByPersonId` set so every signup via that link
+   * gets auto-attributed to the host without needing a separate flow.
+   */
+  referredByPersonId?: number;
 }
 
 export interface RecordParticipationResult {
@@ -139,8 +152,9 @@ export async function recordParticipation(
     // 2. Capacity enforcement — lock the event row, then count.
     //    Waitlist rows don't count toward capacity. Promotion of an existing
     //    waitlist row to confirmed IS subject to capacity (it grows the count
-    //    by 1), so no exception here.
-    if (status === "confirmed") {
+    //    by 1), so no exception here. `bypassCapacity` skips this entirely —
+    //    invite links deliberately overflow the cap.
+    if (status === "confirmed" && !params.bypassCapacity) {
       const eventRow = await tx.execute<{ capacity: number | null }>(
         sql`SELECT capacity FROM events WHERE id = ${params.eventId} FOR UPDATE`,
       );
@@ -219,6 +233,7 @@ export async function recordParticipation(
         status,
         attribution: attribution ?? null,
         linkSlug: attribution?.linkSlug ?? null,
+        referredByPersonId: params.referredByPersonId ?? null,
         referralNote: params.referralNote ?? null,
         externalPaymentId: params.externalPaymentId ?? null,
         priceCents: params.priceCents ?? null,

@@ -20,6 +20,10 @@ interface LinkData {
   status: "active" | "archived" | "disabled";
   createdAt: string;
   updatedAt: string;
+  bypassCapacity?: boolean;
+  referredByPersonId?: number | null;
+  referredByEmail?: string | null;
+  referredByName?: string | null;
 }
 
 interface DetailStats {
@@ -74,6 +78,8 @@ export default function LinkDetail({
   const [campaign, setCampaign] = useState<string>("");
   const [resourceUrl, setResourceUrl] = useState<string>("");
   const [note, setNote] = useState<string>("");
+  const [bypassCapacity, setBypassCapacity] = useState<boolean>(false);
+  const [referrerEmail, setReferrerEmail] = useState<string>("");
 
   const fetchDetail = useCallback(async () => {
     const res = await fetch(`/api/admin/links/${slug}`);
@@ -95,6 +101,8 @@ export default function LinkDetail({
     setCampaign(data.link.campaign ?? "");
     setResourceUrl(data.link.resourceUrl ?? "");
     setNote(data.link.note ?? "");
+    setBypassCapacity(Boolean(data.link.bypassCapacity));
+    setReferrerEmail(data.link.referredByEmail ?? "");
     setLoading(false);
   }, [slug]);
 
@@ -121,6 +129,7 @@ export default function LinkDetail({
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch(`/api/admin/links/${slug}`, {
         method: "PATCH",
@@ -130,12 +139,19 @@ export default function LinkDetail({
           campaign: campaign.trim() || null,
           resourceUrl: resourceUrl.trim() || null,
           note: note.trim() || null,
+          bypassCapacity,
+          // Empty string clears the referrer; undefined would leave it
+          // unchanged. Always send the current value so edits reflect.
+          referrerEmail: referrerEmail.trim(),
         }),
       });
-      if (res.ok) {
-        setEditing(false);
-        await fetchDetail();
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error ?? `Error ${res.status}`);
+        return;
       }
+      setEditing(false);
+      await fetchDetail();
     } finally {
       setSaving(false);
     }
@@ -328,6 +344,22 @@ export default function LinkDetail({
                   <MetaRow label="Campaña" value={link.campaign ?? "—"} />
                   <MetaRow label="Fecha" value={link.createdDate} />
                   <MetaRow label="Creado por" value={link.createdBy} />
+                  {link.bypassCapacity && (
+                    <MetaRow
+                      label="Excepción"
+                      value="Permite inscribir aunque esté lleno"
+                    />
+                  )}
+                  {link.referredByEmail && (
+                    <MetaRow
+                      label="Atribuir a"
+                      value={
+                        link.referredByName
+                          ? `${link.referredByName} (${link.referredByEmail})`
+                          : link.referredByEmail
+                      }
+                    />
+                  )}
                   <MetaRow
                     label="Primer click"
                     value={
@@ -395,14 +427,44 @@ export default function LinkDetail({
                         className="w-full rounded-lg border border-sage/30 bg-white px-2 py-1.5 text-sm text-charcoal"
                       />
                     </EditField>
+                    <div className="rounded-lg border border-terracotta/30 bg-terracotta/5 p-2">
+                      <label className="flex items-start gap-2 text-xs text-charcoal">
+                        <input
+                          type="checkbox"
+                          checked={bypassCapacity}
+                          onChange={(e) => setBypassCapacity(e.target.checked)}
+                          className="mt-0.5"
+                        />
+                        <span>Permitir inscripción aunque esté lleno</span>
+                      </label>
+                      <div className="mt-2">
+                        <EditField label="Atribuir a (email)">
+                          <input
+                            type="email"
+                            value={referrerEmail}
+                            onChange={(e) => setReferrerEmail(e.target.value)}
+                            placeholder="connie@ejemplo.com"
+                            className="w-full rounded-lg border border-sage/30 bg-white px-2 py-1.5 text-sm text-charcoal placeholder-charcoal/30"
+                          />
+                        </EditField>
+                      </div>
+                    </div>
+                    {error && (
+                      <p className="text-xs text-terracotta" role="alert">
+                        {error}
+                      </p>
+                    )}
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => {
                           setEditing(false);
+                          setError(null);
                           setLabel(link.label);
                           setCampaign(link.campaign ?? "");
                           setResourceUrl(link.resourceUrl ?? "");
                           setNote(link.note ?? "");
+                          setBypassCapacity(Boolean(link.bypassCapacity));
+                          setReferrerEmail(link.referredByEmail ?? "");
                         }}
                         className="text-xs text-charcoal/50 hover:text-charcoal"
                       >

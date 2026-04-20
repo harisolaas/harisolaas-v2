@@ -185,6 +185,50 @@ describe("recordParticipation", () => {
     expect(drill!.participations[0].externalPaymentId).toBe("MP-XYZ");
   });
 
+  it("bypassCapacity=true confirms a signup past a sold-out cap", async () => {
+    // Fill the 2-seat cap.
+    await recordParticipation({
+      email: "test-community-bp1@example.com",
+      name: "BP1",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-BP000001",
+      role: "planter",
+    });
+    await recordParticipation({
+      email: "test-community-bp2@example.com",
+      name: "BP2",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-BP000002",
+      role: "planter",
+    });
+
+    // Bypass should succeed even though the event is full, and should
+    // stamp the provided referrer on the participation row.
+    const { person: referrer } = await (
+      await import("./community")
+    ).upsertPerson({
+      email: "test-community-bp-ref@example.com",
+      name: "Referrer",
+    });
+    const bypassed = await recordParticipation({
+      email: "test-community-bp3@example.com",
+      name: "BP3",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-BP000003",
+      role: "planter",
+      bypassCapacity: true,
+      referredByPersonId: referrer.id,
+    });
+    expect(bypassed.created).toBe(true);
+
+    const drill = await getPersonByEmail("test-community-bp3@example.com");
+    expect(drill!.participations).toHaveLength(1);
+    expect(drill!.participations[0].status).toBe("confirmed");
+    expect(Number(drill!.participations[0].referredByPersonId)).toBe(
+      Number(referrer.id),
+    );
+  });
+
   it("enforces capacity — exceeding the cap throws CapacityReachedError", async () => {
     // capacity is 2 on TEST_EVENT_CAPPED
     await recordParticipation({

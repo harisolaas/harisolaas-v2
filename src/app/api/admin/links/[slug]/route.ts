@@ -30,6 +30,24 @@ export async function GET(
   }
   const link = linkRows[0];
 
+  // Resolve the optional referrer to a display name/email so the admin
+  // UI can show "Attribuir a: Connie (connie@…)" without a second fetch.
+  let referredBy:
+    | { id: number; email: string | null; name: string | null }
+    | null = null;
+  if (link.referredByPersonId) {
+    const refRows = await db
+      .select({
+        id: schema.people.id,
+        email: schema.people.email,
+        name: schema.people.name,
+      })
+      .from(schema.people)
+      .where(eq(schema.people.id, link.referredByPersonId))
+      .limit(1);
+    referredBy = refRows[0] ?? null;
+  }
+
   // Click stats: total + daily breakdown (last 90 days) + first/last click
   const clickStats = await db.execute<{
     total_clicks: number;
@@ -100,7 +118,11 @@ export async function GET(
   );
 
   return NextResponse.json({
-    link,
+    link: {
+      ...link,
+      referredByEmail: referredBy?.email ?? null,
+      referredByName: referredBy?.name ?? null,
+    },
     stats: {
       clicks: Number(stats?.total_clicks ?? 0),
       botClicks: Number(stats?.bot_clicks ?? 0),
@@ -145,6 +167,8 @@ export async function PATCH(
     resourceUrl?: string | null;
     note?: string | null;
     status?: "active" | "archived" | "disabled";
+    bypassCapacity?: boolean;
+    referrerEmail?: string | null;
   };
 
   const update: Record<string, unknown> = { updatedAt: sql`NOW()` };
@@ -160,6 +184,28 @@ export async function PATCH(
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
     update.status = body.status;
+  }
+  if (body.bypassCapacity !== undefined) {
+    update.bypassCapacity = Boolean(body.bypassCapacity);
+  }
+  if (body.referrerEmail !== undefined) {
+    const referrerEmail = body.referrerEmail?.trim();
+    if (!referrerEmail) {
+      update.referredByPersonId = null;
+    } else {
+      const ref = await db
+        .select({ id: schema.people.id })
+        .from(schema.people)
+        .where(eq(schema.people.email, referrerEmail))
+        .limit(1);
+      if (ref.length === 0) {
+        return NextResponse.json(
+          { error: `referrer not found: ${referrerEmail}` },
+          { status: 400 },
+        );
+      }
+      update.referredByPersonId = ref[0].id;
+    }
   }
 
   const res = await db

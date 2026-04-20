@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import {
   assertFullAccess,
@@ -32,6 +32,10 @@ type LinkRow = {
   version: number;
   created_at: string;
   updated_at: string;
+  bypass_capacity: boolean;
+  referred_by_person_id: number | null;
+  referred_by_email: string | null;
+  referred_by_name: string | null;
   clicks: number;
   signups: number;
   sticky: number;
@@ -75,10 +79,13 @@ export async function GET(req: Request) {
     )
     SELECT
       l.*,
+      ref.email AS referred_by_email,
+      ref.name AS referred_by_name,
       COALESCE(c.clicks, 0) AS clicks,
       COALESCE(s.signups, 0) AS signups,
       COALESCE(s.sticky, 0) AS sticky
     FROM links l
+    LEFT JOIN people ref ON ref.id = l.referred_by_person_id
     LEFT JOIN link_click_counts c ON c.link_slug = l.slug
     LEFT JOIN link_signups s ON s.link_slug = l.slug
     ${statusFilter ? sql`WHERE l.status = ${statusFilter}` : sql``}
@@ -123,6 +130,8 @@ export async function POST(req: Request) {
     campaign?: string | null;
     resourceUrl?: string | null;
     note?: string | null;
+    bypassCapacity?: boolean;
+    referrerEmail?: string | null;
   };
 
   const destination = (body.destination ?? "").trim();
@@ -149,6 +158,26 @@ export async function POST(req: Request) {
   const campaign = normalizeOptional(body.campaign) ?? deriveCampaignFromDestination(destination);
   const resourceUrl = normalizeOptional(body.resourceUrl);
   const note = normalizeOptional(body.note);
+  const bypassCapacity = Boolean(body.bypassCapacity);
+
+  // Resolve the optional referrer email → person_id. Reject unknown
+  // emails with a clear 400 rather than silently dropping the referrer.
+  let referredByPersonId: number | null = null;
+  const referrerEmail = normalizeOptional(body.referrerEmail);
+  if (referrerEmail) {
+    const ref = await db
+      .select({ id: schema.people.id })
+      .from(schema.people)
+      .where(eq(schema.people.email, referrerEmail))
+      .limit(1);
+    if (ref.length === 0) {
+      return NextResponse.json(
+        { error: `referrer not found: ${referrerEmail}` },
+        { status: 400 },
+      );
+    }
+    referredByPersonId = ref[0].id;
+  }
 
   // Try to insert with a fresh slug; retry once on collision.
   // onConflictDoNothing only suppresses unique-violation on the slug PK —
@@ -171,6 +200,8 @@ export async function POST(req: Request) {
         createdBy: session.email,
         status: "active",
         version: 1,
+        bypassCapacity,
+        referredByPersonId,
       })
       .onConflictDoNothing({ target: schema.links.slug })
       .returning();
@@ -206,6 +237,10 @@ function serializeLink(r: LinkRow) {
     version: r.version,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    bypassCapacity: Boolean(r.bypass_capacity),
+    referredByPersonId: r.referred_by_person_id,
+    referredByEmail: r.referred_by_email,
+    referredByName: r.referred_by_name,
     clicks: Number(r.clicks),
     signups: Number(r.signups),
     sticky: Number(r.sticky),

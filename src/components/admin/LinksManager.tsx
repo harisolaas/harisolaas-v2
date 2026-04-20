@@ -29,6 +29,10 @@ interface LinkRow {
   clicks: number;
   signups: number;
   sticky: number;
+  bypassCapacity?: boolean;
+  referredByPersonId?: number | null;
+  referredByEmail?: string | null;
+  referredByName?: string | null;
 }
 
 type StatusFilter = "all" | "active" | "archived" | "disabled";
@@ -335,6 +339,15 @@ function CreateLinkForm({
   const [campaign, setCampaign] = useState<string>(initial?.campaign ?? "");
   const [resourceUrl, setResourceUrl] = useState<string>(initial?.resourceUrl ?? "");
   const [note, setNote] = useState<string>(initial?.note ?? "");
+  // Override-link fields: let a signup past a sold-out cap and stamp a
+  // referrer automatically on the resulting participation. Defaults off;
+  // most links are not override links.
+  const [bypassCapacity, setBypassCapacity] = useState<boolean>(
+    initial?.bypassCapacity ?? false,
+  );
+  const [referrerEmail, setReferrerEmail] = useState<string>(
+    initial?.referredByEmail ?? "",
+  );
   const [showMore, setShowMore] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -364,6 +377,8 @@ function CreateLinkForm({
           campaign: campaign.trim() || null,
           resourceUrl: resourceUrl.trim() || null,
           note: note.trim() || null,
+          bypassCapacity,
+          referrerEmail: referrerEmail.trim() || null,
         }),
       });
       const data = await res.json();
@@ -510,6 +525,36 @@ function CreateLinkForm({
                 className="w-full rounded-lg border border-sage/30 bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal/30"
               />
             </Field>
+            <div className="rounded-lg border border-terracotta/30 bg-terracotta/5 p-3">
+              <label className="flex items-start gap-2 text-sm text-charcoal">
+                <input
+                  type="checkbox"
+                  checked={bypassCapacity}
+                  onChange={(e) => setBypassCapacity(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="font-medium">Permitir inscripción aunque esté lleno</span>
+                  <span className="mt-1 block text-[11px] text-charcoal/50">
+                    Los clicks de este enlace pueden reservar aunque el cupo esté completo.
+                  </span>
+                </span>
+              </label>
+              <div className="mt-3">
+                <Field label="Atribuir a (email, opcional)">
+                  <input
+                    type="email"
+                    value={referrerEmail}
+                    onChange={(e) => setReferrerEmail(e.target.value)}
+                    placeholder="connie@ejemplo.com"
+                    className="w-full rounded-lg border border-sage/30 bg-white px-3 py-2 text-sm text-charcoal placeholder-charcoal/30"
+                  />
+                </Field>
+                <p className="mt-1 text-[11px] text-charcoal/50">
+                  Cada inscripción vía este enlace se atribuye a esta persona.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
