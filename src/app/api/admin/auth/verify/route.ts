@@ -5,11 +5,12 @@ import {
   buildSessionCookie,
   loadAdminUserByEmail,
 } from "@/lib/admin-auth";
+import { getRequestBaseUrl } from "@/lib/request-origin";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const token = url.searchParams.get("token") || "";
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+  const baseUrl = getRequestBaseUrl(req);
 
   if (!token) {
     return NextResponse.redirect(`${baseUrl}/admin/login?error=invalid`);
