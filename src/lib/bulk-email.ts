@@ -64,9 +64,9 @@ export async function sendBulkEmails<T>(
       continue;
     }
 
-    let result: CreateEmailResponse;
+    let sendResult: CreateEmailResponse | null = null;
     try {
-      result = await opts.resend.emails.send(opts.build(recipient));
+      sendResult = await opts.resend.emails.send(opts.build(recipient));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`${prefix} threw for ${email}:`, err);
@@ -74,25 +74,37 @@ export async function sendBulkEmails<T>(
         email,
         error: { name: "thrown", message, statusCode: null },
       });
-      if (throttle > 0 && i < opts.audience.length - 1) await sleep(throttle);
-      continue;
     }
 
-    if (result.error) {
+    if (sendResult?.error) {
       console.error(
-        `${prefix} failed for ${email}: ${result.error.name} — ${result.error.message}`,
+        `${prefix} failed for ${email}: ${sendResult.error.name} — ${sendResult.error.message}`,
       );
       failed.push({
         email,
         error: {
-          name: result.error.name,
-          message: result.error.message,
-          statusCode: result.error.statusCode ?? null,
+          name: sendResult.error.name,
+          message: sendResult.error.message,
+          statusCode: sendResult.error.statusCode ?? null,
         },
       });
-    } else {
-      if (opts.onSent) await opts.onSent(recipient);
+    } else if (sendResult) {
+      // The email went out — count as sent before onSent so a Redis hiccup
+      // in the callback doesn't drop the delivery from the tally. A thrown
+      // onSent leaves the idempotency flag unset (loud log, next retry
+      // will double-send this recipient) but never corrupts the counters
+      // or aborts the campaign mid-flight.
       sent++;
+      if (opts.onSent) {
+        try {
+          await opts.onSent(recipient);
+        } catch (err) {
+          console.error(
+            `${prefix} onSent failed for ${email} — email delivered but flag unset:`,
+            err,
+          );
+        }
+      }
     }
 
     if (throttle > 0 && i < opts.audience.length - 1) await sleep(throttle);

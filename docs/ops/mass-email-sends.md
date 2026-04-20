@@ -28,6 +28,13 @@ whenever a run finishes with `failed.length > 0` **or** a
 non-zero `audienceSize - sent - skipped` gap. Best-effort: never throws,
 so it can run at the tail of a cron handler without wrapping.
 
+**Caveat:** if Resend is rate-limiting the main campaign hard enough,
+the alert email itself can 429. That failure surfaces as
+`adminAlert: { notified: false, reason: "rate_limit_exceeded" }` in the
+cron handler's JSON response (also visible in Vercel logs). So: if a
+campaign ran and you didn't get an alert email in your inbox, don't
+conclude everything was fine — check the cron response first.
+
 ## Current bulk senders
 
 | Route | Campaign name | Idempotency key | Cron |

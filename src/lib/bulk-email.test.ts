@@ -137,6 +137,67 @@ describe("sendBulkEmails", () => {
     });
   });
 
+  it("counts a delivered email as sent even when onSent throws", async () => {
+    // Regression guard: a Redis hiccup in the idempotency callback must
+    // not abort the campaign mid-flight, drop the current send from the
+    // tally, or re-raise the error. The email already went out.
+    const sender = makeSender(() => ok());
+    const audience: Recipient[] = [
+      { email: "a@x.com", name: "A", rsvpId: "1" },
+      { email: "b@x.com", name: "B", rsvpId: "2" },
+    ];
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      const result = await sendBulkEmails({
+        audience,
+        resend: sender,
+        getEmail: (r) => r.email,
+        build: (r) => ({ from: "x", to: r.email, subject: "s", html: "<p/>" }),
+        onSent: () => {
+          throw new Error("redis down");
+        },
+        throttleMs: 0,
+      });
+
+      expect(result.sent).toBe(2);
+      expect(result.failed).toHaveLength(0);
+      expect(sender.calls).toHaveLength(2);
+      // Loud log for each failed onSent so the flag corruption is visible.
+      expect(
+        errorSpy.mock.calls.some((args) =>
+          String(args[0]).includes("onSent failed"),
+        ),
+      ).toBe(true);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("uses logPrefix when logging failures", async () => {
+    const sender = makeSender(() => rateLimited());
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    try {
+      await sendBulkEmails({
+        audience: [{ email: "a@x.com", name: "A", rsvpId: "1" }],
+        resend: sender,
+        getEmail: (r) => r.email,
+        build: (r) => ({ from: "x", to: r.email, subject: "s", html: "<p/>" }),
+        logPrefix: "custom-campaign",
+        throttleMs: 0,
+      });
+
+      expect(
+        errorSpy.mock.calls.some((args) =>
+          String(args[0]).startsWith("custom-campaign failed for"),
+        ),
+      ).toBe(true);
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it("throttles between sends but not after the last one", async () => {
     vi.useFakeTimers();
     try {

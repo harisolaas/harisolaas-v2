@@ -7,6 +7,9 @@ import { notifyAdminOfCampaign } from "@/lib/admin-alert";
 import { buildPlantReminderEmailHtml } from "./plant-email";
 
 const PLANT_EVENT_ID = "plant-2026-04";
+// One-shot campaign slug for the 2026-04-19 plantación. If this template ever
+// gets reused for another plantación, bump the date here AND update the cron
+// schedule + date guard in /api/cron/plant-reminder/route.ts.
 const CAMPAIGN = "plant-day-of-reminder-2026-04-19";
 const WA_SLUG = "email-plant-reminder-20260419";
 const WA_DESTINATION =
