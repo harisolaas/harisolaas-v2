@@ -2,9 +2,19 @@ import { Resend } from "resend";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
+import {
+  sendBulkEmails,
+  type BulkEmailFailure,
+  type BulkEmailWarning,
+} from "@/lib/bulk-email";
+import { notifyAdminOfCampaign } from "@/lib/admin-alert";
 import { buildPlantReminderEmailHtml } from "./plant-email";
 
 const PLANT_EVENT_ID = "plant-2026-04";
+// One-shot campaign slug for the 2026-04-19 plantación. If this template ever
+// gets reused for another plantación, bump the date here AND update the cron
+// schedule + date guard in /api/cron/plant-reminder/route.ts.
+const CAMPAIGN = "plant-day-of-reminder-2026-04-19";
 const WA_SLUG = "email-plant-reminder-20260419";
 const WA_DESTINATION =
   "https://wa.me/5491122555110?text=" +
@@ -23,8 +33,10 @@ export interface PlantReminderResult {
   audienceSample?: string[];
   sent?: number;
   skipped?: number;
-  failed?: { email: string; error: string }[];
+  failed?: BulkEmailFailure[];
+  warnings?: BulkEmailWarning[];
   override: boolean;
+  adminAlert?: { notified: boolean; reason?: string };
 }
 
 /**
@@ -32,8 +44,9 @@ export interface PlantReminderResult {
  *
  * Upserts a tracked `/go/<slug>` redirect to Hari's WhatsApp so clicks land
  * in `link_clicks`, then (in send mode) emails every confirmed plant
- * registrant. `audienceOverride` replaces the DB audience with a literal
- * list of emails — used for test sends and for the admin preview endpoint.
+ * registrant via the shared `sendBulkEmails` helper. `audienceOverride`
+ * replaces the DB audience with a literal list of emails — used for test
+ * sends and for the admin preview endpoint.
  */
 export async function runPlantReminderCampaign(opts: {
   mode: "preview" | "send";
@@ -133,30 +146,36 @@ export async function runPlantReminderCampaign(opts: {
   // flagged are skipped rather than re-emailed.
   const redis = await getRedis();
 
-  let sent = 0;
-  let skipped = 0;
-  const failed: { email: string; error: string }[] = [];
-
-  for (const { email, rsvpId, name } of audience) {
-    const flagKey = `plant:rsvp:${rsvpId}:day-of-reminder`;
-    if (await redis.get(flagKey)) {
-      skipped++;
-      continue;
-    }
-    try {
-      await resend.emails.send({
-        from: `BROTE <${fromEmail}>`,
-        to: email,
-        subject: SUBJECT,
-        html: buildPlantReminderEmailHtml(name, waUrl),
-      });
+  const result = await sendBulkEmails({
+    audience,
+    resend,
+    getEmail: (r) => r.email,
+    build: (r) => ({
+      from: `BROTE <${fromEmail}>`,
+      to: r.email,
+      subject: SUBJECT,
+      html: buildPlantReminderEmailHtml(r.name, waUrl),
+    }),
+    shouldSkip: async (r) => {
+      const flagKey = `plant:rsvp:${r.rsvpId}:day-of-reminder`;
+      return Boolean(await redis.get(flagKey));
+    },
+    onSent: async (r) => {
+      const flagKey = `plant:rsvp:${r.rsvpId}:day-of-reminder`;
       await redis.set(flagKey, "1");
-      sent++;
-    } catch (err) {
-      console.error(`plant reminder failed for ${email}:`, err);
-      failed.push({ email, error: String(err) });
-    }
-  }
+    },
+    logPrefix: "plant-reminder",
+  });
+
+  const adminAlert = await notifyAdminOfCampaign({
+    campaign: CAMPAIGN,
+    audienceSize: audience.length,
+    sent: result.sent,
+    skipped: result.skipped,
+    failed: result.failed,
+    warnings: result.warnings,
+    note: override ? "Run used audienceOverride (not the full DB audience)." : undefined,
+  });
 
   return {
     ok: true,
@@ -165,9 +184,11 @@ export async function runPlantReminderCampaign(opts: {
     waSlug: WA_SLUG,
     waUrl,
     audienceSize: audience.length,
-    sent,
-    skipped,
-    failed,
+    sent: result.sent,
+    skipped: result.skipped,
+    failed: result.failed,
+    warnings: result.warnings,
     override,
+    adminAlert,
   };
 }
