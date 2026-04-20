@@ -36,7 +36,7 @@ function LoginForm() {
     <main className="flex min-h-screen items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <h1 className="text-center font-serif text-3xl text-forest">
-          BROTE Admin
+          Comunidad &ldquo;harisolaas&rdquo; Admin
         </h1>
 
         {urlError === "invalid" && status === "idle" && (
