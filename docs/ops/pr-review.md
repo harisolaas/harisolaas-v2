@@ -24,19 +24,33 @@ Every PR benefits. Skipping the cycle means shipping worse code.
 
 ## The cycle
 
-### 1. Open the PR
+### 1. Open the PR and explicitly request Copilot
 
 ```sh
 gh pr create --title "..." --body "..."
 ```
 
-Copilot is configured as an auto-reviewer in this repo's GitHub settings
-— the PR view will show `copilot-pull-request-reviewer (Requested)`
-immediately. **No explicit `--reviewer` flag needed.** If that request
-is ever missing (settings change), add it manually:
+Then request Copilot as a reviewer. **This is not automatic** —
+observed empirically, GitHub's background code-review bot fires on
+some PRs but not others (code changes usually, docs-only sometimes
+never). Request explicitly so the cycle is deterministic:
 
 ```sh
-gh pr edit <N> --add-reviewer copilot-pull-request-reviewer
+gh api repos/harisolaas/harisolaas-v2/pulls/<N>/requested_reviewers \
+  -X POST -f 'reviewers[]=copilot-pull-request-reviewer[bot]'
+```
+
+The `[bot]` suffix is required — that's how GitHub's reviewer-request
+API disambiguates the Copilot app from a regular user account (the
+plain `copilot-pull-request-reviewer` login is not a repo collaborator
+and the request will 422 without the suffix).
+
+Verify the request took:
+
+```sh
+gh pr view <N> --json reviewRequests \
+  --jq '.reviewRequests[].login'
+# → "Copilot"
 ```
 
 ### 2. Self-review in parallel with Copilot
