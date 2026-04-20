@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertEventAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 
 const VALID_STATUSES = new Set([
   "pending",
@@ -18,10 +21,24 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireAdminSession(req);
+  const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
 
   const { id } = await params;
+
+  // Look up the target participation's eventId before writing so we can
+  // deny writes to out-of-scope events. 404 (not 403) for scoped users so
+  // we don't disclose which IDs exist in other events.
+  const existing = await db
+    .select({ eventId: schema.participations.eventId })
+    .from(schema.participations)
+    .where(eq(schema.participations.id, id))
+    .limit(1);
+  if (existing.length === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const denied = assertEventAccess(session, existing[0].eventId);
+  if (denied) return denied;
   const body = (await req.json()) as {
     referredByPersonId?: number | null;
     referralNote?: string | null;

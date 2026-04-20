@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertFullAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 import {
   CHANNELS,
   deriveCampaignFromDestination,
@@ -39,6 +42,8 @@ type LinkRow = {
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get("status");
@@ -105,8 +110,10 @@ export async function GET(req: Request) {
 
 // POST /api/admin/links — create
 export async function POST(req: Request) {
-  const session = await requireAdminSession(req);
+  const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
+  const denied = assertFullAccess(session);
+  if (denied) return denied;
 
   const body = (await req.json()) as {
     destination?: string;

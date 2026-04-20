@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { asc, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import {
+  assertEventAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 
 const PLANT_EVENT_ID = "plant-2026-04";
 
@@ -10,6 +13,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+  const denied = assertEventAccess(session, PLANT_EVENT_ID);
+  if (denied) return denied;
 
   const rows = await db
     .select({

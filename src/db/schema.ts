@@ -306,6 +306,64 @@ export const participations = pgTable(
   ],
 );
 
+// ============================================================
+// admin_users — dashboard collaborators with per-event scoping
+// ============================================================
+// Seeded from the ADMIN_EMAILS env var on first deploy; that env var
+// remains as an emergency fallback so the repo owner can never lock
+// themselves out if this table is empty.
+export const adminUsers = pgTable(
+  "admin_users",
+  {
+    id: bigserial({ mode: "number" }).primaryKey(),
+    email: citext().notNull().unique(),
+    role: text().notNull().default("viewer"),
+    scope: text().notNull().default("scoped"),
+    createdByEmail: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      "admin_users_role_check",
+      sql`${t.role} IN ('owner','editor','viewer')`,
+    ),
+    check(
+      "admin_users_scope_check",
+      sql`${t.scope} IN ('all','scoped')`,
+    ),
+    // Owners must always have full access — a "scoped owner" is nonsense
+    // because owners are the only role that can grant scopes.
+    check(
+      "admin_users_owner_scope_check",
+      sql`${t.role} <> 'owner' OR ${t.scope} = 'all'`,
+    ),
+  ],
+);
+
+// ============================================================
+// admin_user_event_scopes — which events each scoped admin can access
+// ============================================================
+// Rows only matter when admin_users.scope='scoped'. Owners (scope='all')
+// don't need rows here; an empty list for a scoped user means "no access
+// to any event" (the user exists but has no grants yet).
+export const adminUserEventScopes = pgTable(
+  "admin_user_event_scopes",
+  {
+    adminUserId: bigint({ mode: "number" })
+      .notNull()
+      .references(() => adminUsers.id, { onDelete: "cascade" }),
+    eventId: text()
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.adminUserId, t.eventId] }),
+    index("admin_user_event_scopes_event_idx").on(t.eventId),
+  ],
+);
+
 // Exported types for application code.
 export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
@@ -323,3 +381,7 @@ export type Link = typeof links.$inferSelect;
 export type NewLink = typeof links.$inferInsert;
 export type LinkClick = typeof linkClicks.$inferSelect;
 export type NewLinkClick = typeof linkClicks.$inferInsert;
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type NewAdminUser = typeof adminUsers.$inferInsert;
+export type AdminUserEventScope = typeof adminUserEventScopes.$inferSelect;
+export type NewAdminUserEventScope = typeof adminUserEventScopes.$inferInsert;

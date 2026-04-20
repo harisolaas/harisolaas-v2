@@ -20,5 +20,11 @@ export default async function AdminPage() {
     redirect("/admin/login");
   }
 
-  return <ComunidadShell email={session.email} />;
+  return (
+    <ComunidadShell
+      email={session.email}
+      role={session.role}
+      scope={session.scope}
+    />
+  );
 }

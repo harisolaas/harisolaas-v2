@@ -3,6 +3,7 @@ import {
   verifyMagicLinkToken,
   createSession,
   buildSessionCookie,
+  loadAdminUserByEmail,
 } from "@/lib/admin-auth";
 
 export async function GET(req: Request) {
@@ -19,7 +20,14 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${baseUrl}/admin/login?error=invalid`);
   }
 
-  const sessionId = await createSession(email);
+  // Re-check authorization at verify time. A row might have been removed
+  // between magic-link request and click.
+  const user = await loadAdminUserByEmail(email);
+  if (!user) {
+    return NextResponse.redirect(`${baseUrl}/admin/login?error=unauthorized`);
+  }
+
+  const sessionId = await createSession({ email, ...user });
   const response = NextResponse.redirect(`${baseUrl}/admin`);
   response.headers.set("Set-Cookie", buildSessionCookie(sessionId));
   return response;

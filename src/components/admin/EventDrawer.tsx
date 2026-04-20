@@ -52,9 +52,11 @@ const ATTENDABLE_STATUSES = new Set(["confirmed", "used", "no_show"]);
 
 export default function EventDrawer({
   eventId,
+  canWrite = true,
   onClose,
 }: {
   eventId: string;
+  canWrite?: boolean;
   onClose: () => void;
 }) {
   const [data, setData] = useState<EventDetail | null>(null);
@@ -310,12 +312,12 @@ export default function EventDrawer({
                           )}
                         </div>
                         <div className="flex items-center gap-3">
-                          {!canToggle && (
+                          {(!canToggle || !canWrite) && (
                             <span className="text-[11px] uppercase text-charcoal/50">
                               {p.status}
                             </span>
                           )}
-                          {canToggle && (
+                          {canToggle && canWrite && (
                             <button
                               type="button"
                               onClick={() =>

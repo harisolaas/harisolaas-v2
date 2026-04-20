@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/admin-api-auth";
+import { eq } from "drizzle-orm";
+import { db, schema } from "@/db";
+import {
+  assertEventAccess,
+  requireAdminSession,
+} from "@/lib/admin-api-auth";
 import {
   CapacityReachedError,
   promoteWaitlist,
@@ -11,10 +16,22 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireAdminSession(req);
+  const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
 
   const { id } = await params;
+
+  const existing = await db
+    .select({ eventId: schema.participations.eventId })
+    .from(schema.participations)
+    .where(eq(schema.participations.id, id))
+    .limit(1);
+  if (existing.length === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const denied = assertEventAccess(session, existing[0].eventId);
+  if (denied) return denied;
+
   const body = (await req.json().catch(() => ({}))) as {
     externalPaymentId?: string;
     priceCents?: number;
