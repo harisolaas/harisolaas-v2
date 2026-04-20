@@ -141,7 +141,9 @@ export async function validateSession(
   try {
     const parsed = JSON.parse(raw) as Partial<AdminSession>;
     // Reject old-shape sessions (missing role/scope) — forces a clean
-    // re-login after the enrichment deploy. See docs/ops/rollout-checklist.md.
+    // re-login after the enrichment deploy. The PR description's deploy
+    // sequence includes a one-shot `redis-cli DEL admin:session:*` to
+    // accelerate this rather than waiting for natural expiry.
     if (
       !parsed.email ||
       !parsed.role ||
