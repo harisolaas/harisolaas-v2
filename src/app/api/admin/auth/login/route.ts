@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { isAllowedEmail, createMagicLinkToken } from "@/lib/admin-auth";
 import { buildMagicLinkEmailHtml } from "@/lib/admin-email";
+import { getRequestBaseUrl } from "@/lib/request-origin";
 
 let _resend: Resend | null = null;
 function getResend() {
@@ -23,16 +24,7 @@ export async function POST(req: Request) {
     }
 
     const token = await createMagicLinkToken(normalized);
-    // Derive the origin from the request so preview deploys get links
-    // back to themselves instead of prod. `NEXT_PUBLIC_BASE_URL` is the
-    // prod domain on every Vercel deploy, so using it here meant clicking
-    // the magic link always landed you on prod regardless of which
-    // deploy you requested it from.
-    const host = req.headers.get("host");
-    const proto = req.headers.get("x-forwarded-proto") ?? "https";
-    const baseUrl = host
-      ? `${proto}://${host}`
-      : process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+    const baseUrl = getRequestBaseUrl(req);
     const loginUrl = `${baseUrl}/api/admin/auth/verify?token=${token}`;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
