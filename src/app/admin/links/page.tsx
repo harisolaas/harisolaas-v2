@@ -15,6 +15,12 @@ export default async function AdminLinksPage() {
   if (!session) {
     redirect("/admin/login");
   }
+  // Links are cross-event. Scoped collaborators 403 at the API anyway;
+  // bounce them back to the dashboard instead of rendering a shell that
+  // immediately fails to load data.
+  if (session.scope !== "all") {
+    redirect("/admin");
+  }
 
   return <LinksManager email={session.email} />;
 }

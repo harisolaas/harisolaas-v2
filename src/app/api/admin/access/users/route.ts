@@ -103,7 +103,10 @@ export async function POST(req: Request) {
       ? Array.from(new Set(body.allowedEventIds.filter(Boolean)))
       : [];
 
-  const [created] = await db
+  // onConflictDoNothing + empty returning = pre-existing email. Cleaner
+  // than catching a unique-violation pg error code, which the drizzle/neon
+  // driver chain doesn't always surface with a stable shape.
+  const inserted = await db
     .insert(schema.adminUsers)
     .values({
       email,
@@ -111,11 +114,9 @@ export async function POST(req: Request) {
       scope: body.scope,
       createdByEmail: session.email,
     })
-    .returning()
-    .catch((err: Error & { code?: string }) => {
-      if (err.code === "23505") return []; // unique_violation on email
-      throw err;
-    });
+    .onConflictDoNothing({ target: schema.adminUsers.email })
+    .returning();
+  const created = inserted[0];
   if (!created) {
     return NextResponse.json(
       { error: "email already exists" },

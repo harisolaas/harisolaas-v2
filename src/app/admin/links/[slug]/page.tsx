@@ -19,6 +19,9 @@ export default async function AdminLinkDetailPage({
   if (!session) {
     redirect("/admin/login");
   }
+  if (session.scope !== "all") {
+    redirect("/admin");
+  }
 
   const { slug } = await params;
   return <LinkDetail slug={slug} email={session.email} />;

@@ -70,6 +70,21 @@ export async function PATCH(
     );
   }
 
+  // Block owners from demoting themselves — that's a lock-out risk. If
+  // they genuinely need to hand off, another owner has to do it. (Env
+  // ADMIN_EMAILS would still rescue them, but silent self-lockouts are
+  // worth surfacing explicitly.)
+  if (
+    session.userId === id &&
+    (current.role as AdminRole) === "owner" &&
+    nextRole !== "owner"
+  ) {
+    return NextResponse.json(
+      { error: "owners cannot demote themselves — ask another owner" },
+      { status: 400 },
+    );
+  }
+
   if (body.role !== undefined) update.role = nextRole;
   if (body.scope !== undefined) update.scope = nextScope;
 
