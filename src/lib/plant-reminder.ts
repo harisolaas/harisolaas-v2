@@ -2,7 +2,11 @@ import { Resend } from "resend";
 import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
-import { sendBulkEmails } from "@/lib/bulk-email";
+import {
+  sendBulkEmails,
+  type BulkEmailFailure,
+  type BulkEmailWarning,
+} from "@/lib/bulk-email";
 import { notifyAdminOfCampaign } from "@/lib/admin-alert";
 import { buildPlantReminderEmailHtml } from "./plant-email";
 
@@ -29,8 +33,8 @@ export interface PlantReminderResult {
   audienceSample?: string[];
   sent?: number;
   skipped?: number;
-  failed?: { email: string; error: string }[];
-  warnings?: { email: string; reason: string }[];
+  failed?: BulkEmailFailure[];
+  warnings?: BulkEmailWarning[];
   override: boolean;
   adminAlert?: { notified: boolean; reason?: string };
 }
@@ -182,10 +186,7 @@ export async function runPlantReminderCampaign(opts: {
     audienceSize: audience.length,
     sent: result.sent,
     skipped: result.skipped,
-    failed: result.failed.map((f) => ({
-      email: f.email,
-      error: `${f.error.name}: ${f.error.message}`,
-    })),
+    failed: result.failed,
     warnings: result.warnings,
     override,
     adminAlert,

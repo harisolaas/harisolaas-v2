@@ -91,10 +91,7 @@ export async function GET(req: Request) {
       skipped: result.skipped,
       failed: result.failed,
       warnings: result.warnings,
-      note:
-        missingEmail > 0
-          ? `${missingEmail} confirmed attendees had no email on file and were not in the audience.`
-          : undefined,
+      missingEmails: missingEmail,
     });
 
     // `skipped` reflects the send loop only (already-flagged recipients) so

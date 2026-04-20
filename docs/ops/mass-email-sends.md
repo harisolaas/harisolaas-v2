@@ -38,16 +38,21 @@ The admin recipient is configured via the `ADMIN_ALERT_EMAIL` env var
 (falls back to `h.solaas1@gmail.com` if unset — preserves current prod
 behavior but should be set explicitly on any fork / new deployment).
 
-Three distinct alert conditions, each actionable in a different way:
+Four distinct alert conditions, each actionable in a different way:
 
 - **`failed.length > 0`** — emails that didn't go out. Classify by
   error code and retry (see recovery).
 - **`warnings.length > 0`** — emails that went out but whose
   idempotency flag didn't get set. **Do NOT clear flags and retry.**
-- **`gap = audienceSize - sent - skipped - failed.length > 0`** —
-  every recipient should end up in exactly one bucket. `gap > 0`
-  means the helper lost track of someone. Real bug — investigate in
-  Vercel logs, don't just retry.
+- **`gap = audienceSize - sent - skipped - failed.length ≠ 0`** —
+  every recipient should end up in exactly one bucket. `gap ≠ 0` means
+  counts don't reconcile (positive = lost recipients, negative =
+  double-counting). Real bug — investigate in Vercel logs, don't just
+  retry.
+- **`missingEmails > 0`** — confirmed attendees that never entered
+  the audience because they have no email on file. Surfaces data
+  quality issues the helper can't see. Fix the `people` table (or
+  whatever upstream source) before the next run.
 
 **Caveat:** if Resend is rate-limiting the main campaign hard enough,
 the alert email itself can 429. That failure surfaces as

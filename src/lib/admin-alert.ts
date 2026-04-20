@@ -12,6 +12,11 @@ export interface CampaignAlertInput {
   skipped: number;
   failed: BulkEmailFailure[];
   warnings?: BulkEmailWarning[];
+  // Recipients that SHOULD have been contacted but were never in the
+  // audience (e.g. confirmed attendees with no email on file). Surfaces
+  // pre-filter data-quality issues that would otherwise go unreported
+  // since the helper never sees them.
+  missingEmails?: number;
   // Optional extras surfaced in the body so the runbook has context.
   note?: string;
 }
@@ -30,16 +35,22 @@ export async function notifyAdminOfCampaign(
   input: CampaignAlertInput,
 ): Promise<{ notified: boolean; reason?: string }> {
   const warnings = input.warnings ?? [];
+  const missingEmails = input.missingEmails ?? 0;
   // Reconciliation gap: every recipient should land in exactly one bucket
-  // (sent, skipped, or failed). `gap > 0` means the helper lost track of
-  // someone — a real bug, distinct from explicit API failures.
+  // (sent, skipped, or failed). gap != 0 means counts don't reconcile —
+  // positive = lost recipients, negative = double-counting — either way
+  // a real bug, distinct from explicit API failures.
   const gap = input.audienceSize - input.sent - input.skipped - input.failed.length;
   const hasFailures = input.failed.length > 0;
   const hasWarnings = warnings.length > 0;
-  const hasGap = gap > 0;
+  const hasGap = gap !== 0;
+  const hasMissingEmails = missingEmails > 0;
 
-  if (!hasFailures && !hasWarnings && !hasGap) {
-    return { notified: false, reason: "no failures, no warnings, no gap" };
+  if (!hasFailures && !hasWarnings && !hasGap && !hasMissingEmails) {
+    return {
+      notified: false,
+      reason: "no failures, warnings, gap, or missing emails",
+    };
   }
 
   const apiKey = process.env.RESEND_API_KEY;
@@ -54,7 +65,8 @@ export async function notifyAdminOfCampaign(
   const subjectBits: string[] = [];
   if (hasFailures) subjectBits.push(`${input.failed.length} fallos`);
   if (hasWarnings) subjectBits.push(`${warnings.length} warnings`);
-  if (hasGap) subjectBits.push(`${gap} sin cuenta`);
+  if (hasGap) subjectBits.push(`gap ${gap}`);
+  if (hasMissingEmails) subjectBits.push(`${missingEmails} sin email`);
   const subject = `[alerta] ${input.campaign}: ${subjectBits.join(", ")}`;
 
   try {
@@ -62,7 +74,7 @@ export async function notifyAdminOfCampaign(
       from: `Harisolaas alerts <${from}>`,
       to: adminEmail,
       subject,
-      html: buildAlertHtml(input, warnings, gap),
+      html: buildAlertHtml(input, warnings, gap, missingEmails),
     });
     if (result.error) {
       console.error(
@@ -84,6 +96,7 @@ function buildAlertHtml(
   input: CampaignAlertInput,
   warnings: BulkEmailWarning[],
   gap: number,
+  missingEmails: number,
 ): string {
   const failedRows = input.failed
     .slice(0, 50)
@@ -122,7 +135,8 @@ function buildAlertHtml(
     <tr><td style="padding:4px 12px 4px 0;color:#888">Skipped (ya enviados)</td><td>${input.skipped}</td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#888">Fallos de envío</td><td style="color:${input.failed.length > 0 ? "#C4704B" : "#2D4A3E"}"><strong>${input.failed.length}</strong></td></tr>
     <tr><td style="padding:4px 12px 4px 0;color:#888">Warnings (entregados, flag sin setear)</td><td style="color:${warnings.length > 0 ? "#C4704B" : "#2D4A3E"}"><strong>${warnings.length}</strong></td></tr>
-    <tr><td style="padding:4px 12px 4px 0;color:#888">Gap de reconciliación</td><td style="color:${gap > 0 ? "#C4704B" : "#2D4A3E"}"><strong>${gap}</strong></td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#888">Gap de reconciliación</td><td style="color:${gap !== 0 ? "#C4704B" : "#2D4A3E"}"><strong>${gap}</strong></td></tr>
+    <tr><td style="padding:4px 12px 4px 0;color:#888">Confirmados sin email</td><td style="color:${missingEmails > 0 ? "#C4704B" : "#2D4A3E"}"><strong>${missingEmails}</strong></td></tr>
   </table>
   ${input.note ? `<p style="margin:0 0 16px;color:#444;font-size:13px">${escapeHtml(input.note)}</p>` : ""}
   ${
@@ -145,8 +159,17 @@ function buildAlertHtml(
       : ""
   }
   ${
-    gap > 0
-      ? `<p style="color:#C4704B;font-size:13px"><strong>Gap ${gap}</strong>: hay recipients que no terminaron en ninguna categoría. Revisá los logs del cron; puede ser un bug en el helper.</p>`
+    gap !== 0
+      ? `<p style="color:#C4704B;font-size:13px"><strong>Gap ${gap}</strong>: ${
+          gap > 0
+            ? "hay recipients que no terminaron en ninguna categoría"
+            : "las cuentas dan más que la audiencia (doble conteo)"
+        }. Revisá los logs del cron; puede ser un bug en el helper.</p>`
+      : ""
+  }
+  ${
+    missingEmails > 0
+      ? `<p style="color:#C4704B;font-size:13px"><strong>${missingEmails} sin email</strong>: hay confirmados cuyo contacto no se conoce y no entraron en la audiencia. Revisá la tabla <code>people</code> y completá los datos antes de la próxima corrida.</p>`
       : ""
   }
 </div>
