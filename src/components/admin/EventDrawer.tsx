@@ -44,7 +44,11 @@ interface EventDetail {
   }[];
 }
 
-const ATTENDABLE_STATUSES = new Set(["confirmed", "used"]);
+// Statuses where it makes sense to toggle attendance from the drawer.
+// `no_show` is included so operators can reverse a mistake. Waitlist,
+// cancelled, and pending are excluded — you wouldn't mark someone
+// attended if they weren't confirmed in the first place.
+const ATTENDABLE_STATUSES = new Set(["confirmed", "used", "no_show"]);
 
 export default function EventDrawer({
   eventId,
@@ -58,6 +62,8 @@ export default function EventDrawer({
   // Track pending toggles so the row can show a subtle "saving…" state
   // without blocking the rest of the list.
   const [pending, setPending] = useState<Set<string>>(new Set());
+  // Per-row error message, cleared on next successful toggle or close.
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -75,6 +81,12 @@ export default function EventDrawer({
     async (participationId: string, currentStatus: string) => {
       const nextStatus = currentStatus === "used" ? "confirmed" : "used";
       setPending((p) => new Set(p).add(participationId));
+      setErrors((e) => {
+        if (!e[participationId]) return e;
+        const n = { ...e };
+        delete n[participationId];
+        return n;
+      });
       try {
         const res = await fetch(
           `/api/admin/participations/${participationId}`,
@@ -85,10 +97,23 @@ export default function EventDrawer({
           },
         );
         if (!res.ok) {
-          if (res.status === 401) window.location.href = "/admin/login";
+          if (res.status === 401) {
+            window.location.href = "/admin/login";
+            return;
+          }
+          setErrors((e) => ({
+            ...e,
+            [participationId]: `No se pudo guardar (${res.status}). Reintentá.`,
+          }));
           return;
         }
         await load();
+      } catch (err) {
+        setErrors((e) => ({
+          ...e,
+          [participationId]:
+            err instanceof Error ? err.message : "Error de red. Reintentá.",
+        }));
       } finally {
         setPending((p) => {
           const n = new Set(p);
@@ -275,6 +300,14 @@ export default function EventDrawer({
                               Asistió {formatDateTimeArg(p.usedAt)}
                             </p>
                           )}
+                          {errors[p.participationId] && (
+                            <p
+                              role="alert"
+                              className="mt-0.5 text-[10px] text-terracotta"
+                            >
+                              {errors[p.participationId]}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           {!canToggle && (
@@ -290,8 +323,9 @@ export default function EventDrawer({
                               }
                               disabled={isPending}
                               aria-pressed={attended}
+                              aria-busy={isPending}
                               className={
-                                "min-w-[90px] rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition " +
+                                "min-w-[110px] rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition " +
                                 (attended
                                   ? "border-forest bg-forest text-cream hover:bg-forest/90"
                                   : "border-sage/40 bg-white text-charcoal/70 hover:border-forest/40 hover:text-forest") +
@@ -299,7 +333,7 @@ export default function EventDrawer({
                               }
                             >
                               {isPending
-                                ? "…"
+                                ? "Guardando…"
                                 : attended
                                   ? "Asistió"
                                   : "Marcar"}
@@ -321,12 +355,14 @@ export default function EventDrawer({
 
 function formatDateTimeArg(iso: string): string {
   // The API returns UTC timestamps; render in ART so operators see the wall
-  // clock they were using at the event.
+  // clock they were using at the event. Include the year so stamps are
+  // unambiguous across repeated event editions (e.g. plantación 2026 vs 2027).
   const d = new Date(iso);
   return d.toLocaleString("es-AR", {
     timeZone: "America/Argentina/Buenos_Aires",
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
