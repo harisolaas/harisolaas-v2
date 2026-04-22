@@ -264,10 +264,14 @@ async function sendErratum(
   }
 }
 
-// One-off "extras" email for the first Sinergia session — adds the
-// notebook/book/pen reminder plus the optional-dinner menu CTA. The CTA
-// routes through /api/sinergia/menu-click so we can see who asked for the
-// menu by inspecting the `sinergia:menu-clicks:{sessionDate}` Redis SET.
+// Day-of "extras" email — adds the notebook/book/pen reminder plus the
+// optional-dinner menu CTA. The CTA routes through /api/sinergia/menu-click
+// so we can see who asked for the menu by inspecting the
+// `sinergia:menu-clicks:{sessionDate}` Redis SET.
+//
+// The template copy assumes day-of delivery ("Hoy arrancamos" / "Cuándo:
+// Hoy"). `sessionDateParam` exists to pin the event row, not to schedule
+// the mail for a future date — only trigger this on the session date.
 async function handleSendFirstSessionExtras(sessionDateParam?: string) {
   const sessionDate = sessionDateParam ?? nextSinergiaDate();
   const eventId = `sinergia-${sessionDate}`;

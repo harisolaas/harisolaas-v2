@@ -97,6 +97,10 @@ interface FirstSessionExtrasParams {
   menuLink: string;
 }
 
+// Day-of "extras" email. Copy ("Hoy arrancamos", "Cuándo: Hoy") assumes
+// it's sent on the session date itself. The admin action accepts a
+// `sessionDate` override only so we can target a specific event; do NOT
+// trigger this template against a future date — the copy will mislead.
 export function buildSinergiaFirstSessionExtrasEmailHtml({
   name,
   menuLink,
