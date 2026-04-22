@@ -67,10 +67,17 @@ conclude everything was fine — check the cron response first.
 |---|---|---|---|
 | `src/lib/plant-reminder.ts` (via `/api/cron/plant-reminder`) | `plant-day-of-reminder-2026-04-19` | `plant:rsvp:<rsvpId>:day-of-reminder` | `0 13 19 4 *` (one-shot, 2026-04-19) |
 | `src/app/api/sinergia/send-reminders/route.ts` | `sinergia-reminder-<YYYY-MM-DD>` | `sinergia:rsvp:<rsvpId>:reminder` | `0 13 * * 3` (weekly, Wednesdays) |
+| `src/app/api/sinergia/admin/route.ts` (`send-first-session-extras`) | `sinergia-first-session-extras-<YYYY-MM-DD>` | `sinergia:rsvp:<rsvpId>:first-session-extra` | admin-triggered (one-off) |
 
 `src/app/api/brote/admin/route.ts` also has a `plant-send-reminder`
 admin action that wraps `runPlantReminderCampaign` — useful for preview
 mode and for re-running with an `audienceOverride`.
+
+The `send-first-session-extras` action also embeds a trackable WhatsApp
+link (`/api/sinergia/menu-click?r=<rsvpId>&s=<sessionDate>`) in the email
+body. Clicks land in Redis as `sinergia:menu-click:<sessionDate>:<rsvpId>`
+(first-click timestamp) and `sinergia:menu-clicks:<sessionDate>` (SET of
+rsvpIds) before the 302 to `wa.me`.
 
 ## Adding a new bulk send
 

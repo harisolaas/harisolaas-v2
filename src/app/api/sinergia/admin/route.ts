@@ -4,8 +4,13 @@ import { and, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { sinergiaConfig } from "@/data/sinergia";
-import { formatSessionDateEs } from "@/lib/sinergia-types";
-import { buildSinergiaErratumEmailHtml } from "@/lib/sinergia-email";
+import { formatSessionDateEs, nextSinergiaDate } from "@/lib/sinergia-types";
+import {
+  buildSinergiaErratumEmailHtml,
+  buildSinergiaFirstSessionExtrasEmailHtml,
+} from "@/lib/sinergia-email";
+import { sendBulkEmails } from "@/lib/bulk-email";
+import { notifyAdminOfCampaign } from "@/lib/admin-alert";
 
 // POST /api/sinergia/admin
 // Bearer $BROTE_ADMIN_SECRET
@@ -13,6 +18,7 @@ import { buildSinergiaErratumEmailHtml } from "@/lib/sinergia-email";
 // Actions:
 //   { action: "migrate-to-first-session", fromDate?: "YYYY-MM-DD" }
 //   { action: "send-erratum", emails: string[], oldDate: "YYYY-MM-DD" }
+//   { action: "send-first-session-extras", sessionDate?: "YYYY-MM-DD" }
 //
 // Erratum-sent state is kept in Redis (`sinergia:rsvp:{id}:erratum-sent`)
 // as a simple idempotency flag; entity data (RSVPs, sessions) lives in
@@ -27,6 +33,7 @@ export async function POST(req: Request) {
     action?: string;
     fromDate?: string;
     oldDate?: string;
+    sessionDate?: string;
     emails?: string[];
   };
   try {
@@ -44,6 +51,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "emails[] required" }, { status: 400 });
     }
     return handleSendErratum(body.emails, body.oldDate ?? "2026-04-15");
+  }
+
+  if (body.action === "send-first-session-extras") {
+    return handleSendFirstSessionExtras(body.sessionDate);
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
@@ -250,6 +261,107 @@ async function sendErratum(
     return { ok: true };
   } catch (err) {
     return { ok: false, reason: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// Day-of "extras" email — adds the notebook/book/pen reminder plus the
+// optional-dinner menu CTA. The CTA routes through /api/sinergia/menu-click
+// so we can see who asked for the menu by inspecting the
+// `sinergia:menu-clicks:{sessionDate}` Redis SET.
+//
+// The template copy assumes day-of delivery ("Hoy arrancamos" / "Cuándo:
+// Hoy"). `sessionDateParam` exists to pin the event row, not to schedule
+// the mail for a future date — only trigger this on the session date.
+async function handleSendFirstSessionExtras(sessionDateParam?: string) {
+  const sessionDate = sessionDateParam ?? nextSinergiaDate();
+  const eventId = `sinergia-${sessionDate}`;
+
+  try {
+    const attendees = await db
+      .select({
+        rsvpId: schema.participations.id,
+        email: schema.people.email,
+        name: schema.people.name,
+      })
+      .from(schema.participations)
+      .innerJoin(
+        schema.people,
+        eq(schema.people.id, schema.participations.personId),
+      )
+      .where(
+        and(
+          eq(schema.participations.eventId, eventId),
+          eq(schema.participations.status, "confirmed"),
+        ),
+      );
+
+    const audience = attendees.filter(
+      (a): a is typeof a & { email: string } => Boolean(a.email),
+    );
+    const missingEmail = attendees.length - audience.length;
+
+    const redis = await getRedis();
+    const resend = new Resend(process.env.RESEND_API_KEY!);
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+
+    const result = await sendBulkEmails({
+      audience,
+      resend,
+      getEmail: (a) => a.email,
+      build: (a) => {
+        const menuLink = `${baseUrl}/api/sinergia/menu-click?r=${encodeURIComponent(
+          a.rsvpId,
+        )}&s=${encodeURIComponent(sessionDate)}`;
+        return {
+          from: `Sinergia <${fromEmail}>`,
+          to: a.email,
+          subject: "Hoy · qué llevar para Sinergia (y una opción para la cena)",
+          html: buildSinergiaFirstSessionExtrasEmailHtml({
+            name: a.name,
+            menuLink,
+          }),
+        };
+      },
+      shouldSkip: async (a) =>
+        Boolean(
+          await redis.get(`sinergia:rsvp:${a.rsvpId}:first-session-extra`),
+        ),
+      onSent: async (a) => {
+        await redis.set(
+          `sinergia:rsvp:${a.rsvpId}:first-session-extra`,
+          "1",
+        );
+      },
+      logPrefix: "sinergia-first-session-extras",
+    });
+
+    const adminAlert = await notifyAdminOfCampaign({
+      campaign: `sinergia-first-session-extras-${sessionDate}`,
+      audienceSize: audience.length,
+      sent: result.sent,
+      skipped: result.skipped,
+      failed: result.failed,
+      warnings: result.warnings,
+      missingEmails: missingEmail,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      sessionDate,
+      total: attendees.length,
+      audienceSize: audience.length,
+      missingEmail,
+      sent: result.sent,
+      skipped: result.skipped,
+      failed: result.failed,
+      warnings: result.warnings,
+      adminAlert,
+    });
+  } catch (err) {
+    console.error("Sinergia admin send-first-session-extras failed:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 

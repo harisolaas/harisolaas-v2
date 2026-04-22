@@ -92,6 +92,94 @@ export function buildSinergiaReminderEmailHtml({
 </html>`;
 }
 
+interface FirstSessionExtrasParams {
+  name: string;
+  menuLink: string;
+}
+
+// Day-of "extras" email. Copy ("Hoy arrancamos", "Cuándo: Hoy") assumes
+// it's sent on the session date itself. The admin action accepts a
+// `sessionDate` override only so we can target a specific event; do NOT
+// trigger this template against a future date — the copy will mislead.
+export function buildSinergiaFirstSessionExtrasEmailHtml({
+  name,
+  menuLink,
+}: FirstSessionExtrasParams): string {
+  const { time, exactAddress, exactAddressMapLink, venueName } = sinergiaConfig;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
+<tr><td align="center" style="padding:40px 16px">
+<table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(14,107,168,0.10)">
+
+<tr><td style="background:${BLUE};padding:40px 24px;text-align:center">
+  <p style="margin:0 0 8px;color:${CREAM};font-family:${SCRIPT_STACK};font-size:24px;font-weight:500">Hoy arrancamos</p>
+  <h1 style="margin:0;color:${CREAM};font-family:${DISPLAY_STACK};font-size:30px;letter-spacing:3px;font-weight:700">SINERGIA</h1>
+</td></tr>
+
+<tr><td style="padding:32px 24px 8px;text-align:center">
+  <h2 style="margin:0;color:${BLUE};font-family:${DISPLAY_STACK};font-size:22px;font-weight:600">Qué llevar, ${name}.</h2>
+  <p style="margin:12px 0 0;color:${MUTED};font-family:${BODY_STACK};font-size:15px;line-height:1.6">A las 20:00, después de meditar, abrimos el rato de lectura y escritura &mdash; un rato a solas con un texto o con una hoja en blanco.</p>
+</td></tr>
+
+<tr><td style="padding:20px 24px 0">
+  <div style="padding:18px 20px;background:${CREAM};border-radius:12px;border:1px solid ${CREAM_DARK}">
+    <p style="margin:0 0 10px;color:${BLUE};font-family:${DISPLAY_STACK};font-size:14px;font-weight:600;letter-spacing:0.3px">Para aprovecharlo, traé</p>
+    <p style="margin:0;color:${CHARCOAL};font-family:${BODY_STACK};font-size:14px;line-height:1.9">
+      &middot; Un cuaderno (u hojas sueltas)<br>
+      &middot; Un libro &mdash; algo que estés leyendo o que quieras empezar<br>
+      &middot; Una birome que escriba
+    </p>
+    <p style="margin:12px 0 0;color:${MUTED};font-family:${BODY_STACK};font-size:13px;line-height:1.6">Si llegás con las manos vacías, tranqui: tenemos la biblioteca del Arte de Vivir a disposición, con propuestas para elegir cuando llegues.</p>
+  </div>
+</td></tr>
+
+<tr><td style="padding:24px 24px 0">
+  <div style="padding:18px 20px;background:#fdfbf5;border-radius:12px;border:1px solid ${CREAM_DARK}">
+    <p style="margin:0 0 10px;color:${ACCENT};font-family:${BODY_STACK};font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase">Para quienes se quedan a cenar</p>
+    <p style="margin:0 0 14px;color:${CHARCOAL};font-family:${BODY_STACK};font-size:14px;line-height:1.7">Además de lo casero que vamos a tener, armamos un menú de un restaurante cercano &mdash; comida sana y casera &mdash; por si preferís pedir de ahí. Si querés ver las opciones, escribime por WhatsApp y te paso el menú.</p>
+    <div style="text-align:center">
+      <a href="${menuLink}" style="display:inline-block;background:#25D366;color:#ffffff;font-family:${BODY_STACK};font-size:14px;font-weight:600;padding:12px 24px;border-radius:50px;text-decoration:none;letter-spacing:0.3px">Escribime por WhatsApp</a>
+    </div>
+  </div>
+</td></tr>
+
+<tr><td style="padding:24px 24px 0"><div style="height:1px;background:${CREAM_DARK}"></div></td></tr>
+
+<tr><td style="padding:24px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:${BODY_STACK};font-size:14px;color:${CHARCOAL}">
+    <tr><td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};width:90px;vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Cuándo</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};text-align:right">Hoy &middot; ${time}</td></tr>
+    <tr><td style="padding:10px 0;vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Dónde</strong></td>
+        <td style="padding:10px 0;text-align:right;line-height:1.5">${venueName}<br>${exactAddress}</td></tr>
+  </table>
+
+  <div style="margin-top:24px;text-align:center">
+    <a href="${exactAddressMapLink}" style="display:inline-block;background:${ACCENT};color:#ffffff;font-family:${BODY_STACK};font-size:14px;font-weight:600;padding:13px 28px;border-radius:50px;text-decoration:none;letter-spacing:0.4px">Abrir en Google Maps</a>
+  </div>
+</td></tr>
+
+<tr><td style="padding:22px 24px 28px;text-align:center;border-top:1px solid ${CREAM_DARK};background:#fdfbf5">
+  <p style="margin:0 0 6px;color:${MUTED};font-family:${BODY_STACK};font-size:12px">Sinergia &middot; Hari &amp; Coni &middot; Sky Campus</p>
+  <p style="margin:0;color:${MUTED};opacity:0.65;font-family:${BODY_STACK};font-size:11px">harisolaas.com/sinergia</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
 interface ErratumParams {
   name: string;
   oldDate: string; // e.g. "2026-04-15"
