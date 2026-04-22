@@ -25,10 +25,16 @@ const DISPLAY_STACK = `'Unbounded', 'Futura', 'Trebuchet MS', 'Helvetica Neue', 
 const BODY_STACK = `'Aileron', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 const SCRIPT_STACK = `'Dancing Script', 'Brush Script MT', cursive`;
 
-// Shared <head> fragment — injected at the top of every Sinergia email.
-// Declares the webfonts three ways (link, @import, @font-face) so each
-// client picks up whichever it supports. The Aileron woff2 files live at
-// /public/fonts/sinergia/ and are served from www.harisolaas.com.
+// Shared <head> fragment — injected at the top of every user-facing
+// Sinergia email (all templates except host-notification, which is an
+// internal-only email with a minimal head). Declares the webfonts three
+// ways (link, @import, @font-face) so each client picks up whichever it
+// supports. The Aileron woff2 files live at /public/fonts/sinergia/ and
+// are served from NEXT_PUBLIC_BASE_URL (falling back to the prod domain
+// so emails rendered from a preview deploy still reference reachable,
+// CORS-open font URLs).
+const EMAIL_BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 const FONT_HEAD = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
@@ -36,15 +42,15 @@ const FONT_HEAD = `<link rel="preconnect" href="https://fonts.googleapis.com">
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap');
 @font-face {
   font-family: 'Aileron';
-  src: url('https://www.harisolaas.com/fonts/sinergia/aileron-regular.woff2') format('woff2');
+  src: url('${EMAIL_BASE_URL}/fonts/sinergia/aileron-regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Aileron';
-  src: url('https://www.harisolaas.com/fonts/sinergia/aileron-bold.woff2') format('woff2');
-  font-weight: 700;
+  src: url('${EMAIL_BASE_URL}/fonts/sinergia/aileron-bold.woff2') format('woff2');
+  font-weight: 600 700;
   font-style: normal;
   font-display: swap;
 }
