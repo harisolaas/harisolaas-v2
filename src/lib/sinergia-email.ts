@@ -8,9 +8,12 @@ interface Params {
 }
 
 // Palette + type stacks mirror the Sinergia landing (/[locale]/sinergia).
-// Custom webfonts (Aileron self-hosted, Unbounded/Dancing Script from Google)
-// are referenced with fallbacks — most clients will strip the @font-face/link
-// tags and render the fallbacks, which is fine.
+//
+// Fonts in email are best-effort: Apple Mail + Gmail webapp honor @import /
+// @font-face, Outlook desktop strips them. The fallbacks stay sans-serif
+// all the way down so the email still reads as designed when Unbounded
+// doesn't load (earlier fallback was Georgia, which flipped headings to
+// serif — the mismatch we're correcting).
 const CREAM = "#F1ECDA";
 const CREAM_DARK = "#E5DEC6";
 const BLUE = "#0E6BA8";
@@ -18,9 +21,40 @@ const ACCENT = "#D97A3A";
 const CHARCOAL = "#1F2A37";
 const MUTED = "#5A6775";
 
-const DISPLAY_STACK = `'Unbounded', 'Georgia', 'Times New Roman', serif`;
-const BODY_STACK = `'Helvetica Neue', Helvetica, Arial, sans-serif`;
+const DISPLAY_STACK = `'Unbounded', 'Futura', 'Trebuchet MS', 'Helvetica Neue', Arial, sans-serif`;
+const BODY_STACK = `'Aileron', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 const SCRIPT_STACK = `'Dancing Script', 'Brush Script MT', cursive`;
+
+// Shared <head> fragment — injected at the top of every user-facing
+// Sinergia email (all templates except host-notification, which is an
+// internal-only email with a minimal head). Declares the webfonts three
+// ways (link, @import, @font-face) so each client picks up whichever it
+// supports. The Aileron woff2 files live at /public/fonts/sinergia/ and
+// are served from NEXT_PUBLIC_BASE_URL (falling back to the prod domain
+// so emails rendered from a preview deploy still reference reachable,
+// CORS-open font URLs).
+const EMAIL_BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+const FONT_HEAD = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap');
+@font-face {
+  font-family: 'Aileron';
+  src: url('${EMAIL_BASE_URL}/fonts/sinergia/aileron-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Aileron';
+  src: url('${EMAIL_BASE_URL}/fonts/sinergia/aileron-bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+</style>`;
 
 interface ReminderParams {
   name: string;
@@ -45,9 +79,7 @@ export function buildSinergiaReminderEmailHtml({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+${FONT_HEAD}
 </head>
 <body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
@@ -112,9 +144,7 @@ export function buildSinergiaFirstSessionExtrasEmailHtml({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+${FONT_HEAD}
 </head>
 <body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
@@ -200,9 +230,7 @@ export function buildSinergiaErratumEmailHtml({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+${FONT_HEAD}
 </head>
 <body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
@@ -316,9 +344,7 @@ export function buildSinergiaConfirmationEmailHtml({
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet">
+${FONT_HEAD}
 </head>
 <body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
