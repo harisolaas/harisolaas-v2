@@ -42,6 +42,11 @@ interface Props {
   locale: string;
 }
 
+function formatArs(amountCents: number): string {
+  const pesos = Math.round(amountCents / 100);
+  return `$${pesos.toLocaleString("es-AR")}`;
+}
+
 // Reads the `haris_link` cookie set by `/go/[slug]`. Mirrors the fallback
 // used on the server side by `buildAttribution` so cookie-only visitors
 // (no utm_content in URL) still flow through the override path.
@@ -72,6 +77,15 @@ export default function SinergiaLanding({ dict, locale }: Props) {
   const [phone, setPhone] = useState("");
   const [staysForDinner, setStaysForDinner] = useState<boolean | null>(null);
 
+  // Donation choice drives the MP preference: a selected preset or a
+  // valid custom amount sends the form to MercadoPago; "decline" or
+  // unchosen blocks submit.
+  type DonationChoice = "5000" | "10000" | "20000" | "custom" | "decline";
+  const [donationChoice, setDonationChoice] = useState<DonationChoice | null>(
+    null,
+  );
+  const [customAmount, setCustomAmount] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
@@ -85,23 +99,54 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     email: false,
     phone: false,
     dinner: false,
+    donation: false,
   });
   const touchAll = useCallback(
     () =>
-      setTouched({ name: true, email: true, phone: true, dinner: true }),
+      setTouched({
+        name: true,
+        email: true,
+        phone: true,
+        dinner: true,
+        donation: true,
+      }),
     [],
   );
+
+  const customAmountCents = (() => {
+    const cleaned = customAmount.replace(/[^\d]/g, "");
+    if (!cleaned) return 0;
+    return Number(cleaned) * 100;
+  })();
+  const customAmountBelowMin =
+    donationChoice === "custom" && customAmountCents > 0 && customAmountCents < 100_000;
+
+  const donationAmountCents = (() => {
+    if (donationChoice === "5000") return 500_000;
+    if (donationChoice === "10000") return 1_000_000;
+    if (donationChoice === "20000") return 2_000_000;
+    if (donationChoice === "custom") return customAmountCents;
+    return 0;
+  })();
+  const donationInvalid =
+    donationChoice === null ||
+    (donationChoice === "custom" && donationAmountCents < 100_000);
 
   const nameInvalid = !name.trim();
   const emailInvalid = !isValidEmail(email);
   const phoneInvalid = !isValidWhatsApp(phone);
   const dinnerInvalid = staysForDinner === null;
   const formInvalid =
-    nameInvalid || emailInvalid || phoneInvalid || dinnerInvalid;
+    nameInvalid ||
+    emailInvalid ||
+    phoneInvalid ||
+    dinnerInvalid ||
+    donationInvalid;
   const showNameError = touched.name && nameInvalid;
   const showEmailError = touched.email && emailInvalid;
   const showPhoneError = touched.phone && phoneInvalid;
   const showDinnerError = touched.dinner && dinnerInvalid;
+  const showDonationError = touched.donation && donationInvalid;
 
   const [utm, setUtm] = useState<{
     source?: string;
@@ -173,12 +218,24 @@ export default function SinergiaLanding({ dict, locale }: Props) {
           email: email.trim(),
           phone: phone.trim(),
           staysForDinner,
+          locale,
+          donationDeclined: donationChoice === "decline",
+          donationAmountCents:
+            donationChoice === "decline" ? 0 : donationAmountCents,
           ...(Object.keys(utm).length > 0 && { utm }),
           ...(linkSlug && { linkSlug }),
         }),
       });
       const data = await res.json();
       if (data.ok) {
+        if (typeof data.initPoint === "string" && data.initPoint) {
+          // Redirect to MP. The RSVP is already confirmed server-side,
+          // so the inline success state is unnecessary — MP takes over
+          // from here. Keep submitting=true so the CTA stays disabled
+          // while the navigation kicks in.
+          window.location.href = data.initPoint;
+          return;
+        }
         if (data.alreadyRegistered) setAlreadyRegistered(true);
         if (typeof data.remaining === "number") {
           setRemaining(data.remaining);
@@ -199,7 +256,22 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, formInvalid, touchAll, name, email, phone, staysForDinner, dict, utm, linkSlug, hasOverride]);
+  }, [
+    submitting,
+    formInvalid,
+    touchAll,
+    name,
+    email,
+    phone,
+    staysForDinner,
+    locale,
+    donationChoice,
+    donationAmountCents,
+    dict,
+    utm,
+    linkSlug,
+    hasOverride,
+  ]);
 
   const capacityStr = String(sinergiaConfig.capacity);
   const seatsLabel = isFull
@@ -539,6 +611,108 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                       )}
                     </div>
 
+                    <div className="mt-4 rounded-2xl border border-sage/30 bg-white/70 p-4">
+                      <p className="text-sm font-semibold text-forest">
+                        {dict.rsvp.donation.heading}
+                      </p>
+                      <p className="mt-1 text-xs text-charcoal/60">
+                        {dict.rsvp.donation.subtitle}
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {(
+                          [
+                            {
+                              value: "5000" as const,
+                              label: dict.rsvp.donation.chip5k,
+                            },
+                            {
+                              value: "10000" as const,
+                              label: dict.rsvp.donation.chip10k,
+                            },
+                            {
+                              value: "20000" as const,
+                              label: dict.rsvp.donation.chip20k,
+                            },
+                            {
+                              value: "custom" as const,
+                              label: dict.rsvp.donation.customChip,
+                            },
+                          ]
+                        ).map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              setDonationChoice(opt.value);
+                              setTouched((t) => ({ ...t, donation: true }));
+                              clearError();
+                            }}
+                            aria-pressed={donationChoice === opt.value}
+                            className={`rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                              donationChoice === opt.value
+                                ? "border-terracotta bg-terracotta text-cream"
+                                : showDonationError
+                                  ? "border-terracotta/60 bg-white text-charcoal/70"
+                                  : "border-sage/40 bg-white text-charcoal/70 hover:border-forest/40"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      {donationChoice === "custom" && (
+                        <div className="mt-3">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={customAmount}
+                            onChange={(e) => {
+                              setCustomAmount(
+                                e.target.value.replace(/[^\d]/g, ""),
+                              );
+                              setTouched((t) => ({ ...t, donation: true }));
+                              clearError();
+                            }}
+                            placeholder={dict.rsvp.donation.customPlaceholder}
+                            aria-invalid={customAmountBelowMin || undefined}
+                            className={`w-full rounded-full border bg-white px-4 py-2 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                              customAmountBelowMin
+                                ? "border-terracotta"
+                                : "border-sage/30"
+                            }`}
+                          />
+                          {customAmountBelowMin && (
+                            <p className="ml-4 mt-1 text-xs text-terracotta">
+                              {dict.rsvp.donation.minAmountError}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-charcoal/70">
+                        <input
+                          type="checkbox"
+                          checked={donationChoice === "decline"}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setDonationChoice("decline");
+                              setCustomAmount("");
+                            } else {
+                              setDonationChoice(null);
+                            }
+                            setTouched((t) => ({ ...t, donation: true }));
+                            clearError();
+                          }}
+                          className="mt-0.5 h-4 w-4 accent-forest"
+                        />
+                        <span>{dict.rsvp.donation.declineCheckbox}</span>
+                      </label>
+                      {showDonationError && !customAmountBelowMin && (
+                        <p className="mt-2 text-xs text-terracotta">
+                          {dict.rsvp.donation.chooseError}
+                        </p>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleRsvp}
@@ -547,7 +721,14 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                         submitting || formInvalid ? "opacity-50" : ""
                       }`}
                     >
-                      {submitting ? dict.rsvp.submitting : dict.rsvp.cta}
+                      {submitting
+                        ? dict.rsvp.submitting
+                        : donationAmountCents > 0
+                          ? dict.rsvp.ctaWithDonation.replace(
+                              "{amount}",
+                              formatArs(donationAmountCents),
+                            )
+                          : dict.rsvp.cta}
                     </button>
                     <p className="text-center text-xs text-charcoal/50">
                       {dict.rsvp.helper}

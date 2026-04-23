@@ -289,6 +289,11 @@ interface HostNotifyParams {
   totalRegistered: number;
   remaining: number;
   capacity: number;
+  /** When set, the attendee picked a contribution amount at RSVP. Null /
+   *  undefined means they opted out of contributing. */
+  donationAmountCents?: number | null;
+  /** Shown pending until the webhook confirms the payment. */
+  donationStatus?: "pending" | "approved";
 }
 
 export function buildSinergiaHostNotificationHtml({
@@ -300,11 +305,21 @@ export function buildSinergiaHostNotificationHtml({
   totalRegistered,
   remaining,
   capacity,
+  donationAmountCents,
+  donationStatus,
 }: HostNotifyParams): string {
   const dateLabel = formatSessionDateEs(sessionDate);
   const phoneRow = phone
     ? `<tr><td style="padding:6px 0;color:${MUTED};width:110px">WhatsApp</td><td style="padding:6px 0"><a href="https://wa.me/${phoneToWaMe(phone)}" style="color:${BLUE};text-decoration:none">${phone}</a></td></tr>`
     : "";
+  const donationRow =
+    donationAmountCents && donationAmountCents > 0
+      ? `<tr><td style="padding:6px 0;color:${MUTED}">Aporte</td><td style="padding:6px 0">${formatArs(donationAmountCents)}${
+          donationStatus === "approved"
+            ? ""
+            : ` <span style="color:${MUTED};font-size:12px">(pendiente de pago)</span>`
+        }</td></tr>`
+      : "";
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -320,12 +335,94 @@ export function buildSinergiaHostNotificationHtml({
     ${phoneRow}
     <tr><td style="padding:6px 0;color:${MUTED}">Sesión</td><td style="padding:6px 0">${dateLabel}</td></tr>
     <tr><td style="padding:6px 0;color:${MUTED}">Cena</td><td style="padding:6px 0">${staysForDinner ? "Se queda ✓" : "Solo la práctica"}</td></tr>
+    ${donationRow}
     <tr><td style="padding:6px 0;color:${MUTED}">Ocupación</td><td style="padding:6px 0">${totalRegistered} / ${capacity} &middot; quedan ${remaining}</td></tr>
   </table>
 </td></tr>
 </table>
 </body>
 </html>`;
+}
+
+interface DonationReceiptParams {
+  name: string;
+  amountCents: number;
+  currency: string;
+  sessionDate: string;
+  paymentId: string;
+}
+
+// Thank-you / receipt email fired from the webhook once MP confirms a
+// donation. Separate from the RSVP confirmation (which fires at form
+// submit) because the two events are decoupled: RSVP always succeeds,
+// donation may or may not complete.
+export function buildSinergiaDonationReceiptEmailHtml({
+  name,
+  amountCents,
+  currency,
+  sessionDate,
+  paymentId,
+}: DonationReceiptParams): string {
+  const dateLabel = formatSessionDateEs(sessionDate);
+  const amountLabel = formatArs(amountCents);
+  const currencyNote =
+    currency && currency !== "ARS" ? ` (${currency})` : "";
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+${FONT_HEAD}
+</head>
+<body style="margin:0;padding:0;background:${CREAM};font-family:${BODY_STACK};color:${CHARCOAL}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${CREAM}">
+<tr><td align="center" style="padding:40px 16px">
+<table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(14,107,168,0.10)">
+
+<tr><td style="background:${BLUE};padding:40px 24px;text-align:center">
+  <p style="margin:0 0 8px;color:${CREAM};font-family:${SCRIPT_STACK};font-size:24px;font-weight:500">Gracias por tu aporte</p>
+  <h1 style="margin:0;color:${CREAM};font-family:${DISPLAY_STACK};font-size:30px;letter-spacing:3px;font-weight:700">SINERGIA</h1>
+</td></tr>
+
+<tr><td style="padding:32px 24px 8px;text-align:center">
+  <h2 style="margin:0;color:${BLUE};font-family:${DISPLAY_STACK};font-size:22px;font-weight:600">${name}, lo recibimos.</h2>
+  <p style="margin:12px 0 0;color:${MUTED};font-family:${BODY_STACK};font-size:15px;line-height:1.6">Tu contribución sostiene el espacio &mdash; hace que miércoles tras miércoles podamos abrir la puerta sin barreras.</p>
+</td></tr>
+
+<tr><td style="padding:24px 24px 0"><div style="height:1px;background:${CREAM_DARK}"></div></td></tr>
+
+<tr><td style="padding:24px">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:${BODY_STACK};font-size:14px;color:${CHARCOAL}">
+    <tr><td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};width:110px;vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Aporte</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};text-align:right">${amountLabel}${currencyNote}</td></tr>
+    <tr><td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Sesión</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};text-align:right">${dateLabel}</td></tr>
+    <tr><td style="padding:10px 0;vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Ref.</strong></td>
+        <td style="padding:10px 0;text-align:right;font-family:${BODY_STACK};color:${MUTED};font-size:12px">${paymentId}</td></tr>
+  </table>
+</td></tr>
+
+<tr><td style="padding:0 24px 28px;text-align:center">
+  <p style="margin:0;color:${ACCENT};font-family:${SCRIPT_STACK};font-size:22px">Nos vemos el miércoles.</p>
+</td></tr>
+
+<tr><td style="padding:22px 24px 28px;text-align:center;border-top:1px solid ${CREAM_DARK};background:#fdfbf5">
+  <p style="margin:0 0 6px;color:${MUTED};font-family:${BODY_STACK};font-size:12px">Sinergia &middot; Hari &amp; Coni &middot; Sky Campus</p>
+  <p style="margin:0;color:${MUTED};opacity:0.65;font-family:${BODY_STACK};font-size:11px">harisolaas.com/sinergia</p>
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function formatArs(amountCents: number): string {
+  const pesos = Math.round(amountCents / 100);
+  // es-AR: dot as thousand separator, no decimals for whole amounts.
+  return `$${pesos.toLocaleString("es-AR")}`;
 }
 
 export function buildSinergiaConfirmationEmailHtml({
