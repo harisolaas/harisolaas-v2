@@ -55,7 +55,9 @@ export default async function SinergiaSuccessPage({
     <div className={`${unbounded.variable} ${dancingScript.variable}`}>
       <div className="sinergia-theme min-h-[100svh] bg-cream">
         <main className="mx-auto flex min-h-[100svh] max-w-lg flex-col items-center justify-center gap-8 px-6 py-16 text-center">
-          <span className="font-script text-3xl text-terracotta">Gracias</span>
+          <span className="font-script text-3xl text-terracotta">
+            {copy.eyebrow}
+          </span>
           <h1 className="font-serif text-3xl text-forest md:text-4xl">
             {copy.heading}
           </h1>

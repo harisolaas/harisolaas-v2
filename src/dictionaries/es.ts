@@ -908,6 +908,7 @@ const es: Dictionary = {
     },
     successPage: {
       title: "¡Gracias por tu aporte! — Sinergia",
+      eyebrow: "Gracias",
       heading: "Gracias por sumar.",
       body: "Recibimos tu aporte. Lo que pongamos entre todos sostiene el espacio.",
       sessionLine: "Nos vemos {date} a las {time}.",

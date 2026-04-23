@@ -33,7 +33,22 @@ function getResend(): Resend {
 
 function verifySignature(req: Request, body: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!secret) return true; // skip in dev if not set
+  if (!secret) {
+    // Dev only: let requests through when the secret is intentionally
+    // absent so `next dev` + curl works. In any other env, treat a
+    // missing secret as a misconfiguration and reject — never allow
+    // prod/preview to silently skip HMAC verification.
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "Sinergia webhook: signature verification skipped — MP_WEBHOOK_SECRET not set (dev only)",
+      );
+      return true;
+    }
+    console.error(
+      "Sinergia webhook rejected: MP_WEBHOOK_SECRET not configured",
+    );
+    return false;
+  }
 
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
@@ -112,7 +127,29 @@ export async function POST(req: Request) {
 
   const redis = await getRedis();
   const idempotencyKey = `sinergia:payment:${mpPaymentId}`;
-  const existingRsvpId = await redis.get(idempotencyKey);
+  const PROCESSING = "__processing__";
+
+  // Atomic claim: if the key is absent, we write the sentinel and get
+  // "OK" back; if it already exists, we get null. Prevents a race where
+  // two concurrent webhook deliveries both read "no existing rsvpId"
+  // and race through the fresh-payment path, double-applying the
+  // donation and double-sending the receipt.
+  const claimed = await redis.set(idempotencyKey, PROCESSING, {
+    NX: true,
+    EX: 300,
+  });
+
+  let existingRsvpId: string | null = null;
+  if (!claimed) {
+    const val = await redis.get(idempotencyKey);
+    if (!val || val === PROCESSING) {
+      // Another invocation is mid-processing. Bail out with 200 so MP
+      // doesn't mark this delivery as failed; the in-flight handler
+      // will persist the final rsvpId shortly.
+      return NextResponse.json({ ok: true, status: "processing" });
+    }
+    existingRsvpId = val;
+  }
 
   let rsvpId: string;
   let buyerName = "";
@@ -222,7 +259,11 @@ export async function POST(req: Request) {
     });
     receiptAlreadySent = applyResult.receiptAlreadySent;
 
-    await redis.set(idempotencyKey, rsvpId);
+    // Overwrite the processing sentinel with the real rsvpId and set a
+    // generous TTL. 90d is comfortably longer than MP's retry horizon
+    // (days) while keeping the key pool bounded so Redis doesn't grow
+    // without bound as payments accumulate over months.
+    await redis.set(idempotencyKey, rsvpId, { EX: 60 * 60 * 24 * 90 });
 
     // Pull buyer info from checkout stash first (authoritative — matches
     // what the user typed on the form). Fall back to MP payer fields.

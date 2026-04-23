@@ -282,6 +282,8 @@ export interface SinergiaDict {
   /** Post-payment landing pages. */
   successPage: {
     title: string;
+    /** Script-font decorative word over the heading ("Gracias" / "Thank you"). */
+    eyebrow: string;
     heading: string;
     body: string;
     sessionLine: string;

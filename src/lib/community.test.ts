@@ -489,6 +489,44 @@ describe("recordSinergiaDonation", () => {
       }),
     ).rejects.toThrow(/not found/);
   });
+
+  it("does not overwrite when a second distinct payment arrives", async () => {
+    await recordParticipation({
+      email: "test-community-don3@example.com",
+      name: "Donor3",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-DON00003",
+      role: "rsvp",
+    });
+
+    const first = await recordSinergiaDonation({
+      participationId: "TEST-DON00003",
+      amountCents: 1000000,
+      currency: "ARS",
+      paymentId: "MP-DON-3A",
+    });
+    expect(first.applied).toBe(true);
+
+    const second = await recordSinergiaDonation({
+      participationId: "TEST-DON00003",
+      amountCents: 2000000,
+      currency: "ARS",
+      paymentId: "MP-DON-3B",
+    });
+    expect(second.applied).toBe(false);
+
+    const drill = await getPersonByEmail("test-community-don3@example.com");
+    const p = drill!.participations[0];
+    // Original donation preserved untouched.
+    expect(p.externalPaymentId).toBe("MP-DON-3A");
+    expect(p.priceCents).toBe(1000000);
+    const donation = (p.metadata as Record<string, unknown>).donation as Record<
+      string,
+      unknown
+    >;
+    expect(donation.paymentId).toBe("MP-DON-3A");
+    expect(donation.amountCents).toBe(1000000);
+  });
 });
 
 describe("upsertPerson", () => {

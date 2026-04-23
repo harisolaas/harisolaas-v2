@@ -723,7 +723,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                     >
                       {submitting
                         ? dict.rsvp.submitting
-                        : donationAmountCents > 0
+                        : donationAmountCents > 0 && !donationInvalid
                           ? dict.rsvp.ctaWithDonation.replace(
                               "{amount}",
                               formatArs(donationAmountCents),

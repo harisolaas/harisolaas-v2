@@ -364,9 +364,11 @@ export function buildSinergiaDonationReceiptEmailHtml({
   paymentId,
 }: DonationReceiptParams): string {
   const dateLabel = formatSessionDateEs(sessionDate);
-  const amountLabel = formatArs(amountCents);
-  const currencyNote =
-    currency && currency !== "ARS" ? ` (${currency})` : "";
+  // The Preference creation hardcodes ARS; this guard exists so that if
+  // MP ever returns a different currency_id the receipt shows the
+  // correct symbol + locale formatting rather than a peso-formatted
+  // number in another currency.
+  const amountLabel = formatCurrency(amountCents, currency);
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -395,7 +397,7 @@ ${FONT_HEAD}
 <tr><td style="padding:24px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:${BODY_STACK};font-size:14px;color:${CHARCOAL}">
     <tr><td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};width:110px;vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Aporte</strong></td>
-        <td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};text-align:right">${amountLabel}${currencyNote}</td></tr>
+        <td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};text-align:right">${amountLabel}</td></tr>
     <tr><td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Sesión</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid ${CREAM_DARK};text-align:right">${dateLabel}</td></tr>
     <tr><td style="padding:10px 0;vertical-align:top"><strong style="color:${BLUE};font-family:${DISPLAY_STACK};font-weight:600">Ref.</strong></td>
@@ -423,6 +425,23 @@ function formatArs(amountCents: number): string {
   const pesos = Math.round(amountCents / 100);
   // es-AR: dot as thousand separator, no decimals for whole amounts.
   return `$${pesos.toLocaleString("es-AR")}`;
+}
+
+function formatCurrency(amountCents: number, currency: string): string {
+  if (!currency || currency === "ARS") return formatArs(amountCents);
+  // Fallback for non-ARS: Intl handles locale-aware symbol + separator.
+  // Catches the hypothetical case where MP returns a different currency
+  // (shouldn't happen given the Preference hardcodes ARS, but defensive).
+  try {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amountCents / 100);
+  } catch {
+    return `${(amountCents / 100).toFixed(2)} ${currency}`;
+  }
 }
 
 export function buildSinergiaConfirmationEmailHtml({

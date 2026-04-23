@@ -319,11 +319,23 @@ export async function recordSinergiaDonation(params: {
         ? (meta.donation as Record<string, unknown>)
         : null;
 
-    // Idempotent short-circuit: same payment already applied.
-    if (
-      existing[0].externalPaymentId === paymentId ||
-      existingDonation?.paymentId === paymentId
-    ) {
+    // Any prior payment on this participation is immutable. Covers two
+    // cases with a single guard: (a) webhook retries for the same
+    // paymentId — the normal idempotent replay; (b) a second, distinct
+    // payment ever completing for the same RSVP (shouldn't happen since
+    // MP checkouts are one-shot, but if it does we surface via logs +
+    // manual ops rather than silently overwriting the first donation).
+    if (existing[0].externalPaymentId || existingDonation) {
+      if (
+        existing[0].externalPaymentId &&
+        existing[0].externalPaymentId !== paymentId
+      ) {
+        console.warn("Sinergia: second distinct payment for same rsvp", {
+          participationId,
+          stored: existing[0].externalPaymentId,
+          incoming: paymentId,
+        });
+      }
       return {
         applied: false,
         receiptAlreadySent: Boolean(existingDonation?.receiptSent),

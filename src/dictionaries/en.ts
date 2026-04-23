@@ -873,6 +873,7 @@ const en: Dictionary = {
     },
     successPage: {
       title: "Thanks for your contribution \u2014 Sinergia",
+      eyebrow: "Thank you",
       heading: "Thanks for chipping in.",
       body: "We received your contribution. What we pool together keeps this space alive.",
       sessionLine: "See you {date} at {time}.",
