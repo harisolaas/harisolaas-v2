@@ -9,7 +9,7 @@ import {
 } from "react";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import type { SinergiaDict } from "@/dictionaries/types";
-import { isValidEmail } from "@/lib/sinergia-types";
+import { isValidEmail, isValidWhatsApp } from "@/lib/sinergia-types";
 import { sinergiaConfig } from "@/data/sinergia";
 
 function Section({
@@ -69,6 +69,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [staysForDinner, setStaysForDinner] = useState<boolean | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
@@ -124,7 +125,12 @@ export default function SinergiaLanding({ dict, locale }: Props) {
 
   const handleRsvp = useCallback(async () => {
     if (submitting) return;
-    if (!name.trim() || !isValidEmail(email) || staysForDinner === null) {
+    if (
+      !name.trim() ||
+      !isValidEmail(email) ||
+      !isValidWhatsApp(phone) ||
+      staysForDinner === null
+    ) {
       setError(dict.rsvp.errorMessage);
       return;
     }
@@ -137,6 +143,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
+          phone: phone.trim(),
           staysForDinner,
           ...(Object.keys(utm).length > 0 && { utm }),
           ...(linkSlug && { linkSlug }),
@@ -164,7 +171,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, staysForDinner, dict, utm, linkSlug, hasOverride]);
+  }, [submitting, name, email, phone, staysForDinner, dict, utm, linkSlug, hasOverride]);
 
   const capacityStr = String(sinergiaConfig.capacity);
   const seatsLabel = isFull
@@ -398,6 +405,18 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                       placeholder={dict.rsvp.emailPlaceholder}
                       className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
                     />
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={dict.rsvp.phonePlaceholder}
+                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
+                    />
+                    <p className="-mt-1 px-2 text-xs text-charcoal/50">
+                      {dict.rsvp.phoneHelper}
+                    </p>
 
                     <div className="mt-2">
                       <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-sage">
@@ -430,6 +449,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                         submitting ||
                         !name.trim() ||
                         !isValidEmail(email) ||
+                        !isValidWhatsApp(phone) ||
                         staysForDinner === null
                       }
                       className="mt-3 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"

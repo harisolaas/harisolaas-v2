@@ -12,7 +12,7 @@ import { motion, useInView, AnimatePresence } from "framer-motion";
 import { toPng } from "html-to-image";
 import { plantConfig } from "@/data/brote";
 import type { PlantDict } from "@/dictionaries/types";
-import { type GroupType, isValidEmail } from "@/lib/plant-types";
+import { type GroupType, isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
 import {
   initPostHog,
   trackSectionView,
@@ -304,6 +304,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   // Registration form
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [groupType, setGroupType] = useState<GroupType>("solo");
   const [carpool, setCarpool] = useState(false);
   const [message, setMessage] = useState("");
@@ -314,6 +315,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
 
   // Waitlist state
   const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistPhone, setWaitlistPhone] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
 
   // Plant messages from prior registrants
@@ -381,7 +383,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
 
   const handleRegister = useCallback(async () => {
     if (submitting || !name.trim()) return;
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(email) || !isValidWhatsApp(phone)) {
       setError(dict.registration.errorMessage);
       return;
     }
@@ -396,6 +398,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
+          phone: phone.trim(),
           groupType,
           carpool,
           ...(message.trim() && { message: message.trim() }),
@@ -425,11 +428,11 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, groupType, carpool, message, utm, dict]);
+  }, [submitting, name, email, phone, groupType, carpool, message, utm, dict, linkSlug]);
 
   const handleWaitlist = useCallback(async () => {
     if (submitting) return;
-    if (!isValidEmail(waitlistEmail)) {
+    if (!isValidEmail(waitlistEmail) || !isValidWhatsApp(waitlistPhone)) {
       setError(dict.registration.errorMessage);
       return;
     }
@@ -442,6 +445,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
         body: JSON.stringify({
           action: "waitlist",
           email: waitlistEmail.trim(),
+          phone: waitlistPhone.trim(),
         }),
       });
       const data = await res.json();
@@ -768,6 +772,18 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       placeholder={dict.registration.emailPlaceholder}
                       className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
                     />
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={dict.registration.phonePlaceholder}
+                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
+                    />
+                    <p className="-mt-1 px-2 text-xs text-charcoal/50">
+                      {dict.registration.phoneHelper}
+                    </p>
 
                     {/* Group type radio */}
                     <div className="mt-2">
@@ -827,7 +843,12 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
 
                     <button
                       onClick={handleRegister}
-                      disabled={submitting || !name.trim() || !isValidEmail(email)}
+                      disabled={
+                        submitting ||
+                        !name.trim() ||
+                        !isValidEmail(email) ||
+                        !isValidWhatsApp(phone)
+                      }
                       className="mt-2 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
                     >
                       {submitting
@@ -851,13 +872,26 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       type="email"
                       value={waitlistEmail}
                       onChange={(e) => setWaitlistEmail(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleWaitlist()}
                       placeholder={dict.registration.emailPlaceholder}
+                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
+                    />
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={waitlistPhone}
+                      onChange={(e) => setWaitlistPhone(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleWaitlist()}
+                      placeholder={dict.registration.phonePlaceholder}
                       className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
                     />
                     <button
                       onClick={handleWaitlist}
-                      disabled={submitting || !isValidEmail(waitlistEmail)}
+                      disabled={
+                        submitting ||
+                        !isValidEmail(waitlistEmail) ||
+                        !isValidWhatsApp(waitlistPhone)
+                      }
                       className="w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
                     >
                       {submitting

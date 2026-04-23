@@ -10,6 +10,28 @@ export function isValidEmail(email: string): boolean {
   return EMAIL_RE.test(email.trim());
 }
 
+/**
+ * WhatsApp / phone validation: strips common separators (+, spaces, dashes,
+ * parens, dots) and requires 8–15 digits. Lenient on purpose — we accept
+ * both "1122555110" (AR without country code) and "+54 9 11 2255-5110"
+ * (full international). Storage stays the user's trimmed input; formatting
+ * is a presentation concern.
+ */
+const WHATSAPP_SEPARATORS_RE = /[\s\-()+.]/g;
+const WHATSAPP_DIGITS_RE = /^\d{8,15}$/;
+export function isValidWhatsApp(raw: string): boolean {
+  const digits = raw.replace(WHATSAPP_SEPARATORS_RE, "");
+  return WHATSAPP_DIGITS_RE.test(digits);
+}
+
+/**
+ * Strip a phone number to digits only. Used when building wa.me links,
+ * which require a digits-only international number.
+ */
+export function phoneDigits(raw: string): string {
+  return raw.replace(WHATSAPP_SEPARATORS_RE, "");
+}
+
 export interface PlantRegistration {
   id: string; // PLANT-XXXXXXXX
   email: string;

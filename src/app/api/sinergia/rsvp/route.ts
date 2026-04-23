@@ -9,7 +9,11 @@ import {
   recordParticipation,
 } from "@/lib/community";
 import { buildAttribution } from "@/lib/attribution";
-import { isValidEmail, nextSinergiaDate } from "@/lib/sinergia-types";
+import {
+  isValidEmail,
+  isValidWhatsApp,
+  nextSinergiaDate,
+} from "@/lib/sinergia-types";
 import {
   buildSinergiaConfirmationEmailHtml,
   buildSinergiaHostNotificationHtml,
@@ -81,11 +85,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const name = ((body.name as string) || "").trim();
     const email = ((body.email as string) || "").trim();
+    const phone = ((body.phone as string) || "").trim();
     const staysForDinner = Boolean(body.staysForDinner);
 
-    if (!name || !isValidEmail(email)) {
+    if (!name || !isValidEmail(email) || !isValidWhatsApp(phone)) {
       return NextResponse.json(
-        { error: "Name and valid email required" },
+        { error: "Name, valid email, and valid WhatsApp required" },
         { status: 400 },
       );
     }
@@ -105,6 +110,7 @@ export async function POST(req: Request) {
       result = await recordParticipation({
         email,
         name,
+        phone,
         eventId,
         participationId: rsvpId,
         role: "rsvp",
@@ -169,6 +175,7 @@ export async function POST(req: Request) {
           html: buildSinergiaHostNotificationHtml({
             name,
             email,
+            phone,
             sessionDate,
             staysForDinner,
             totalRegistered: confirmedCount,
