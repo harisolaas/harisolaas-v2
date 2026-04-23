@@ -313,10 +313,35 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Per-field "touched" state so errors only appear after interaction
+  // or a submit attempt, not on page load.
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    phone: false,
+    waitlistEmail: false,
+    waitlistPhone: false,
+  });
+
   // Waitlist state
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistPhone, setWaitlistPhone] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+
+  const nameInvalid = !name.trim();
+  const emailInvalid = !isValidEmail(email);
+  const phoneInvalid = !isValidWhatsApp(phone);
+  const registerInvalid = nameInvalid || emailInvalid || phoneInvalid;
+  const waitlistEmailInvalid = !isValidEmail(waitlistEmail);
+  const waitlistPhoneInvalid = !isValidWhatsApp(waitlistPhone);
+  const waitlistInvalid = waitlistEmailInvalid || waitlistPhoneInvalid;
+  const showNameError = touched.name && nameInvalid;
+  const showEmailError = touched.email && emailInvalid;
+  const showPhoneError = touched.phone && phoneInvalid;
+  const showWaitlistEmailError =
+    touched.waitlistEmail && waitlistEmailInvalid;
+  const showWaitlistPhoneError =
+    touched.waitlistPhone && waitlistPhoneInvalid;
 
   // Plant messages from prior registrants
   const [plantMessages, setPlantMessages] = useState<PlantMessage[]>([]);
@@ -382,8 +407,9 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
   }, []);
 
   const handleRegister = useCallback(async () => {
-    if (submitting || !name.trim()) return;
-    if (!isValidEmail(email) || !isValidWhatsApp(phone)) {
+    if (submitting) return;
+    if (registerInvalid) {
+      setTouched((t) => ({ ...t, name: true, email: true, phone: true }));
       setError(dict.registration.errorMessage);
       return;
     }
@@ -428,11 +454,16 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, phone, groupType, carpool, message, utm, dict, linkSlug]);
+  }, [submitting, registerInvalid, name, email, phone, groupType, carpool, message, utm, dict, linkSlug]);
 
   const handleWaitlist = useCallback(async () => {
     if (submitting) return;
-    if (!isValidEmail(waitlistEmail) || !isValidWhatsApp(waitlistPhone)) {
+    if (waitlistInvalid) {
+      setTouched((t) => ({
+        ...t,
+        waitlistEmail: true,
+        waitlistPhone: true,
+      }));
       setError(dict.registration.errorMessage);
       return;
     }
@@ -459,7 +490,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, waitlistEmail, waitlistPhone, dict]);
+  }, [submitting, waitlistInvalid, waitlistEmail, waitlistPhone, dict]);
 
   const handleShare = useCallback(async () => {
     if (!shareCardRef.current || exporting) return;
@@ -758,32 +789,80 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       {dict.registration.helper}
                     </p>
 
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={dict.registration.namePlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={dict.registration.emailPlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={dict.registration.phonePlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <p className="-mt-1 px-2 text-xs text-charcoal/50">
-                      {dict.registration.phoneHelper}
-                    </p>
+                    <div>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, name: true }))
+                        }
+                        placeholder={dict.registration.namePlaceholder}
+                        aria-invalid={showNameError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showNameError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      {showNameError && (
+                        <p className="ml-5 mt-1 text-xs text-terracotta">
+                          {dict.registration.nameError}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, email: true }))
+                        }
+                        placeholder={dict.registration.emailPlaceholder}
+                        aria-invalid={showEmailError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showEmailError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      {showEmailError && (
+                        <p className="ml-5 mt-1 text-xs text-terracotta">
+                          {dict.registration.emailError}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, phone: true }))
+                        }
+                        placeholder={dict.registration.phonePlaceholder}
+                        aria-invalid={showPhoneError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showPhoneError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      <p
+                        className={`ml-5 mt-1 text-xs ${
+                          showPhoneError
+                            ? "text-terracotta"
+                            : "text-charcoal/50"
+                        }`}
+                      >
+                        {showPhoneError
+                          ? dict.registration.phoneError
+                          : dict.registration.phoneHelper}
+                      </p>
+                    </div>
 
                     {/* Group type radio */}
                     <div className="mt-2">
@@ -842,14 +921,14 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                     </div>
 
                     <button
+                      type="button"
                       onClick={handleRegister}
-                      disabled={
-                        submitting ||
-                        !name.trim() ||
-                        !isValidEmail(email) ||
-                        !isValidWhatsApp(phone)
+                      aria-disabled={
+                        submitting || registerInvalid || undefined
                       }
-                      className="mt-2 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
+                      className={`mt-2 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 ${
+                        submitting || registerInvalid ? "opacity-50" : ""
+                      }`}
                     >
                       {submitting
                         ? dict.registration.submitting
@@ -868,32 +947,67 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                     exit={{ opacity: 0, y: -10 }}
                     className="flex flex-col gap-3"
                   >
-                    <input
-                      type="email"
-                      value={waitlistEmail}
-                      onChange={(e) => setWaitlistEmail(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleWaitlist()}
-                      placeholder={dict.registration.emailPlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={waitlistPhone}
-                      onChange={(e) => setWaitlistPhone(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleWaitlist()}
-                      placeholder={dict.registration.phonePlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
+                    <div>
+                      <input
+                        type="email"
+                        value={waitlistEmail}
+                        onChange={(e) => setWaitlistEmail(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, waitlistEmail: true }))
+                        }
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleWaitlist()
+                        }
+                        placeholder={dict.registration.emailPlaceholder}
+                        aria-invalid={showWaitlistEmailError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showWaitlistEmailError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      {showWaitlistEmailError && (
+                        <p className="ml-5 mt-1 text-xs text-terracotta">
+                          {dict.registration.emailError}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={waitlistPhone}
+                        onChange={(e) => setWaitlistPhone(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, waitlistPhone: true }))
+                        }
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleWaitlist()
+                        }
+                        placeholder={dict.registration.phonePlaceholder}
+                        aria-invalid={showWaitlistPhoneError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showWaitlistPhoneError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      {showWaitlistPhoneError && (
+                        <p className="ml-5 mt-1 text-xs text-terracotta">
+                          {dict.registration.phoneError}
+                        </p>
+                      )}
+                    </div>
                     <button
+                      type="button"
                       onClick={handleWaitlist}
-                      disabled={
-                        submitting ||
-                        !isValidEmail(waitlistEmail) ||
-                        !isValidWhatsApp(waitlistPhone)
+                      aria-disabled={
+                        submitting || waitlistInvalid || undefined
                       }
-                      className="w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
+                      className={`w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 ${
+                        submitting || waitlistInvalid ? "opacity-50" : ""
+                      }`}
                     >
                       {submitting
                         ? dict.registration.submitting

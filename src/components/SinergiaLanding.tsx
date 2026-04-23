@@ -77,6 +77,32 @@ export default function SinergiaLanding({ dict, locale }: Props) {
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Per-field "touched" state so errors only appear after the user has
+  // interacted with a field (on blur) or attempted to submit. Prevents
+  // the form from screaming in red the moment it loads.
+  const [touched, setTouched] = useState({
+    name: false,
+    email: false,
+    phone: false,
+    dinner: false,
+  });
+  const touchAll = useCallback(
+    () =>
+      setTouched({ name: true, email: true, phone: true, dinner: true }),
+    [],
+  );
+
+  const nameInvalid = !name.trim();
+  const emailInvalid = !isValidEmail(email);
+  const phoneInvalid = !isValidWhatsApp(phone);
+  const dinnerInvalid = staysForDinner === null;
+  const formInvalid =
+    nameInvalid || emailInvalid || phoneInvalid || dinnerInvalid;
+  const showNameError = touched.name && nameInvalid;
+  const showEmailError = touched.email && emailInvalid;
+  const showPhoneError = touched.phone && phoneInvalid;
+  const showDinnerError = touched.dinner && dinnerInvalid;
+
   const [utm, setUtm] = useState<{
     source?: string;
     medium?: string;
@@ -125,12 +151,8 @@ export default function SinergiaLanding({ dict, locale }: Props) {
 
   const handleRsvp = useCallback(async () => {
     if (submitting) return;
-    if (
-      !name.trim() ||
-      !isValidEmail(email) ||
-      !isValidWhatsApp(phone) ||
-      staysForDinner === null
-    ) {
+    if (formInvalid) {
+      touchAll();
       setError(dict.rsvp.errorMessage);
       return;
     }
@@ -171,7 +193,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, name, email, phone, staysForDinner, dict, utm, linkSlug, hasOverride]);
+  }, [submitting, formInvalid, touchAll, name, email, phone, staysForDinner, dict, utm, linkSlug, hasOverride]);
 
   const capacityStr = String(sinergiaConfig.capacity);
   const seatsLabel = isFull
@@ -391,32 +413,80 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                     exit={{ opacity: 0, y: -10 }}
                     className="flex flex-col gap-3"
                   >
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder={dict.rsvp.namePlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={dict.rsvp.emailPlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder={dict.rsvp.phonePlaceholder}
-                      className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
-                    />
-                    <p className="-mt-1 px-2 text-xs text-charcoal/50">
-                      {dict.rsvp.phoneHelper}
-                    </p>
+                    <div>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, name: true }))
+                        }
+                        placeholder={dict.rsvp.namePlaceholder}
+                        aria-invalid={showNameError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showNameError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      {showNameError && (
+                        <p className="ml-5 mt-1 text-xs text-terracotta">
+                          {dict.rsvp.nameError}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, email: true }))
+                        }
+                        placeholder={dict.rsvp.emailPlaceholder}
+                        aria-invalid={showEmailError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showEmailError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      {showEmailError && (
+                        <p className="ml-5 mt-1 text-xs text-terracotta">
+                          {dict.rsvp.emailError}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onBlur={() =>
+                          setTouched((t) => ({ ...t, phone: true }))
+                        }
+                        placeholder={dict.rsvp.phonePlaceholder}
+                        aria-invalid={showPhoneError || undefined}
+                        className={`w-full rounded-full border bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40 ${
+                          showPhoneError
+                            ? "border-terracotta"
+                            : "border-sage/30"
+                        }`}
+                      />
+                      <p
+                        className={`ml-5 mt-1 text-xs ${
+                          showPhoneError
+                            ? "text-terracotta"
+                            : "text-charcoal/50"
+                        }`}
+                      >
+                        {showPhoneError
+                          ? dict.rsvp.phoneError
+                          : dict.rsvp.phoneHelper}
+                      </p>
+                    </div>
 
                     <div className="mt-2">
                       <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-sage">
@@ -430,29 +500,36 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                           <button
                             key={String(opt.value)}
                             type="button"
-                            onClick={() => setStaysForDinner(opt.value)}
+                            onClick={() => {
+                              setStaysForDinner(opt.value);
+                              setTouched((t) => ({ ...t, dinner: true }));
+                            }}
                             className={`flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors ${
                               staysForDinner === opt.value
                                 ? "border-forest bg-forest text-cream"
-                                : "border-sage/30 bg-white text-charcoal/70 hover:border-forest/40"
+                                : showDinnerError
+                                  ? "border-terracotta bg-white text-charcoal/70"
+                                  : "border-sage/30 bg-white text-charcoal/70 hover:border-forest/40"
                             }`}
                           >
                             {opt.label}
                           </button>
                         ))}
                       </div>
+                      {showDinnerError && (
+                        <p className="ml-1 mt-1 text-xs text-terracotta">
+                          {dict.rsvp.dinnerError}
+                        </p>
+                      )}
                     </div>
 
                     <button
+                      type="button"
                       onClick={handleRsvp}
-                      disabled={
-                        submitting ||
-                        !name.trim() ||
-                        !isValidEmail(email) ||
-                        !isValidWhatsApp(phone) ||
-                        staysForDinner === null
-                      }
-                      className="mt-3 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:opacity-50"
+                      aria-disabled={submitting || formInvalid || undefined}
+                      className={`mt-3 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 ${
+                        submitting || formInvalid ? "opacity-50" : ""
+                      }`}
                     >
                       {submitting ? dict.rsvp.submitting : dict.rsvp.cta}
                     </button>
