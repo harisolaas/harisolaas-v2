@@ -1,5 +1,5 @@
 import { sinergiaConfig } from "@/data/sinergia";
-import { formatSessionDateEs, phoneDigits } from "@/lib/sinergia-types";
+import { formatSessionDateEs, phoneToWaMe } from "@/lib/sinergia-types";
 
 interface Params {
   name: string;
@@ -303,7 +303,7 @@ export function buildSinergiaHostNotificationHtml({
 }: HostNotifyParams): string {
   const dateLabel = formatSessionDateEs(sessionDate);
   const phoneRow = phone
-    ? `<tr><td style="padding:6px 0;color:${MUTED};width:110px">WhatsApp</td><td style="padding:6px 0"><a href="https://wa.me/${phoneDigits(phone)}" style="color:${BLUE};text-decoration:none">${phone}</a></td></tr>`
+    ? `<tr><td style="padding:6px 0;color:${MUTED};width:110px">WhatsApp</td><td style="padding:6px 0"><a href="https://wa.me/${phoneToWaMe(phone)}" style="color:${BLUE};text-decoration:none">${phone}</a></td></tr>`
     : "";
   return `<!DOCTYPE html>
 <html lang="es">

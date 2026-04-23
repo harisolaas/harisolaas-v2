@@ -459,7 +459,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
     } finally {
       setSubmitting(false);
     }
-  }, [submitting, waitlistEmail, dict]);
+  }, [submitting, waitlistEmail, waitlistPhone, dict]);
 
   const handleShare = useCallback(async () => {
     if (!shareCardRef.current || exporting) return;
@@ -872,6 +872,7 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       type="email"
                       value={waitlistEmail}
                       onChange={(e) => setWaitlistEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleWaitlist()}
                       placeholder={dict.registration.emailPlaceholder}
                       className="w-full rounded-full border border-sage/30 bg-white px-5 py-3 text-sm text-charcoal placeholder-charcoal/30 outline-none transition-colors focus:border-forest/40"
                     />

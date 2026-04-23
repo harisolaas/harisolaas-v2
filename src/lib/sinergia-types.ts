@@ -1,7 +1,12 @@
-import { isValidEmail, isValidWhatsApp, phoneDigits } from "@/lib/plant-types";
+import {
+  isValidEmail,
+  isValidWhatsApp,
+  phoneDigits,
+  phoneToWaMe,
+} from "@/lib/plant-types";
 import { sinergiaConfig } from "@/data/sinergia";
 
-export { isValidEmail, isValidWhatsApp, phoneDigits };
+export { isValidEmail, isValidWhatsApp, phoneDigits, phoneToWaMe };
 
 export type SinergiaSessionStatus = "open" | "full" | "closed";
 
