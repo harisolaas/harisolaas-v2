@@ -42,8 +42,10 @@ export default async function SinergiaSuccessPage({
   const dict = await getDictionary(locale as Locale);
   const copy = dict.sinergia.successPage;
 
+  const dayLabel =
+    locale === "en" ? sinergiaConfig.dayLabelEn : sinergiaConfig.dayLabelEs;
   const sessionLine = copy.sessionLine
-    .replace("{date}", sinergiaConfig.dayLabelEs)
+    .replace("{date}", dayLabel)
     .replace("{time}", sinergiaConfig.time);
   const addressLine = copy.addressLine
     .replace("{venue}", sinergiaConfig.venueName)
@@ -62,7 +64,7 @@ export default async function SinergiaSuccessPage({
           </p>
           <div className="w-full rounded-2xl border border-sage/30 bg-white/70 p-6 text-left">
             <p className="text-sm font-semibold uppercase tracking-wider text-sage">
-              {sinergiaConfig.dayLabelEs}
+              {dayLabel}
             </p>
             <p className="mt-1 text-base text-forest">{sessionLine}</p>
             <p className="mt-1 text-sm text-charcoal/70">{addressLine}</p>

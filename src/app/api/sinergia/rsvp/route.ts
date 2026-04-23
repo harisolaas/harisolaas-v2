@@ -175,62 +175,58 @@ export async function POST(req: Request) {
 
     const confirmedCount = await countConfirmed(eventId);
     const remaining = Math.max(0, sinergiaConfig.capacity - confirmedCount);
-
-    if (!result.created && !result.promoted) {
-      return NextResponse.json({
-        ok: true,
-        alreadyRegistered: true,
-        rsvpId: result.participationId,
-        sessionDate,
-        remaining,
-      });
-    }
+    const alreadyRegistered = !result.created && !result.promoted;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
 
-    // Confirmation email.
-    try {
-      await getResend().emails.send({
-        from: `Sinergia <${fromEmail}>`,
-        to: email,
-        subject: "Nos vemos el miércoles — acá va la dirección",
-        html: buildSinergiaConfirmationEmailHtml({
-          name,
-          sessionDate,
-          staysForDinner,
-        }),
-      });
-    } catch (err) {
-      console.error("Sinergia confirmation email failed:", err);
-    }
-
-    // Host notification.
-    const notifyList = (process.env.SINERGIA_NOTIFY_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean);
-
-    if (notifyList.length > 0) {
+    // Fire the attendee confirmation + host notification only on a fresh
+    // RSVP (or a waitlist promotion). Repeat submits from someone already
+    // registered are no-ops for email to avoid duplicate inbox noise, but
+    // the donation flow still proceeds below — a returning attendee may
+    // be submitting again precisely because they want to contribute now.
+    if (!alreadyRegistered) {
       try {
         await getResend().emails.send({
           from: `Sinergia <${fromEmail}>`,
-          to: notifyList,
-          subject: `Nuevo RSVP Sinergia — ${name}`,
-          html: buildSinergiaHostNotificationHtml({
+          to: email,
+          subject: "Nos vemos el miércoles — acá va la dirección",
+          html: buildSinergiaConfirmationEmailHtml({
             name,
-            email,
-            phone,
             sessionDate,
             staysForDinner,
-            totalRegistered: confirmedCount,
-            remaining,
-            capacity: sinergiaConfig.capacity,
-            donationAmountCents: donationAmountCents || null,
-            donationStatus: donationAmountCents > 0 ? "pending" : undefined,
           }),
         });
       } catch (err) {
-        console.error("Sinergia host notification failed:", err);
+        console.error("Sinergia confirmation email failed:", err);
+      }
+
+      const notifyList = (process.env.SINERGIA_NOTIFY_EMAILS || "")
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+
+      if (notifyList.length > 0) {
+        try {
+          await getResend().emails.send({
+            from: `Sinergia <${fromEmail}>`,
+            to: notifyList,
+            subject: `Nuevo RSVP Sinergia — ${name}`,
+            html: buildSinergiaHostNotificationHtml({
+              name,
+              email,
+              phone,
+              sessionDate,
+              staysForDinner,
+              totalRegistered: confirmedCount,
+              remaining,
+              capacity: sinergiaConfig.capacity,
+              donationAmountCents: donationAmountCents || null,
+              donationStatus: donationAmountCents > 0 ? "pending" : undefined,
+            }),
+          });
+        } catch (err) {
+          console.error("Sinergia host notification failed:", err);
+        }
       }
     }
 
@@ -305,6 +301,7 @@ export async function POST(req: Request) {
       rsvpId: result.participationId,
       sessionDate,
       remaining,
+      ...(alreadyRegistered ? { alreadyRegistered: true } : {}),
       ...(initPoint ? { initPoint } : {}),
     });
   } catch (error) {
