@@ -149,6 +149,12 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     document.getElementById("rsvp")?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
+  // Clear the generic error banner as soon as the user starts editing —
+  // the red per-field state carries the "what's wrong" signal; the
+  // banner adds nothing once they're correcting. Called from every
+  // input's onChange and from the dinner toggle's onClick.
+  const clearError = useCallback(() => setError(null), []);
+
   const handleRsvp = useCallback(async () => {
     if (submitting) return;
     if (formInvalid) {
@@ -417,7 +423,10 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                       <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, name: true }))
                         }
@@ -439,7 +448,10 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, email: true }))
                         }
@@ -463,7 +475,10 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                         inputMode="tel"
                         autoComplete="tel"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          setPhone(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, phone: true }))
                         }
@@ -503,6 +518,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                             onClick={() => {
                               setStaysForDinner(opt.value);
                               setTouched((t) => ({ ...t, dinner: true }));
+                              clearError();
                             }}
                             className={`flex-1 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors ${
                               staysForDinner === opt.value

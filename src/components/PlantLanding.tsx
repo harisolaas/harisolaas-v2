@@ -406,6 +406,12 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
     if (slug) setLinkSlug(slug);
   }, []);
 
+  // Clear the generic error banner as soon as the user starts editing —
+  // the red per-field state carries the "what's wrong" signal; the
+  // banner adds nothing once they're correcting. Called from every
+  // input's onChange.
+  const clearError = useCallback(() => setError(null), []);
+
   const handleRegister = useCallback(async () => {
     if (submitting) return;
     if (registerInvalid) {
@@ -793,7 +799,10 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       <input
                         type="text"
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, name: true }))
                         }
@@ -815,7 +824,10 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, email: true }))
                         }
@@ -839,7 +851,10 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                         inputMode="tel"
                         autoComplete="tel"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          setPhone(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, phone: true }))
                         }
@@ -951,7 +966,10 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                       <input
                         type="email"
                         value={waitlistEmail}
-                        onChange={(e) => setWaitlistEmail(e.target.value)}
+                        onChange={(e) => {
+                          setWaitlistEmail(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, waitlistEmail: true }))
                         }
@@ -978,7 +996,10 @@ export default function PlantLanding({ dict, locale, utmMedium }: Props) {
                         inputMode="tel"
                         autoComplete="tel"
                         value={waitlistPhone}
-                        onChange={(e) => setWaitlistPhone(e.target.value)}
+                        onChange={(e) => {
+                          setWaitlistPhone(e.target.value);
+                          clearError();
+                        }}
                         onBlur={() =>
                           setTouched((t) => ({ ...t, waitlistPhone: true }))
                         }
