@@ -161,6 +161,11 @@ export interface PlantDict {
     helper: string;
     namePlaceholder: string;
     emailPlaceholder: string;
+    phonePlaceholder: string;
+    phoneHelper: string;
+    nameError: string;
+    emailError: string;
+    phoneError: string;
     groupLabel: string;
     groupSolo: string;
     groupWithSomeone: string;
@@ -239,6 +244,12 @@ export interface SinergiaDict {
     helper: string;
     namePlaceholder: string;
     emailPlaceholder: string;
+    phonePlaceholder: string;
+    phoneHelper: string;
+    nameError: string;
+    emailError: string;
+    phoneError: string;
+    dinnerError: string;
     dinnerLabel: string;
     dinnerYes: string;
     dinnerNo: string;

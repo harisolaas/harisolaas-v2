@@ -1,5 +1,5 @@
 import { sinergiaConfig } from "@/data/sinergia";
-import { formatSessionDateEs } from "@/lib/sinergia-types";
+import { formatSessionDateEs, phoneToWaMe } from "@/lib/sinergia-types";
 
 interface Params {
   name: string;
@@ -283,6 +283,7 @@ ${FONT_HEAD}
 interface HostNotifyParams {
   name: string;
   email: string;
+  phone?: string;
   sessionDate: string;
   staysForDinner: boolean;
   totalRegistered: number;
@@ -293,6 +294,7 @@ interface HostNotifyParams {
 export function buildSinergiaHostNotificationHtml({
   name,
   email,
+  phone,
   sessionDate,
   staysForDinner,
   totalRegistered,
@@ -300,6 +302,9 @@ export function buildSinergiaHostNotificationHtml({
   capacity,
 }: HostNotifyParams): string {
   const dateLabel = formatSessionDateEs(sessionDate);
+  const phoneRow = phone
+    ? `<tr><td style="padding:6px 0;color:${MUTED};width:110px">WhatsApp</td><td style="padding:6px 0"><a href="https://wa.me/${phoneToWaMe(phone)}" style="color:${BLUE};text-decoration:none">${phone}</a></td></tr>`
+    : "";
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -312,6 +317,7 @@ export function buildSinergiaHostNotificationHtml({
   <h2 style="margin:0 0 16px;color:${BLUE};font-size:20px;font-weight:600">${name}</h2>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:${CHARCOAL}">
     <tr><td style="padding:6px 0;color:${MUTED};width:110px">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:${BLUE};text-decoration:none">${email}</a></td></tr>
+    ${phoneRow}
     <tr><td style="padding:6px 0;color:${MUTED}">Sesión</td><td style="padding:6px 0">${dateLabel}</td></tr>
     <tr><td style="padding:6px 0;color:${MUTED}">Cena</td><td style="padding:6px 0">${staysForDinner ? "Se queda ✓" : "Solo la práctica"}</td></tr>
     <tr><td style="padding:6px 0;color:${MUTED}">Ocupación</td><td style="padding:6px 0">${totalRegistered} / ${capacity} &middot; quedan ${remaining}</td></tr>

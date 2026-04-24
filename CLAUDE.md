@@ -49,6 +49,31 @@ The English dictionary (`src/dictionaries/en.ts`) mirrors the Spanish but doesn'
 
 ---
 
+## COMMUNICATION CHANNELS
+
+**WhatsApp is the default community channel. Email is a fallback reserved for transactional records.**
+
+- **WhatsApp** — how we reach attendees day-of, send reminders that aren't transactional, coordinate logistics, answer questions, and follow up. Every registration landing that collects identity data **must** capture a phone number as a required field alongside email.
+- **Email** — still canonical for anything the recipient needs to search or keep as a record: tickets, receipts, QR codes, erratum, account-level comms. Confirmation and reminder emails continue to go out, but they complement WhatsApp, they don't replace it.
+
+### Building a new registration landing
+
+Mirror the pattern in `src/components/SinergiaLanding.tsx`:
+
+- Fields: **name + email + WhatsApp** + event-specific (dinner, group type, etc.). All four required.
+- Validate phone with `isValidWhatsApp` from `src/lib/plant-types.ts` (re-exported from `src/lib/sinergia-types.ts` for convenience) — lenient: strips `+`, space, `-`, `(`, `)`, `.`, requires 8–15 digits.
+- Display helper copy (`dict.rsvp.phoneHelper` or equivalent) directly under the input so the user knows why we're asking.
+- Pass `phone` into `recordParticipation()` — it already accepts `phone?: string` and writes it to `people.phone`, no schema work.
+- In the host-notification email, render the phone as a tappable `wa.me` link using `phoneDigits()` so the recipient can tap-to-chat from their inbox. Use `buildSinergiaHostNotificationHtml` as the reference implementation.
+
+### Exceptions
+
+- **Payment-gated flows** (e.g. BROTE ticket checkout via MercadoPago): MP's payer object doesn't carry phone by default. Either add a pre-checkout identity form or extend MP Preference metadata — call this out in the PR. Don't silently skip.
+- **Code-only inputs** (discount-code redemption pages without identity capture): no form to extend.
+- **Admin / internal forms**: out of scope for this convention.
+
+---
+
 ## DESIGN SPECIFICATIONS
 
 ### Color Palette

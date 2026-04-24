@@ -10,7 +10,7 @@ import {
   recordParticipation,
 } from "@/lib/community";
 import { buildAttribution } from "@/lib/attribution";
-import { type GroupType, isValidEmail } from "@/lib/plant-types";
+import { type GroupType, isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
 import { buildPlantConfirmationEmailHtml } from "@/lib/plant-email";
 
 const PLANT_EVENT_ID = "plant-2026-04";
@@ -65,12 +65,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     const action = body.action as string | undefined;
     const email = (body.email as string || "").trim();
+    const phone = (body.phone as string || "").trim();
 
     // ── Waitlist flow ─────────────────────────────────────────────
     if (action === "waitlist") {
-      if (!isValidEmail(email)) {
+      if (!isValidEmail(email) || !isValidWhatsApp(phone)) {
         return NextResponse.json(
-          { error: "Valid email required" },
+          { error: "Valid email and WhatsApp required" },
           { status: 400 },
         );
       }
@@ -82,6 +83,7 @@ export async function POST(req: Request) {
       await recordParticipation({
         email,
         name: email, // no name captured on the waitlist form
+        phone,
         eventId: PLANT_EVENT_ID,
         participationId: waitlistId,
         role: "planter",
@@ -97,9 +99,9 @@ export async function POST(req: Request) {
     const carpool = Boolean(body.carpool);
     const message =
       (body.message as string || "").trim().slice(0, 280) || undefined;
-    if (!name || !isValidEmail(email)) {
+    if (!name || !isValidEmail(email) || !isValidWhatsApp(phone)) {
       return NextResponse.json(
-        { error: "Name and valid email required" },
+        { error: "Name, valid email, and valid WhatsApp required" },
         { status: 400 },
       );
     }
@@ -115,6 +117,7 @@ export async function POST(req: Request) {
       result = await recordParticipation({
         email,
         name,
+        phone,
         eventId: PLANT_EVENT_ID,
         participationId: registrationId,
         role: "planter",
