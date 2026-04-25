@@ -91,3 +91,33 @@ export function verifyMpSignature(req: Request, body: string): boolean {
 
   return true;
 }
+
+export type MpFlow = "sinergia" | "brote";
+
+// Decides which flow handler should process a payment. New preferences
+// stamp `metadata.flow` directly; legacy preferences (created before
+// the unified dispatcher landed) are matched on `metadata.type` and
+// the `external_reference` prefix as a fallback. Returns null when no
+// signal is recognized — the dispatcher then logs and 200s so MP
+// stops retrying.
+export function resolveMpFlow(payment: {
+  metadata?: Record<string, unknown> | null;
+  external_reference?: string | null;
+}): MpFlow | null {
+  const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
+
+  if (metadata.flow === "sinergia") return "sinergia";
+  if (metadata.flow === "brote") return "brote";
+
+  if (metadata.type === "sinergia-donation") return "sinergia";
+  if (metadata.type === "ticket") return "brote";
+
+  const externalRef =
+    typeof payment.external_reference === "string"
+      ? payment.external_reference
+      : "";
+  if (externalRef.startsWith("SIN-")) return "sinergia";
+  if (externalRef.startsWith("BROTE-")) return "brote";
+
+  return null;
+}

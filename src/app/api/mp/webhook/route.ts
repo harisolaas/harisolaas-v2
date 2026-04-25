@@ -3,12 +3,11 @@ import { Payment } from "mercadopago";
 import {
   getMpClient,
   parseWebhookEnvelope,
+  resolveMpFlow,
   verifyMpSignature,
 } from "@/lib/mp-webhook";
 import { handleSinergiaPayment } from "@/lib/mp-flows/sinergia";
 import { handleBrotePayment } from "@/lib/mp-flows/brote";
-
-type Flow = "sinergia" | "brote";
 
 // Single MercadoPago webhook for all payment flows. Verifies HMAC,
 // fetches the payment once to read its metadata, then dispatches to
@@ -51,7 +50,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payment not found" }, { status: 200 });
   }
 
-  const flow = resolveFlow(payment);
+  const flow = resolveMpFlow(payment);
   if (!flow) {
     console.warn("MP dispatcher: unrecognized flow for payment", {
       mpPaymentId,
@@ -67,29 +66,4 @@ export async function POST(req: Request) {
     case "brote":
       return handleBrotePayment({ mpPaymentId, req });
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function resolveFlow(payment: any): Flow | null {
-  const metadata = (payment.metadata ?? {}) as Record<string, unknown>;
-
-  // Preferred: explicit flow marker on new preferences.
-  if (metadata.flow === "sinergia") return "sinergia";
-  if (metadata.flow === "brote") return "brote";
-
-  // Legacy markers — preferences created before this dispatcher landed.
-  // Sinergia stamped metadata.type = "sinergia-donation"; BROTE stamped
-  // metadata.type = "ticket". Sinergia also encodes the rsvpId in
-  // external_reference with a "SIN-" prefix as a last-resort signal.
-  if (metadata.type === "sinergia-donation") return "sinergia";
-  if (metadata.type === "ticket") return "brote";
-
-  const externalRef =
-    typeof payment.external_reference === "string"
-      ? payment.external_reference
-      : "";
-  if (externalRef.startsWith("SIN-")) return "sinergia";
-  if (externalRef.startsWith("BROTE-")) return "brote";
-
-  return null;
 }
