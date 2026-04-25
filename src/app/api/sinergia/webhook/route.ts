@@ -94,14 +94,6 @@ function verifySignature(req: Request, body: string): boolean {
   return true;
 }
 
-interface CheckoutStash {
-  rsvpId: string;
-  sessionDate: string;
-  name: string;
-  email: string;
-  amountCents: number;
-}
-
 export async function POST(req: Request) {
   const body = await req.text();
 
@@ -152,69 +144,13 @@ export async function POST(req: Request) {
   }
 
   let rsvpId: string;
-  let buyerName = "";
-  let buyerEmail = "";
-  let sessionDate = "";
   let amountCents = 0;
   let currency = "ARS";
-  let receiptAlreadySent = false;
 
   if (existingRsvpId) {
-    // Retry path: the payment was already applied. Load the participation
-    // to decide whether the receipt email still needs to go out (webhook
-    // can fire before the mark-sent UPDATE lands, or email delivery can
-    // fail on the first try).
+    // Retry path: payment was already applied. amountCents/currency are
+    // loaded from the DB row below.
     rsvpId = existingRsvpId;
-    const existing = await db
-      .select({
-        id: schema.participations.id,
-        metadata: schema.participations.metadata,
-        priceCents: schema.participations.priceCents,
-        currency: schema.participations.currency,
-        email: schema.people.email,
-        name: schema.people.name,
-      })
-      .from(schema.participations)
-      .innerJoin(
-        schema.people,
-        eq(schema.people.id, schema.participations.personId),
-      )
-      .where(eq(schema.participations.id, rsvpId))
-      .limit(1);
-
-    if (existing.length === 0) {
-      console.warn("Orphaned Sinergia idempotency key:", {
-        mpPaymentId,
-        rsvpId,
-      });
-      return NextResponse.json({ ok: true, rsvpId });
-    }
-
-    const row = existing[0];
-    const meta = (row.metadata as Record<string, unknown>) ?? {};
-    const donation =
-      meta.donation && typeof meta.donation === "object"
-        ? (meta.donation as Record<string, unknown>)
-        : {};
-
-    receiptAlreadySent = Boolean(donation.receiptSent);
-    if (receiptAlreadySent) {
-      return NextResponse.json({ ok: true, rsvpId });
-    }
-
-    buyerName = row.name ?? "Asistente";
-    buyerEmail = row.email ?? "";
-    amountCents = Number(row.priceCents ?? 0);
-    currency = row.currency ?? "ARS";
-
-    // Recover sessionDate from checkout stash if still present; the
-    // template reads fine without it (falls back to "miércoles"), but
-    // we prefer the actual date when we have it.
-    const preferenceId = await loadPreferenceId(mpPaymentId);
-    if (preferenceId) {
-      const stash = await loadCheckoutStash(redis, preferenceId);
-      if (stash) sessionDate = stash.sessionDate;
-    }
   } else {
     // Fresh payment — fetch from MP and apply.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,41 +187,62 @@ export async function POST(req: Request) {
     amountCents = Math.round(Number(payment.transaction_amount ?? 0) * 100);
     currency = payment.currency_id ?? "ARS";
 
-    const applyResult = await recordSinergiaDonation({
+    await recordSinergiaDonation({
       participationId: rsvpId,
       amountCents,
       currency,
       paymentId: mpPaymentId,
     });
-    receiptAlreadySent = applyResult.receiptAlreadySent;
 
     // Overwrite the processing sentinel with the real rsvpId and set a
     // generous TTL. 90d is comfortably longer than MP's retry horizon
     // (days) while keeping the key pool bounded so Redis doesn't grow
     // without bound as payments accumulate over months.
     await redis.set(idempotencyKey, rsvpId, { EX: 60 * 60 * 24 * 90 });
-
-    // Pull buyer info from checkout stash first (authoritative — matches
-    // what the user typed on the form). Fall back to MP payer fields.
-    const preferenceId = payment.preference_id as string | undefined;
-    if (preferenceId) {
-      const stash = await loadCheckoutStash(redis, preferenceId);
-      if (stash) {
-        buyerName = stash.name;
-        buyerEmail = stash.email;
-        sessionDate = stash.sessionDate;
-      }
-    }
-    if (!buyerEmail) {
-      buyerEmail = payment.payer?.email ?? "";
-    }
-    if (!buyerName) {
-      buyerName =
-        [payment.payer?.first_name, payment.payer?.last_name]
-          .filter(Boolean)
-          .join(" ") || "Asistente";
-    }
   }
+
+  // Canonical buyer info comes from the DB, not MP's payer object or the
+  // checkout stash. The form submission is the source of truth for name
+  // and email; sessionDate is encoded in the eventId (`sinergia-{date}`).
+  // MP's payer fields are often empty for Account Money flows, which
+  // previously caused the receipt to address "Asistente" with a date of
+  // "Miércoles NaN de undefined".
+  const row = await db
+    .select({
+      eventId: schema.participations.eventId,
+      metadata: schema.participations.metadata,
+      priceCents: schema.participations.priceCents,
+      currency: schema.participations.currency,
+      email: schema.people.email,
+      name: schema.people.name,
+    })
+    .from(schema.participations)
+    .innerJoin(
+      schema.people,
+      eq(schema.people.id, schema.participations.personId),
+    )
+    .where(eq(schema.participations.id, rsvpId))
+    .limit(1);
+
+  if (row.length === 0) {
+    console.warn("Sinergia webhook: rsvp not found", { mpPaymentId, rsvpId });
+    return NextResponse.json({ ok: true, rsvpId });
+  }
+
+  const buyerName = row[0].name ?? "Asistente";
+  const buyerEmail = row[0].email ?? "";
+  const sessionDate = row[0].eventId.replace(/^sinergia-/, "");
+  if (!amountCents) amountCents = Number(row[0].priceCents ?? 0);
+  if (!currency || currency === "ARS") {
+    currency = row[0].currency ?? currency;
+  }
+
+  const meta = (row[0].metadata as Record<string, unknown>) ?? {};
+  const donation =
+    meta.donation && typeof meta.donation === "object"
+      ? (meta.donation as Record<string, unknown>)
+      : {};
+  const receiptAlreadySent = Boolean(donation.receiptSent);
 
   // Send the receipt email. Idempotent via markSinergiaDonationReceiptSent.
   if (!receiptAlreadySent && buyerEmail) {
@@ -314,33 +271,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ ok: true, rsvpId });
-}
-
-async function loadCheckoutStash(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  redis: any,
-  preferenceId: string,
-): Promise<CheckoutStash | null> {
-  try {
-    const raw = await redis.get(`sinergia:checkout:${preferenceId}`);
-    if (!raw) return null;
-    return JSON.parse(raw) as CheckoutStash;
-  } catch (err) {
-    console.error("Sinergia checkout stash parse failed:", err);
-    return null;
-  }
-}
-
-// Best-effort recovery of preference_id on the retry path, where the
-// signature-only webhook body doesn't carry it. Returns null if MP is
-// unreachable — the receipt email still sends, just without the
-// sessionDate line.
-async function loadPreferenceId(mpPaymentId: string): Promise<string | null> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payment: any = await new Payment(getMp()).get({ id: mpPaymentId });
-    return (payment.preference_id as string | undefined) ?? null;
-  } catch {
-    return null;
-  }
 }

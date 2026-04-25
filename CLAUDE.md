@@ -459,8 +459,8 @@ Sinergia is free, but the RSVP form offers an optional MercadoPago contribution 
 
 ### Routes
 
-- `POST /api/sinergia/rsvp` — always writes the participation + confirmation email; adds an MP `Preference` when `donationAmountCents > 0`. Stashes `sinergia:checkout:{preferenceId}` in Redis (24h TTL) with `{ rsvpId, sessionDate, name, email, amountCents }`.
-- `POST /api/sinergia/webhook` — HMAC-verifies, idempotency via `sinergia:payment:{mpPaymentId}` → rsvpId, applies the donation to the existing participation (via `recordSinergiaDonation` in `src/lib/community.ts`), sends the receipt email, flips `metadata.donation.receiptSent`.
+- `POST /api/sinergia/rsvp` — always writes the participation + confirmation email; adds an MP `Preference` when `donationAmountCents > 0`. The MP `external_reference` carries the rsvpId so the webhook can resolve it without any Redis stash.
+- `POST /api/sinergia/webhook` — HMAC-verifies, idempotency via `sinergia:payment:{mpPaymentId}` → rsvpId, applies the donation to the existing participation (via `recordSinergiaDonation` in `src/lib/community.ts`), sends the receipt email, flips `metadata.donation.receiptSent`. Buyer name/email and `sessionDate` (derived from `participations.eventId`) come from the DB — MP's payer object is unreliable (often empty for Account Money flows).
 - `/[locale]/sinergia/success` and `/[locale]/sinergia/failure` — static post-MP landing pages. Noindex. RSVP is confirmed regardless of which one the user lands on.
 
 ### Ops — register the MP webhook
@@ -471,7 +471,6 @@ After deploying the first time, register `https://www.harisolaas.com/api/sinergi
 
 | Key | Value |
 |---|---|
-| `sinergia:checkout:{preferenceId}` | JSON `{ rsvpId, sessionDate, name, email, amountCents }` (24h TTL) |
 | `sinergia:payment:{mpPaymentId}` | rsvpId (idempotency) |
 
 ### Donation data shape

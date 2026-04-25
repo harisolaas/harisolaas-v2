@@ -10,7 +10,6 @@ import {
   recordParticipation,
 } from "@/lib/community";
 import { buildAttribution } from "@/lib/attribution";
-import { getRedis } from "@/lib/redis";
 import {
   isValidEmail,
   isValidWhatsApp,
@@ -216,26 +215,6 @@ export async function POST(req: Request) {
             external_reference: result.participationId,
           },
         });
-
-        const preferenceId = preference.id;
-        if (preferenceId) {
-          try {
-            const redis = await getRedis();
-            await redis.set(
-              `sinergia:checkout:${preferenceId}`,
-              JSON.stringify({
-                rsvpId: result.participationId,
-                sessionDate,
-                name,
-                email,
-                amountCents: donationAmountCents,
-              }),
-              { EX: 86400 },
-            );
-          } catch (err) {
-            console.error("Failed to stash sinergia checkout meta:", err);
-          }
-        }
 
         initPoint =
           process.env.NODE_ENV === "development"
