@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { db, schema } from "@/db";
 import { sinergiaConfig } from "@/data/sinergia";
@@ -78,14 +78,19 @@ async function ensureSinergiaEvent(sessionDate: string): Promise<string> {
   return eventId;
 }
 
-async function countConfirmed(eventId: string): Promise<number> {
+// Mirrors the capacity-enforcement query in `recordParticipation`
+// (`status IN ('confirmed','used')`) so the response's `remaining`
+// stays consistent with what would actually be enforced on the next
+// RSVP — and so attendees marked `used` at the door don't free up a
+// phantom spot in the count.
+async function countOccupied(eventId: string): Promise<number> {
   const res = await db
     .select({ n: count() })
     .from(schema.participations)
     .where(
       and(
         eq(schema.participations.eventId, eventId),
-        eq(schema.participations.status, "confirmed"),
+        inArray(schema.participations.status, ["confirmed", "used"]),
       ),
     );
   return Number(res[0]?.n ?? 0);
@@ -172,8 +177,8 @@ export async function POST(req: Request) {
       throw err;
     }
 
-    const confirmedCount = await countConfirmed(eventId);
-    const remaining = Math.max(0, sinergiaConfig.capacity - confirmedCount);
+    const occupiedCount = await countOccupied(eventId);
+    const remaining = Math.max(0, sinergiaConfig.capacity - occupiedCount);
     const alreadyRegistered = !result.created && !result.promoted;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
@@ -266,7 +271,7 @@ export async function POST(req: Request) {
               phone,
               sessionDate,
               staysForDinner,
-              totalRegistered: confirmedCount,
+              totalRegistered: occupiedCount,
               remaining,
               capacity: sinergiaConfig.capacity,
               // Only surface the donation row once we actually got a
