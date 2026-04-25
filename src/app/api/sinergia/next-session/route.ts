@@ -1,36 +1,33 @@
 import { NextResponse } from "next/server";
-import { getRedis } from "@/lib/redis";
+import { and, count, eq } from "drizzle-orm";
+import { db, schema } from "@/db";
 import { sinergiaConfig } from "@/data/sinergia";
 import { resolveOverrideLink } from "@/lib/override-link";
-import {
-  nextSinergiaDate,
-  type SinergiaSession,
-} from "@/lib/sinergia-types";
+import { nextSinergiaDate } from "@/lib/sinergia-types";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const redis = await getRedis();
     const date = nextSinergiaDate();
+    const eventId = `sinergia-${date}`;
 
-    const sessionRaw = await redis.get(`sinergia:session:${date}`);
-    let session: SinergiaSession;
-    if (sessionRaw) {
-      session = JSON.parse(sessionRaw);
-    } else {
-      session = {
-        date,
-        capacity: sinergiaConfig.capacity,
-        status: "open",
-      };
-      await redis.set(`sinergia:session:${date}`, JSON.stringify(session));
-    }
-
-    const count = Number(
-      (await redis.get(`sinergia:session:${date}:counter`)) ?? 0,
-    );
-    const remaining = Math.max(0, session.capacity - count);
+    // Count confirmed RSVPs from the DB — same source the rsvp endpoint
+    // uses to compute `remaining` for its own response. Earlier this read
+    // a Redis counter (`sinergia:session:{date}:counter`) that nothing
+    // ever incremented, so the landing always showed the full capacity.
+    const res = await db
+      .select({ n: count() })
+      .from(schema.participations)
+      .where(
+        and(
+          eq(schema.participations.eventId, eventId),
+          eq(schema.participations.status, "confirmed"),
+        ),
+      );
+    const confirmedCount = Number(res[0]?.n ?? 0);
+    const capacity = sinergiaConfig.capacity;
+    const remaining = Math.max(0, capacity - confirmedCount);
 
     // When the landing arrives with `?link=<slug>` for an override invite,
     // signal that the form should stay open even if remaining===0. The
@@ -40,11 +37,10 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      date: session.date,
-      capacity: session.capacity,
+      date,
+      capacity,
       remaining,
-      status:
-        remaining === 0 && !override.bypassCapacity ? "full" : session.status,
+      status: remaining === 0 && !override.bypassCapacity ? "full" : "open",
       override: override.bypassCapacity,
     });
   } catch (error) {
