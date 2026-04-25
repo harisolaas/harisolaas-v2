@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { sinergiaConfig } from "@/data/sinergia";
 import { resolveOverrideLink } from "@/lib/override-link";
@@ -12,22 +12,24 @@ export async function GET(req: Request) {
     const date = nextSinergiaDate();
     const eventId = `sinergia-${date}`;
 
-    // Count confirmed RSVPs from the DB — same source the rsvp endpoint
-    // uses to compute `remaining` for its own response. Earlier this read
-    // a Redis counter (`sinergia:session:{date}:counter`) that nothing
-    // ever incremented, so the landing always showed the full capacity.
+    // Count occupied seats from the DB. Mirrors the capacity-enforcement
+    // query in `recordParticipation` (`status IN ('confirmed','used')`) so
+    // marking an attendee as `used` at the door doesn't free up a phantom
+    // spot. Earlier this read a Redis counter (`sinergia:session:{date}:counter`)
+    // that nothing ever incremented, so the landing always showed the full
+    // capacity.
     const res = await db
       .select({ n: count() })
       .from(schema.participations)
       .where(
         and(
           eq(schema.participations.eventId, eventId),
-          eq(schema.participations.status, "confirmed"),
+          inArray(schema.participations.status, ["confirmed", "used"]),
         ),
       );
-    const confirmedCount = Number(res[0]?.n ?? 0);
+    const occupiedCount = Number(res[0]?.n ?? 0);
     const capacity = sinergiaConfig.capacity;
-    const remaining = Math.max(0, capacity - confirmedCount);
+    const remaining = Math.max(0, capacity - occupiedCount);
 
     // When the landing arrives with `?link=<slug>` for an override invite,
     // signal that the form should stay open even if remaining===0. The
