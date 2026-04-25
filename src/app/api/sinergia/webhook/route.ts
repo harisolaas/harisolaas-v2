@@ -144,12 +144,8 @@ export async function POST(req: Request) {
   }
 
   let rsvpId: string;
-  let amountCents = 0;
-  let currency = "ARS";
 
   if (existingRsvpId) {
-    // Retry path: payment was already applied. amountCents/currency are
-    // loaded from the DB row below.
     rsvpId = existingRsvpId;
   } else {
     // Fresh payment — fetch from MP and apply.
@@ -184,13 +180,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing rsvpId" }, { status: 200 });
     }
 
-    amountCents = Math.round(Number(payment.transaction_amount ?? 0) * 100);
-    currency = payment.currency_id ?? "ARS";
-
     await recordSinergiaDonation({
       participationId: rsvpId,
-      amountCents,
-      currency,
+      amountCents: Math.round(Number(payment.transaction_amount ?? 0) * 100),
+      currency: payment.currency_id ?? "ARS",
       paymentId: mpPaymentId,
     });
 
@@ -232,10 +225,8 @@ export async function POST(req: Request) {
   const buyerName = row[0].name ?? "Asistente";
   const buyerEmail = row[0].email ?? "";
   const sessionDate = row[0].eventId.replace(/^sinergia-/, "");
-  if (!amountCents) amountCents = Number(row[0].priceCents ?? 0);
-  if (!currency || currency === "ARS") {
-    currency = row[0].currency ?? currency;
-  }
+  const amountCents = Number(row[0].priceCents ?? 0);
+  const currency = row[0].currency ?? "ARS";
 
   const meta = (row[0].metadata as Record<string, unknown>) ?? {};
   const donation =
