@@ -450,3 +450,30 @@ POST /api/brote/unarbol  (Auth: Bearer $BROTE_ADMIN_SECRET)
 - The flyer route (`/brote/flyer`) lives outside `[locale]` with a standalone layout
 - Dictionary content for BROTE is in `es.ts`/`en.ts` under `brote` and `broteUnArbol` keys
 - Types in `src/dictionaries/types.ts`: `BroteDict`, `BroteUnArbolDict`, `BroteLineupItem`, `BroteExperienceItem`
+
+---
+
+## SINERGIA — Optional donations at RSVP
+
+Sinergia is free, but the RSVP form offers an optional MercadoPago contribution (5k / 10k / 20k ARS chips + free input, "registrarme sin aportar" opt-out). The flow is **decoupled**: the RSVP is always confirmed at form submit, with its confirmation email fired inline. If a donation amount is picked, `/api/sinergia/rsvp` additionally returns `initPoint` and the client redirects to MP. A second webhook hop confirms the payment and fires a separate "Gracias por tu aporte" receipt email. Failure or abandonment never invalidates the RSVP.
+
+### Routes
+
+- `POST /api/sinergia/rsvp` — always writes the participation + confirmation email; adds an MP `Preference` when `donationAmountCents > 0`. Stashes `sinergia:checkout:{preferenceId}` in Redis (24h TTL) with `{ rsvpId, sessionDate, name, email, amountCents }`.
+- `POST /api/sinergia/webhook` — HMAC-verifies, idempotency via `sinergia:payment:{mpPaymentId}` → rsvpId, applies the donation to the existing participation (via `recordSinergiaDonation` in `src/lib/community.ts`), sends the receipt email, flips `metadata.donation.receiptSent`.
+- `/[locale]/sinergia/success` and `/[locale]/sinergia/failure` — static post-MP landing pages. Noindex. RSVP is confirmed regardless of which one the user lands on.
+
+### Ops — register the MP webhook
+
+After deploying the first time, register `https://www.harisolaas.com/api/sinergia/webhook` in the MercadoPago dashboard alongside the BROTE webhook. Both share `MP_ACCESS_TOKEN` and `MP_WEBHOOK_SECRET`; the signing secret configured in the dashboard must match the env var.
+
+### Redis keys
+
+| Key | Value |
+|---|---|
+| `sinergia:checkout:{preferenceId}` | JSON `{ rsvpId, sessionDate, name, email, amountCents }` (24h TTL) |
+| `sinergia:payment:{mpPaymentId}` | rsvpId (idempotency) |
+
+### Donation data shape
+
+Donation details live in `participations.metadata.donation = { amountCents, currency, paymentId, receiptSent }`. No schema migration — the column was already `jsonb`. `participations.externalPaymentId`, `priceCents`, `currency` are also set by the webhook for reporting parity with BROTE.

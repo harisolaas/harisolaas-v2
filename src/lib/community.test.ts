@@ -4,8 +4,10 @@ import { db, schema } from "@/db";
 import {
   CapacityReachedError,
   getPersonByEmail,
+  markSinergiaDonationReceiptSent,
   promoteWaitlist,
   recordParticipation,
+  recordSinergiaDonation,
   upsertPerson,
 } from "./community";
 
@@ -407,6 +409,123 @@ describe("promoteWaitlist", () => {
     expect(drill!.participations[0].status).toBe("confirmed");
     expect(drill!.participations[0].externalPaymentId).toBe("MP-PW-1");
     expect(drill!.participations[0].priceCents).toBe(2000);
+  });
+});
+
+describe("recordSinergiaDonation", () => {
+  it("stamps payment info and merges into metadata", async () => {
+    await recordParticipation({
+      email: "test-community-don@example.com",
+      name: "Donor",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-DON00001",
+      role: "rsvp",
+      metadata: { staysForDinner: true },
+    });
+
+    const res = await recordSinergiaDonation({
+      participationId: "TEST-DON00001",
+      amountCents: 1000000,
+      currency: "ARS",
+      paymentId: "MP-DON-1",
+    });
+    expect(res.applied).toBe(true);
+    expect(res.receiptAlreadySent).toBe(false);
+
+    const drill = await getPersonByEmail("test-community-don@example.com");
+    const p = drill!.participations[0];
+    expect(p.externalPaymentId).toBe("MP-DON-1");
+    expect(p.priceCents).toBe(1000000);
+    expect(p.currency).toBe("ARS");
+    const meta = p.metadata as Record<string, unknown>;
+    expect(meta.staysForDinner).toBe(true);
+    expect(meta.donation).toEqual({
+      amountCents: 1000000,
+      currency: "ARS",
+      paymentId: "MP-DON-1",
+      receiptSent: false,
+    });
+  });
+
+  it("short-circuits on a repeat call with the same paymentId", async () => {
+    await recordParticipation({
+      email: "test-community-don2@example.com",
+      name: "Donor2",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-DON00002",
+      role: "rsvp",
+    });
+
+    await recordSinergiaDonation({
+      participationId: "TEST-DON00002",
+      amountCents: 500000,
+      currency: "ARS",
+      paymentId: "MP-DON-2",
+    });
+    await markSinergiaDonationReceiptSent("TEST-DON00002");
+
+    const again = await recordSinergiaDonation({
+      participationId: "TEST-DON00002",
+      amountCents: 500000,
+      currency: "ARS",
+      paymentId: "MP-DON-2",
+    });
+    expect(again.applied).toBe(false);
+    expect(again.receiptAlreadySent).toBe(true);
+
+    const drill = await getPersonByEmail("test-community-don2@example.com");
+    const meta = drill!.participations[0].metadata as Record<string, unknown>;
+    const donation = meta.donation as Record<string, unknown>;
+    expect(donation.receiptSent).toBe(true);
+  });
+
+  it("throws when the participation does not exist", async () => {
+    await expect(
+      recordSinergiaDonation({
+        participationId: "TEST-NOPE",
+        amountCents: 100,
+        currency: "ARS",
+        paymentId: "MP-NOPE",
+      }),
+    ).rejects.toThrow(/not found/);
+  });
+
+  it("does not overwrite when a second distinct payment arrives", async () => {
+    await recordParticipation({
+      email: "test-community-don3@example.com",
+      name: "Donor3",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-DON00003",
+      role: "rsvp",
+    });
+
+    const first = await recordSinergiaDonation({
+      participationId: "TEST-DON00003",
+      amountCents: 1000000,
+      currency: "ARS",
+      paymentId: "MP-DON-3A",
+    });
+    expect(first.applied).toBe(true);
+
+    const second = await recordSinergiaDonation({
+      participationId: "TEST-DON00003",
+      amountCents: 2000000,
+      currency: "ARS",
+      paymentId: "MP-DON-3B",
+    });
+    expect(second.applied).toBe(false);
+
+    const drill = await getPersonByEmail("test-community-don3@example.com");
+    const p = drill!.participations[0];
+    // Original donation preserved untouched.
+    expect(p.externalPaymentId).toBe("MP-DON-3A");
+    expect(p.priceCents).toBe(1000000);
+    const donation = (p.metadata as Record<string, unknown>).donation as Record<
+      string,
+      unknown
+    >;
+    expect(donation.paymentId).toBe("MP-DON-3A");
+    expect(donation.amountCents).toBe(1000000);
   });
 });
 

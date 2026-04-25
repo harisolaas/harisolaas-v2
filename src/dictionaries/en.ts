@@ -847,6 +847,7 @@ const en: Dictionary = {
       dinnerYes: "Yes, I\u2019ll stay",
       dinnerNo: "No, just the practice",
       cta: "Save my seat",
+      ctaWithDonation: "Save my seat + contribute {amount}",
       submitting: "Saving...",
       successHeading: "Done.",
       successMessage:
@@ -855,6 +856,39 @@ const en: Dictionary = {
         "You already had a seat for this Wednesday. Check your email.",
       errorMessage: "Something went wrong. Please try again.",
       micro: "We\u2019ll write to the address you leave.",
+      donation: {
+        heading: "Want to add a contribution?",
+        subtitle:
+          "Sinergia runs on community contributions. What you chip in keeps the door open every Wednesday.",
+        chip5k: "$5,000",
+        chip10k: "$10,000",
+        chip20k: "$20,000",
+        customChip: "Other amount",
+        customPlaceholder: "Amount in ARS",
+        declineCheckbox: "I\u2019d rather save my seat without contributing this time",
+        chooseError:
+          "Pick an amount or check \u201csave my seat without contributing\u201d.",
+        minAmountError: "Minimum is $1,000.",
+      },
+    },
+    successPage: {
+      title: "Thanks for your contribution \u2014 Sinergia",
+      eyebrow: "Thank you",
+      heading: "Thanks for chipping in.",
+      body: "We received your contribution. What we pool together keeps this space alive.",
+      sessionLine: "See you {date} at {time}.",
+      addressLine: "{venue} \u00b7 {address}",
+      whatsappCta: "Message us on WhatsApp",
+      backLink: "Back to Sinergia",
+    },
+    failurePage: {
+      title: "Payment not completed \u2014 Sinergia",
+      heading: "The payment didn\u2019t go through.",
+      body: "Don\u2019t worry: your seat is still confirmed. You can try contributing again any time, or just show up.",
+      rsvpStillConfirmed: "Your RSVP for next Wednesday is set.",
+      retryCta: "Try again",
+      whatsappCta: "Message us on WhatsApp",
+      backLink: "Back to Sinergia",
     },
     final: {
       heading: "See you Wednesday.",

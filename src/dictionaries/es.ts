@@ -882,6 +882,7 @@ const es: Dictionary = {
       dinnerYes: "Sí, me quedo",
       dinnerNo: "No, solo la práctica",
       cta: "Reservar mi lugar",
+      ctaWithDonation: "Reservar y aportar {amount}",
       submitting: "Reservando...",
       successHeading: "Listo.",
       successMessage:
@@ -890,6 +891,39 @@ const es: Dictionary = {
         "Ya tenías tu lugar para este miércoles. Revisá tu mail.",
       errorMessage: "Algo salió mal. Intentá de nuevo.",
       micro: "Te escribimos a la dirección que dejes.",
+      donation: {
+        heading: "¿Querés sumar un aporte?",
+        subtitle:
+          "Sinergia es a colaboración. Lo que sumes ayuda a que podamos seguir abriendo la puerta cada miércoles.",
+        chip5k: "$5.000",
+        chip10k: "$10.000",
+        chip20k: "$20.000",
+        customChip: "Otro monto",
+        customPlaceholder: "Monto en ARS",
+        declineCheckbox: "Prefiero reservar sin aportar esta vez",
+        chooseError:
+          "Elegí un monto o marcá \"prefiero reservar sin aportar\".",
+        minAmountError: "El mínimo es $1.000.",
+      },
+    },
+    successPage: {
+      title: "¡Gracias por tu aporte! — Sinergia",
+      eyebrow: "Gracias",
+      heading: "Gracias por sumar.",
+      body: "Recibimos tu aporte. Lo que pongamos entre todos sostiene el espacio.",
+      sessionLine: "Nos vemos {date} a las {time}.",
+      addressLine: "{venue} · {address}",
+      whatsappCta: "Escribinos por WhatsApp",
+      backLink: "Volver a Sinergia",
+    },
+    failurePage: {
+      title: "Pago no completado — Sinergia",
+      heading: "El pago no se completó.",
+      body: "Quedate tranqui: tu lugar sigue confirmado. Podés intentar el aporte de nuevo cuando quieras o simplemente venir.",
+      rsvpStillConfirmed: "Tu reserva para el próximo miércoles está hecha.",
+      retryCta: "Volver a intentar",
+      whatsappCta: "Escribinos por WhatsApp",
+      backLink: "Volver a Sinergia",
     },
     final: {
       heading: "Te esperamos el miércoles.",

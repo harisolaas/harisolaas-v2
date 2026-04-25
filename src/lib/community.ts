@@ -276,6 +276,117 @@ export async function recordParticipation(
   });
 }
 
+export interface SinergiaDonationResult {
+  /** True when this call was the one that stamped the payment on the row. */
+  applied: boolean;
+  /** True when the receipt email was already flagged sent before this call. */
+  receiptAlreadySent: boolean;
+}
+
+/**
+ * Record a MercadoPago donation against an existing Sinergia participation.
+ *
+ * Sinergia RSVPs are always free at form-submit time; a donation is a
+ * second, optional step. The webhook calls this once MP confirms a payment.
+ * Safe to call twice with the same paymentId: returns applied=false on the
+ * second call so the caller can skip the receipt email.
+ */
+export async function recordSinergiaDonation(params: {
+  participationId: string;
+  amountCents: number;
+  currency: string;
+  paymentId: string;
+}): Promise<SinergiaDonationResult> {
+  const { participationId, amountCents, currency, paymentId } = params;
+
+  return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({
+        externalPaymentId: schema.participations.externalPaymentId,
+        metadata: schema.participations.metadata,
+      })
+      .from(schema.participations)
+      .where(eq(schema.participations.id, participationId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      throw new Error(`participation ${participationId} not found`);
+    }
+
+    const meta = (existing[0].metadata as Record<string, unknown>) ?? {};
+    const existingDonation =
+      meta.donation && typeof meta.donation === "object"
+        ? (meta.donation as Record<string, unknown>)
+        : null;
+
+    // Any prior payment on this participation is immutable. Covers two
+    // cases with a single guard: (a) webhook retries for the same
+    // paymentId — the normal idempotent replay; (b) a second, distinct
+    // payment ever completing for the same RSVP (shouldn't happen since
+    // MP checkouts are one-shot, but if it does we surface via logs +
+    // manual ops rather than silently overwriting the first donation).
+    if (existing[0].externalPaymentId || existingDonation) {
+      if (
+        existing[0].externalPaymentId &&
+        existing[0].externalPaymentId !== paymentId
+      ) {
+        console.warn("Sinergia: second distinct payment for same rsvp", {
+          participationId,
+          stored: existing[0].externalPaymentId,
+          incoming: paymentId,
+        });
+      }
+      return {
+        applied: false,
+        receiptAlreadySent: Boolean(existingDonation?.receiptSent),
+      };
+    }
+
+    const nextDonation = {
+      amountCents,
+      currency,
+      paymentId,
+      receiptSent: false,
+    };
+
+    await tx
+      .update(schema.participations)
+      .set({
+        externalPaymentId: paymentId,
+        priceCents: amountCents,
+        currency,
+        metadata: { ...meta, donation: nextDonation },
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(schema.participations.id, participationId));
+
+    return { applied: true, receiptAlreadySent: false };
+  });
+}
+
+/**
+ * Flip metadata.donation.receiptSent to true. Called after the receipt
+ * email succeeds so webhook retries don't double-send.
+ */
+export async function markSinergiaDonationReceiptSent(
+  participationId: string,
+): Promise<void> {
+  await db
+    .update(schema.participations)
+    .set({
+      metadata: sql`
+        jsonb_set(
+          COALESCE(${schema.participations.metadata}, '{}'::jsonb),
+          '{donation,receiptSent}',
+          'true'::jsonb,
+          true
+        )
+      `,
+      updatedAt: sql`NOW()`,
+    })
+    .where(eq(schema.participations.id, participationId));
+}
+
 /**
  * Promote an existing waitlist participation to confirmed, attaching payment
  * info. Thin wrapper around recordParticipation for readability at the call

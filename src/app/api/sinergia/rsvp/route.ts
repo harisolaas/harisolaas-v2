@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { Resend } from "resend";
 import { and, count, eq } from "drizzle-orm";
+import { MercadoPagoConfig, Preference } from "mercadopago";
 import { db, schema } from "@/db";
 import { sinergiaConfig } from "@/data/sinergia";
 import {
@@ -9,6 +10,7 @@ import {
   recordParticipation,
 } from "@/lib/community";
 import { buildAttribution } from "@/lib/attribution";
+import { getRedis } from "@/lib/redis";
 import {
   isValidEmail,
   isValidWhatsApp,
@@ -18,6 +20,22 @@ import {
   buildSinergiaConfirmationEmailHtml,
   buildSinergiaHostNotificationHtml,
 } from "@/lib/sinergia-email";
+
+// Donation amount bounds in cents of ARS. 1.000 floor catches accidental
+// zeros; 1.000.000 ceiling is a sanity guard — genuine donations that
+// large should route through a direct conversation, not a landing form.
+const MIN_DONATION_CENTS = 100_000;
+const MAX_DONATION_CENTS = 100_000_000;
+
+let _mp: MercadoPagoConfig | null = null;
+function getMp(): MercadoPagoConfig {
+  if (!_mp) {
+    _mp = new MercadoPagoConfig({
+      accessToken: process.env.MP_ACCESS_TOKEN!,
+    });
+  }
+  return _mp;
+}
 
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
@@ -87,12 +105,38 @@ export async function POST(req: Request) {
     const email = ((body.email as string) || "").trim();
     const phone = ((body.phone as string) || "").trim();
     const staysForDinner = Boolean(body.staysForDinner);
+    const locale = body.locale === "en" ? "en" : "es";
 
     if (!name || !isValidEmail(email) || !isValidWhatsApp(phone)) {
       return NextResponse.json(
         { error: "Name, valid email, and valid WhatsApp required" },
         { status: 400 },
       );
+    }
+
+    // Donation is optional. `donationDeclined:true` means the user opted
+    // out via the checkbox. Any positive `donationAmountCents` triggers
+    // an MP Preference; the RSVP is confirmed either way.
+    const donationDeclined = Boolean(body.donationDeclined);
+    const rawDonationAmount = Number(body.donationAmountCents);
+    const donationAmountCents =
+      !donationDeclined && Number.isFinite(rawDonationAmount) && rawDonationAmount > 0
+        ? Math.round(rawDonationAmount)
+        : 0;
+
+    if (donationAmountCents > 0) {
+      if (donationAmountCents < MIN_DONATION_CENTS) {
+        return NextResponse.json(
+          { error: "Donation below minimum" },
+          { status: 400 },
+        );
+      }
+      if (donationAmountCents > MAX_DONATION_CENTS) {
+        return NextResponse.json(
+          { error: "Donation above maximum" },
+          { status: 400 },
+        );
+      }
     }
 
     const sessionDate = nextSinergiaDate();
@@ -131,60 +175,135 @@ export async function POST(req: Request) {
 
     const confirmedCount = await countConfirmed(eventId);
     const remaining = Math.max(0, sinergiaConfig.capacity - confirmedCount);
-
-    if (!result.created && !result.promoted) {
-      return NextResponse.json({
-        ok: true,
-        alreadyRegistered: true,
-        rsvpId: result.participationId,
-        sessionDate,
-        remaining,
-      });
-    }
+    const alreadyRegistered = !result.created && !result.promoted;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
 
-    // Confirmation email.
-    try {
-      await getResend().emails.send({
-        from: `Sinergia <${fromEmail}>`,
-        to: email,
-        subject: "Nos vemos el miércoles — acá va la dirección",
-        html: buildSinergiaConfirmationEmailHtml({
-          name,
-          sessionDate,
-          staysForDinner,
-        }),
-      });
-    } catch (err) {
-      console.error("Sinergia confirmation email failed:", err);
+    // Create the MP preference BEFORE the host notification so we know
+    // whether the donation link was actually issued. If preference
+    // creation fails (MP down, bad creds, rate-limited) the attendee
+    // never gets redirected, and we don't want the host email to say
+    // "aporte pendiente" for an intention that never left our server.
+    let initPoint: string | null = null;
+    let preferenceCreated = false;
+    if (donationAmountCents > 0) {
+      try {
+        const baseUrl =
+          process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+        const preference = await new Preference(getMp()).create({
+          body: {
+            items: [
+              {
+                id: "sinergia-donation",
+                title: `Aporte Sinergia — ${sessionDate}`,
+                quantity: 1,
+                unit_price: donationAmountCents / 100,
+                currency_id: "ARS",
+              },
+            ],
+            back_urls: {
+              success: `${baseUrl}/${locale}/sinergia/success`,
+              failure: `${baseUrl}/${locale}/sinergia/failure`,
+              pending: `${baseUrl}/${locale}/sinergia/failure`,
+            },
+            auto_return: "approved",
+            notification_url: `${baseUrl}/api/sinergia/webhook`,
+            metadata: {
+              type: "sinergia-donation",
+              rsvp_id: result.participationId,
+              session_date: sessionDate,
+            },
+            external_reference: result.participationId,
+          },
+        });
+
+        const preferenceId = preference.id;
+        if (preferenceId) {
+          try {
+            const redis = await getRedis();
+            await redis.set(
+              `sinergia:checkout:${preferenceId}`,
+              JSON.stringify({
+                rsvpId: result.participationId,
+                sessionDate,
+                name,
+                email,
+                amountCents: donationAmountCents,
+              }),
+              { EX: 86400 },
+            );
+          } catch (err) {
+            console.error("Failed to stash sinergia checkout meta:", err);
+          }
+        }
+
+        initPoint =
+          process.env.NODE_ENV === "development"
+            ? (preference.sandbox_init_point ?? preference.init_point ?? null)
+            : (preference.init_point ?? null);
+        preferenceCreated = Boolean(initPoint);
+      } catch (err) {
+        console.error("Sinergia MP preference failed:", err);
+        // Fall through. Client receives the RSVP-success response with no
+        // initPoint, which renders as the normal inline success state.
+      }
     }
 
-    // Host notification.
-    const notifyList = (process.env.SINERGIA_NOTIFY_EMAILS || "")
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean);
-
-    if (notifyList.length > 0) {
+    // Fire the attendee confirmation + host notification only on a fresh
+    // RSVP (or a waitlist promotion). Repeat submits from someone already
+    // registered are no-ops for email to avoid duplicate inbox noise; the
+    // donation flow above still runs for returning attendees who re-open
+    // the form specifically to contribute.
+    if (!alreadyRegistered) {
       try {
         await getResend().emails.send({
           from: `Sinergia <${fromEmail}>`,
-          to: notifyList,
-          subject: `Nuevo RSVP Sinergia — ${name}`,
-          html: buildSinergiaHostNotificationHtml({
+          to: email,
+          subject: "Nos vemos el miércoles — acá va la dirección",
+          html: buildSinergiaConfirmationEmailHtml({
             name,
-            email,
-            phone,
             sessionDate,
             staysForDinner,
-            totalRegistered: confirmedCount,
-            remaining,
-            capacity: sinergiaConfig.capacity,
           }),
         });
       } catch (err) {
-        console.error("Sinergia host notification failed:", err);
+        console.error("Sinergia confirmation email failed:", err);
+      }
+
+      const notifyList = (process.env.SINERGIA_NOTIFY_EMAILS || "")
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+
+      if (notifyList.length > 0) {
+        try {
+          await getResend().emails.send({
+            from: `Sinergia <${fromEmail}>`,
+            to: notifyList,
+            subject: `Nuevo RSVP Sinergia — ${name}`,
+            html: buildSinergiaHostNotificationHtml({
+              name,
+              email,
+              phone,
+              sessionDate,
+              staysForDinner,
+              totalRegistered: confirmedCount,
+              remaining,
+              capacity: sinergiaConfig.capacity,
+              // Only surface the donation row once we actually got a
+              // preference back from MP — otherwise the host sees
+              // "aporte pendiente" for something the attendee never
+              // had the chance to pay.
+              donationAmountCents:
+                preferenceCreated && donationAmountCents > 0
+                  ? donationAmountCents
+                  : null,
+              donationStatus: preferenceCreated ? "pending" : undefined,
+            }),
+          });
+        } catch (err) {
+          console.error("Sinergia host notification failed:", err);
+        }
       }
     }
 
@@ -193,6 +312,8 @@ export async function POST(req: Request) {
       rsvpId: result.participationId,
       sessionDate,
       remaining,
+      ...(alreadyRegistered ? { alreadyRegistered: true } : {}),
+      ...(initPoint ? { initPoint } : {}),
     });
   } catch (error) {
     console.error("sinergia/rsvp error:", error);

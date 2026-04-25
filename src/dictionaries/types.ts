@@ -254,12 +254,51 @@ export interface SinergiaDict {
     dinnerYes: string;
     dinnerNo: string;
     cta: string;
+    /** CTA copy when an amount is selected. `{amount}` is replaced
+     * client-side with the formatted peso amount. */
+    ctaWithDonation: string;
     submitting: string;
     successHeading: string;
     successMessage: string;
     alreadyRegistered: string;
     errorMessage: string;
     micro: string;
+    donation: {
+      heading: string;
+      subtitle: string;
+      /** Display labels for the three preset chips. */
+      chip5k: string;
+      chip10k: string;
+      chip20k: string;
+      customChip: string;
+      customPlaceholder: string;
+      declineCheckbox: string;
+      /** Shown when submit is attempted but no donation choice was made. */
+      chooseError: string;
+      /** Shown when the custom amount is below the minimum. */
+      minAmountError: string;
+    };
+  };
+  /** Post-payment landing pages. */
+  successPage: {
+    title: string;
+    /** Script-font decorative word over the heading ("Gracias" / "Thank you"). */
+    eyebrow: string;
+    heading: string;
+    body: string;
+    sessionLine: string;
+    addressLine: string;
+    whatsappCta: string;
+    backLink: string;
+  };
+  failurePage: {
+    title: string;
+    heading: string;
+    body: string;
+    rsvpStillConfirmed: string;
+    retryCta: string;
+    whatsappCta: string;
+    backLink: string;
   };
   final: {
     heading: string;
