@@ -207,8 +207,12 @@ export async function POST(req: Request) {
               pending: `${baseUrl}/${locale}/sinergia/failure`,
             },
             auto_return: "approved",
-            notification_url: `${baseUrl}/api/sinergia/webhook`,
+            notification_url: `${baseUrl}/api/mp/webhook`,
             metadata: {
+              flow: "sinergia",
+              // `type` retained for backwards-compatible routing on
+              // any in-flight retries that still target the legacy
+              // /api/sinergia/webhook endpoint while it lives.
               type: "sinergia-donation",
               rsvp_id: result.participationId,
               session_date: sessionDate,
