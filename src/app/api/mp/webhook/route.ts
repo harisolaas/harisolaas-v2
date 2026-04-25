@@ -22,7 +22,10 @@ export async function POST(req: Request) {
 
   const envelope = parseWebhookEnvelope(body);
   if (!envelope) {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid webhook payload" },
+      { status: 400 },
+    );
   }
 
   if (envelope.type !== "payment") {

@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { MercadoPagoConfig } from "mercadopago";
 
 let _mp: MercadoPagoConfig | null = null;
@@ -58,12 +58,19 @@ export function verifyMpSignature(req: Request, body: string): boolean {
     return false;
   }
 
-  const parts = Object.fromEntries(
-    xSignature.split(",").map((p) => {
-      const [k, v] = p.split("=");
-      return [k.trim(), v.trim()];
-    }),
-  );
+  // x-signature is a comma-separated list of `k=v` segments (e.g.
+  // `ts=1700000000,v1=abc...`). Split on the first `=` so values
+  // containing `=` (uncommon but legal in some hash encodings) survive,
+  // and skip any segment that doesn't have one — a malformed segment
+  // shouldn't crash the request with a 500.
+  const parts: Record<string, string> = {};
+  for (const segment of xSignature.split(",")) {
+    const eq = segment.indexOf("=");
+    if (eq < 0) continue;
+    const k = segment.slice(0, eq).trim();
+    const v = segment.slice(eq + 1).trim();
+    if (k) parts[k] = v;
+  }
 
   const ts = parts.ts;
   const hash = parts.v1;
@@ -80,7 +87,20 @@ export function verifyMpSignature(req: Request, body: string): boolean {
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
   const expected = createHmac("sha256", secret).update(manifest).digest("hex");
 
-  if (hash !== expected) {
+  // Constant-time comparison. timingSafeEqual throws on length mismatch,
+  // so guard up front; a length mismatch is a definitive "no match"
+  // anyway and never reveals secret bytes by branching on them.
+  if (hash.length !== expected.length) {
+    console.warn("MP webhook signature mismatch:", {
+      dataId,
+      xRequestId,
+      ts,
+    });
+    return false;
+  }
+
+  const matches = timingSafeEqual(Buffer.from(hash), Buffer.from(expected));
+  if (!matches) {
     console.warn("MP webhook signature mismatch:", {
       dataId,
       xRequestId,
