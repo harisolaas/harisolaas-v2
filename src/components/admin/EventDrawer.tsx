@@ -41,6 +41,15 @@ interface EventDetail {
     usedAt: string | null;
     attribution: Record<string, unknown> | null;
     linkSlug: string | null;
+    priceCents: number | null;
+    currency: string | null;
+  }[];
+  contributions: {
+    currency: string;
+    contributors: number;
+    totalCents: number;
+    avgCents: number;
+    maxCents: number;
   }[];
 }
 
@@ -196,6 +205,46 @@ export default function EventDrawer({
               )}
             </section>
 
+            {/* Contributions (BROTE tickets, Sinergia donations, etc.) */}
+            {data.contributions.length > 0 && (
+              <section className="rounded-xl border border-sage/20 bg-white p-4">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-charcoal/60">
+                  Aportes recaudados
+                </p>
+                <div className="space-y-4">
+                  {data.contributions.map((c) => (
+                    <div key={c.currency}>
+                      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                        <StatBox
+                          label="Total"
+                          value={formatMoney(c.totalCents, c.currency)}
+                        />
+                        <StatBox label="Aportantes" value={c.contributors} />
+                        <StatBox
+                          label="Promedio"
+                          value={formatMoney(c.avgCents, c.currency)}
+                        />
+                        <StatBox
+                          label="Máximo"
+                          value={formatMoney(c.maxCents, c.currency)}
+                        />
+                      </div>
+                      {data.counts.confirmed > 0 && (
+                        <p className="mt-2 text-[11px] text-charcoal/50">
+                          {c.contributors} de {data.counts.confirmed}{" "}
+                          confirmados aportaron (
+                          {Math.round(
+                            (c.contributors / data.counts.confirmed) * 100,
+                          )}
+                          %)
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* Source breakdown */}
             <section className="rounded-xl border border-sage/20 bg-white p-4">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-charcoal/60">
@@ -302,6 +351,17 @@ export default function EventDrawer({
                               Asistió {formatDateTimeArg(p.usedAt)}
                             </p>
                           )}
+                          {p.priceCents != null &&
+                            p.priceCents > 0 &&
+                            p.status !== "cancelled" && (
+                              <p className="mt-0.5 text-[10px] text-terracotta">
+                                Aportó{" "}
+                                {formatMoney(
+                                  p.priceCents,
+                                  p.currency ?? "ARS",
+                                )}
+                              </p>
+                            )}
                           {errors[p.participationId] && (
                             <p
                               role="alert"
@@ -368,6 +428,26 @@ function formatDateTimeArg(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function formatMoney(cents: number, currency: string): string {
+  // ARS is whole pesos in practice (Sinergia chips, BROTE prices) — drop
+  // decimals to keep the StatBox from wrapping. Other currencies keep up
+  // to 2 decimals so cent-level amounts (e.g. 1050¢ → $10.50) aren't
+  // rounded to a misleading whole unit.
+  const fractionDigits =
+    currency === "ARS"
+      ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+      : { minimumFractionDigits: 0, maximumFractionDigits: 2 };
+  try {
+    return new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency,
+      ...fractionDigits,
+    }).format(cents / 100);
+  } catch {
+    return `${currency} ${(cents / 100).toLocaleString("es-AR", fractionDigits)}`;
+  }
 }
 
 function StatBox({ label, value }: { label: string; value: number | string }) {

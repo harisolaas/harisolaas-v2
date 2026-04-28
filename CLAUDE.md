@@ -15,12 +15,13 @@ Build a personal storytelling website for Harald Solaas (goes by Hari), a 31-yea
 
 ## WORKFLOW FOR AGENTS
 
-Two non-negotiable operational conventions for anyone (human or agent) opening work in this repo:
+Three non-negotiable operational conventions for anyone (human or agent) opening work in this repo:
 
 1. **Site is LIVE — do NOT push to main without explicit approval.** A clean review does not constitute merge approval. Wait for an explicit "ship" / "merge" / "mergealo" from the repo owner.
 2. **Every PR goes through the review lifecycle** — Copilot auto-review + author self-review + addressing both sets of feedback — before handing off for merge. See [`docs/ops/pr-review.md`](docs/ops/pr-review.md) for the operational steps (open PR → self-review → fetch Copilot comments → merge findings → fix → verify → resolve threads → hand off).
+3. **Every feature PR extends `scripts/seed-preview.ts`** so the repo owner can exercise the new surface in a preview Neon branch without hand-crafting DB rows. If your feature reads a column, fixture data must populate that column. Cover both the populated and the empty/conditional state when the UI branches on it (e.g. one event with contributions and one without). Use production-realistic values (BROTE early-bird = $18.650, Sinergia chips = 5k/10k/20k) — not arbitrary numbers. Treat the seeder update as part of the feature, not a follow-up PR.
 
-Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo).
+Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo). Skip the seeder update only when the feature genuinely doesn't depend on seedable data (copy-only changes, pure layout tweaks).
 
 **Prod-migration note:** Vercel does NOT auto-run `drizzle-kit migrate`. Any PR that changes `src/db/schema.ts` needs a manual migration step against the prod Neon branch — apply the generated SQL from `src/db/migrations/` after merge, before the new code serves traffic.
 
