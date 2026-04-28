@@ -78,6 +78,16 @@ interface ParticipationFixture {
   role: string;
   status: "pending" | "confirmed" | "waitlist" | "cancelled" | "no_show" | "used";
   staysForDinner?: boolean;
+  // Contribution fields. When `priceCents` is set, the seeder writes
+  // `price_cents`/`currency`/`external_payment_id` on the participation
+  // and (when `donation` is true) mirrors it into
+  // `metadata.donation` so the row matches what
+  // `recordSinergiaDonation` produces in prod. Without these the admin
+  // "Aportes recaudados" panel won't render in preview.
+  priceCents?: number;
+  currency?: string;
+  paymentId?: string;
+  donation?: boolean;
 }
 
 interface LinkFixture {
@@ -158,7 +168,11 @@ const PEOPLE: PersonFixture[] = [
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
-  // Brote (past event) — mix of used + no_show + cancelled.
+  // Brote (past event) — mix of used + no_show + cancelled. Every
+  // non-cancelled row carries the early-bird price ($18.650 ARS) so
+  // the admin contributions panel reflects realistic ticket revenue.
+  // Cancelled rows get no payment so the aggregate excludes them, the
+  // way the prod webhook leaves refunded/cancelled rows.
   ...[
     "ana",
     "beto",
@@ -170,13 +184,22 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     "hugo",
     "ine",
     "javi",
-  ].map<ParticipationFixture>((k, i) => ({
-    id: `PREVIEW-BR-${String(i + 1).padStart(3, "0")}`,
-    personEmail: `preview-${k}@example.com`,
-    eventId: "preview-brote",
-    role: "attendee",
-    status: i < 7 ? "used" : i === 7 ? "no_show" : "cancelled",
-  })),
+  ].map<ParticipationFixture>((k, i) => {
+    const status = i < 7 ? "used" : i === 7 ? "no_show" : "cancelled";
+    const isPaid = status !== "cancelled";
+    return {
+      id: `PREVIEW-BR-${String(i + 1).padStart(3, "0")}`,
+      personEmail: `preview-${k}@example.com`,
+      eventId: "preview-brote",
+      role: "attendee",
+      status,
+      ...(isPaid && {
+        priceCents: 1865000,
+        currency: "ARS",
+        paymentId: `PREVIEW-MP-BR-${String(i + 1).padStart(3, "0")}`,
+      }),
+    };
+  }),
   // Plant (upcoming) — confirmed + a couple waitlist.
   ...[
     "ana",
@@ -196,32 +219,44 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     role: "planter",
     status: i < 8 ? "confirmed" : "waitlist",
   })),
-  // Sinergia FULL — fill the 15-seat cap exactly.
+  // Sinergia FULL — fill the 15-seat cap. 6 of 15 attach a donation
+  // matching the live chip amounts (5k / 10k / 20k ARS, two of each)
+  // so the admin "Aportes recaudados" panel surfaces partial-coverage
+  // math (~40% confirmados aportaron). The remaining 9 RSVP without a
+  // donation, exercising the free-RSVP path.
   ...[
-    "ana",
-    "beto",
-    "carla",
-    "dani",
-    "eze",
-    "flor",
-    "gabi",
-    "hugo",
-    "ine",
-    "javi",
-    "kari",
-    "leo",
-    "mica",
-    "nico",
-    "oli",
-  ].map<ParticipationFixture>((k, i) => ({
+    { k: "ana", donate: 500000 },
+    { k: "beto", donate: 0 },
+    { k: "carla", donate: 1000000 },
+    { k: "dani", donate: 0 },
+    { k: "eze", donate: 2000000 },
+    { k: "flor", donate: 0 },
+    { k: "gabi", donate: 500000 },
+    { k: "hugo", donate: 0 },
+    { k: "ine", donate: 1000000 },
+    { k: "javi", donate: 0 },
+    { k: "kari", donate: 2000000 },
+    { k: "leo", donate: 0 },
+    { k: "mica", donate: 0 },
+    { k: "nico", donate: 0 },
+    { k: "oli", donate: 0 },
+  ].map<ParticipationFixture>(({ k, donate }, i) => ({
     id: `PREVIEW-SF-${String(i + 1).padStart(3, "0")}`,
     personEmail: `preview-${k}@example.com`,
     eventId: "preview-sinergia-full",
     role: "rsvp",
     status: "confirmed",
     staysForDinner: i % 3 !== 0,
+    ...(donate > 0 && {
+      priceCents: donate,
+      currency: "ARS",
+      paymentId: `PREVIEW-MP-SF-${String(i + 1).padStart(3, "0")}`,
+      donation: true,
+    }),
   })),
-  // Sinergia OPEN — 5 confirmed, room for more.
+  // Sinergia OPEN — 5 confirmed, room for more. Intentionally no
+  // donations so the admin drawer demonstrates the empty/hidden state
+  // of the contributions panel for the same event type.
   ...["pau", "quin", "rocio", "santi", "tomi"].map<ParticipationFixture>(
     (k, i) => ({
       id: `PREVIEW-SO-${String(i + 1).padStart(3, "0")}`,
@@ -310,9 +345,23 @@ async function main() {
   for (const p of PARTICIPATIONS) {
     const usedAtSql =
       p.status === "used" ? sql`NOW() - INTERVAL '2 days'` : sql`NULL`;
+    // Build metadata: dinner flag + (for Sinergia donations) the same
+    // `donation` shape that recordSinergiaDonation writes in prod.
+    const meta: Record<string, unknown> = {};
+    if (p.staysForDinner !== undefined) meta.staysForDinner = p.staysForDinner;
+    if (p.donation && p.priceCents) {
+      meta.donation = {
+        amountCents: p.priceCents,
+        currency: p.currency ?? "ARS",
+        paymentId: p.paymentId,
+        receiptSent: true,
+      };
+    }
+    const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
     await db.execute(sql`
       INSERT INTO participations (
-        id, person_id, event_id, role, status, metadata, used_at
+        id, person_id, event_id, role, status, metadata, used_at,
+        external_payment_id, price_cents, currency
       )
       SELECT
         ${p.id},
@@ -320,12 +369,11 @@ async function main() {
         ${p.eventId},
         ${p.role},
         ${p.status},
-        ${
-          p.staysForDinner !== undefined
-            ? sql`${JSON.stringify({ staysForDinner: p.staysForDinner })}::jsonb`
-            : sql`'{}'::jsonb`
-        },
-        ${usedAtSql}
+        ${metadataSql},
+        ${usedAtSql},
+        ${p.paymentId ?? null},
+        ${p.priceCents ?? null},
+        ${p.currency ?? null}
       FROM people WHERE email = ${p.personEmail}
       ON CONFLICT DO NOTHING
     `);
