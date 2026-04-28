@@ -351,12 +351,17 @@ export default function EventDrawer({
                               Asistió {formatDateTimeArg(p.usedAt)}
                             </p>
                           )}
-                          {p.priceCents != null && p.priceCents > 0 && (
-                            <p className="mt-0.5 text-[10px] text-terracotta">
-                              Aportó{" "}
-                              {formatMoney(p.priceCents, p.currency ?? "ARS")}
-                            </p>
-                          )}
+                          {p.priceCents != null &&
+                            p.priceCents > 0 &&
+                            p.status !== "cancelled" && (
+                              <p className="mt-0.5 text-[10px] text-terracotta">
+                                Aportó{" "}
+                                {formatMoney(
+                                  p.priceCents,
+                                  p.currency ?? "ARS",
+                                )}
+                              </p>
+                            )}
                           {errors[p.participationId] && (
                             <p
                               role="alert"
@@ -426,14 +431,22 @@ function formatDateTimeArg(iso: string): string {
 }
 
 function formatMoney(cents: number, currency: string): string {
+  // ARS is whole pesos in practice (Sinergia chips, BROTE prices) — drop
+  // decimals to keep the StatBox from wrapping. Other currencies keep up
+  // to 2 decimals so cent-level amounts (e.g. 1050¢ → $10.50) aren't
+  // rounded to a misleading whole unit.
+  const fractionDigits =
+    currency === "ARS"
+      ? { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+      : { minimumFractionDigits: 0, maximumFractionDigits: 2 };
   try {
     return new Intl.NumberFormat("es-AR", {
       style: "currency",
       currency,
-      maximumFractionDigits: 0,
+      ...fractionDigits,
     }).format(cents / 100);
   } catch {
-    return `${currency} ${(cents / 100).toLocaleString("es-AR", { maximumFractionDigits: 0 })}`;
+    return `${currency} ${(cents / 100).toLocaleString("es-AR", fractionDigits)}`;
   }
 }
 

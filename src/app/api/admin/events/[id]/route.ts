@@ -166,34 +166,36 @@ export async function GET(
     currency: r.currency,
   }));
 
-  // Contribution aggregates — one row per currency. Includes anything with
-  // a positive price_cents on a non-cancelled participation: BROTE tickets,
-  // Sinergia donations, or any future contribution-based event. Caller
-  // hides the section when contributors == 0.
+  // Contribution aggregates — one row per currency. Mirrors the
+  // confirmed/used filter used elsewhere in this endpoint so the
+  // "% confirmados aportaron" math in the UI can't exceed 100% and
+  // pending/waitlist rows with stray prices don't leak in. NULL currency
+  // is normalized to ARS in SQL so the grouping key matches what the
+  // client renders (which also defaults to ARS).
   const contributionsRes = await db.execute<{
-    currency: string | null;
+    currency: string;
     contributors: number;
     total_cents: string | number;
     max_cents: string | number;
   }>(sql`
     SELECT
-      currency,
+      COALESCE(currency, 'ARS') AS currency,
       COUNT(*)::int AS contributors,
       COALESCE(SUM(price_cents), 0)::bigint AS total_cents,
       COALESCE(MAX(price_cents), 0)::bigint AS max_cents
     FROM participations
     WHERE event_id = ${id}
-      AND status <> 'cancelled'
+      AND status IN ('confirmed', 'used')
       AND price_cents IS NOT NULL
       AND price_cents > 0
-    GROUP BY currency
+    GROUP BY 1
     ORDER BY total_cents DESC
   `);
   const contributions = (contributionsRes.rows ?? []).map((r) => {
     const contributors = Number(r.contributors);
     const totalCents = Number(r.total_cents);
     return {
-      currency: r.currency ?? "ARS",
+      currency: r.currency,
       contributors,
       totalCents,
       avgCents: contributors > 0 ? Math.round(totalCents / contributors) : 0,
