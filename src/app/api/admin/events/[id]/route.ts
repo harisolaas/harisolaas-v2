@@ -130,6 +130,8 @@ export async function GET(
     used_at: string | null;
     attribution: Record<string, unknown> | null;
     link_slug: string | null;
+    price_cents: number | null;
+    currency: string | null;
   }>(sql`
     SELECT
       p.id AS participation_id,
@@ -141,7 +143,9 @@ export async function GET(
       p.created_at,
       p.used_at,
       p.attribution,
-      p.link_slug
+      p.link_slug,
+      p.price_cents,
+      p.currency
     FROM participations p
     JOIN people ON people.id = p.person_id
     WHERE p.event_id = ${id}
@@ -158,7 +162,44 @@ export async function GET(
     usedAt: r.used_at,
     attribution: r.attribution,
     linkSlug: r.link_slug,
+    priceCents: r.price_cents == null ? null : Number(r.price_cents),
+    currency: r.currency,
   }));
+
+  // Contribution aggregates — one row per currency. Includes anything with
+  // a positive price_cents on a non-cancelled participation: BROTE tickets,
+  // Sinergia donations, or any future contribution-based event. Caller
+  // hides the section when contributors == 0.
+  const contributionsRes = await db.execute<{
+    currency: string | null;
+    contributors: number;
+    total_cents: string | number;
+    max_cents: string | number;
+  }>(sql`
+    SELECT
+      currency,
+      COUNT(*)::int AS contributors,
+      COALESCE(SUM(price_cents), 0)::bigint AS total_cents,
+      COALESCE(MAX(price_cents), 0)::bigint AS max_cents
+    FROM participations
+    WHERE event_id = ${id}
+      AND status <> 'cancelled'
+      AND price_cents IS NOT NULL
+      AND price_cents > 0
+    GROUP BY currency
+    ORDER BY total_cents DESC
+  `);
+  const contributions = (contributionsRes.rows ?? []).map((r) => {
+    const contributors = Number(r.contributors);
+    const totalCents = Number(r.total_cents);
+    return {
+      currency: r.currency ?? "ARS",
+      contributors,
+      totalCents,
+      avgCents: contributors > 0 ? Math.round(totalCents / contributors) : 0,
+      maxCents: Number(r.max_cents),
+    };
+  });
 
   return NextResponse.json({
     event: {
@@ -178,5 +219,6 @@ export async function GET(
     sourceBreakdown,
     linkBreakdown,
     participants,
+    contributions,
   });
 }
