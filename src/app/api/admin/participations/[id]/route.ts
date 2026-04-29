@@ -90,3 +90,34 @@ export async function PATCH(
 
   return NextResponse.json({ ok: true, participation: res[0] });
 }
+
+// DELETE /api/admin/participations/:id — hard delete. For mistakes,
+// duplicates, spam. Use the PATCH route with status='cancelled' to
+// keep the row but mark someone as not attending — that's the
+// reversible "won't come" path; this one is irreversible.
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await requireAdminSession(req, { minRole: "editor" });
+  if (session instanceof NextResponse) return session;
+
+  const { id } = await params;
+
+  const existing = await db
+    .select({ eventId: schema.participations.eventId })
+    .from(schema.participations)
+    .where(eq(schema.participations.id, id))
+    .limit(1);
+  if (existing.length === 0) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const denied = assertEventAccess(session, existing[0].eventId);
+  if (denied) return denied;
+
+  await db
+    .delete(schema.participations)
+    .where(eq(schema.participations.id, id));
+
+  return NextResponse.json({ ok: true });
+}

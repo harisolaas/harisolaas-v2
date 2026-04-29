@@ -88,9 +88,14 @@ export default function EventDrawer({
     setLoading(false);
   }, [eventId]);
 
-  const toggleAttendance = useCallback(
-    async (participationId: string, currentStatus: string) => {
-      const nextStatus = currentStatus === "used" ? "confirmed" : "used";
+  // Shared write helper for the row-level actions (attendance toggle,
+  // cancel/uncancel, hard delete). Manages the per-row pending flag and
+  // error state so each button site can stay focused on its happy path.
+  const runRowAction = useCallback(
+    async (
+      participationId: string,
+      action: () => Promise<Response>,
+    ): Promise<boolean> => {
       setPending((p) => new Set(p).add(participationId));
       setErrors((e) => {
         if (!e[participationId]) return e;
@@ -99,32 +104,27 @@ export default function EventDrawer({
         return n;
       });
       try {
-        const res = await fetch(
-          `/api/admin/participations/${participationId}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: nextStatus }),
-          },
-        );
+        const res = await action();
         if (!res.ok) {
           if (res.status === 401) {
             window.location.href = "/admin/login";
-            return;
+            return false;
           }
           setErrors((e) => ({
             ...e,
             [participationId]: `No se pudo guardar (${res.status}). Reintentá.`,
           }));
-          return;
+          return false;
         }
         await load();
+        return true;
       } catch (err) {
         setErrors((e) => ({
           ...e,
           [participationId]:
             err instanceof Error ? err.message : "Error de red. Reintentá.",
         }));
+        return false;
       } finally {
         setPending((p) => {
           const n = new Set(p);
@@ -134,6 +134,59 @@ export default function EventDrawer({
       }
     },
     [load],
+  );
+
+  const toggleAttendance = useCallback(
+    (participationId: string, currentStatus: string) => {
+      const nextStatus = currentStatus === "used" ? "confirmed" : "used";
+      return runRowAction(participationId, () =>
+        fetch(`/api/admin/participations/${participationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        }),
+      );
+    },
+    [runRowAction],
+  );
+
+  const toggleCancelled = useCallback(
+    (participationId: string, currentStatus: string) => {
+      // Reactivating a cancelled row puts it back at 'confirmed' — the
+      // most common pre-cancel state. If the row was originally on the
+      // waitlist, the operator can re-PATCH to that status manually
+      // (rare enough that auto-restoring the prior status isn't worth
+      // the bookkeeping).
+      const nextStatus =
+        currentStatus === "cancelled" ? "confirmed" : "cancelled";
+      return runRowAction(participationId, () =>
+        fetch(`/api/admin/participations/${participationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
+        }),
+      );
+    },
+    [runRowAction],
+  );
+
+  const deleteParticipation = useCallback(
+    (participationId: string, personName: string) => {
+      // Hard delete is irreversible — gate it behind a native confirm.
+      // For "won't come" use the cancel button, which keeps the row.
+      const ok = window.confirm(
+        `¿Eliminar a ${personName} del evento?\n\n` +
+          `Esto borra la participación por completo. Si solo no va a venir, ` +
+          `usá "No vendrá" en su lugar (queda registrada como cancelada).`,
+      );
+      if (!ok) return Promise.resolve(false);
+      return runRowAction(participationId, () =>
+        fetch(`/api/admin/participations/${participationId}`, {
+          method: "DELETE",
+        }),
+      );
+    },
+    [runRowAction],
   );
 
   useEffect(() => {
@@ -371,7 +424,10 @@ export default function EventDrawer({
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+                          {/* Status chip when no toggle applies (waitlist,
+                              pending, cancelled) so the operator can still
+                              see the state at a glance. */}
                           {(!canToggle || !canWrite) && (
                             <span className="text-[11px] uppercase text-charcoal/50">
                               {p.status}
@@ -400,6 +456,36 @@ export default function EventDrawer({
                                   ? "Asistió"
                                   : "Marcar"}
                             </button>
+                          )}
+                          {canWrite && (
+                            <div className="flex items-center gap-2 text-[10px]">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleCancelled(p.participationId, p.status)
+                                }
+                                disabled={isPending}
+                                className="rounded text-charcoal/50 transition hover:text-forest disabled:opacity-50"
+                              >
+                                {p.status === "cancelled"
+                                  ? "Reactivar"
+                                  : "No vendrá"}
+                              </button>
+                              <span className="text-charcoal/20">·</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  deleteParticipation(
+                                    p.participationId,
+                                    p.personName,
+                                  )
+                                }
+                                disabled={isPending}
+                                className="rounded text-charcoal/40 transition hover:text-terracotta disabled:opacity-50"
+                              >
+                                Eliminar
+                              </button>
+                            </div>
                           )}
                         </div>
                       </li>
