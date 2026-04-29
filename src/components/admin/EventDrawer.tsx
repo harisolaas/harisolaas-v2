@@ -535,7 +535,7 @@ export default function EventDrawer({
                           <summary className="cursor-pointer select-none text-charcoal/40 transition hover:text-charcoal/70">
                             Ver datos completos (JSON)
                           </summary>
-                          <pre className="mt-1 overflow-x-auto rounded-md border border-sage/20 bg-cream/50 p-2 text-[10px] leading-tight text-charcoal/70">
+                          <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-sage/20 bg-cream/50 p-2 text-[10px] leading-tight text-charcoal/70">
                             {JSON.stringify(p, null, 2)}
                           </pre>
                         </details>
