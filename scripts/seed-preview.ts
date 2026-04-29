@@ -219,13 +219,15 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     role: "planter",
     status: i < 8 ? "confirmed" : "waitlist",
   })),
-  // Sinergia FULL — 15-seat cap, 14 confirmed + 1 cancelled (so the
-  // admin drawer demonstrates the "No vendrá / Reactivar" toggle and
-  // the cancelled-row chip out of the box). 6 of the 14 confirmed
-  // attach a donation matching the live chip amounts (5k / 10k / 20k
-  // ARS, two of each) so the "Aportes recaudados" panel surfaces
-  // partial-coverage math (6/14 ≈ 43%). The remaining 8 confirmed
-  // RSVP without a donation, exercising the free-RSVP path.
+  // Sinergia FULL — 15-seat cap, actually full: 15 confirmed + 1
+  // cancelled (so the admin drawer demonstrates the "No vendrá /
+  // Reactivar" toggle and the cancelled-row chip out of the box,
+  // without dropping the headcount below capacity). 6 of the 15
+  // confirmed attach a donation matching the live chip amounts
+  // (5k / 10k / 20k ARS, two of each) so the "Aportes recaudados"
+  // panel surfaces partial-coverage math (6/15 = 40%). The remaining
+  // 9 confirmed RSVP without a donation, exercising the free-RSVP
+  // path.
   ...[
     { k: "ana", donate: 500000, status: "confirmed" as const },
     { k: "beto", donate: 0, status: "confirmed" as const },
@@ -242,6 +244,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     { k: "mica", donate: 0, status: "confirmed" as const },
     { k: "nico", donate: 0, status: "confirmed" as const },
     { k: "oli", donate: 0, status: "confirmed" as const },
+    { k: "vale", donate: 0, status: "confirmed" as const },
   ].map<ParticipationFixture>(({ k, donate, status }, i) => ({
     id: `PREVIEW-SF-${String(i + 1).padStart(3, "0")}`,
     personEmail: `preview-${k}@example.com`,

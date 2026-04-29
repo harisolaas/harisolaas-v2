@@ -112,7 +112,7 @@ export default function EventDrawer({
           }
           setErrors((e) => ({
             ...e,
-            [participationId]: `No se pudo guardar (${res.status}). Reintentá.`,
+            [participationId]: `No se pudo completar la acción (${res.status}). Reintentá.`,
           }));
           return false;
         }
@@ -152,11 +152,12 @@ export default function EventDrawer({
 
   const toggleCancelled = useCallback(
     (participationId: string, currentStatus: string) => {
-      // Reactivating a cancelled row puts it back at 'confirmed' — the
-      // most common pre-cancel state. If the row was originally on the
-      // waitlist, the operator can re-PATCH to that status manually
-      // (rare enough that auto-restoring the prior status isn't worth
-      // the bookkeeping).
+      // Strictly the confirmed ↔ cancelled axis. We don't try to
+      // reverse other statuses because we don't store the prior
+      // status anywhere — a "Reactivar" on a once-waitlisted row
+      // would silently promote them to confirmed, which is wrong.
+      // The UI gates the button to `confirmed`/`cancelled` so this
+      // branch only fires on those.
       const nextStatus =
         currentStatus === "cancelled" ? "confirmed" : "cancelled";
       return runRowAction(participationId, () =>
@@ -459,12 +460,15 @@ export default function EventDrawer({
                           )}
                           {canWrite && (
                             <div className="flex items-center gap-2 text-[10px]">
-                              {/* "No vendrá" / "Reactivar" doesn't apply to
-                                  'used' — they already attended. To fix a
-                                  mistaken attendance, the operator first
-                                  toggles attendance off (used → confirmed)
-                                  and only then can cancel. */}
-                              {p.status !== "used" && (
+                              {/* Cancel/reactivate is strictly
+                                  confirmed ↔ cancelled — those are the
+                                  only states where the round trip is
+                                  unambiguous (waitlist/pending/no_show
+                                  would lose their prior status on
+                                  reactivate, since we don't store it).
+                                  For other states use Eliminar. */}
+                              {(p.status === "confirmed" ||
+                                p.status === "cancelled") && (
                                 <>
                                   <button
                                     type="button"
