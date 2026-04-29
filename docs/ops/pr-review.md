@@ -55,17 +55,20 @@ that reliably actually adds Copilot.
 either — `gh` strips the `[bot]` suffix and the call no-ops.
 
 Always verify the request actually took before assuming Copilot is
-on it:
+on it. Use the REST endpoint specifically — `gh pr view --json
+reviewRequests` (which is GraphQL under the hood) returns empty even
+when Copilot is queued, because the GraphQL `reviewRequests`
+connection filters bots differently:
 
 ```sh
-gh pr view <N> --json reviewRequests \
-  --jq '.reviewRequests[].login'
+gh api repos/harisolaas/harisolaas-v2/pulls/<N> \
+  --jq '.requested_reviewers[].login'
 # → "Copilot"
 ```
 
 If the output is empty, the request didn't take — re-run the REST
-POST above (with the `[bot]` suffix). Don't fall back to GraphQL.
-Copilot is only "requested" when this command prints `Copilot`.
+POST above (with the `[bot]` suffix). Copilot is only "requested"
+when this command prints `Copilot`.
 
 ### 2. Self-review in parallel with Copilot
 
