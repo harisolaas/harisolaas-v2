@@ -45,13 +45,27 @@ API disambiguates the Copilot app from a regular user account (the
 plain `copilot-pull-request-reviewer` login is not a repo collaborator
 and the request will 422 without the suffix).
 
-Verify the request took:
+**Don't use the GraphQL `requestReviews` mutation with `botIds`** — it
+returns `{ data: { requestReviews: { pullRequest: { id } } } }` (looks
+like success) but silently does **not** queue Copilot for review.
+Observed on PRs #26 and #27. The REST POST above is the only form
+that reliably actually adds Copilot.
+
+**Don't use** `gh pr edit <N> --add-reviewer copilot-pull-request-reviewer`
+either — `gh` strips the `[bot]` suffix and the call no-ops.
+
+Always verify the request actually took before assuming Copilot is
+on it:
 
 ```sh
 gh pr view <N> --json reviewRequests \
   --jq '.reviewRequests[].login'
 # → "Copilot"
 ```
+
+If the output is empty, the request didn't take — re-run the REST
+POST above (with the `[bot]` suffix). Don't fall back to GraphQL.
+Copilot is only "requested" when this command prints `Copilot`.
 
 ### 2. Self-review in parallel with Copilot
 
