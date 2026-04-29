@@ -60,6 +60,14 @@ interface EventDetail {
 // attended if they weren't confirmed in the first place.
 const ATTENDABLE_STATUSES = new Set(["confirmed", "used", "no_show"]);
 
+// Statuses that count as "still on the guest list" — the same
+// population used by the headline `confirmed` count and by every
+// metadata-derived aggregate (Sinergia "Cena", contributions panel).
+// Per-row metadata badges (e.g. "Se queda a cenar") gate on this so
+// they don't show on cancelled / waitlist rows where the answer is
+// either irrelevant or not actionable.
+const ACTIVE_RSVP_STATUSES = new Set(["confirmed", "used"]);
+
 export default function EventDrawer({
   eventId,
   canWrite = true,
@@ -88,6 +96,11 @@ export default function EventDrawer({
     setData(await res.json());
     setLoading(false);
   }, [eventId]);
+
+  // Track which rows have their JSON dump expanded so we can avoid
+  // running JSON.stringify on every row on every render — only
+  // expanded rows pay the cost.
+  const [expandedJson, setExpandedJson] = useState<Set<string>>(new Set());
 
   // Shared write helper for the row-level actions (attendance toggle,
   // cancel/uncancel, hard delete). Manages the per-row pending flag and
@@ -403,6 +416,7 @@ export default function EventDrawer({
                     const isPending = pending.has(p.participationId);
                     const staysForDinner =
                       data.event.type === "sinergia" &&
+                      ACTIVE_RSVP_STATUSES.has(p.status) &&
                       p.metadata?.staysForDinner === true;
                     return (
                       <li key={p.participationId} className="px-4 py-3">
@@ -531,13 +545,26 @@ export default function EventDrawer({
                             new registration fields are always at
                             least viewable while we wire up dedicated
                             UI. */}
-                        <details className="mt-2 text-[10px]">
+                        <details
+                          className="mt-2 text-[10px]"
+                          onToggle={(e) => {
+                            const open = e.currentTarget.open;
+                            setExpandedJson((prev) => {
+                              const next = new Set(prev);
+                              if (open) next.add(p.participationId);
+                              else next.delete(p.participationId);
+                              return next;
+                            });
+                          }}
+                        >
                           <summary className="cursor-pointer select-none text-charcoal/40 transition hover:text-charcoal/70">
                             Ver datos completos (JSON)
                           </summary>
-                          <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-sage/20 bg-cream/50 p-2 text-[10px] leading-tight text-charcoal/70">
-                            {JSON.stringify(p, null, 2)}
-                          </pre>
+                          {expandedJson.has(p.participationId) && (
+                            <pre className="mt-1 max-h-64 overflow-auto rounded-md border border-sage/20 bg-cream/50 p-2 text-[10px] leading-tight text-charcoal/70">
+                              {JSON.stringify(p, null, 2)}
+                            </pre>
+                          )}
                         </details>
                       </li>
                     );
@@ -561,10 +588,11 @@ function SinergiaDinnerSummary({
 }) {
   // Count over confirmed/used so the denominator matches the same
   // population as the contributions panel and the headline
-  // "Confirmados" stat. Cancelled rows are excluded.
-  const ATTENDEE_STATUSES = new Set(["confirmed", "used"]);
+  // "Confirmados" stat. Cancelled / waitlist / pending are excluded.
   const stayCount = participants.filter(
-    (p) => ATTENDEE_STATUSES.has(p.status) && p.metadata?.staysForDinner === true,
+    (p) =>
+      ACTIVE_RSVP_STATUSES.has(p.status) &&
+      p.metadata?.staysForDinner === true,
   ).length;
   if (stayCount === 0 && confirmed === 0) return null;
   const pct = confirmed > 0 ? Math.round((stayCount / confirmed) * 100) : 0;
