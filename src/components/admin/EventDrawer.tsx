@@ -43,6 +43,7 @@ interface EventDetail {
     linkSlug: string | null;
     priceCents: number | null;
     currency: string | null;
+    metadata: Record<string, unknown>;
   }[];
   contributions: {
     currency: string;
@@ -259,6 +260,18 @@ export default function EventDrawer({
               )}
             </section>
 
+            {/* Event-type-specific summaries. Each block is gated on
+                `event.type` so the drawer adapts to the registration
+                fields each landing collects. Add a new block here when
+                you add a new metadata field that the operator needs
+                aggregated; don't try to make this generic. */}
+            {data.event.type === "sinergia" && (
+              <SinergiaDinnerSummary
+                participants={data.participants}
+                confirmed={data.counts.confirmed}
+              />
+            )}
+
             {/* Contributions (BROTE tickets, Sinergia donations, etc.) */}
             {data.contributions.length > 0 && (
               <section className="rounded-xl border border-sage/20 bg-white p-4">
@@ -388,11 +401,12 @@ export default function EventDrawer({
                     const canToggle = ATTENDABLE_STATUSES.has(p.status);
                     const attended = p.status === "used";
                     const isPending = pending.has(p.participationId);
+                    const staysForDinner =
+                      data.event.type === "sinergia" &&
+                      p.metadata?.staysForDinner === true;
                     return (
-                      <li
-                        key={p.participationId}
-                        className="flex items-center justify-between gap-4 px-4 py-3"
-                      >
+                      <li key={p.participationId} className="px-4 py-3">
+                        <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-forest">
                             {p.personName}
@@ -416,6 +430,11 @@ export default function EventDrawer({
                                 )}
                               </p>
                             )}
+                          {staysForDinner && (
+                            <p className="mt-0.5 text-[10px] text-forest/70">
+                              Se queda a cenar
+                            </p>
+                          )}
                           {errors[p.participationId] && (
                             <p
                               role="alert"
@@ -504,6 +523,22 @@ export default function EventDrawer({
                             </div>
                           )}
                         </div>
+                        </div>
+                        {/* Pretty-JSON dump for power-user inspection.
+                            Collapsed by default so it doesn't bloat
+                            the list; surfaces every field on the
+                            participation including raw metadata, so
+                            new registration fields are always at
+                            least viewable while we wire up dedicated
+                            UI. */}
+                        <details className="mt-2 text-[10px]">
+                          <summary className="cursor-pointer select-none text-charcoal/40 transition hover:text-charcoal/70">
+                            Ver datos completos (JSON)
+                          </summary>
+                          <pre className="mt-1 overflow-x-auto rounded-md border border-sage/20 bg-cream/50 p-2 text-[10px] leading-tight text-charcoal/70">
+                            {JSON.stringify(p, null, 2)}
+                          </pre>
+                        </details>
                       </li>
                     );
                   })}
@@ -514,6 +549,38 @@ export default function EventDrawer({
         )}
       </aside>
     </div>
+  );
+}
+
+function SinergiaDinnerSummary({
+  participants,
+  confirmed,
+}: {
+  participants: EventDetail["participants"];
+  confirmed: number;
+}) {
+  // Count over confirmed/used so the denominator matches the same
+  // population as the contributions panel and the headline
+  // "Confirmados" stat. Cancelled rows are excluded.
+  const ATTENDEE_STATUSES = new Set(["confirmed", "used"]);
+  const stayCount = participants.filter(
+    (p) => ATTENDEE_STATUSES.has(p.status) && p.metadata?.staysForDinner === true,
+  ).length;
+  if (stayCount === 0 && confirmed === 0) return null;
+  const pct = confirmed > 0 ? Math.round((stayCount / confirmed) * 100) : 0;
+  return (
+    <section className="rounded-xl border border-sage/20 bg-white p-4">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-charcoal/60">
+        Cena
+      </p>
+      <p className="text-sm text-charcoal/80">
+        <span className="font-serif text-2xl text-forest">{stayCount}</span>{" "}
+        de {confirmed} se quedan a cenar
+        {confirmed > 0 && (
+          <span className="text-charcoal/50"> ({pct}%)</span>
+        )}
+      </p>
+    </section>
   );
 }
 
