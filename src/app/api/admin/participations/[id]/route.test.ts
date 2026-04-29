@@ -25,7 +25,7 @@ vi.mock("@/lib/admin-api-auth", async (importOriginal) => {
 });
 
 // Imported AFTER the mock so the route picks up the mocked auth.
-const { PATCH } = await import("./route");
+const { PATCH, DELETE } = await import("./route");
 
 const EVENT_ID = "test-patch-participation";
 const EMAIL_PREFIX = "test-patch-participation-";
@@ -195,5 +195,31 @@ describe("PATCH /api/admin/participations/[id] — attendance transitions", () =
 
     const res = await callPatch(id, { status: "hacked" });
     expect(res.status).toBe(400);
+  });
+});
+
+async function callDelete(participationId: string) {
+  const req = new Request(
+    `http://localhost/api/admin/participations/${participationId}`,
+    { method: "DELETE" },
+  );
+  return DELETE(req, { params: Promise.resolve({ id: participationId }) });
+}
+
+describe("DELETE /api/admin/participations/[id]", () => {
+  it("removes the row entirely", async () => {
+    const id = "DELETE-TEST-1";
+    await seed(`${EMAIL_PREFIX}h@example.com`, id);
+    expect(await readParticipation(id)).toBeDefined();
+
+    const res = await callDelete(id);
+    expect(res.status).toBe(200);
+
+    expect(await readParticipation(id)).toBeUndefined();
+  });
+
+  it("404s on an unknown id", async () => {
+    const res = await callDelete("does-not-exist");
+    expect(res.status).toBe(404);
   });
 });
