@@ -118,7 +118,10 @@ export async function GET(
     count: Number(r.n),
   }));
 
-  // Participants (people in this event).
+  // Participants (people in this event). Includes the raw metadata
+  // jsonb so the drawer can render event-type-specific fields
+  // (Sinergia "staysForDinner", future ones) and offer a per-row
+  // pretty-JSON dump for inspection.
   const participantsRes = await db.execute<{
     participation_id: string;
     person_id: number;
@@ -132,6 +135,7 @@ export async function GET(
     link_slug: string | null;
     price_cents: number | null;
     currency: string | null;
+    metadata: Record<string, unknown> | null;
   }>(sql`
     SELECT
       p.id AS participation_id,
@@ -145,7 +149,8 @@ export async function GET(
       p.attribution,
       p.link_slug,
       p.price_cents,
-      p.currency
+      p.currency,
+      p.metadata
     FROM participations p
     JOIN people ON people.id = p.person_id
     WHERE p.event_id = ${id}
@@ -164,6 +169,7 @@ export async function GET(
     linkSlug: r.link_slug,
     priceCents: r.price_cents == null ? null : Number(r.price_cents),
     currency: r.currency,
+    metadata: r.metadata ?? {},
   }));
 
   // Contribution aggregates — one row per currency. Mirrors the

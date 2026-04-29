@@ -194,6 +194,25 @@ describe("GET /api/admin/events/[id] single-event gating", () => {
     });
     expect(res.status).toBe(404);
   });
+
+  it("includes participants[].metadata in the response (defaults to {} when null)", async () => {
+    // Guards the recently-added metadata column passthrough that the
+    // event drawer's per-row JSON view + Sinergia "Cena" aggregate
+    // both depend on. recordParticipation doesn't write metadata, so
+    // the seeded row must surface as {} rather than missing/null.
+    const pid = await seedParticipation(EVENT_A, "metadata-shape");
+    currentSession = OWNER;
+    const res = await getEventDetail(makeReq(), {
+      params: Promise.resolve({ id: EVENT_A }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      participants: { participationId: string; metadata: unknown }[];
+    };
+    const seeded = body.participants.find((p) => p.participationId === pid);
+    expect(seeded).toBeDefined();
+    expect(seeded!.metadata).toEqual({});
+  });
 });
 
 describe("PATCH /api/admin/participations/[id] role + scope gating", () => {
