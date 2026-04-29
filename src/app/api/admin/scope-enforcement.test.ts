@@ -72,7 +72,7 @@ vi.mock("@/lib/admin-api-auth", async (importOriginal) => {
 
 const { GET: getEvents } = await import("./events/route");
 const { GET: getEventDetail } = await import("./events/[id]/route");
-const { PATCH: patchParticipation } = await import(
+const { PATCH: patchParticipation, DELETE: deleteParticipation } = await import(
   "./participations/[id]/route"
 );
 const { GET: getPeople } = await import("./people/route");
@@ -243,6 +243,45 @@ describe("PATCH /api/admin/participations/[id] role + scope gating", () => {
       },
     );
     const res = await patchParticipation(req, {
+      params: Promise.resolve({ id: pid }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("editor scoped to A can DELETE a participation in A", async () => {
+    const pid = await seedParticipation(EVENT_A, "del-a");
+    currentSession = EDITOR_SCOPED_TO_A;
+    const req = new Request(
+      `http://localhost/api/admin/participations/${pid}`,
+      { method: "DELETE" },
+    );
+    const res = await deleteParticipation(req, {
+      params: Promise.resolve({ id: pid }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("viewer scoped to A cannot DELETE even its own event", async () => {
+    const pid = await seedParticipation(EVENT_A, "del-view-a");
+    currentSession = VIEWER_SCOPED_TO_A;
+    const req = new Request(
+      `http://localhost/api/admin/participations/${pid}`,
+      { method: "DELETE" },
+    );
+    const res = await deleteParticipation(req, {
+      params: Promise.resolve({ id: pid }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("editor scoped to A gets 404 on DELETE of participation in B (no disclosure)", async () => {
+    const pid = await seedParticipation(EVENT_B, "del-b");
+    currentSession = EDITOR_SCOPED_TO_A;
+    const req = new Request(
+      `http://localhost/api/admin/participations/${pid}`,
+      { method: "DELETE" },
+    );
+    const res = await deleteParticipation(req, {
       params: Promise.resolve({ id: pid }),
     });
     expect(res.status).toBe(404);

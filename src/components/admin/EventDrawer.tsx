@@ -459,19 +459,31 @@ export default function EventDrawer({
                           )}
                           {canWrite && (
                             <div className="flex items-center gap-2 text-[10px]">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  toggleCancelled(p.participationId, p.status)
-                                }
-                                disabled={isPending}
-                                className="rounded text-charcoal/50 transition hover:text-forest disabled:opacity-50"
-                              >
-                                {p.status === "cancelled"
-                                  ? "Reactivar"
-                                  : "No vendrá"}
-                              </button>
-                              <span className="text-charcoal/20">·</span>
+                              {/* "No vendrá" / "Reactivar" doesn't apply to
+                                  'used' — they already attended. To fix a
+                                  mistaken attendance, the operator first
+                                  toggles attendance off (used → confirmed)
+                                  and only then can cancel. */}
+                              {p.status !== "used" && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleCancelled(
+                                        p.participationId,
+                                        p.status,
+                                      )
+                                    }
+                                    disabled={isPending}
+                                    className="rounded text-charcoal/50 transition hover:text-forest disabled:opacity-50"
+                                  >
+                                    {p.status === "cancelled"
+                                      ? "Reactivar"
+                                      : "No vendrá"}
+                                  </button>
+                                  <span className="text-charcoal/20">·</span>
+                                </>
+                              )}
                               <button
                                 type="button"
                                 onClick={() =>
