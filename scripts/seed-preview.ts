@@ -66,11 +66,6 @@ interface EventFixture {
   status: "upcoming" | "live" | "past" | "cancelled";
 }
 
-interface PersonFixture {
-  email: string;
-  name: string;
-}
-
 interface ParticipationFixture {
   id: string;
   personEmail: string;
@@ -142,29 +137,42 @@ const EVENTS: EventFixture[] = [
   },
 ];
 
+interface PersonFixture {
+  email: string;
+  name: string;
+  // Optional so the WhatsApp fan-out paths exercise both branches
+  // (with and without a contactable number) in preview.
+  phone?: string;
+}
+
 const PEOPLE: PersonFixture[] = [
-  { email: "preview-ana@example.com", name: "Ana Pérez" },
-  { email: "preview-beto@example.com", name: "Beto Ruiz" },
-  { email: "preview-carla@example.com", name: "Carla Gómez" },
-  { email: "preview-dani@example.com", name: "Dani Martínez" },
-  { email: "preview-eze@example.com", name: "Ezequiel Soto" },
-  { email: "preview-flor@example.com", name: "Flor Castro" },
-  { email: "preview-gabi@example.com", name: "Gabi Torres" },
-  { email: "preview-hugo@example.com", name: "Hugo Blanco" },
-  { email: "preview-ine@example.com", name: "Inés Morales" },
-  { email: "preview-javi@example.com", name: "Javi Romero" },
-  { email: "preview-kari@example.com", name: "Karina Díaz" },
-  { email: "preview-leo@example.com", name: "Leo Fernández" },
-  { email: "preview-mica@example.com", name: "Micaela Ríos" },
-  { email: "preview-nico@example.com", name: "Nico Álvarez" },
-  { email: "preview-oli@example.com", name: "Olivia Herrera" },
+  // Most people get a phone — that's the production-realistic state
+  // since RSVP forms have required it for a while now.
+  { email: "preview-ana@example.com", name: "Ana Pérez", phone: "1122555101" },
+  { email: "preview-beto@example.com", name: "Beto Ruiz", phone: "1122555102" },
+  { email: "preview-carla@example.com", name: "Carla Gómez", phone: "1122555103" },
+  { email: "preview-dani@example.com", name: "Dani Martínez", phone: "1122555104" },
+  { email: "preview-eze@example.com", name: "Ezequiel Soto", phone: "1122555105" },
+  { email: "preview-flor@example.com", name: "Flor Castro", phone: "1122555106" },
+  { email: "preview-gabi@example.com", name: "Gabi Torres", phone: "1122555107" },
+  { email: "preview-hugo@example.com", name: "Hugo Blanco", phone: "1122555108" },
+  { email: "preview-ine@example.com", name: "Inés Morales", phone: "1122555109" },
+  { email: "preview-javi@example.com", name: "Javi Romero", phone: "1122555110" },
+  { email: "preview-kari@example.com", name: "Karina Díaz", phone: "1122555111" },
+  { email: "preview-leo@example.com", name: "Leo Fernández", phone: "1122555112" },
+  { email: "preview-mica@example.com", name: "Micaela Ríos", phone: "1122555113" },
+  { email: "preview-nico@example.com", name: "Nico Álvarez", phone: "1122555114" },
+  { email: "preview-oli@example.com", name: "Olivia Herrera", phone: "1122555115" },
+  // Two without a phone — they're confirmed for a Sinergia session,
+  // so the WhatsApp fan-out audience filter has to drop them. This
+  // is what an older RSVP (pre-phone-required) looks like.
   { email: "preview-pau@example.com", name: "Pau Giménez" },
   { email: "preview-quin@example.com", name: "Quintín Ramos" },
-  { email: "preview-rocio@example.com", name: "Rocío Vega" },
-  { email: "preview-santi@example.com", name: "Santi Núñez" },
-  { email: "preview-tomi@example.com", name: "Tomás Ibáñez" },
-  { email: "preview-vale@example.com", name: "Valeria Cruz" },
-  { email: "preview-host@example.com", name: "Host de Sinergia" },
+  { email: "preview-rocio@example.com", name: "Rocío Vega", phone: "1122555118" },
+  { email: "preview-santi@example.com", name: "Santi Núñez", phone: "1122555119" },
+  { email: "preview-tomi@example.com", name: "Tomás Ibáñez", phone: "1122555120" },
+  { email: "preview-vale@example.com", name: "Valeria Cruz", phone: "1122555121" },
+  { email: "preview-host@example.com", name: "Host de Sinergia", phone: "1122555122" },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -314,6 +322,7 @@ async function main() {
   console.log(`  ${PEOPLE.length} people`);
   console.log(`  ${PARTICIPATIONS.length} participations`);
   console.log(`  ${LINKS.length} links`);
+  console.log(`  2 whatsapp_templates (1 approved, 1 rejected)`);
   if (ADMIN_EMAIL) console.log(`  1 admin_users row (${ADMIN_EMAIL})`);
 
   if (DRY_RUN) {
@@ -339,12 +348,75 @@ async function main() {
   // People.
   for (const p of PEOPLE) {
     await db.execute(sql`
-      INSERT INTO people (email, name)
-      VALUES (${p.email}, ${p.name})
-      ON CONFLICT (email) DO NOTHING
+      INSERT INTO people (email, name, phone)
+      VALUES (${p.email}, ${p.name}, ${p.phone ?? null})
+      ON CONFLICT (email) DO UPDATE
+        SET phone = COALESCE(EXCLUDED.phone, people.phone)
     `);
   }
   console.log(`✓ people`);
+
+  // WhatsApp templates — seed one APPROVED + one REJECTED row so
+  // the admin templates view exercises both rendering paths in
+  // preview without having to wait on Meta. Names align with the
+  // codebase registry so a /sync run from preview will overwrite
+  // them with the real Meta state when WABA env vars are wired up.
+  await db.execute(sql`
+    INSERT INTO whatsapp_templates (
+      name, meta_template_id, category, language, status,
+      quality_score, components, variable_names, submitted_at, last_status_at,
+      local_definition_hash
+    )
+    VALUES (
+      'sinergia_weekly_reminder',
+      'preview-meta-tpl-1',
+      'utility',
+      'es_AR',
+      'approved',
+      'GREEN',
+      ${JSON.stringify([
+        {
+          type: "BODY",
+          text:
+            "Hola {{name}}, te recordamos que esta noche es Sinergia: nos juntamos a las {{time}}. " +
+            "Si no podés venir, respondé este mensaje y liberamos tu lugar para alguien de la lista de espera. ¡Te esperamos!",
+        },
+        { type: "FOOTER", text: "harisolaas.com · Sinergia" },
+      ])}::jsonb,
+      ARRAY['name','time']::text[],
+      NOW() - INTERVAL '5 days',
+      NOW() - INTERVAL '4 days',
+      'preview-hash-approved'
+    )
+    ON CONFLICT (name) DO NOTHING
+  `);
+  await db.execute(sql`
+    INSERT INTO whatsapp_templates (
+      name, meta_template_id, category, language, status,
+      rejection_reason, components, variable_names, submitted_at, last_status_at,
+      local_definition_hash
+    )
+    VALUES (
+      'preview_rejected_example',
+      'preview-meta-tpl-2',
+      'marketing',
+      'es_AR',
+      'rejected',
+      'INCORRECT_CATEGORY',
+      ${JSON.stringify([
+        {
+          type: "BODY",
+          text: "Hola {{name}}, mirá estas ofertas exclusivas para vos.",
+        },
+      ])}::jsonb,
+      ARRAY['name']::text[],
+      NOW() - INTERVAL '2 days',
+      NOW() - INTERVAL '1 day',
+      'preview-hash-rejected'
+    )
+    ON CONFLICT (name) DO NOTHING
+  `);
+  console.log(`✓ whatsapp_templates`);
 
   // Participations. Look up person_id by email inside the INSERT.
   for (const p of PARTICIPATIONS) {

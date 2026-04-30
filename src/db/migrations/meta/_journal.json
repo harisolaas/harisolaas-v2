@@ -29,6 +29,13 @@
       "when": 1776712615125,
       "tag": "0003_perpetual_smiling_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777576232577,
+      "tag": "0004_loving_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }
