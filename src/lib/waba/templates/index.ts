@@ -11,7 +11,8 @@ import { SINERGIA_WEEKLY_REMINDER } from "./sinergia-weekly-reminder";
 //   1. Create a new file under `src/lib/waba/templates/` exporting a
 //      `WabaTemplateDefinition` and a typed `*Variables` alias.
 //   2. Add it to TEMPLATE_REGISTRY below.
-//   3. Hit `POST /api/admin/waba/templates/sync` to submit it to Meta.
+//   3. POST to `/api/admin/waba/templates` with `{action: "sync"}` to
+//      submit it to Meta.
 //   4. Wait for Meta's approval webhook (typically <24h) before sending.
 export const TEMPLATE_REGISTRY: Record<string, WabaTemplateDefinition> = {
   [SINERGIA_WEEKLY_REMINDER.name]: SINERGIA_WEEKLY_REMINDER,

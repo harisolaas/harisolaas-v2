@@ -178,7 +178,12 @@ async function syncOne(
   if (wantsLocalUpdate) {
     await upsertLocalRow({
       def: { ...def, category: normalizeMetaCategory(remote.category) },
-      hash: localHash ?? hash,
+      // Only carry forward a hash that *we* recorded after a real
+      // submission. If `local` is absent (template existed on Meta
+      // before this codebase tracked it), leave it null so the next
+      // run treats this as never-submitted-by-us and pushes a
+      // canonical edit if the local definition differs.
+      hash: localHash,
       variableNames,
       metaTemplateId: remote.id,
       status: remoteStatus,
@@ -296,7 +301,11 @@ async function readLocalRow(name: string) {
 
 interface UpsertInput {
   def: WabaTemplateDefinition;
-  hash: string;
+  // null when the row reflects Meta-side state but we never recorded
+  // a submission of our own (template existed before this codebase
+  // tracked it). The next sync will treat that as "never submitted
+  // by us" and push a canonical edit if the local definition differs.
+  hash: string | null;
   variableNames: string[];
   metaTemplateId: string;
   status: WabaTemplateStatus;

@@ -106,9 +106,26 @@ function verifyMetaSignature(
   rawBody: string,
   appSecret: string,
 ): boolean {
-  const header = req.headers.get("x-hub-signature-256");
+  return verifyMetaSignatureFromHeader(
+    req.headers.get("x-hub-signature-256"),
+    rawBody,
+    appSecret,
+  );
+}
+
+/**
+ * Pure verifier — exported for tests. Returns true iff the
+ * `x-hub-signature-256` header matches the HMAC-SHA256 of `rawBody`
+ * keyed by `appSecret`. The header must look like `sha256=<hex>`;
+ * everything else (missing, malformed, wrong scheme, wrong length,
+ * non-hex chars, mismatched bytes) returns false.
+ */
+export function verifyMetaSignatureFromHeader(
+  header: string | null,
+  rawBody: string,
+  appSecret: string,
+): boolean {
   if (!header || !header.startsWith("sha256=")) {
-    console.warn("WABA webhook missing or malformed signature header");
     return false;
   }
   const provided = header.slice("sha256=".length);
@@ -205,6 +222,14 @@ async function handleMessagesField(value: Record<string, unknown>): Promise<void
       if (!isFresh) continue;
 
       const normalized = normalizeMessageStatus(s.status);
+      // Skip unknown statuses entirely — naively defaulting to 'sent'
+      // would downgrade an existing 'delivered' or 'read' row when
+      // Meta one day adds a new status we haven't mapped yet.
+      if (!normalized) {
+        console.log("WABA webhook: unknown message status, skipping update", s.status);
+        continue;
+      }
+
       const errorCode = s.errors?.[0]?.code != null ? String(s.errors[0].code) : null;
       const errorMessage = s.errors?.[0]?.message ?? s.errors?.[0]?.title ?? null;
 
@@ -225,7 +250,9 @@ async function handleMessagesField(value: Record<string, unknown>): Promise<void
   // Don't 4xx; Meta would retry and tank quality score.
 }
 
-function normalizeMessageStatus(raw: string): "sent" | "delivered" | "read" | "failed" {
+type NormalizedMessageStatus = "sent" | "delivered" | "read" | "failed";
+
+function normalizeMessageStatus(raw: string): NormalizedMessageStatus | null {
   switch (raw.toLowerCase()) {
     case "sent":
       return "sent";
@@ -236,7 +263,7 @@ function normalizeMessageStatus(raw: string): "sent" | "delivered" | "read" | "f
     case "failed":
       return "failed";
     default:
-      return "sent";
+      return null;
   }
 }
 
@@ -290,10 +317,13 @@ async function handleTemplateQualityUpdate(
 ): Promise<void> {
   const v = value as unknown as TemplateQualityUpdateValue;
   if (!v.new_quality_score) return;
-  const dedupeKey = `whatsapp:tpl-quality:${v.message_template_id}:${v.new_quality_score}:${Date.now()}`;
-  // Use a coarse window for quality updates — same score firing
-  // twice in quick succession is unusual but harmless to record.
-  if (!(await acquireDedupeLock(dedupeKey, 10))) return;
+  // Stable key — `Date.now()` here would defeat dedupe entirely
+  // (Meta retries the same batch for up to 7 days, every retry
+  // would land as a fresh key). The (template_id, score) tuple is
+  // the natural identity of this event; if the score actually
+  // changes again later, that's a new key and a new alert.
+  const dedupeKey = `whatsapp:tpl-quality:${v.message_template_id}:${v.new_quality_score}`;
+  if (!(await acquireDedupeLock(dedupeKey))) return;
 
   await db
     .update(schema.whatsappTemplates)
@@ -356,11 +386,17 @@ async function acquireDedupeLock(
 ): Promise<boolean> {
   // Meta retries failed webhooks for up to 7 days, so the dedupe
   // window has to outlive that. 8 days gives a small safety margin.
+  //
+  // Atomic SET NX: a non-atomic GET-then-SET races under concurrent
+  // webhook deliveries (Vercel can invoke the function in parallel
+  // for the same Meta retry batch and both see the key missing).
+  // node-redis returns null when NX rejects (key already existed).
   const redis = await getRedis();
-  const existing = await redis.get(key);
-  if (existing) return false;
-  await redis.set(key, "1", { EX: ttlDays * 24 * 60 * 60 });
-  return true;
+  const result = await redis.set(key, "1", {
+    EX: ttlDays * 24 * 60 * 60,
+    NX: true,
+  });
+  return result !== null;
 }
 
 // ---------------------------------------------------------------
@@ -378,7 +414,11 @@ async function notifyAdminOfTemplateEvent(input: {
     const from = process.env.RESEND_FROM_EMAIL || ADMIN_ALERT_FROM_FALLBACK;
     const to = process.env.ADMIN_ALERT_EMAIL || ADMIN_ALERT_TO_FALLBACK;
     const resend = new Resend(apiKey);
-    await resend.emails.send({
+    // The Resend SDK returns `{data, error}` rather than throwing on
+    // API errors (rate limits, domain issues). Inspect `result.error`
+    // explicitly — same pattern as `notifyAdminOfCampaign` — so a
+    // silent send failure surfaces in logs instead of disappearing.
+    const result = await resend.emails.send({
       from: `Harisolaas alerts <${from}>`,
       to,
       subject: `[waba] ${input.templateName}: ${input.event}`,
@@ -391,8 +431,13 @@ async function notifyAdminOfTemplateEvent(input: {
         </div>
       </body></html>`,
     });
+    if (result.error) {
+      console.error(
+        `WABA template alert email failed (Resend): ${result.error.name} — ${result.error.message}`,
+      );
+    }
   } catch (err) {
-    console.error("WABA template alert email failed:", err);
+    console.error("WABA template alert email threw:", err);
   }
 }
 

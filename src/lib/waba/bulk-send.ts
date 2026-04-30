@@ -4,7 +4,7 @@ import {
   type WabaTemplateDefinition,
   type WabaTemplateVariables,
 } from "./types";
-import { sendWabaTemplate } from "./send";
+import { getLocalTemplateStatus, sendWabaTemplate } from "./send";
 
 // Bulk WhatsApp template send with the same shape as
 // `sendBulkEmails` from `src/lib/bulk-email.ts` so cron / admin
@@ -79,6 +79,15 @@ export async function sendBulkWabaTemplate<T>(
   const throttle = opts.throttleMs ?? DEFAULT_THROTTLE_MS;
   const prefix = opts.logPrefix ?? "bulk-waba";
 
+  // Pre-flight the local approval status once instead of letting
+  // every per-recipient sendWabaTemplate hit the DB — same behavior
+  // for the recipient (we still throw WabaTemplateNotApprovedError
+  // and bubble it up), but at O(1) DB hits instead of O(n).
+  const localStatus = await getLocalTemplateStatus(opts.template.name);
+  if (localStatus !== "approved") {
+    throw new WabaTemplateNotApprovedError(opts.template.name, localStatus);
+  }
+
   let sent = 0;
   let skipped = 0;
   const failed: BulkWabaFailure[] = [];
@@ -102,6 +111,8 @@ export async function sendBulkWabaTemplate<T>(
         urlButtonParams: opts.buildUrlButtonParams?.(recipient),
         campaign: opts.campaign,
         personId: opts.getPersonId?.(recipient) ?? null,
+        // Pre-flighted above; skip the per-recipient DB lookup.
+        skipApprovalCheck: true,
       });
       sent++;
       if (opts.onSent) {

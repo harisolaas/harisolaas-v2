@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { graphFetch } from "./client";
 import { readWabaConfig } from "./config";
@@ -27,9 +27,14 @@ export async function sendWabaTemplate<
 >(req: WabaSendRequest<V>): Promise<WabaSendResult> {
   validateVariables(req.template, req.variables);
 
-  const localStatus = await getLocalTemplateStatus(req.template.name);
-  if (localStatus !== "approved") {
-    throw new WabaTemplateNotApprovedError(req.template.name, localStatus);
+  // Bulk callers pre-flight the status once and pass
+  // skipApprovalCheck=true for every recipient — otherwise this is
+  // an N+1 query. One-off callers leave it unset and get the gate.
+  if (!req.skipApprovalCheck) {
+    const localStatus = await getLocalTemplateStatus(req.template.name);
+    if (localStatus !== "approved") {
+      throw new WabaTemplateNotApprovedError(req.template.name, localStatus);
+    }
   }
 
   const config = readWabaConfig();
@@ -67,6 +72,13 @@ export async function sendWabaTemplate<
   // Persist the row as 'sent'. The webhook flips it to delivered/
   // read/failed as Meta reports back. PersonId is best-effort: pass
   // it via the bulk wrapper when known; one-off sends can omit it.
+  //
+  // onConflictDoNothing on a wamid collision: the row already exists
+  // (Meta wamids are globally unique, so a collision means the
+  // webhook landed before our INSERT — possible under racy timing),
+  // and the existing row already carries the canonical status. An
+  // upsert here would clobber a 'delivered'/'read' status back to
+  // 'sent' for no benefit.
   await db
     .insert(schema.whatsappMessages)
     .values({
@@ -80,17 +92,7 @@ export async function sendWabaTemplate<
       campaign: req.campaign ?? null,
       lastStatusAt: new Date(),
     })
-    .onConflictDoUpdate({
-      target: schema.whatsappMessages.messageId,
-      set: {
-        templateName: req.template.name,
-        languageCode: req.template.language,
-        toPhone: req.to,
-        variables: req.variables,
-        campaign: req.campaign ?? null,
-        updatedAt: sql`NOW()`,
-      },
-    });
+    .onConflictDoNothing();
 
   return { messageId };
 }
@@ -118,7 +120,12 @@ export async function getLocalTemplateStatus(
 // Helpers
 // ---------------------------------------------------------------
 
-function validateVariables(
+/**
+ * @internal — exported only so `send-validation.test.ts` can hit the
+ * real implementation. Not part of the public API; do not call from
+ * outside `send.ts`.
+ */
+export function validateVariables(
   template: WabaTemplateDefinition,
   variables: WabaTemplateVariables,
 ): void {

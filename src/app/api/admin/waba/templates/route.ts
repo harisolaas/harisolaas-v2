@@ -117,6 +117,24 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
+      // Capture the pre-existing status BEFORE we flip to
+      // `pending_deletion` so a Meta failure restores the actual
+      // prior state — earlier code always rolled back to 'approved',
+      // which would corrupt the row for a template that was
+      // 'rejected', 'paused', etc.
+      const existing = await db
+        .select({ status: schema.whatsappTemplates.status })
+        .from(schema.whatsappTemplates)
+        .where(eq(schema.whatsappTemplates.name, name))
+        .limit(1);
+      if (existing.length === 0) {
+        return NextResponse.json(
+          { error: `Template "${name}" not found` },
+          { status: 404 },
+        );
+      }
+      const previousStatus = existing[0].status;
+
       // Both sides: Meta first (so a Meta error blocks the local
       // delete and the operator can retry), then the DB row. Mark
       // the row pending_deletion before the network call so a
@@ -128,10 +146,9 @@ export async function POST(req: Request) {
       try {
         await deleteTemplate(name);
       } catch (err) {
-        // Roll the local status back so the next sync can recover.
         await db
           .update(schema.whatsappTemplates)
-          .set({ status: "approved", updatedAt: sql`NOW()` })
+          .set({ status: previousStatus, updatedAt: sql`NOW()` })
           .where(eq(schema.whatsappTemplates.name, name));
         throw err;
       }

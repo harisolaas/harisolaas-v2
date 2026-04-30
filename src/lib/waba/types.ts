@@ -107,6 +107,11 @@ export interface WabaSendRequest<
   // known person — the row in `whatsapp_messages` then joins back so
   // admin views can show "messages sent to Ana".
   personId?: number | null;
+  // When true, skip the per-call `whatsapp_templates.status` lookup.
+  // Bulk callers do one upstream pre-flight check then pass `true`
+  // for every recipient to avoid an N+1 DB hit; one-off callers
+  // should leave this unset so they always get the gating behavior.
+  skipApprovalCheck?: boolean;
 }
 
 export interface WabaSendResult {
@@ -144,7 +149,7 @@ export class WabaTemplateNotApprovedError extends Error {
   ) {
     super(
       `Template "${templateName}" is not approved (status: ${status}). ` +
-        `Run /api/admin/waba/templates/sync and wait for Meta approval.`,
+        `POST /api/admin/waba/templates with {action: "sync"} and wait for Meta approval.`,
     );
     this.name = "WabaTemplateNotApprovedError";
   }

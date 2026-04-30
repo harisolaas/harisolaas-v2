@@ -322,7 +322,9 @@ async function main() {
   console.log(`  ${PEOPLE.length} people`);
   console.log(`  ${PARTICIPATIONS.length} participations`);
   console.log(`  ${LINKS.length} links`);
-  console.log(`  2 whatsapp_templates (1 approved, 1 rejected)`);
+  console.log(
+    `  2 whatsapp_templates (orphan rows: 1 approved, 1 rejected — registry names intentionally not seeded)`,
+  );
   if (ADMIN_EMAIL) console.log(`  1 admin_users row (${ADMIN_EMAIL})`);
 
   if (DRY_RUN) {
@@ -356,11 +358,17 @@ async function main() {
   }
   console.log(`✓ people`);
 
-  // WhatsApp templates — seed one APPROVED + one REJECTED row so
-  // the admin templates view exercises both rendering paths in
-  // preview without having to wait on Meta. Names align with the
-  // codebase registry so a /sync run from preview will overwrite
-  // them with the real Meta state when WABA env vars are wired up.
+  // WhatsApp templates — seed two orphan rows (templates whose names
+  // are NOT in the code registry) so the admin templates view
+  // exercises both APPROVED and REJECTED rendering paths in preview
+  // without ever touching the names actually used by the cron /
+  // broadcast paths. Critically, do NOT seed `sinergia_weekly_reminder`
+  // as approved here: the cron's WhatsApp fan-out gates on local
+  // approval status, so an `approved` row with a registry name would
+  // attempt real sends the moment WABA env vars get wired up, even
+  // before Meta has actually approved anything. Leaving the registry
+  // name unseeded means `getLocalTemplateStatus` returns 'unknown'
+  // and the cron/broadcast both no-op cleanly.
   await db.execute(sql`
     INSERT INTO whatsapp_templates (
       name, meta_template_id, category, language, status,
@@ -368,7 +376,7 @@ async function main() {
       local_definition_hash
     )
     VALUES (
-      'sinergia_weekly_reminder',
+      'preview_approved_example',
       'preview-meta-tpl-1',
       'utility',
       'es_AR',
@@ -377,13 +385,10 @@ async function main() {
       ${JSON.stringify([
         {
           type: "BODY",
-          text:
-            "Hola {{name}}, te recordamos que esta noche es Sinergia: nos juntamos a las {{time}}. " +
-            "Si no podés venir, respondé este mensaje y liberamos tu lugar para alguien de la lista de espera. ¡Te esperamos!",
+          text: "Hola {{name}}, recordá que tenés turno el {{date}} a las {{time}}.",
         },
-        { type: "FOOTER", text: "harisolaas.com · Sinergia" },
       ])}::jsonb,
-      ARRAY['name','time']::text[],
+      ARRAY['name','date','time']::text[],
       NOW() - INTERVAL '5 days',
       NOW() - INTERVAL '4 days',
       'preview-hash-approved'
