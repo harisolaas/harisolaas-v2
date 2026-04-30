@@ -376,6 +376,97 @@ export const adminUserEventScopes = pgTable(
   ],
 );
 
+// ============================================================
+// whatsapp_templates — local mirror of Meta-managed templates
+// ============================================================
+// Source of truth lives in `src/lib/waba/templates/`. This table
+// caches Meta's view of those templates: status (draft/pending/
+// approved/rejected/...), quality, rejection reason, and the hash
+// of the local definition at submission time so we know when local
+// has drifted ahead of what Meta last saw.
+export const whatsappTemplates = pgTable(
+  "whatsapp_templates",
+  {
+    name: text().primaryKey(),
+    metaTemplateId: text(),
+    category: text().notNull(),
+    language: text().notNull(),
+    // 'draft' is the local-only state used before we've ever
+    // submitted; everything else mirrors Meta's status enum.
+    status: text().notNull().default("draft"),
+    qualityScore: text(),
+    rejectionReason: text(),
+    components: jsonb().notNull(),
+    // Names (in declaration order) of the named placeholders this
+    // template expects, e.g. ['name','time']. Used for cheap
+    // validation when callers build a send.
+    variableNames: text().array().notNull().default(sql`'{}'::text[]`),
+    submittedAt: timestamp({ withTimezone: true }),
+    lastStatusAt: timestamp({ withTimezone: true }),
+    // Stable hash of the local definition that was last submitted
+    // to Meta. If the current local definition hashes differently,
+    // /sync knows to edit (or recreate) on Meta.
+    localDefinitionHash: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      "whatsapp_templates_status_check",
+      sql`${t.status} IN ('draft','pending','approved','rejected','paused','disabled','in_appeal','flagged','locked','pending_deletion')`,
+    ),
+    check(
+      "whatsapp_templates_category_check",
+      sql`${t.category} IN ('utility','marketing','authentication')`,
+    ),
+    index("whatsapp_templates_status_idx").on(t.status),
+  ],
+);
+
+// ============================================================
+// whatsapp_messages — outbound sends + status reconciliation
+// ============================================================
+// One row per message we send via WABA. Insert at send time with
+// status='sent'; the webhook updates status to 'delivered'/'read'/
+// 'failed' as Meta reports back. `campaign` groups rows that
+// belong to the same fan-out (cron run, ad-hoc broadcast) so the
+// admin can answer "how did the last Sinergia reminder do?".
+export const whatsappMessages = pgTable(
+  "whatsapp_messages",
+  {
+    messageId: text().primaryKey(), // Meta wamid
+    personId: bigint({ mode: "number" }).references(() => people.id, {
+      onDelete: "set null",
+    }),
+    templateName: text().notNull(),
+    languageCode: text().notNull(),
+    toPhone: text().notNull(),
+    variables: jsonb().notNull().default({}),
+    status: text().notNull().default("sent"),
+    errorCode: text(),
+    errorMessage: text(),
+    campaign: text(),
+    lastStatusAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check(
+      "whatsapp_messages_status_check",
+      sql`${t.status} IN ('sent','delivered','read','failed','deleted')`,
+    ),
+    index("whatsapp_messages_person_idx")
+      .on(t.personId)
+      .where(sql`${t.personId} IS NOT NULL`),
+    index("whatsapp_messages_template_idx").on(t.templateName),
+    index("whatsapp_messages_status_idx").on(t.status),
+    index("whatsapp_messages_campaign_idx")
+      .on(t.campaign)
+      .where(sql`${t.campaign} IS NOT NULL`),
+    index("whatsapp_messages_created_at_idx").on(t.createdAt.desc()),
+  ],
+);
+
 // Exported types for application code.
 export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
@@ -397,3 +488,7 @@ export type AdminUser = typeof adminUsers.$inferSelect;
 export type NewAdminUser = typeof adminUsers.$inferInsert;
 export type AdminUserEventScope = typeof adminUserEventScopes.$inferSelect;
 export type NewAdminUserEventScope = typeof adminUserEventScopes.$inferInsert;
+export type WhatsappTemplate = typeof whatsappTemplates.$inferSelect;
+export type NewWhatsappTemplate = typeof whatsappTemplates.$inferInsert;
+export type WhatsappMessage = typeof whatsappMessages.$inferSelect;
+export type NewWhatsappMessage = typeof whatsappMessages.$inferInsert;
