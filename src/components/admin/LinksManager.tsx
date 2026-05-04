@@ -338,9 +338,12 @@ function CreateLinkForm({
   defaultReferrerEmail?: string;
 }) {
   const today = new Date().toISOString().slice(0, 10);
-  // Default to the initial value if provided, then fall back to the
-  // first DB-driven destination, then to "__custom__" if the table is
-  // empty (only the home entry exists).
+  // Default to the initial value if provided. Otherwise pick the first
+  // non-home event landing — that's almost always what the operator
+  // wants. If no events have a landing yet, fall back to home (/es) so
+  // the dropdown still has a sensible default; final fallback is
+  // "__custom__" only if `destinations` is somehow empty (shouldn't
+  // happen — the loader always prepends home).
   const defaultDestination =
     initial?.destination ??
     destinations.find((d) => d.path !== "/es")?.path ??
