@@ -49,9 +49,10 @@ interface TicketParams {
 
 // QR data URL → email attachment. Strips the `data:image/png;base64,`
 // prefix and decodes the rest into a Buffer suitable for Resend's
-// `attachments[].content`. Mirrors `qrDataUrlToBuffer` in brote-email.
+// `attachments[].content`. Mirrors `qrDataUrlToBuffer` in brote-email so
+// both webhook flows go through the same proven shape.
 export function qrDataUrlToBuffer(dataUrl: string): Buffer {
-  const base64 = dataUrl.split(",")[1] ?? "";
+  const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
   return Buffer.from(base64, "base64");
 }
 

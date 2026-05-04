@@ -59,10 +59,7 @@ export default async function SinergiaParrafoSuccessPage({
             {copy.body}
           </p>
           <div className="w-full rounded-2xl border border-sage/30 bg-white/70 p-6 text-left">
-            <p className="text-sm font-semibold uppercase tracking-wider text-sage">
-              {sinergiaParrafoConfig.date}
-            </p>
-            <p className="mt-1 text-base text-forest">{copy.sessionLine}</p>
+            <p className="text-base text-forest">{copy.sessionLine}</p>
             <p className="mt-1 text-sm text-charcoal/70">{addressLine}</p>
           </div>
           <p className="text-sm text-charcoal/60">{copy.emailNote}</p>

@@ -38,7 +38,22 @@ function getResend(): Resend {
 // `id:{dataId};request-id:{xRequestId};ts:{ts};` with the dashboard secret.
 function verifySignature(req: Request, body: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!secret) return true; // skip when unset (dev/preview without webhook).
+  if (!secret) {
+    // Dev only: let requests through when the secret is intentionally
+    // absent so `next dev` + curl works. In any other env, treat a
+    // missing secret as misconfiguration and reject — never let prod or
+    // preview silently skip HMAC verification.
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "sinergia-parrafo webhook: signature verification skipped — MP_WEBHOOK_SECRET not set (dev only)",
+      );
+      return true;
+    }
+    console.error(
+      "sinergia-parrafo webhook rejected: MP_WEBHOOK_SECRET not configured",
+    );
+    return false;
+  }
 
   const xSignature = req.headers.get("x-signature");
   const xRequestId = req.headers.get("x-request-id");
@@ -292,10 +307,11 @@ export async function POST(req: Request) {
   // Send the ticket email. Runs for both fresh tickets and retry replays.
   if (buyerEmail) {
     try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-      const qrPayload = `${baseUrl}/sinergia-parrafo/ticket/${ticketId}`;
-      const qrDataUrl = await QRCode.toDataURL(qrPayload, {
+      // Encode just the ticket id — there's no scanner endpoint yet, so a
+      // URL-style QR would 404. The ticket id is what door staff will read
+      // anyway; if/when a /sinergia-parrafo/ticket/[id] page exists, swap
+      // this back to a URL.
+      const qrDataUrl = await QRCode.toDataURL(ticketId, {
         width: 300,
         margin: 2,
         color: { dark: "#0E6BA8", light: "#F1ECDA" },
@@ -306,7 +322,6 @@ export async function POST(req: Request) {
       const amountCents = payment
         ? Math.round(Number(payment.transaction_amount ?? 0) * 100)
         : sinergiaParrafoConfig.ticketPriceCents;
-      const paymentRef = payment?.id ? String(payment.id) : mpPaymentId;
 
       await getResend().emails.send({
         from: `Sinergia × Párrafo <${fromEmail}>`,
@@ -316,7 +331,7 @@ export async function POST(req: Request) {
           name: buyerName,
           ticketId,
           amountCents,
-          paymentId: paymentRef,
+          paymentId: mpPaymentId,
         }),
         attachments: [
           {
