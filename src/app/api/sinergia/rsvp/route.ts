@@ -72,6 +72,7 @@ async function ensureSinergiaEvent(sessionDate: string): Promise<string> {
       date: eventDate,
       capacity: sinergiaConfig.capacity,
       status,
+      landingPath: "/es/sinergia",
     })
     .onConflictDoNothing();
 

@@ -35,6 +35,12 @@ export const events = pgTable(
     date: timestamp({ withTimezone: true }).notNull(),
     capacity: integer(),
     status: text().notNull(),
+    // Path of the public landing this event belongs to (e.g.
+    // "/es/sinergia-parrafo"). Optional — events without a landing
+    // (manual-only RSVPs, internal-only sessions) leave this null.
+    // Drives the destinations dropdown in the admin link generator
+    // without anyone having to maintain a static list.
+    landingPath: text(),
     metadata: jsonb().notNull().default({}),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

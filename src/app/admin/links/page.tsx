@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { validateSession, SESSION_COOKIE_NAME } from "@/lib/admin-auth";
+import { getKnownDestinations } from "@/lib/links-server";
 import LinksManager from "@/components/admin/LinksManager";
 
 export default async function AdminLinksPage() {
@@ -22,5 +23,9 @@ export default async function AdminLinksPage() {
     redirect("/admin");
   }
 
-  return <LinksManager email={session.email} />;
+  const destinations = await getKnownDestinations();
+
+  return (
+    <LinksManager email={session.email} destinations={destinations} />
+  );
 }

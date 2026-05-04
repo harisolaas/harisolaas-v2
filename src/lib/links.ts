@@ -59,11 +59,13 @@ export function isChannelKey(value: unknown): value is ChannelKey {
 // Known destinations (for the creation form dropdown)
 // ============================================================
 
-export const KNOWN_DESTINATIONS: { path: string; display: string }[] = [
-  { path: "/es", display: "Home (/es)" },
-  { path: "/es/brote", display: "Plantación / BROTE (/es/brote)" },
-  { path: "/es/sinergia", display: "Sinergia (/es/sinergia)" },
-];
+// Type lives here (client-safe). The DB-backed loader lives in
+// `src/lib/links-server.ts` so client components can import this type
+// without dragging drizzle / `@/db` into the browser bundle.
+export interface KnownDestination {
+  path: string;
+  display: string;
+}
 
 // ============================================================
 // Slug generation

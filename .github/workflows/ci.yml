@@ -38,6 +38,17 @@ jobs:
           RESEND_API_KEY: "build-time-placeholder"
         run: npm run build
 
+      - name: Migrate dev DB
+        # Drizzle's INSERTs reference every column in the schema (with
+        # `default` for unspecified ones), so integration tests fail if
+        # the dev DB lags the schema. Apply pending migrations before
+        # running tests. drizzle-kit reads DATABASE_URL_UNPOOLED via
+        # drizzle.config.ts.
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED_DEV }}
+        run: npm run db:migrate
+
       - name: Test
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL_DEV }}
