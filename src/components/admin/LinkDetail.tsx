@@ -59,9 +59,15 @@ const BASE_URL = "https://www.harisolaas.com";
 export default function LinkDetail({
   slug,
   email,
+  canWrite,
 }: {
   slug: string;
   email: string;
+  // True when the current admin can edit / archive / delete this link.
+  // Read access is enforced server-side (404 from the API for
+  // out-of-scope users), so when this component renders the user
+  // already has read access — `canWrite` only gates the role check.
+  canWrite: boolean;
 }) {
   const router = useRouter();
   const [link, setLink] = useState<LinkData | null>(null);
@@ -380,6 +386,7 @@ export default function LinkDetail({
                 </dl>
               </div>
 
+              {canWrite && (
               <div className="rounded-xl border border-sage/20 bg-white p-4 shadow-sm">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-charcoal/60">
                   Editar
@@ -481,7 +488,9 @@ export default function LinkDetail({
                   </div>
                 )}
               </div>
+              )}
 
+              {canWrite && (
               <div className="rounded-xl border border-sage/20 bg-white p-4 shadow-sm">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-charcoal/60">
                   Estado · <span className="text-forest">{link.status}</span>
@@ -519,6 +528,7 @@ export default function LinkDetail({
                   </button>
                 </div>
               </div>
+              )}
             </aside>
           </div>
         )}

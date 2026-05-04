@@ -16,16 +16,26 @@ export default async function AdminLinksPage() {
   if (!session) {
     redirect("/admin/login");
   }
-  // Links are cross-event. Scoped collaborators 403 at the API anyway;
-  // bounce them back to the dashboard instead of rendering a shell that
-  // immediately fails to load data.
-  if (session.scope !== "all") {
-    redirect("/admin");
-  }
 
-  const destinations = await getKnownDestinations();
+  // Destinations are filtered to the user's scoped events when
+  // scope='scoped'; owners + scope='all' editors get the full list
+  // (Home included). Callers will see Home + non-event landings only
+  // for scope='all' sessions.
+  const destinations = await getKnownDestinations(session);
+
+  // Write actions need editor+ AND either scope='all' or at least one
+  // accessible destination. Scoped viewers (any scope) and scoped
+  // users with no event grants can only browse.
+  const canCreate =
+    session.role !== "viewer" &&
+    (session.scope === "all" || destinations.length > 0);
 
   return (
-    <LinksManager email={session.email} destinations={destinations} />
+    <LinksManager
+      email={session.email}
+      destinations={destinations}
+      canCreate={canCreate}
+      allowCustomDestination={session.scope === "all"}
+    />
   );
 }

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import {
-  assertFullAccess,
-  requireAdminSession,
-} from "@/lib/admin-api-auth";
+import { requireAdminSession } from "@/lib/admin-api-auth";
+import { canScopedAccessLink } from "@/lib/links-server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +13,6 @@ export async function GET(
 ) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
-  const denied = assertFullAccess(session);
-  if (denied) return denied;
 
   const { slug } = await params;
 
@@ -29,6 +25,16 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const link = linkRows[0];
+
+  // Scoped users only see links targeting events they have access to.
+  // 404 (not 403) so we don't reveal that the link exists outside
+  // their scope.
+  if (
+    session.scope === "scoped" &&
+    !(await canScopedAccessLink(session, link.destination))
+  ) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
 
   // Resolve the optional referrer to a display name/email so the admin
   // UI can show "Atribuir a: <name> (<email>)" without a second fetch.
@@ -157,10 +163,31 @@ export async function PATCH(
 ) {
   const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
-  const denied = assertFullAccess(session);
-  if (denied) return denied;
 
   const { slug } = await params;
+
+  // Scoped editors can only mutate links whose destination matches one
+  // of their event landings. Load the row first to know what we're
+  // dealing with; 404 if the slug doesn't exist (consistent with
+  // GET), 403 if it exists but is out-of-scope (we'd rather signal
+  // permission than mask it on a write attempt).
+  if (session.scope === "scoped") {
+    const existing = await db
+      .select({ destination: schema.links.destination })
+      .from(schema.links)
+      .where(eq(schema.links.slug, slug))
+      .limit(1);
+    if (existing.length === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (!(await canScopedAccessLink(session, existing[0].destination))) {
+      // 404, not 403 — match the GET branch + the rest of the
+      // scoped-write surface so an out-of-scope slug isn't
+      // distinguishable from a non-existent one via probe attacks.
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+  }
+
   const body = (await req.json()) as {
     label?: string;
     campaign?: string | null;
@@ -228,10 +255,26 @@ export async function DELETE(
 ) {
   const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
-  const denied = assertFullAccess(session);
-  if (denied) return denied;
 
   const { slug } = await params;
+
+  // Same scope guard as PATCH — load destination, deny if out-of-scope.
+  if (session.scope === "scoped") {
+    const existing = await db
+      .select({ destination: schema.links.destination })
+      .from(schema.links)
+      .where(eq(schema.links.slug, slug))
+      .limit(1);
+    if (existing.length === 0) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (!(await canScopedAccessLink(session, existing[0].destination))) {
+      // 404, not 403 — match the GET branch + the rest of the
+      // scoped-write surface so an out-of-scope slug isn't
+      // distinguishable from a non-existent one via probe attacks.
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+  }
 
   const signupCount = await db.execute<{ n: number }>(sql`
     SELECT COUNT(*)::int AS n FROM participations WHERE link_slug = ${slug}
