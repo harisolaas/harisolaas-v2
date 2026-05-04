@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import {
-  assertFullAccess,
-  requireAdminSession,
-} from "@/lib/admin-api-auth";
+import { requireAdminSession } from "@/lib/admin-api-auth";
 import {
   CHANNELS,
   deriveCampaignFromDestination,
@@ -13,6 +10,7 @@ import {
   isChannelKey,
   type ChannelKey,
 } from "@/lib/links";
+import { canScopedAccessLink } from "@/lib/links-server";
 
 export const dynamic = "force-dynamic";
 
@@ -46,14 +44,41 @@ type LinkRow = {
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
-  const denied = assertFullAccess(session);
-  if (denied) return denied;
 
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get("status");
   const channelFilter = url.searchParams.get("channel");
   const campaignFilter = url.searchParams.get("campaign");
   const search = url.searchParams.get("q");
+
+  // Scoped users only see links whose destination matches a landing
+  // path of one of their allowed events. The match is on
+  // `events.landing_path = links.destination` after both sides are
+  // path-normalized via the `regexp_replace` below (mirrors the
+  // normalization in normalizeDestinationToPath in lib/links-server).
+  // Owners + scope='all' editors skip this filter entirely.
+  const isScoped = session.scope === "scoped";
+  if (isScoped && session.allowedEventIds.length === 0) {
+    // Scoped user with no event grants — empty list, no query needed.
+    return NextResponse.json({ total: 0, links: [] });
+  }
+  const allowedIdsList = isScoped
+    ? sql.join(
+        session.allowedEventIds.map((id) => sql`${id}`),
+        sql`, `,
+      )
+    : sql``;
+  const scopeCondition = isScoped
+    ? sql`AND regexp_replace(l.destination, '^https?://[^/]+', '') IN (
+        SELECT landing_path FROM events
+        WHERE landing_path IS NOT NULL
+          AND status <> 'cancelled'
+          AND id IN (${allowedIdsList})
+      )`
+    : sql``;
+  const statusCondition = statusFilter
+    ? sql`AND l.status = ${statusFilter}`
+    : sql``;
 
   const rows = await db.execute<LinkRow>(sql`
     WITH person_counts AS (
@@ -88,7 +113,9 @@ export async function GET(req: Request) {
     LEFT JOIN people ref ON ref.id = l.referred_by_person_id
     LEFT JOIN link_click_counts c ON c.link_slug = l.slug
     LEFT JOIN link_signups s ON s.link_slug = l.slug
-    ${statusFilter ? sql`WHERE l.status = ${statusFilter}` : sql``}
+    WHERE 1=1
+      ${statusCondition}
+      ${scopeCondition}
     ORDER BY l.created_at DESC
     LIMIT 500
   `);
@@ -119,8 +146,6 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await requireAdminSession(req, { minRole: "editor" });
   if (session instanceof NextResponse) return session;
-  const denied = assertFullAccess(session);
-  if (denied) return denied;
 
   const body = (await req.json()) as {
     destination?: string;
@@ -140,6 +165,19 @@ export async function POST(req: Request) {
       { error: "destination required" },
       { status: 400 },
     );
+  }
+
+  // Scoped editors can only create links targeting events they have
+  // access to. Home + custom destinations don't match any event
+  // landing → owner-only by construction.
+  if (session.scope === "scoped") {
+    const allowed = await canScopedAccessLink(session, destination);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "destination not in your event scope" },
+        { status: 403 },
+      );
+    }
   }
   if (!isChannelKey(body.channel)) {
     return NextResponse.json({ error: "invalid channel" }, { status: 400 });

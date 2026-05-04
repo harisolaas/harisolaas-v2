@@ -18,6 +18,11 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      // `server-only` throws at import time when loaded outside a Next
+      // server context. Stub it to an empty module so vitest can import
+      // server-only modules (e.g. lib/links-server.ts) and exercise
+      // their exports directly.
+      "server-only": path.resolve(__dirname, "src/test/server-only-stub.ts"),
     },
   },
 });

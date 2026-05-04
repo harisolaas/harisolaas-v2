@@ -77,10 +77,17 @@ const { PATCH: patchParticipation, DELETE: deleteParticipation } = await import(
 );
 const { GET: getPeople } = await import("./people/route");
 const { GET: getPanorama } = await import("./panorama/route");
+const { GET: getLinks, POST: postLinks } = await import("./links/route");
+const { PATCH: patchLink, DELETE: deleteLink } = await import(
+  "./links/[slug]/route"
+);
 
 const EVENT_A = "scope-test-event-A";
 const EVENT_B = "scope-test-event-B";
 const EMAIL_PREFIX = "scope-test-";
+const LANDING_A = "/scope-test/a";
+const LANDING_B = "/scope-test/b";
+const LINK_PREFIX = "scope-test-link-";
 
 async function cleanup() {
   await db.execute(sql`
@@ -93,21 +100,44 @@ async function cleanup() {
   await db.execute(sql`
     DELETE FROM people WHERE email LIKE ${EMAIL_PREFIX + "%"}
   `);
+  await db.execute(sql`
+    DELETE FROM links WHERE slug LIKE ${LINK_PREFIX + "%"}
+  `);
 }
 
 beforeAll(async () => {
-  for (const id of [EVENT_A, EVENT_B]) {
-    await db
-      .insert(schema.events)
-      .values({
-        id,
-        type: "plant",
-        name: `Scope test ${id}`,
-        date: new Date("2027-01-01T00:00:00Z"),
-        status: "upcoming",
-      })
-      .onConflictDoNothing();
-  }
+  // EVENT_A and EVENT_B both get explicit landingPaths so the link-scope
+  // tests can use destination = landingPath to assert per-event link
+  // access. Other test blocks don't read landingPath, so these don't
+  // interfere.
+  await db
+    .insert(schema.events)
+    .values({
+      id: EVENT_A,
+      type: "plant",
+      name: `Scope test ${EVENT_A}`,
+      date: new Date("2027-01-01T00:00:00Z"),
+      status: "upcoming",
+      landingPath: LANDING_A,
+    })
+    .onConflictDoUpdate({
+      target: schema.events.id,
+      set: { landingPath: LANDING_A },
+    });
+  await db
+    .insert(schema.events)
+    .values({
+      id: EVENT_B,
+      type: "plant",
+      name: `Scope test ${EVENT_B}`,
+      date: new Date("2027-01-01T00:00:00Z"),
+      status: "upcoming",
+      landingPath: LANDING_B,
+    })
+    .onConflictDoUpdate({
+      target: schema.events.id,
+      set: { landingPath: LANDING_B },
+    });
   await cleanup();
 });
 
@@ -323,6 +353,167 @@ describe("cross-event endpoints 403 for scoped users", () => {
   it("viewer scoped gets 403 on /panorama", async () => {
     currentSession = VIEWER_SCOPED_TO_A;
     const res = await getPanorama(makeReq());
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("/api/admin/links event-scoped access", () => {
+  // Insert two test links with createdBy=owner — one points at EVENT_A's
+  // landing, one at EVENT_B's. The scoped editor should see + manage A
+  // (in their scope) but not B.
+  async function seedLinks() {
+    await db.insert(schema.links).values([
+      {
+        slug: `${LINK_PREFIX}a`,
+        destination: LANDING_A,
+        label: "Link A",
+        channel: "ig-story",
+        source: "instagram",
+        medium: "story",
+        campaign: "scope-test",
+        createdDate: "2026-01-01",
+        createdBy: OWNER.email,
+        status: "active",
+      },
+      {
+        slug: `${LINK_PREFIX}b`,
+        destination: LANDING_B,
+        label: "Link B",
+        channel: "ig-story",
+        source: "instagram",
+        medium: "story",
+        campaign: "scope-test",
+        createdDate: "2026-01-01",
+        createdBy: OWNER.email,
+        status: "active",
+      },
+    ]);
+  }
+
+  function makePost(body: Record<string, unknown>) {
+    return new Request("http://localhost/api/admin/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+  function makePatch(body: Record<string, unknown>) {
+    return new Request("http://localhost/api/admin/links/x", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("owner sees both links", async () => {
+    await seedLinks();
+    currentSession = OWNER;
+    const res = await getLinks(makeReq("http://localhost/api/admin/links"));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { links: { slug: string }[] };
+    const slugs = body.links.map((l) => l.slug);
+    expect(slugs).toContain(`${LINK_PREFIX}a`);
+    expect(slugs).toContain(`${LINK_PREFIX}b`);
+  });
+
+  it("editor scoped to A sees only the A link", async () => {
+    await seedLinks();
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await getLinks(makeReq("http://localhost/api/admin/links"));
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { links: { slug: string }[] };
+    const slugs = body.links.map((l) => l.slug);
+    expect(slugs).toContain(`${LINK_PREFIX}a`);
+    expect(slugs).not.toContain(`${LINK_PREFIX}b`);
+  });
+
+  it("scoped editor can POST a link targeting their event landing", async () => {
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: LANDING_A,
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; link: { slug: string } };
+    expect(body.ok).toBe(true);
+    // Cleanup the freshly-inserted slug — it doesn't match LINK_PREFIX.
+    await db.execute(sql`DELETE FROM links WHERE slug = ${body.link.slug}`);
+  });
+
+  it("scoped editor gets 403 POSTing a link targeting an out-of-scope landing", async () => {
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: LANDING_B,
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("scoped editor gets 403 POSTing a home-targeted link", async () => {
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: "/es",
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("scoped viewer gets 403 on POST (role gate)", async () => {
+    currentSession = VIEWER_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: LANDING_A,
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
+  it("scoped editor can PATCH the in-scope link", async () => {
+    await seedLinks();
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await patchLink(makePatch({ note: "edited" }), {
+      params: Promise.resolve({ slug: `${LINK_PREFIX}a` }),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it("scoped editor gets 403 PATCHing the out-of-scope link", async () => {
+    await seedLinks();
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await patchLink(makePatch({ note: "edited" }), {
+      params: Promise.resolve({ slug: `${LINK_PREFIX}b` }),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("scoped editor can DELETE the in-scope link (no signups attributed)", async () => {
+    await seedLinks();
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await deleteLink(
+      new Request("http://localhost/api/admin/links/x", { method: "DELETE" }),
+      { params: Promise.resolve({ slug: `${LINK_PREFIX}a` }) },
+    );
+    expect(res.status).toBe(200);
+  });
+
+  it("scoped editor gets 403 DELETing the out-of-scope link", async () => {
+    await seedLinks();
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await deleteLink(
+      new Request("http://localhost/api/admin/links/x", { method: "DELETE" }),
+      { params: Promise.resolve({ slug: `${LINK_PREFIX}b` }) },
+    );
     expect(res.status).toBe(403);
   });
 });

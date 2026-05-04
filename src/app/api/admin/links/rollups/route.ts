@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import {
-  assertFullAccess,
-  requireAdminSession,
-} from "@/lib/admin-api-auth";
+import { requireAdminSession } from "@/lib/admin-api-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +11,6 @@ type Grouping = "channel" | "campaign";
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
-  const denied = assertFullAccess(session);
-  if (denied) return denied;
 
   const url = new URL(req.url);
   const by = url.searchParams.get("by") as Grouping | null;
@@ -27,6 +22,28 @@ export async function GET(req: Request) {
   }
 
   const groupCol = by === "channel" ? sql`l.channel` : sql`l.campaign`;
+
+  // Same destination-based scope filter as the list endpoint. Owners
+  // + scope='all' editors aggregate across all links; scoped users
+  // aggregate only over their accessible subset.
+  const isScoped = session.scope === "scoped";
+  if (isScoped && session.allowedEventIds.length === 0) {
+    return NextResponse.json({ by, rollups: [] });
+  }
+  const allowedIdsList = isScoped
+    ? sql.join(
+        session.allowedEventIds.map((id) => sql`${id}`),
+        sql`, `,
+      )
+    : sql``;
+  const scopeCondition = isScoped
+    ? sql`AND regexp_replace(l.destination, '^https?://[^/]+', '') IN (
+        SELECT landing_path FROM events
+        WHERE landing_path IS NOT NULL
+          AND status <> 'cancelled'
+          AND id IN (${allowedIdsList})
+      )`
+    : sql``;
 
   const rows = await db.execute<{
     grouping: string | null;
@@ -65,6 +82,8 @@ export async function GET(req: Request) {
     FROM links l
     LEFT JOIN clicks_per_link c ON c.link_slug = l.slug
     LEFT JOIN signups_per_link s ON s.link_slug = l.slug
+    WHERE 1=1
+      ${scopeCondition}
     GROUP BY ${groupCol}
     ORDER BY clicks DESC
   `);

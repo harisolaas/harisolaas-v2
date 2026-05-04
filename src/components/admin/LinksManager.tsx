@@ -50,9 +50,18 @@ const BASE_URL = "https://www.harisolaas.com";
 export default function LinksManager({
   email,
   destinations,
+  canCreate,
+  allowCustomDestination,
 }: {
   email: string;
   destinations: KnownDestination[];
+  // True when the current admin can create new links. False for
+  // viewers and for scoped editors with no accessible destinations.
+  canCreate: boolean;
+  // True when the current admin can type a custom destination path.
+  // Restricted to scope='all' admins — scoped collaborators can only
+  // pick from the destinations dropdown.
+  allowCustomDestination: boolean;
 }) {
   const [links, setLinks] = useState<LinkRow[] | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
@@ -152,6 +161,7 @@ export default function LinksManager({
             initial={duplicateSource ?? undefined}
             destinations={destinations}
             defaultReferrerEmail={email}
+            allowCustomDestination={allowCustomDestination}
             onCancel={() => {
               setCreating(false);
               setDuplicateSource(null);
@@ -180,12 +190,14 @@ export default function LinksManager({
                   </button>
                 ))}
               </div>
-              <button
-                onClick={() => setCreating(true)}
-                className="rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-cream shadow-sm transition-colors hover:bg-terracotta/90"
-              >
-                + Nuevo enlace
-              </button>
+              {canCreate && (
+                <button
+                  onClick={() => setCreating(true)}
+                  className="rounded-full bg-terracotta px-4 py-2 text-sm font-semibold text-cream shadow-sm transition-colors hover:bg-terracotta/90"
+                >
+                  + Nuevo enlace
+                </button>
+              )}
             </div>
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -330,12 +342,18 @@ function CreateLinkForm({
   initial,
   destinations,
   defaultReferrerEmail,
+  allowCustomDestination,
 }: {
   onCancel: () => void;
   onCreated: (row: LinkRow) => void;
   initial?: Partial<LinkRow>;
   destinations: KnownDestination[];
   defaultReferrerEmail?: string;
+  // When false, the "Otra página…" custom-destination option is hidden
+  // and any initial custom destination falls back to the first listed
+  // option. Set false for scoped collaborators — they can only pick
+  // landings of events they have access to.
+  allowCustomDestination: boolean;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   // Default to the initial value if provided. Otherwise pick the first
@@ -344,11 +362,14 @@ function CreateLinkForm({
   // the dropdown still has a sensible default; final fallback is
   // "__custom__" only if `destinations` is somehow empty (shouldn't
   // happen — the loader always prepends home).
-  const defaultDestination =
-    initial?.destination ??
-    destinations.find((d) => d.path !== "/es")?.path ??
-    destinations[0]?.path ??
-    "__custom__";
+  const initialDestinationIsKnown =
+    initial?.destination &&
+    destinations.some((d) => d.path === initial.destination);
+  const defaultDestination = initialDestinationIsKnown
+    ? (initial!.destination as string)
+    : (destinations.find((d) => d.path !== "/es")?.path ??
+      destinations[0]?.path ??
+      (allowCustomDestination ? "__custom__" : ""));
   const [destination, setDestination] = useState<string>(defaultDestination);
   const [customDestination, setCustomDestination] = useState<string>("");
   const [channel, setChannel] = useState<ChannelKey>(
@@ -439,7 +460,9 @@ function CreateLinkForm({
                 {d.display}
               </option>
             ))}
-            <option value="__custom__">Otra página…</option>
+            {allowCustomDestination && (
+              <option value="__custom__">Otra página…</option>
+            )}
           </select>
           {destination === "__custom__" && (
             <input
