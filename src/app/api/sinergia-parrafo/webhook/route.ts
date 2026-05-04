@@ -174,11 +174,31 @@ export async function POST(req: Request) {
   }
 
   const redis = await getRedis();
+  const idempotencyKey = `sinergia-parrafo:payment:${mpPaymentId}`;
+  const PROCESSING = "__processing__";
 
-  // Idempotency: Redis maps MP payment id → ticket id. Fast path for retries.
-  const existingTicketId = await redis.get(
-    `sinergia-parrafo:payment:${mpPaymentId}`,
-  );
+  // Atomic claim: if the key is absent, write the sentinel and get
+  // "OK" back; if it already exists, get null. Prevents a race where
+  // two concurrent webhook deliveries both read "no existing ticket id"
+  // and race through the fresh-payment path, double-creating a
+  // participation (or tripping the (person_id, event_id) unique
+  // constraint) and double-sending the ticket email.
+  const claimed = await redis.set(idempotencyKey, PROCESSING, {
+    NX: true,
+    EX: 300,
+  });
+
+  let existingTicketId: string | null = null;
+  if (!claimed) {
+    const val = await redis.get(idempotencyKey);
+    if (!val || val === PROCESSING) {
+      // Another invocation is mid-processing. Bail with 200 so MP
+      // doesn't escalate this delivery as failed; the in-flight
+      // handler will persist the final ticket id shortly.
+      return NextResponse.json({ ok: true, status: "processing" });
+    }
+    existingTicketId = val;
+  }
 
   let ticketId: string;
   let buyerEmail: string;
@@ -263,17 +283,18 @@ export async function POST(req: Request) {
       );
     }
 
-    ticketId = `SP-${nanoid(8).toUpperCase()}`;
+    const newTicketId = `SP-${nanoid(8).toUpperCase()}`;
 
     await ensureEvent();
 
+    let result;
     try {
-      await recordParticipation({
+      result = await recordParticipation({
         email: buyerEmail,
         name: buyerName,
         phone: buyerPhone,
         eventId: EVENT_ID,
-        participationId: ticketId,
+        participationId: newTicketId,
         role: "attendee",
         status: "confirmed",
         externalPaymentId: mpPaymentId,
@@ -301,7 +322,34 @@ export async function POST(req: Request) {
       throw err;
     }
 
-    await redis.set(`sinergia-parrafo:payment:${mpPaymentId}`, ticketId);
+    // recordParticipation returns the existing participationId when
+    // (personId, eventId) is already taken — same buyer paid twice or
+    // their RSVP was created via another flow. Honor that id so Redis,
+    // the email, and the metadata flag all point at the real row.
+    ticketId = result.participationId;
+
+    if (!result.created) {
+      // Pull the row's current metadata so the emailSent merge later
+      // doesn't clobber whatever the existing row already had.
+      const existing = await db
+        .select({ metadata: schema.participations.metadata })
+        .from(schema.participations)
+        .where(eq(schema.participations.id, ticketId))
+        .limit(1);
+      participationMetadata =
+        (existing[0]?.metadata as Record<string, unknown>) ?? {};
+      if (participationMetadata.emailSent) {
+        // Existing ticket already mailed. Stamp idempotency and exit.
+        await redis.set(idempotencyKey, ticketId, {
+          EX: 60 * 60 * 24 * 90,
+        });
+        return NextResponse.json({ ok: true, ticketId });
+      }
+    }
+
+    // Stamp the real ticket id with a 90-day TTL — covers MP's retry
+    // horizon while keeping the keyspace bounded.
+    await redis.set(idempotencyKey, ticketId, { EX: 60 * 60 * 24 * 90 });
   }
 
   // Send the ticket email. Runs for both fresh tickets and retry replays.
