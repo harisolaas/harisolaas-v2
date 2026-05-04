@@ -47,6 +47,7 @@ async function ensureEvent(): Promise<void> {
       date: eventDate,
       capacity,
       status,
+      landingPath: "/es/sinergia-parrafo",
     })
     .onConflictDoNothing();
 }

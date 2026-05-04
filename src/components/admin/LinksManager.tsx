@@ -5,9 +5,9 @@ import Link from "next/link";
 import {
   CHANNELS,
   CHANNEL_KEYS,
-  KNOWN_DESTINATIONS,
   formatAutoLabel,
   type ChannelKey,
+  type KnownDestination,
 } from "@/lib/links";
 import PersonEmailAutocomplete from "./PersonEmailAutocomplete";
 
@@ -47,7 +47,13 @@ const STATUS_TABS: { key: StatusFilter; label: string }[] = [
 
 const BASE_URL = "https://www.harisolaas.com";
 
-export default function LinksManager({ email }: { email: string }) {
+export default function LinksManager({
+  email,
+  destinations,
+}: {
+  email: string;
+  destinations: KnownDestination[];
+}) {
   const [links, setLinks] = useState<LinkRow[] | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [channelFilter, setChannelFilter] = useState<string>("");
@@ -144,6 +150,8 @@ export default function LinksManager({ email }: { email: string }) {
         ) : creating ? (
           <CreateLinkForm
             initial={duplicateSource ?? undefined}
+            destinations={destinations}
+            defaultReferrerEmail={email}
             onCancel={() => {
               setCreating(false);
               setDuplicateSource(null);
@@ -320,15 +328,25 @@ function CreateLinkForm({
   onCancel,
   onCreated,
   initial,
+  destinations,
+  defaultReferrerEmail,
 }: {
   onCancel: () => void;
   onCreated: (row: LinkRow) => void;
   initial?: Partial<LinkRow>;
+  destinations: KnownDestination[];
+  defaultReferrerEmail?: string;
 }) {
   const today = new Date().toISOString().slice(0, 10);
-  const [destination, setDestination] = useState<string>(
-    initial?.destination ?? "/es/brote",
-  );
+  // Default to the initial value if provided, then fall back to the
+  // first DB-driven destination, then to "__custom__" if the table is
+  // empty (only the home entry exists).
+  const defaultDestination =
+    initial?.destination ??
+    destinations.find((d) => d.path !== "/es")?.path ??
+    destinations[0]?.path ??
+    "__custom__";
+  const [destination, setDestination] = useState<string>(defaultDestination);
   const [customDestination, setCustomDestination] = useState<string>("");
   const [channel, setChannel] = useState<ChannelKey>(
     (initial?.channel as ChannelKey) ?? "ig-story",
@@ -346,8 +364,11 @@ function CreateLinkForm({
   const [bypassCapacity, setBypassCapacity] = useState<boolean>(
     initial?.bypassCapacity ?? false,
   );
+  // Self-attribution: collaborators creating links default to attributing
+  // the resulting signups to themselves. Editable — duplicating a link
+  // with an explicit referrer keeps that one instead.
   const [referrerEmail, setReferrerEmail] = useState<string>(
-    initial?.referredByEmail ?? "",
+    initial?.referredByEmail ?? defaultReferrerEmail ?? "",
   );
   const [showMore, setShowMore] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -410,7 +431,7 @@ function CreateLinkForm({
             onChange={(e) => setDestination(e.target.value)}
             className="w-full rounded-lg border border-sage/30 bg-white px-3 py-2 text-sm text-charcoal"
           >
-            {KNOWN_DESTINATIONS.map((d) => (
+            {destinations.map((d) => (
               <option key={d.path} value={d.path}>
                 {d.display}
               </option>

@@ -64,6 +64,9 @@ interface EventFixture {
   date: string; // ISO
   capacity: number | null;
   status: "upcoming" | "live" | "past" | "cancelled";
+  // Path of the public landing this event belongs to. Drives the admin
+  // link-creator dropdown. Leave null when the event has no landing.
+  landingPath: string | null;
 }
 
 interface PersonFixture {
@@ -112,6 +115,7 @@ const EVENTS: EventFixture[] = [
     date: "2026-03-28T20:00:00-03:00",
     capacity: 300,
     status: "past",
+    landingPath: "/es/brote",
   },
   {
     id: "preview-plant",
@@ -121,6 +125,10 @@ const EVENTS: EventFixture[] = [
     date: "2027-04-19T14:30:00-03:00",
     capacity: 40,
     status: "upcoming",
+    // No /es/plant landing in the codebase — exercises the
+    // null-landing-path code path so the admin dropdown skips events
+    // without a public page.
+    landingPath: null,
   },
   {
     id: "preview-sinergia-full",
@@ -130,6 +138,7 @@ const EVENTS: EventFixture[] = [
     date: "2026-05-06T19:30:00-03:00",
     capacity: 15,
     status: "upcoming",
+    landingPath: "/es/sinergia",
   },
   {
     id: "preview-sinergia-open",
@@ -139,6 +148,7 @@ const EVENTS: EventFixture[] = [
     date: "2026-05-13T19:30:00-03:00",
     capacity: 15,
     status: "upcoming",
+    landingPath: "/es/sinergia",
   },
   {
     id: "preview-sinergia-parrafo",
@@ -148,6 +158,7 @@ const EVENTS: EventFixture[] = [
     date: "2026-05-16T10:00:00-03:00",
     capacity: 50,
     status: "upcoming",
+    landingPath: "/es/sinergia-parrafo",
   },
 ];
 
@@ -360,10 +371,10 @@ async function main() {
   // Events.
   for (const e of EVENTS) {
     await db.execute(sql`
-      INSERT INTO events (id, type, series, name, date, capacity, status)
+      INSERT INTO events (id, type, series, name, date, capacity, status, landing_path)
       VALUES (
         ${e.id}, ${e.type}, ${e.series}, ${e.name},
-        ${e.date}::timestamptz, ${e.capacity}, ${e.status}
+        ${e.date}::timestamptz, ${e.capacity}, ${e.status}, ${e.landingPath}
       )
       ON CONFLICT (id) DO NOTHING
     `);
