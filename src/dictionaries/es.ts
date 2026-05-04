@@ -931,6 +931,145 @@ const es: Dictionary = {
       cta: "Reservá tu lugar",
     },
   },
+  sinergiaParrafo: {
+    meta: {
+      title: "Sinergia × Párrafo — Meditación, lectura y almuerzo",
+      description:
+        "Sábado 16 de mayo, 10 a 16 hs. Meditación, lectura y un almuerzo compartido. Una colaboración entre Sinergia y el club de lectura Párrafo. Cupo 50.",
+      ogDescription:
+        "Un día para bajar el ritmo, leer en compañía y compartir mesa. Sinergia × Párrafo — 16/05.",
+    },
+    hero: {
+      eyebrow: "Sinergia × Párrafo",
+      title: "Un día para meditar, leer y compartir mesa.",
+      subtitle:
+        "Una colaboración entre Sinergia y el club de lectura Párrafo. Llegás con un libro, te vas con tiempo recuperado.",
+      dateLine: "Sábado 16 de mayo · 10 a 16 hs · Palermo",
+      cta: "Reservar mi lugar",
+      seatsLabel: "Quedan {remaining} de {capacity} lugares",
+      seatsFullLabel: "Cupo completo",
+    },
+    what: {
+      heading: "Cómo es el día",
+      intro:
+        "Seis horas para soltar la velocidad de la semana. Empezamos en silencio, leemos, conversamos y nos quedamos a almorzar.",
+      schedule: [
+        {
+          time: "10:00",
+          title: "Bienvenida y meditación",
+          description:
+            "Llegada, té y una práctica guiada de meditación y respiración para aterrizar.",
+        },
+        {
+          time: "11:00",
+          title: "Primera ronda de lectura",
+          description:
+            "Un rato a solas con el libro que estés trayendo. Si no traés ninguno, tenemos una biblioteca con propuestas.",
+        },
+        {
+          time: "12:30",
+          title: "Conversación con Párrafo",
+          description:
+            "El club de lectura Párrafo abre una conversación a partir de un texto compartido. Sin debate, sin obligación de hablar.",
+        },
+        {
+          time: "13:30",
+          title: "Almuerzo compartido",
+          description:
+            "Comida casera incluida. La mesa larga es parte del encuentro — quedate todo el rato que quieras.",
+        },
+        {
+          time: "15:00",
+          title: "Lectura libre y cierre",
+          description:
+            "Una última ronda más suelta — leer, escribir o simplemente estar. Cerramos a las 16.",
+        },
+      ],
+    },
+    hosts: {
+      heading: "Quiénes lo sostienen",
+      sinergia: {
+        name: "Sinergia",
+        role: "El espacio semanal de meditación y lectura que abrimos en Sky Campus, Palermo.",
+      },
+      parrafo: {
+        name: "Párrafo",
+        role: "Club de lectura que junta gente alrededor de textos para leer y conversar sin solemnidad.",
+      },
+      closing:
+        "Es la primera vez que armamos algo juntos. Quisimos hacerlo largo, tranquilo y con mesa.",
+    },
+    practical: {
+      heading: "Lo que tenés que saber",
+      items: [
+        {
+          title: "Cupo limitado",
+          description: "50 lugares. La mesa nos pone el techo.",
+        },
+        {
+          title: "Incluye almuerzo",
+          description:
+            "Comida casera, opciones vegetarianas. Si tenés alguna restricción avisanos al inscribirte.",
+        },
+        {
+          title: "Traé un libro",
+          description:
+            "El que estés leyendo o el que quieras empezar. También tenemos biblioteca por si llegás con las manos vacías.",
+        },
+        {
+          title: "Sin experiencia previa",
+          description:
+            "Si nunca meditaste, no importa. Te acompañamos en el momento.",
+        },
+      ],
+    },
+    rsvp: {
+      heading: "Reservá tu lugar",
+      subtitle:
+        "Quedan {remaining} de {capacity} lugares. La entrada se confirma con el pago.",
+      subtitleFull: "Se llenó el cupo. Escribinos por WhatsApp por la lista de espera.",
+      helper:
+        "Te llevamos a MercadoPago para confirmar. Aceptamos tarjeta, débito y dinero en cuenta.",
+      namePlaceholder: "Tu nombre",
+      emailPlaceholder: "Tu email",
+      phonePlaceholder: "Tu WhatsApp (ej: 11 2255 5110)",
+      phoneHelper:
+        "Lo usamos para coordinar el día y avisarte si hay cualquier cambio.",
+      nameError: "Ingresá tu nombre",
+      emailError: "Email inválido",
+      phoneError: "Ingresá un WhatsApp válido (ej: 11 2255 5110)",
+      cta: "Pagar {amount} y reservar",
+      submitting: "Preparando el pago...",
+      redirecting: "Te llevamos a MercadoPago...",
+      errorMessage: "Algo salió mal. Intentá de nuevo en un momento.",
+      priceLine: "Entrada · {amount} ARS",
+    },
+    successPage: {
+      title: "¡Lugar confirmado! — Sinergia × Párrafo",
+      eyebrow: "Gracias",
+      heading: "Tu lugar está reservado.",
+      body: "Recibimos tu pago. Nos vemos el sábado 16 de mayo.",
+      sessionLine: "Sábado 16 de mayo · 10 a 16 hs",
+      addressLine: "{venue} · {address}",
+      emailNote:
+        "Te mandamos un email con tu entrada y los detalles. Si no la ves, revisá spam.",
+      whatsappCta: "Escribinos por WhatsApp",
+      backLink: "Volver",
+    },
+    failurePage: {
+      title: "Pago no completado — Sinergia × Párrafo",
+      heading: "El pago no se completó.",
+      body: "No te preocupes — no quedó ningún cargo. Podés volver a intentarlo o escribirnos por WhatsApp si necesitás otra forma de pago.",
+      retryCta: "Volver a intentar",
+      whatsappCta: "Escribinos por WhatsApp",
+      backLink: "Volver",
+    },
+    final: {
+      heading: "Te esperamos el 16.",
+      subtitle: "Un día largo, tranquilo y con mesa.",
+      cta: "Reservar mi lugar",
+    },
+  },
 };
 
 export default es;

@@ -896,6 +896,145 @@ const en: Dictionary = {
       cta: "Save your seat",
     },
   },
+  sinergiaParrafo: {
+    meta: {
+      title: "Sinergia \u00d7 P\u00e1rrafo \u2014 Meditation, reading, and lunch",
+      description:
+        "Saturday May 16, 10am to 4pm. Meditation, reading, and a shared lunch. A collaboration between Sinergia and the reading club P\u00e1rrafo. 50 seats.",
+      ogDescription:
+        "A day to slow down, read in good company, and share a long table. Sinergia \u00d7 P\u00e1rrafo \u2014 May 16.",
+    },
+    hero: {
+      eyebrow: "Sinergia \u00d7 P\u00e1rrafo",
+      title: "A day to meditate, read, and share a table.",
+      subtitle:
+        "A collaboration between Sinergia and the reading club P\u00e1rrafo. Bring a book; leave with time recovered.",
+      dateLine: "Saturday May 16 \u00b7 10am\u20134pm \u00b7 Palermo",
+      cta: "Save my seat",
+      seatsLabel: "{remaining} of {capacity} seats left",
+      seatsFullLabel: "Sold out",
+    },
+    what: {
+      heading: "What the day looks like",
+      intro:
+        "Six hours to drop the week\u2019s pace. We open in silence, read, talk, and stay for lunch.",
+      schedule: [
+        {
+          time: "10:00",
+          title: "Welcome and meditation",
+          description:
+            "Arrival, tea, and a guided meditation and breathwork session to land.",
+        },
+        {
+          time: "11:00",
+          title: "First reading round",
+          description:
+            "Time alone with the book you brought. If you didn\u2019t bring one, we have a library of options.",
+        },
+        {
+          time: "12:30",
+          title: "Conversation with P\u00e1rrafo",
+          description:
+            "The reading club P\u00e1rrafo opens a conversation around a shared text. No debate, no obligation to speak.",
+        },
+        {
+          time: "13:30",
+          title: "Shared lunch",
+          description:
+            "Home-cooked food included. The long table is part of the gathering \u2014 stay as long as you like.",
+        },
+        {
+          time: "15:00",
+          title: "Free reading and close",
+          description:
+            "A looser final round \u2014 read, write, or just be. We close at 4pm.",
+        },
+      ],
+    },
+    hosts: {
+      heading: "Who holds it",
+      sinergia: {
+        name: "Sinergia",
+        role: "The weekly meditation and reading space we run at Sky Campus, Palermo.",
+      },
+      parrafo: {
+        name: "P\u00e1rrafo",
+        role: "A reading club that brings people together around texts to read and talk without solemnity.",
+      },
+      closing:
+        "It\u2019s the first time we\u2019re putting something together. We wanted it long, slow, and with a shared table.",
+    },
+    practical: {
+      heading: "What to know",
+      items: [
+        {
+          title: "Limited seats",
+          description: "50 seats. The table sets the cap.",
+        },
+        {
+          title: "Lunch included",
+          description:
+            "Home-cooked food, vegetarian options. Tell us about any restrictions when you sign up.",
+        },
+        {
+          title: "Bring a book",
+          description:
+            "Whatever you\u2019re reading or want to start. We also have a library if you arrive empty-handed.",
+        },
+        {
+          title: "No experience required",
+          description:
+            "If you\u2019ve never meditated, that\u2019s fine. We\u2019ll guide you on the spot.",
+        },
+      ],
+    },
+    rsvp: {
+      heading: "Save your seat",
+      subtitle:
+        "{remaining} of {capacity} seats left. The seat is confirmed once payment goes through.",
+      subtitleFull: "We\u2019re sold out. Message us on WhatsApp for the waitlist.",
+      helper:
+        "We\u2019ll take you to MercadoPago to confirm. Card, debit, and account money accepted.",
+      namePlaceholder: "Your name",
+      emailPlaceholder: "Your email",
+      phonePlaceholder: "Your WhatsApp (e.g. +54 9 11 2255 5110)",
+      phoneHelper:
+        "We use it to coordinate the day and reach you if anything changes.",
+      nameError: "Enter your name",
+      emailError: "Invalid email",
+      phoneError: "Enter a valid WhatsApp (e.g. +54 9 11 2255 5110)",
+      cta: "Pay {amount} and save my seat",
+      submitting: "Setting up payment...",
+      redirecting: "Taking you to MercadoPago...",
+      errorMessage: "Something went wrong. Please try again in a moment.",
+      priceLine: "Ticket \u00b7 {amount} ARS",
+    },
+    successPage: {
+      title: "Seat confirmed \u2014 Sinergia \u00d7 P\u00e1rrafo",
+      eyebrow: "Thank you",
+      heading: "Your seat is reserved.",
+      body: "We received your payment. See you Saturday, May 16.",
+      sessionLine: "Saturday May 16 \u00b7 10am\u20134pm",
+      addressLine: "{venue} \u00b7 {address}",
+      emailNote:
+        "We sent you an email with your ticket and the details. If you don\u2019t see it, check spam.",
+      whatsappCta: "Message us on WhatsApp",
+      backLink: "Back",
+    },
+    failurePage: {
+      title: "Payment not completed \u2014 Sinergia \u00d7 P\u00e1rrafo",
+      heading: "The payment didn\u2019t go through.",
+      body: "Don\u2019t worry \u2014 nothing was charged. You can try again or message us on WhatsApp if you need another payment option.",
+      retryCta: "Try again",
+      whatsappCta: "Message us on WhatsApp",
+      backLink: "Back",
+    },
+    final: {
+      heading: "See you on the 16th.",
+      subtitle: "A long, slow day with a shared table.",
+      cta: "Save my seat",
+    },
+  },
 };
 
 export default en;

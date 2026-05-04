@@ -58,7 +58,7 @@ function dbHost(): string {
 // collide with real people.
 interface EventFixture {
   id: string;
-  type: "brote" | "plant" | "sinergia";
+  type: "brote" | "plant" | "sinergia" | "sinergia-parrafo";
   series: string | null;
   name: string;
   date: string; // ISO
@@ -138,6 +138,15 @@ const EVENTS: EventFixture[] = [
     name: "Sinergia — open (preview)",
     date: "2026-05-13T19:30:00-03:00",
     capacity: 15,
+    status: "upcoming",
+  },
+  {
+    id: "preview-sinergia-parrafo",
+    type: "sinergia-parrafo",
+    series: "sinergia-parrafo",
+    name: "Sinergia × Párrafo — 16/05 (preview)",
+    date: "2026-05-16T10:00:00-03:00",
+    capacity: 50,
     status: "upcoming",
   },
 ];
@@ -272,6 +281,31 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       staysForDinner: i % 2 === 0,
     }),
   ),
+  // Sinergia × Párrafo — paid event ($33.000 ARS, capacity 50). Mix of
+  // confirmed paid attendees + one cancelled to exercise both the
+  // populated "Aportes recaudados" panel and the cancelled-row chip.
+  // Every confirmed row carries the live ticket price so revenue math
+  // matches a real run.
+  ...[
+    { k: "ana", status: "confirmed" as const },
+    { k: "beto", status: "confirmed" as const },
+    { k: "carla", status: "confirmed" as const },
+    { k: "dani", status: "confirmed" as const },
+    { k: "eze", status: "confirmed" as const },
+    { k: "flor", status: "confirmed" as const },
+    { k: "gabi", status: "cancelled" as const },
+  ].map<ParticipationFixture>(({ k, status }, i) => ({
+    id: `PREVIEW-SP-${String(i + 1).padStart(3, "0")}`,
+    personEmail: `preview-${k}@example.com`,
+    eventId: "preview-sinergia-parrafo",
+    role: "attendee",
+    status,
+    ...(status === "confirmed" && {
+      priceCents: 3_300_000,
+      currency: "ARS",
+      paymentId: `PREVIEW-MP-SP-${String(i + 1).padStart(3, "0")}`,
+    }),
+  })),
 ];
 
 const LINKS: LinkFixture[] = [

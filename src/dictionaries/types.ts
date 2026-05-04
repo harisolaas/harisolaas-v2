@@ -307,6 +307,77 @@ export interface SinergiaDict {
   };
 }
 
+export interface SinergiaParrafoDict {
+  meta: { title: string; description: string; ogDescription: string };
+  hero: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    dateLine: string;
+    cta: string;
+    seatsLabel: string;
+    seatsFullLabel: string;
+  };
+  what: {
+    heading: string;
+    intro: string;
+    schedule: Array<{ time: string; title: string; description: string }>;
+  };
+  hosts: {
+    heading: string;
+    sinergia: { name: string; role: string };
+    parrafo: { name: string; role: string };
+    closing: string;
+  };
+  practical: {
+    heading: string;
+    items: Array<{ title: string; description: string }>;
+  };
+  rsvp: {
+    heading: string;
+    subtitle: string;
+    subtitleFull: string;
+    helper: string;
+    namePlaceholder: string;
+    emailPlaceholder: string;
+    phonePlaceholder: string;
+    phoneHelper: string;
+    nameError: string;
+    emailError: string;
+    phoneError: string;
+    /** CTA copy with `{amount}` placeholder for the ticket price. */
+    cta: string;
+    submitting: string;
+    redirecting: string;
+    errorMessage: string;
+    priceLine: string;
+  };
+  successPage: {
+    title: string;
+    eyebrow: string;
+    heading: string;
+    body: string;
+    sessionLine: string;
+    addressLine: string;
+    emailNote: string;
+    whatsappCta: string;
+    backLink: string;
+  };
+  failurePage: {
+    title: string;
+    heading: string;
+    body: string;
+    retryCta: string;
+    whatsappCta: string;
+    backLink: string;
+  };
+  final: {
+    heading: string;
+    subtitle: string;
+    cta: string;
+  };
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -360,4 +431,5 @@ export interface Dictionary {
   broteCima: BroteUnArbolDict;
   plant: PlantDict;
   sinergia: SinergiaDict;
+  sinergiaParrafo: SinergiaParrafoDict;
 }
