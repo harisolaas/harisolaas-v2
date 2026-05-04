@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Unbounded, Dancing_Script } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
@@ -47,10 +48,22 @@ export async function generateMetadata({
 
 export default async function SinergiaParrafoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { locale } = await params;
+  const sp = await searchParams;
+
+  // Pre-launch share gate: render only when ?preview is present in the
+  // URL. Lets us share the prod landing with collaborators without it
+  // being publicly discoverable. Drop this check (and the searchParams
+  // arg) when the event goes live.
+  if (sp.preview === undefined) {
+    notFound();
+  }
+
   const dict = await getDictionary(locale as Locale);
 
   return (
