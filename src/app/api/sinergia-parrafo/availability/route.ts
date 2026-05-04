@@ -3,11 +3,34 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { sinergiaParrafoConfig } from "@/data/sinergia-parrafo";
 
+// Idempotently insert the event row. Mirrors the helpers in the checkout
+// and webhook routes — calling it from availability makes sure the row
+// exists (and shows up in admin) the moment anyone loads the landing,
+// instead of waiting for the first checkout attempt.
+async function ensureEvent(): Promise<void> {
+  const { eventId, eventName, startIso, capacity } = sinergiaParrafoConfig;
+  const eventDate = new Date(startIso);
+  const status = eventDate < new Date() ? "past" : "upcoming";
+  await db
+    .insert(schema.events)
+    .values({
+      id: eventId,
+      type: "sinergia-parrafo",
+      series: "sinergia-parrafo",
+      name: eventName,
+      date: eventDate,
+      capacity,
+      status,
+    })
+    .onConflictDoNothing();
+}
+
 // Live seat count for the landing's hero label. Mirrors the capacity
 // query in `recordParticipation` (status IN ('confirmed','used')) so the
 // number we show matches what the checkout webhook will actually enforce.
 export async function GET() {
   try {
+    await ensureEvent();
     const res = await db
       .select({ n: count() })
       .from(schema.participations)
