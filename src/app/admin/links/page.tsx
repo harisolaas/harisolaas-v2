@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { validateSession, SESSION_COOKIE_NAME } from "@/lib/admin-auth";
-import { getKnownDestinations } from "@/lib/links";
+import { getKnownDestinations } from "@/lib/links-server";
 import LinksManager from "@/components/admin/LinksManager";
 
 export default async function AdminLinksPage() {

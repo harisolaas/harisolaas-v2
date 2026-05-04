@@ -1,6 +1,4 @@
 import { customAlphabet } from "nanoid";
-import { and, isNotNull, ne, sql } from "drizzle-orm";
-import { db, schema } from "@/db";
 
 // ============================================================
 // Channels & UTM mapping
@@ -61,55 +59,12 @@ export function isChannelKey(value: unknown): value is ChannelKey {
 // Known destinations (for the creation form dropdown)
 // ============================================================
 
+// Type lives here (client-safe). The DB-backed loader lives in
+// `src/lib/links-server.ts` so client components can import this type
+// without dragging drizzle / `@/db` into the browser bundle.
 export interface KnownDestination {
   path: string;
   display: string;
-}
-
-// Display labels for landing paths. Cosmetic — adding an entry just
-// makes the dropdown read nicer; the URL works either way (unknown
-// paths fall back to a humanised tail segment).
-const PATH_DISPLAY_NAMES: Record<string, string> = {
-  "/es/brote": "BROTE",
-  "/es/sinergia": "Sinergia",
-  "/es/sinergia-parrafo": "Sinergia × Párrafo",
-};
-
-function humanizePath(path: string): string {
-  const tail = path.split("/").filter(Boolean).pop() ?? path;
-  return tail
-    .split("-")
-    .map((s) => (s ? s[0].toUpperCase() + s.slice(1) : s))
-    .join(" ");
-}
-
-function formatDestinationLabel(path: string): string {
-  const name = PATH_DISPLAY_NAMES[path] ?? humanizePath(path);
-  return `${name} (${path})`;
-}
-
-// Server-only. Reads distinct landing paths from the events table so
-// the link-creation dropdown picks up every event landing without
-// anyone maintaining a static list. Cancelled events are excluded;
-// home (/es) is always included at the top.
-export async function getKnownDestinations(): Promise<KnownDestination[]> {
-  const rows = await db
-    .selectDistinct({ landingPath: schema.events.landingPath })
-    .from(schema.events)
-    .where(
-      and(
-        isNotNull(schema.events.landingPath),
-        ne(schema.events.status, "cancelled"),
-      ),
-    )
-    .orderBy(sql`${schema.events.landingPath} ASC`);
-
-  const eventDestinations = rows
-    .map((r) => r.landingPath)
-    .filter((p): p is string => Boolean(p))
-    .map((path) => ({ path, display: formatDestinationLabel(path) }));
-
-  return [{ path: "/es", display: "Home (/es)" }, ...eventDestinations];
 }
 
 // ============================================================
