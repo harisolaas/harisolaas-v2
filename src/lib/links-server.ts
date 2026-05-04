@@ -5,19 +5,25 @@ import type { KnownDestination } from "@/lib/links";
 import type { AdminSession } from "@/lib/admin-auth";
 
 const SITE_BASE_URL = "https://www.harisolaas.com";
+const SITE_HOSTS = new Set(["www.harisolaas.com", "harisolaas.com"]);
 
-// Strip the site origin + any query/hash so we can compare a link's
-// `destination` field (which can be a full URL or a path) to
-// `events.landing_path` (always a path) on equal terms. Returns the
-// path-only form, or the original string if it can't be parsed.
-function normalizeDestinationToPath(destination: string): string {
+// Reduce a `links.destination` value to the bare pathname so it can be
+// compared to `events.landing_path` (always a path). Returns null for
+// off-site absolute URLs — accepting any host's pathname would let a
+// scoped editor POST `https://evil.example/es/sinergia`, pass the
+// scope check, and turn `/go/[slug]` into an attacker-controlled open
+// redirect. Owners with scope='all' still create off-site links via
+// the no-filter path; scoped access is path-only by design.
+function normalizeDestinationToPath(destination: string): string | null {
   try {
-    const url = destination.startsWith("http")
-      ? new URL(destination)
-      : new URL(destination, SITE_BASE_URL);
-    return url.pathname || destination;
+    if (destination.startsWith("http")) {
+      const url = new URL(destination);
+      if (!SITE_HOSTS.has(url.host)) return null;
+      return url.pathname;
+    }
+    return new URL(destination, SITE_BASE_URL).pathname;
   } catch {
-    return destination;
+    return null;
   }
 }
 
@@ -96,8 +102,9 @@ export async function getKnownDestinations(
 // Returns the ids of non-cancelled events whose `landing_path` matches
 // the given destination (after normalization). One landing can map to
 // many events (e.g. weekly Sinergia sessions all share /es/sinergia)
-// so this is a list. Returns an empty array for home (/es), custom
-// paths that don't match any event, and unparseable destinations.
+// so this is a list. Returns an empty array for off-site URLs, home
+// (/es), custom paths that don't match any event, and unparseable
+// destinations.
 export async function eventIdsForDestination(
   destination: string,
 ): Promise<string[]> {

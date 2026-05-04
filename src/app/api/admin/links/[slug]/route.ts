@@ -181,7 +181,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     if (!(await canScopedAccessLink(session, existing[0].destination))) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // 404, not 403 — match the GET branch + the rest of the
+      // scoped-write surface so an out-of-scope slug isn't
+      // distinguishable from a non-existent one via probe attacks.
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
   }
 
@@ -266,7 +269,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
     if (!(await canScopedAccessLink(session, existing[0].destination))) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      // 404, not 403 — match the GET branch + the rest of the
+      // scoped-write surface so an out-of-scope slug isn't
+      // distinguishable from a non-existent one via probe attacks.
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
   }
 

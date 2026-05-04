@@ -467,6 +467,46 @@ describe("/api/admin/links event-scoped access", () => {
     expect(res.status).toBe(403);
   });
 
+  it("scoped editor accepts an in-scope landing with a query string", async () => {
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: `${LANDING_A}?ref=legacy`,
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { link: { slug: string } };
+    await db.execute(sql`DELETE FROM links WHERE slug = ${body.link.slug}`);
+  });
+
+  it("scoped editor accepts a same-origin absolute URL pointing at their landing", async () => {
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: `https://www.harisolaas.com${LANDING_A}`,
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { link: { slug: string } };
+    await db.execute(sql`DELETE FROM links WHERE slug = ${body.link.slug}`);
+  });
+
+  it("scoped editor gets 403 POSTing an off-site URL with their landing's pathname (open-redirect guard)", async () => {
+    currentSession = EDITOR_SCOPED_TO_A;
+    const res = await postLinks(
+      makePost({
+        destination: `https://evil.example${LANDING_A}`,
+        channel: "ig-story",
+        createdDate: "2026-01-01",
+      }),
+    );
+    expect(res.status).toBe(403);
+  });
+
   it("scoped viewer gets 403 on POST (role gate)", async () => {
     currentSession = VIEWER_SCOPED_TO_A;
     const res = await postLinks(
@@ -488,13 +528,13 @@ describe("/api/admin/links event-scoped access", () => {
     expect(res.status).toBe(200);
   });
 
-  it("scoped editor gets 403 PATCHing the out-of-scope link", async () => {
+  it("scoped editor gets 404 PATCHing the out-of-scope link (existence-leak guard)", async () => {
     await seedLinks();
     currentSession = EDITOR_SCOPED_TO_A;
     const res = await patchLink(makePatch({ note: "edited" }), {
       params: Promise.resolve({ slug: `${LINK_PREFIX}b` }),
     });
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
   it("scoped editor can DELETE the in-scope link (no signups attributed)", async () => {
@@ -507,13 +547,13 @@ describe("/api/admin/links event-scoped access", () => {
     expect(res.status).toBe(200);
   });
 
-  it("scoped editor gets 403 DELETing the out-of-scope link", async () => {
+  it("scoped editor gets 404 DELETing the out-of-scope link (existence-leak guard)", async () => {
     await seedLinks();
     currentSession = EDITOR_SCOPED_TO_A;
     const res = await deleteLink(
       new Request("http://localhost/api/admin/links/x", { method: "DELETE" }),
       { params: Promise.resolve({ slug: `${LINK_PREFIX}b` }) },
     );
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 });

@@ -68,13 +68,21 @@ export async function GET(req: Request) {
         sql`, `,
       )
     : sql``;
+  // Mirror lib/links-server:normalizeDestinationToPath in SQL: strip
+  // ONLY our own site origin (off-site URLs intentionally don't
+  // match any landing → never visible to scoped users) and trim any
+  // query string / fragment so destinations like
+  // "/es/sinergia?ref=legacy" still match landing_path.
   const scopeCondition = isScoped
-    ? sql`AND regexp_replace(l.destination, '^https?://[^/]+', '') IN (
-        SELECT landing_path FROM events
-        WHERE landing_path IS NOT NULL
-          AND status <> 'cancelled'
-          AND id IN (${allowedIdsList})
-      )`
+    ? sql`AND regexp_replace(
+            regexp_replace(l.destination, '^https?://(www\\.)?harisolaas\\.com', ''),
+            '[?#].*$', ''
+          ) IN (
+            SELECT landing_path FROM events
+            WHERE landing_path IS NOT NULL
+              AND status <> 'cancelled'
+              AND id IN (${allowedIdsList})
+          )`
     : sql``;
   const statusCondition = statusFilter
     ? sql`AND l.status = ${statusFilter}`

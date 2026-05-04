@@ -36,13 +36,19 @@ export async function GET(req: Request) {
         sql`, `,
       )
     : sql``;
+  // Mirror the list endpoint's normalization: strip only our own host
+  // (off-site URLs stay invisible to scoped users) and trim any query
+  // string / fragment.
   const scopeCondition = isScoped
-    ? sql`AND regexp_replace(l.destination, '^https?://[^/]+', '') IN (
-        SELECT landing_path FROM events
-        WHERE landing_path IS NOT NULL
-          AND status <> 'cancelled'
-          AND id IN (${allowedIdsList})
-      )`
+    ? sql`AND regexp_replace(
+            regexp_replace(l.destination, '^https?://(www\\.)?harisolaas\\.com', ''),
+            '[?#].*$', ''
+          ) IN (
+            SELECT landing_path FROM events
+            WHERE landing_path IS NOT NULL
+              AND status <> 'cancelled'
+              AND id IN (${allowedIdsList})
+          )`
     : sql``;
 
   const rows = await db.execute<{
