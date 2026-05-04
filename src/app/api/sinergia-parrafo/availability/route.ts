@@ -3,11 +3,21 @@ import { and, count, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { sinergiaParrafoConfig } from "@/data/sinergia-parrafo";
 
+// Module-level flag: skip the INSERT after the first call within a warm
+// Vercel instance. Without this, every landing load triggers an
+// INSERT...ON CONFLICT DO NOTHING — cheap per-call, but wasted work on
+// every page view since the row exists after the first one. With the
+// flag, each warm instance does at most one attempt; cold starts retry
+// (still safe via ON CONFLICT). Cost drops to a handful of inserts/hour
+// instead of one per visitor.
+let eventEnsured = false;
+
 // Idempotently insert the event row. Mirrors the helpers in the checkout
 // and webhook routes — calling it from availability makes sure the row
 // exists (and shows up in admin) the moment anyone loads the landing,
 // instead of waiting for the first checkout attempt.
 async function ensureEvent(): Promise<void> {
+  if (eventEnsured) return;
   const { eventId, eventName, startIso, capacity } = sinergiaParrafoConfig;
   const eventDate = new Date(startIso);
   const status = eventDate < new Date() ? "past" : "upcoming";
@@ -23,6 +33,7 @@ async function ensureEvent(): Promise<void> {
       status,
     })
     .onConflictDoNothing();
+  eventEnsured = true;
 }
 
 // Live seat count for the landing's hero label. Mirrors the capacity
