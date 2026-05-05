@@ -86,14 +86,12 @@ export default function ComunidadShell({
             </span>
           </div>
           <div className="flex items-center gap-4">
-            {scope === "all" && (
-              <Link
-                href="/admin/links"
-                className="text-xs text-charcoal/60 hover:text-forest"
-              >
-                Enlaces
-              </Link>
-            )}
+            <Link
+              href="/admin/links"
+              className="text-xs text-charcoal/60 hover:text-forest"
+            >
+              Enlaces
+            </Link>
             {role === "owner" && (
               <Link
                 href="/admin/access"
