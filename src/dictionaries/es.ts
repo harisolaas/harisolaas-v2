@@ -1070,6 +1070,52 @@ const es: Dictionary = {
       cta: "Reservar mi lugar",
     },
   },
+  sinergiaParrafoDouble: {
+    meta: {
+      title: "Sinergia × Párrafo — 2x1",
+      description:
+        "Veni con alguien al encuentro del 16 de mayo. Una entrada paga, dos personas adentro.",
+    },
+    hero: {
+      eyebrow: "INVITACIÓN 2x1",
+      title: "Veni con alguien.",
+      subtitle:
+        "Una entrada paga, dos personas en la mesa. Para que el día se viva en compañía.",
+      dateLine: "16 de mayo · Palermo",
+    },
+    includes: [
+      "Una sola entrada de $33.000 cubre a las dos personas.",
+      "Cada quien recibe su confirmación, su QR y los avisos por WhatsApp.",
+      "Hace falta un código de invitación válido — preguntá si todavía no lo tenés.",
+    ],
+    codePrompt: "Ingresá tu código de invitación",
+    codePlaceholder: "SP-2X1-XXXXXX",
+    codeButton: "Validar",
+    codeInvalid: "Ese código no existe o ya fue usado.",
+    codeUsed: "Ese código ya fue usado.",
+    codeValidated: "Código validado ✓",
+    formHeading: "Quiénes vienen",
+    personOneLabel: "Persona 1",
+    personTwoLabel: "Persona 2",
+    namePlaceholder: "Nombre y apellido",
+    emailPlaceholder: "Email",
+    phonePlaceholder: "WhatsApp con código de país",
+    phoneHelper:
+      "Te escribimos por WhatsApp para coordinar el día. Pedimos código de país (ej. +54).",
+    nameError: "Falta el nombre",
+    emailError: "Email inválido",
+    phoneError: "Necesitamos un WhatsApp con código de país.",
+    duplicateEmailError:
+      "Las dos personas tienen que tener emails distintos.",
+    capacityFullError:
+      "Quedan menos de dos lugares libres. Escribinos por WhatsApp para coordinar.",
+    cta: "Pagar 1 entrada ({amount}) y registrarnos",
+    submitting: "Yendo al pago…",
+    errorMessage:
+      "Hubo un problema al iniciar el pago. Probá de nuevo en un minuto.",
+    helper: "Te redirigimos a Mercado Pago para pagar una sola entrada.",
+    backLink: "Volver a Sinergia × Párrafo",
+  },
 };
 
 export default es;

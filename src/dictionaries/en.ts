@@ -1035,6 +1035,50 @@ const en: Dictionary = {
       cta: "Save my seat",
     },
   },
+  sinergiaParrafoDouble: {
+    meta: {
+      title: "Sinergia × Párrafo — 2-for-1",
+      description:
+        "Bring someone with you to May 16. One ticket, two seats at the table.",
+    },
+    hero: {
+      eyebrow: "2-FOR-1 INVITATION",
+      title: "Bring someone with you.",
+      subtitle:
+        "One paid ticket, two people at the table. For the day to be lived together.",
+      dateLine: "May 16 · Palermo, Buenos Aires",
+    },
+    includes: [
+      "A single $33.000 ticket covers both people.",
+      "Each person gets their own confirmation, QR code, and WhatsApp updates.",
+      "You need a valid invitation code — ask us if you don't have one yet.",
+    ],
+    codePrompt: "Enter your invitation code",
+    codePlaceholder: "SP-2X1-XXXXXX",
+    codeButton: "Validate",
+    codeInvalid: "That code doesn't exist or has already been used.",
+    codeUsed: "That code has already been used.",
+    codeValidated: "Code validated ✓",
+    formHeading: "Who's coming",
+    personOneLabel: "Person 1",
+    personTwoLabel: "Person 2",
+    namePlaceholder: "Full name",
+    emailPlaceholder: "Email",
+    phonePlaceholder: "WhatsApp with country code",
+    phoneHelper:
+      "We'll WhatsApp you to coordinate the day. Country code required (e.g. +54).",
+    nameError: "Name is required",
+    emailError: "Invalid email",
+    phoneError: "We need a WhatsApp number with country code.",
+    duplicateEmailError: "The two people need to use different emails.",
+    capacityFullError:
+      "Fewer than two seats remain. Reach us on WhatsApp so we can sort it out.",
+    cta: "Pay 1 ticket ({amount}) and register both",
+    submitting: "Going to payment…",
+    errorMessage: "Something went wrong starting the payment. Try again in a minute.",
+    helper: "We'll redirect you to MercadoPago for a single ticket payment.",
+    backLink: "Back to Sinergia × Párrafo",
+  },
 };
 
 export default en;
