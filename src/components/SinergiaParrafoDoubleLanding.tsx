@@ -502,10 +502,8 @@ export default function SinergiaParrafoDoubleLanding({ dict, locale }: Props) {
                 <button
                   type="button"
                   onClick={handleCheckout}
-                  aria-disabled={submitting || formInvalid || undefined}
-                  className={`mt-8 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 ${
-                    submitting || formInvalid ? "opacity-50" : ""
-                  }`}
+                  disabled={submitting || formInvalid}
+                  className={`mt-8 w-full rounded-full bg-forest px-8 py-4 text-base font-semibold text-cream transition-colors hover:bg-forest/90 disabled:cursor-not-allowed disabled:opacity-50`}
                 >
                   {submitting ? dict.submitting : ctaLabel}
                 </button>

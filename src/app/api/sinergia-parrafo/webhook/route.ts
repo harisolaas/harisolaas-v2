@@ -228,7 +228,11 @@ async function sendAttendeeTicketEmail(params: {
       margin: 2,
       color: { dark: "#0E6BA8", light: "#F1ECDA" },
     });
-    await getResend().emails.send({
+    // Resend can return `{ data: null, error: ... }` without throwing
+    // (rate limits, invalid recipients, transient API errors). Treat
+    // those as send failures and leave emailSent unset so MP's webhook
+    // retry replays this path.
+    const sendResult = await getResend().emails.send({
       from: `Sinergia × Párrafo <${fromEmail}>`,
       to: params.to,
       subject: "Tu lugar para Sinergia × Párrafo (16/05) 📖",
@@ -248,6 +252,14 @@ async function sendAttendeeTicketEmail(params: {
         },
       ],
     });
+    if (sendResult.error || !sendResult.data) {
+      console.error(
+        "sinergia-parrafo: attendee email returned error",
+        params.ticketId,
+        sendResult.error,
+      );
+      return false;
+    }
     await db
       .update(schema.participations)
       .set({
