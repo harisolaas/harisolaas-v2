@@ -45,6 +45,10 @@ interface TicketParams {
   /** ARS cents — formatted as $X.XXX in the email body. */
   amountCents: number;
   paymentId: string;
+  /** When present, the entry line shows "2x1 con {companionName}" instead
+   * of the price, and a small notice explains that one ticket covered two
+   * attendees. */
+  companionName?: string;
 }
 
 // QR data URL → email attachment. Strips the `data:image/png;base64,`
@@ -66,11 +70,21 @@ export function buildSinergiaParrafoTicketEmailHtml({
   ticketId,
   amountCents,
   paymentId,
+  companionName,
 }: TicketParams): string {
   const { startTime, endTime, exactAddress, exactAddressMapLink, venueName } =
     sinergiaParrafoConfig;
-  const amountLabel = formatArs(amountCents);
+  const amountLabel = companionName
+    ? `2x1 con ${companionName}`
+    : formatArs(amountCents);
   const dateLabel = "Sábado 16 de mayo";
+  const twoForOneNotice = companionName
+    ? `<tr><td style="padding:0 24px 24px">
+  <div style="padding:14px 18px;background:#fff7ec;border-radius:12px;border:1px solid ${CREAM_DARK}">
+    <p style="margin:0;color:${ACCENT};font-family:${BODY_STACK};font-size:13px;line-height:1.6">Vinieron en 2x1: una entrada cubre tu lugar y el de ${companionName}.</p>
+  </div>
+</td></tr>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -132,6 +146,8 @@ ${FONT_HEAD}
     <p style="margin:12px 0 0;color:${MUTED};font-family:${BODY_STACK};font-size:13px;line-height:1.6">El almuerzo está incluido. Si tenés alguna restricción alimentaria, escribinos por WhatsApp.</p>
   </div>
 </td></tr>
+
+${twoForOneNotice}
 
 <tr><td style="padding:0 24px 28px;text-align:center">
   <p style="margin:0;color:${ACCENT};font-family:${SCRIPT_STACK};font-size:22px">Nos vemos el sábado.</p>

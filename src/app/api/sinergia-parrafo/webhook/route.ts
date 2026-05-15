@@ -102,6 +102,23 @@ interface CheckoutMeta {
   ua?: string;
 }
 
+interface TwoForOnePerson {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+interface TwoForOneMeta {
+  mode: "2x1";
+  code: string;
+  personOne: TwoForOnePerson;
+  personTwo: TwoForOnePerson;
+  locale?: string;
+  attribution?: AttributionTouch | null;
+  ip?: string;
+  ua?: string;
+}
+
 async function readCheckoutMeta(
   preferenceId: string | undefined,
 ): Promise<CheckoutMeta | null> {
@@ -115,6 +132,23 @@ async function readCheckoutMeta(
     return JSON.parse(raw) as CheckoutMeta;
   } catch (err) {
     console.error("sinergia-parrafo: failed to read checkout meta:", err);
+    return null;
+  }
+}
+
+async function readTwoForOneMeta(
+  preferenceId: string | undefined,
+): Promise<TwoForOneMeta | null> {
+  if (!preferenceId) return null;
+  try {
+    const redis = await getRedis();
+    const raw = await redis.get(`sinergia-parrafo:2x1:checkout:${preferenceId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as TwoForOneMeta;
+    if (parsed.mode !== "2x1") return null;
+    return parsed;
+  } catch (err) {
+    console.error("sinergia-parrafo: failed to read 2x1 meta:", err);
     return null;
   }
 }
@@ -149,6 +183,179 @@ async function countOccupied(): Promise<number> {
       ),
     );
   return Number(res[0]?.n ?? 0);
+}
+
+// ─────────── 2x1 helpers ───────────
+
+const TWO_FOR_ONE_PREFIX = "2x1:";
+
+function isTwoForOneIdempotencyValue(v: string): boolean {
+  return v.startsWith(TWO_FOR_ONE_PREFIX);
+}
+
+function parseTwoForOneIdempotencyValue(
+  v: string,
+): { primaryId: string; companionId: string } | null {
+  if (!isTwoForOneIdempotencyValue(v)) return null;
+  const parts = v.slice(TWO_FOR_ONE_PREFIX.length).split(":");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  return { primaryId: parts[0], companionId: parts[1] };
+}
+
+function formatTwoForOneIdempotencyValue(
+  primaryId: string,
+  companionId: string,
+): string {
+  return `${TWO_FOR_ONE_PREFIX}${primaryId}:${companionId}`;
+}
+
+/** Send one attendee ticket email + flip the `emailSent` flag on the row.
+ *  Returns true when the send succeeded; the caller decides what to do on
+ *  failure (typically: leave the flag unset and let MP retry the webhook). */
+async function sendAttendeeTicketEmail(params: {
+  to: string;
+  name: string;
+  ticketId: string;
+  amountCents: number;
+  paymentId: string;
+  companionName?: string;
+  existingMetadata: Record<string, unknown>;
+}): Promise<boolean> {
+  const fromEmail = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
+  try {
+    const qrDataUrl = await QRCode.toDataURL(params.ticketId, {
+      width: 300,
+      margin: 2,
+      color: { dark: "#0E6BA8", light: "#F1ECDA" },
+    });
+    // Resend can return `{ data: null, error: ... }` without throwing
+    // (rate limits, invalid recipients, transient API errors). Treat
+    // those as send failures and leave emailSent unset so MP's webhook
+    // retry replays this path.
+    const sendResult = await getResend().emails.send({
+      from: `Sinergia × Párrafo <${fromEmail}>`,
+      to: params.to,
+      subject: "Tu lugar para Sinergia × Párrafo (16/05) 📖",
+      html: buildSinergiaParrafoTicketEmailHtml({
+        name: params.name,
+        ticketId: params.ticketId,
+        amountCents: params.amountCents,
+        paymentId: params.paymentId,
+        companionName: params.companionName,
+      }),
+      attachments: [
+        {
+          filename: "qr.png",
+          content: qrDataUrlToBuffer(qrDataUrl),
+          contentType: "image/png",
+          contentId: "qr",
+        },
+      ],
+    });
+    if (sendResult.error || !sendResult.data) {
+      console.error(
+        "sinergia-parrafo: attendee email returned error",
+        params.ticketId,
+        sendResult.error,
+      );
+      return false;
+    }
+    await db
+      .update(schema.participations)
+      .set({
+        metadata: sql`${schema.participations.metadata} || ${JSON.stringify({
+          ...params.existingMetadata,
+          emailSent: true,
+        })}::jsonb`,
+        updatedAt: sql`NOW()`,
+      })
+      .where(eq(schema.participations.id, params.ticketId));
+    return true;
+  } catch (err) {
+    console.error(
+      "sinergia-parrafo: attendee email failed",
+      params.ticketId,
+      err,
+    );
+    return false;
+  }
+}
+
+async function fetchAttendeeRow(participationId: string): Promise<{
+  id: string;
+  email: string;
+  name: string;
+  phone: string | null;
+  metadata: Record<string, unknown>;
+} | null> {
+  const rows = await db
+    .select({
+      id: schema.participations.id,
+      email: schema.people.email,
+      name: schema.people.name,
+      phone: schema.people.phone,
+      metadata: schema.participations.metadata,
+    })
+    .from(schema.participations)
+    .innerJoin(
+      schema.people,
+      eq(schema.people.id, schema.participations.personId),
+    )
+    .where(eq(schema.participations.id, participationId))
+    .limit(1);
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    id: r.id,
+    email: r.email ?? "",
+    name: r.name ?? "Asistente",
+    phone: r.phone ?? null,
+    metadata: (r.metadata as Record<string, unknown>) ?? {},
+  };
+}
+
+/** Replay 2x1 webhook: both participations already exist; retry whichever
+ *  ticket emails didn't flip `emailSent`. No host notification (already
+ *  sent on the original fresh delivery). */
+async function handleTwoForOneReplay(
+  primaryId: string,
+  companionId: string,
+  mpPaymentId: string,
+  totalAmountCents: number,
+): Promise<Response> {
+  const primary = await fetchAttendeeRow(primaryId);
+  const companion = await fetchAttendeeRow(companionId);
+  if (!primary || !companion) {
+    console.warn("sinergia-parrafo 2x1: orphaned replay idempotency key", {
+      mpPaymentId,
+      primaryId,
+      companionId,
+    });
+    return NextResponse.json({ ok: true, replay: "orphaned" });
+  }
+  if (!primary.metadata.emailSent) {
+    await sendAttendeeTicketEmail({
+      to: primary.email,
+      name: primary.name,
+      ticketId: primary.id,
+      amountCents: totalAmountCents,
+      paymentId: mpPaymentId,
+      companionName: companion.name,
+      existingMetadata: primary.metadata,
+    });
+  }
+  if (!companion.metadata.emailSent) {
+    await sendAttendeeTicketEmail({
+      to: companion.email,
+      name: companion.name,
+      ticketId: companion.id,
+      amountCents: totalAmountCents,
+      paymentId: mpPaymentId,
+      companionName: primary.name,
+      existingMetadata: companion.metadata,
+    });
+  }
+  return NextResponse.json({ ok: true, replay: "2x1", primaryId, companionId });
 }
 
 export async function POST(req: Request) {
@@ -197,6 +404,29 @@ export async function POST(req: Request) {
       // doesn't escalate this delivery as failed; the in-flight
       // handler will persist the final ticket id shortly.
       return NextResponse.json({ ok: true, status: "processing" });
+    }
+    // 2x1 replay: the idempotency value encodes both participation ids.
+    // Look up both rows and retry whichever ticket emails didn't send.
+    const twoFor = parseTwoForOneIdempotencyValue(val);
+    if (twoFor) {
+      // Pull payment to recover the total amount for the email body.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let payment: any = null;
+      try {
+        payment = await new Payment(getMp()).get({ id: mpPaymentId });
+      } catch {
+        // Falling back to config price is fine — the email's amount line
+        // is informational; the canonical record is in the DB.
+      }
+      const amount = payment
+        ? Math.round(Number(payment.transaction_amount ?? 0) * 100)
+        : sinergiaParrafoConfig.ticketPriceCents;
+      return handleTwoForOneReplay(
+        twoFor.primaryId,
+        twoFor.companionId,
+        mpPaymentId,
+        amount,
+      );
     }
     existingTicketId = val;
   }
@@ -253,6 +483,212 @@ export async function POST(req: Request) {
 
     if (payment.status !== "approved") {
       return NextResponse.json({ ok: true, status: payment.status });
+    }
+
+    // 2x1 dispatch: if the preference was created by the 2x1 checkout, the
+    // companion's data lives in a separate Redis stash. Run that path
+    // end-to-end and short-circuit the single-ticket flow.
+    const twoForOne = await readTwoForOneMeta(
+      payment.preference_id as string | undefined,
+    );
+    if (twoForOne) {
+      const totalAmountCents = Math.round(
+        Number(payment.transaction_amount ?? 0) * 100,
+      );
+      const currency = payment.currency_id ?? sinergiaParrafoConfig.currency;
+
+      await ensureEvent();
+
+      const primaryTicketId = `SP-${nanoid(8).toUpperCase()}`;
+      const companionTicketId = `SP-${nanoid(8).toUpperCase()}`;
+
+      let primaryResult;
+      try {
+        primaryResult = await recordParticipation({
+          email: twoForOne.personOne.email,
+          name: twoForOne.personOne.name,
+          phone: twoForOne.personOne.phone || undefined,
+          eventId: EVENT_ID,
+          participationId: primaryTicketId,
+          role: "attendee",
+          status: "confirmed",
+          externalPaymentId: mpPaymentId,
+          priceCents: totalAmountCents,
+          currency,
+          attribution: twoForOne.attribution ?? undefined,
+          bypassLinkSlug: twoForOne.attribution?.linkSlug,
+          metadata: {
+            twoForOne: {
+              code: twoForOne.code,
+              role: "primary",
+              companionEmail: twoForOne.personTwo.email,
+              companionParticipationId: companionTicketId,
+            },
+          },
+        });
+      } catch (err) {
+        if (err instanceof CapacityReachedError) {
+          console.error(
+            "sinergia-parrafo 2x1: capacity reached after payment — manual refund needed",
+            { mpPaymentId, code: twoForOne.code },
+          );
+          return NextResponse.json(
+            { ok: false, error: "Capacity reached after payment" },
+            { status: 200 },
+          );
+        }
+        throw err;
+      }
+
+      let companionResult;
+      try {
+        companionResult = await recordParticipation({
+          email: twoForOne.personTwo.email,
+          name: twoForOne.personTwo.name,
+          phone: twoForOne.personTwo.phone || undefined,
+          eventId: EVENT_ID,
+          participationId: companionTicketId,
+          role: "attendee",
+          status: "confirmed",
+          // Same external payment id ties both rows to the single MP charge.
+          externalPaymentId: mpPaymentId,
+          // Companion seat is comped against the primary's full payment.
+          priceCents: 0,
+          currency,
+          attribution: twoForOne.attribution ?? undefined,
+          bypassLinkSlug: twoForOne.attribution?.linkSlug,
+          metadata: {
+            twoForOne: {
+              code: twoForOne.code,
+              role: "companion",
+              primaryEmail: twoForOne.personOne.email,
+              primaryParticipationId: primaryResult.participationId,
+              comp: true,
+            },
+          },
+        });
+      } catch (err) {
+        if (err instanceof CapacityReachedError) {
+          // Companion failed but primary is seated. Flag for manual recovery
+          // — either the host promotes them off the waitlist or refunds.
+          console.error(
+            "sinergia-parrafo 2x1: companion capacity reached — primary seated, companion needs manual handling",
+            {
+              mpPaymentId,
+              code: twoForOne.code,
+              primaryId: primaryResult.participationId,
+              companion: twoForOne.personTwo,
+            },
+          );
+          // Still stamp the idempotency key so retries don't re-process.
+          // Use the single-ticket value so replays target the primary.
+          await redis.set(idempotencyKey, primaryResult.participationId, {
+            EX: 60 * 60 * 24 * 90,
+          });
+          // Mark the 2x1 code used regardless — we don't want a comp'd
+          // code reused after a partial seat.
+          await redis.set(`sinergia-parrafo:2x1:${twoForOne.code}`, "used");
+          return NextResponse.json(
+            { ok: false, error: "Companion seat unavailable" },
+            { status: 200 },
+          );
+        }
+        throw err;
+      }
+
+      // Mark the 2x1 code as used now that both seats landed.
+      await redis.set(`sinergia-parrafo:2x1:${twoForOne.code}`, "used");
+
+      // Stamp idempotency: both participation ids encoded so replays send
+      // both ticket emails idempotently.
+      await redis.set(
+        idempotencyKey,
+        formatTwoForOneIdempotencyValue(
+          primaryResult.participationId,
+          companionResult.participationId,
+        ),
+        { EX: 60 * 60 * 24 * 90 },
+      );
+
+      // Send ticket emails to both attendees. Failures here are non-fatal
+      // — emailSent stays false and MP's webhook retry replays the path.
+      const primaryRow = await fetchAttendeeRow(primaryResult.participationId);
+      const companionRow = await fetchAttendeeRow(
+        companionResult.participationId,
+      );
+      if (primaryRow && !primaryRow.metadata.emailSent) {
+        await sendAttendeeTicketEmail({
+          to: primaryRow.email,
+          name: primaryRow.name,
+          ticketId: primaryRow.id,
+          amountCents: totalAmountCents,
+          paymentId: mpPaymentId,
+          companionName: twoForOne.personTwo.name,
+          existingMetadata: primaryRow.metadata,
+        });
+      }
+      if (companionRow && !companionRow.metadata.emailSent) {
+        await sendAttendeeTicketEmail({
+          to: companionRow.email,
+          name: companionRow.name,
+          ticketId: companionRow.id,
+          amountCents: totalAmountCents,
+          paymentId: mpPaymentId,
+          companionName: twoForOne.personOne.name,
+          existingMetadata: companionRow.metadata,
+        });
+      }
+
+      // Host notification — single email summarizing both attendees.
+      const notifyList = (
+        process.env.SINERGIA_PARRAFO_NOTIFY_EMAILS ||
+        process.env.SINERGIA_NOTIFY_EMAILS ||
+        ""
+      )
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
+      if (notifyList.length > 0) {
+        const occupied = await countOccupied();
+        const remaining = Math.max(
+          0,
+          sinergiaParrafoConfig.capacity - occupied,
+        );
+        const fromEmail =
+          process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
+        try {
+          await getResend().emails.send({
+            from: `Sinergia × Párrafo <${fromEmail}>`,
+            to: notifyList,
+            subject: `Nueva entrada 2x1 Sinergia × Párrafo — ${twoForOne.personOne.name} + ${twoForOne.personTwo.name}`,
+            html: buildSinergiaParrafoHostNotificationHtml({
+              name: `${twoForOne.personOne.name} + ${twoForOne.personTwo.name} (2x1)`,
+              email: `${twoForOne.personOne.email}, ${twoForOne.personTwo.email}`,
+              phone:
+                primaryRow?.phone ??
+                companionRow?.phone ??
+                twoForOne.personOne.phone,
+              ticketId: `${primaryResult.participationId} + ${companionResult.participationId}`,
+              amountCents: totalAmountCents,
+              totalRegistered: occupied,
+              remaining,
+              capacity: sinergiaParrafoConfig.capacity,
+            }),
+          });
+        } catch (err) {
+          console.error(
+            "sinergia-parrafo 2x1: host notification failed",
+            err,
+          );
+        }
+      }
+
+      return NextResponse.json({
+        ok: true,
+        mode: "2x1",
+        primaryTicketId: primaryResult.participationId,
+        companionTicketId: companionResult.participationId,
+      });
     }
 
     // Buyer info: prefer the Redis stash (captured at checkout from our

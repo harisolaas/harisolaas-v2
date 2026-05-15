@@ -457,6 +457,38 @@ async function main() {
     console.log(`✓ admin_users (${ADMIN_EMAIL})`);
   }
 
+  // Sinergia × Párrafo 2x1 invitation codes. Live in Redis so the
+  // ?code= flow on /sinergia-parrafo-2x1 actually validates. Seeds a
+  // valid code + an already-used code so both UI states are reachable
+  // in preview without poking the admin API.
+  if (process.env.REDIS_URL) {
+    try {
+      const { getRedis } = await import("@/lib/redis");
+      const redis = await getRedis();
+      const CODES_INDEX = "sinergia-parrafo:2x1:codes";
+      const seedCodes: { code: string; status: "valid" | "used" }[] = [
+        { code: "SP-2X1-PREVIEW", status: "valid" },
+        { code: "SP-2X1-USED01", status: "used" },
+      ];
+      for (const c of seedCodes) {
+        await redis.set(`sinergia-parrafo:2x1:${c.code}`, c.status);
+        await redis.sAdd(CODES_INDEX, c.code);
+      }
+      console.log(
+        `✓ sinergia-parrafo 2x1 codes (try /es/sinergia-parrafo-2x1?code=SP-2X1-PREVIEW)`,
+      );
+    } catch (err) {
+      console.warn(
+        "⚠ sinergia-parrafo 2x1 codes skipped — REDIS_URL set but connect failed:",
+        err,
+      );
+    }
+  } else {
+    console.log(
+      "⏭ sinergia-parrafo 2x1 codes skipped — REDIS_URL not set in this env",
+    );
+  }
+
   console.log("\nDone. Log into the preview admin and start poking.");
 }
 

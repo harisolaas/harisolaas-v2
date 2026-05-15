@@ -432,4 +432,46 @@ export interface Dictionary {
   plant: PlantDict;
   sinergia: SinergiaDict;
   sinergiaParrafo: SinergiaParrafoDict;
+  sinergiaParrafoDouble: SinergiaParrafoDoubleDict;
+}
+
+export interface SinergiaParrafoDoubleDict {
+  meta: { title: string; description: string };
+  /** Banner above the form. Markdown-free, plain strings. */
+  hero: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    dateLine: string;
+  };
+  /** Short bullet list explaining what 2x1 means. */
+  includes: string[];
+  /** Header above the code input. */
+  codePrompt: string;
+  codePlaceholder: string;
+  codeButton: string;
+  codeInvalid: string;
+  codeUsed: string;
+  codeValidated: string;
+  /** Header above the two-person form. */
+  formHeading: string;
+  /** Label for the primary attendee column. */
+  personOneLabel: string;
+  /** Label for the companion attendee column. */
+  personTwoLabel: string;
+  namePlaceholder: string;
+  emailPlaceholder: string;
+  phonePlaceholder: string;
+  phoneHelper: string;
+  nameError: string;
+  emailError: string;
+  phoneError: string;
+  duplicateEmailError: string;
+  capacityFullError: string;
+  /** CTA copy with `{amount}` placeholder for the single-ticket price. */
+  cta: string;
+  submitting: string;
+  errorMessage: string;
+  helper: string;
+  backLink: string;
 }

@@ -15,13 +15,31 @@ Build a personal storytelling website for Harald Solaas (goes by Hari), a 31-yea
 
 ## WORKFLOW FOR AGENTS
 
-Three non-negotiable operational conventions for anyone (human or agent) opening work in this repo:
+Non-negotiable operational conventions for anyone (human or agent) opening work in this repo:
 
-1. **Site is LIVE — do NOT push to main without explicit approval.** A clean review does not constitute merge approval. Wait for an explicit "ship" / "merge" / "mergealo" from the repo owner.
-2. **Every PR goes through the review lifecycle** — Copilot auto-review + author self-review + addressing both sets of feedback — before handing off for merge. See [`docs/ops/pr-review.md`](docs/ops/pr-review.md) for the operational steps (open PR → self-review → fetch Copilot comments → merge findings → fix → verify → resolve threads → hand off).
-3. **Every feature PR extends `scripts/seed-preview.ts`** so the repo owner can exercise the new surface in a preview Neon branch without hand-crafting DB rows. If your feature reads a column, fixture data must populate that column. Cover both the populated and the empty/conditional state when the UI branches on it (e.g. one event with contributions and one without). Use production-realistic values (BROTE early-bird = $18.650, Sinergia chips = 5k/10k/20k) — not arbitrary numbers. Treat the seeder update as part of the feature, not a follow-up PR.
+### What "ship" means in this repo
 
-Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo). Skip the seeder update only when the feature genuinely doesn't depend on seedable data (copy-only changes, pure layout tweaks).
+**"Ship" / "shipped" / "shipping" means merged to `main` and live in production.** It does not mean "implemented locally", "committed on a branch", "pushed", or "PR opened". When summarizing work, agents must use precise language:
+
+- ✅ "Implemented locally — uncommitted." (working tree only)
+- ✅ "Committed on branch `<name>`." (committed, not pushed)
+- ✅ "Pushed to `<branch>` and opened PR #N." (PR exists, not merged)
+- ✅ "Merged to main." (this is shipped — only ever after explicit owner approval)
+- ❌ "Shipped." (don't say this until step 4 is true)
+
+If you find yourself wanting to write "shipped" or "shipped this", stop and pick one of the precise forms above. Mis-stating delivery state is the worst kind of error to make in a status update because it hides what still needs review.
+
+### Lifecycle gates (all four are owner-approved, every time)
+
+1. **Local implementation** — agents may freely edit, run tests, and iterate in the working tree.
+2. **Commit + push + open PR** — agents may proceed *unless the owner has signalled they want to review the diff locally first* (e.g. "let me look before you commit", or a session that's still mid-design). The default workflow is: agent opens PR, then runs the review cycle. **However**: if there is any ambiguity about whether the owner wants to review locally first, ask before committing.
+3. **PR review cycle** — once a PR is open, agents run the full Copilot + self-review + address-feedback cycle automatically. See [`docs/ops/pr-review.md`](docs/ops/pr-review.md) for the operational steps (open PR → self-review → fetch Copilot comments → merge findings → fix → verify → resolve threads → hand off).
+4. **Merge to main** — **never** without an explicit "ship" / "merge" / "mergealo" from the repo owner. A clean review does not constitute merge approval. The site is LIVE; treat `main` accordingly.
+
+### Other PR conventions
+
+- **Every feature PR extends `scripts/seed-preview.ts`** so the repo owner can exercise the new surface in a preview Neon branch without hand-crafting DB rows. If your feature reads a column, fixture data must populate that column. Cover both the populated and the empty/conditional state when the UI branches on it (e.g. one event with contributions and one without). Use production-realistic values (BROTE early-bird = $18.650, Sinergia chips = 5k/10k/20k) — not arbitrary numbers. Treat the seeder update as part of the feature, not a follow-up PR.
+- Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo). Skip the seeder update only when the feature genuinely doesn't depend on seedable data (copy-only changes, pure layout tweaks).
 
 **Prod-migration note:** Vercel does NOT auto-run `drizzle-kit migrate`. Any PR that changes `src/db/schema.ts` needs a manual migration step against the prod Neon branch — apply the generated SQL from `src/db/migrations/` after merge, before the new code serves traffic.
 
@@ -477,3 +495,54 @@ After deploying the first time, register `https://www.harisolaas.com/api/sinergi
 ### Donation data shape
 
 Donation details live in `participations.metadata.donation = { amountCents, currency, paymentId, receiptSent }`. No schema migration — the column was already `jsonb`. `participations.externalPaymentId`, `priceCents`, `currency` are also set by the webhook for reporting parity with BROTE.
+
+---
+
+## SINERGIA × PÁRRAFO — 2x1 invitation flow
+
+A code-gated landing that lets one paid ticket cover two attendees. Modeled on BROTE × Un Árbol: noindex page, single-use codes stored in Redis, dedicated checkout that stashes both attendees under the MP preference id, webhook creates two participations linked by `metadata.twoForOne`.
+
+### Page
+
+`/[locale]/sinergia-parrafo-2x1` — noindex. Asks for an invitation code, then for both attendees' name + email + WhatsApp. Accepts `?code=` for one-click invites. Falls back to the main `/sinergia-parrafo` landing via the back link.
+
+### API — `POST /api/sinergia-parrafo/2x1`
+
+| `action` | Auth | Purpose |
+|---|---|---|
+| `validate` | public | Returns `{ valid, code, reason? }`. `reason: "invalid" \| "used" \| "missing"`. |
+| `checkout` | public | Validates code + both attendees, capacity-checks +2 seats, stashes the pair under `sinergia-parrafo:2x1:checkout:{preferenceId}`, returns MP `initPoint`. |
+| `generate` | Bearer `BROTE_ADMIN_SECRET` | Body `{ count }` (1–100). Returns the generated `SP-2X1-XXXXXX` codes, status `valid`. |
+| `list` | Bearer | Returns every known code + status. Also exposed via `GET`. |
+| `reset` | Bearer | Flips a `used` code back to `valid` (no audit trail — only for manual recovery). |
+| `revoke` | Bearer | Deletes a code outright. |
+
+### Webhook integration
+
+`/api/sinergia-parrafo/webhook` dispatches on the stash:
+
+- Fresh delivery: if `sinergia-parrafo:2x1:checkout:{preferenceId}` exists, creates two `participations`. Primary carries `priceCents` = full payment + `metadata.twoForOne = { code, role: "primary", companionParticipationId, ... }`. Companion carries `priceCents: 0` + `metadata.twoForOne = { code, role: "companion", comp: true, primaryParticipationId, ... }`. Both share the same `externalPaymentId`. Code is flipped to `used`. Idempotency value becomes `2x1:{primaryId}:{companionId}`.
+- Retry: idempotency value starting with `2x1:` routes to a replay path that re-sends whichever attendee email didn't flip `metadata.emailSent`. No second host notification.
+- Partial-capacity failure: if the companion insert hits `CapacityReachedError` after primary is seated, the code is still marked `used` (we don't comp the same seat twice) and the failure is logged for manual recovery — refund and/or waitlist promotion by the host.
+
+### Redis keys
+
+| Key | Value |
+|---|---|
+| `sinergia-parrafo:2x1:{CODE}` | `"valid"` or `"used"` |
+| `sinergia-parrafo:2x1:codes` | SET of every generated code (index) |
+| `sinergia-parrafo:2x1:checkout:{preferenceId}` | JSON: `{ mode: "2x1", code, personOne, personTwo, locale, attribution, ip, ua }` (24h TTL) |
+
+### Admin: generate codes
+
+```
+POST /api/sinergia-parrafo/2x1
+Authorization: Bearer $BROTE_ADMIN_SECRET
+Content-Type: application/json
+
+{ "action": "generate", "count": 5 }
+```
+
+### Preview seeding
+
+`scripts/seed-preview.ts` seeds `SP-2X1-PREVIEW` (valid) and `SP-2X1-USED01` (used) so both UI states are reachable in a preview branch without hitting the admin API. Requires `REDIS_URL` to be present in `.env.local`.
