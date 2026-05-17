@@ -151,13 +151,39 @@ describe("resolveBuyerInfo", () => {
     };
     const readers = makeReaders({
       byPref: { "PREF-3": { name: "   ", phone: "+541122555110" } },
+      // No email stash — the preference stash hit (even with blank name)
+      // and we don't redundantly consult the email reader for the same
+      // payment unless we need to.
     });
     const out = await resolveBuyerInfo(payment, readers);
     // Name came from additional_info, but phone is still recovered from the
-    // stash since it's the only source for phone.
+    // preference stash since it's the only source for phone.
     expect(out.name).toBe("Tomas Aragón");
     expect(out.nameSource).toBe("additional-info-payer");
     expect(out.phone).toBe("+541122555110");
+  });
+
+  it("consults the email stash when the preference stash has a blank name", async () => {
+    // Edge case caught in Copilot review: the preference-id stash exists
+    // (so it's not "missing") but its name is empty/whitespace. We must
+    // still fall through to the email-keyed stash, which may carry the
+    // real name from a different checkout session for the same buyer.
+    const payment: MpPaymentLike = {
+      preference_id: "PREF-blank",
+      payer: { email: "buyer@example.com" },
+    };
+    const readers = makeReaders({
+      byPref: { "PREF-blank": { name: "   ", phone: "+541122555110" } },
+      byEmail: { "buyer@example.com": { name: "Salvador" } },
+    });
+    const out = await resolveBuyerInfo(payment, readers);
+    expect(out.name).toBe("Salvador");
+    expect(out.nameSource).toBe("stash-by-email");
+    // Phone still comes from the preference stash (it has the field;
+    // email stash doesn't).
+    expect(out.phone).toBe("+541122555110");
+    expect(readers.readStashByPreferenceId).toHaveBeenCalledWith("PREF-blank");
+    expect(readers.readStashByEmail).toHaveBeenCalledWith("buyer@example.com");
   });
 
   it("does not call the email reader when payer.email is empty", async () => {

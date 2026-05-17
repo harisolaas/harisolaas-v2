@@ -162,8 +162,15 @@ export async function recordParticipation(
         -- Once a real form provides a name later (e.g. an RSVP after a
         -- past BROTE ticket), we overwrite the placeholder. Any other
         -- existing name is sticky — first form wins.
+        --
+        -- Belt-and-suspenders: the JS guard above already requires a
+        -- non-empty trimmed name, but the SQL also rejects empty
+        -- EXCLUDED.name so a future caller that bypasses the helper
+        -- can't blank out the placeholder and slip the row out of the
+        -- backfill filter.
         name = CASE
-          WHEN people.name IS NULL OR people.name = '' OR people.name = 'Asistente'
+          WHEN (people.name IS NULL OR people.name = '' OR people.name = 'Asistente')
+               AND EXCLUDED.name IS NOT NULL AND EXCLUDED.name <> ''
             THEN EXCLUDED.name
           ELSE people.name
         END,
@@ -465,12 +472,19 @@ export async function upsertPerson(params: {
 }): Promise<{ person: Person; created: boolean }> {
   const email = params.email.trim();
   if (!email) throw new Error("email required");
+  // Trim + require a non-empty name, same guard recordParticipation uses.
+  // Without this a caller bug or admin import with a blank name would let
+  // the self-heal CASE below overwrite an existing "Asistente" placeholder
+  // with an empty string — and the backfill filter (name='Asistente') would
+  // then stop matching the row, leaving it permanently unrepairable.
+  const name = params.name.trim();
+  if (!name) throw new Error("name required");
 
   const res = await db.execute<Person & { was_inserted: boolean }>(sql`
     INSERT INTO people (email, name, phone, instagram, first_touch)
     VALUES (
       ${email},
-      ${params.name},
+      ${name},
       ${params.phone ?? null},
       ${params.instagram ?? null},
       ${params.firstTouch ? JSON.stringify(params.firstTouch) : null}::jsonb
@@ -478,8 +492,12 @@ export async function upsertPerson(params: {
     ON CONFLICT (email) DO UPDATE SET
       -- Same self-heal as recordParticipation: overwrite the "Asistente"
       -- placeholder the MP webhook writes when buyer name is unavailable.
+      -- Belt-and-suspenders: we already validate non-empty incoming name
+      -- in JS above, but guard the SQL too so a future caller that
+      -- bypasses the helper can't corrupt the row.
       name = CASE
-        WHEN people.name IS NULL OR people.name = '' OR people.name = 'Asistente'
+        WHEN (people.name IS NULL OR people.name = '' OR people.name = 'Asistente')
+             AND EXCLUDED.name IS NOT NULL AND EXCLUDED.name <> ''
           THEN EXCLUDED.name
         ELSE people.name
       END,

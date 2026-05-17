@@ -106,15 +106,24 @@ export async function resolveBuyerInfo(
     ? await readers.readStashByPreferenceId(payment.preference_id)
     : null;
 
+  const stashByPrefName = stashByPref?.name?.trim() ?? "";
+
+  // Only short-circuit the email lookup when the preference stash actually
+  // yielded a usable name. A preference stash with empty/whitespace name
+  // (e.g. a corrupted write) should NOT prevent us from falling through
+  // to the email-keyed stash, which may carry the real name.
   const payerEmail = (payment.payer?.email ?? "").trim().toLowerCase();
   const stashByEmail =
-    !stashByPref && payerEmail
+    !stashByPrefName && payerEmail
       ? await readers.readStashByEmail(payerEmail)
       : null;
 
+  // For non-name fields (email, phone) we still prefer the preference
+  // stash if it exists at all — those fields can be useful even when
+  // `name` was blank.
   const stash = stashByPref ?? stashByEmail;
+  const stashByEmailName = stashByEmail?.name?.trim() ?? "";
 
-  const stashName = stash?.name?.trim() ?? "";
   const additionalInfoName = joinName(
     payment.additional_info?.payer?.first_name,
     payment.additional_info?.payer?.last_name,
@@ -126,9 +135,12 @@ export async function resolveBuyerInfo(
 
   let name = DEFAULT_BUYER_NAME;
   let nameSource: ResolvedBuyerInfo["nameSource"] = "fallback";
-  if (stashName) {
-    name = stashName;
-    nameSource = stashByPref ? "stash-by-preference" : "stash-by-email";
+  if (stashByPrefName) {
+    name = stashByPrefName;
+    nameSource = "stash-by-preference";
+  } else if (stashByEmailName) {
+    name = stashByEmailName;
+    nameSource = "stash-by-email";
   } else if (additionalInfoName) {
     name = additionalInfoName;
     nameSource = "additional-info-payer";

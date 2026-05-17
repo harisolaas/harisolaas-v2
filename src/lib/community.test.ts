@@ -579,6 +579,29 @@ describe("upsertPerson", () => {
     // First real name wins.
     expect(b.person.name).toBe("Maria García");
   });
+
+  it("rejects an empty/whitespace name (cannot blank out 'Asistente')", async () => {
+    // Seed a stale "Asistente" row.
+    const a = await upsertPerson({
+      email: "test-community-blank@example.com",
+      name: "Asistente",
+    });
+    expect(a.created).toBe(true);
+
+    // A blank or whitespace-only name must NOT pass — both because the
+    // helper trims+throws, and because a caller bypassing the helper
+    // would be blocked by the SQL guard. We assert the helper path here.
+    await expect(
+      upsertPerson({
+        email: "test-community-blank@example.com",
+        name: "   ",
+      }),
+    ).rejects.toThrow(/name required/);
+
+    // Row is unchanged — still "Asistente", still repairable by backfill.
+    const drill = await getPersonByEmail("test-community-blank@example.com");
+    expect(drill!.person.name).toBe("Asistente");
+  });
 });
 
 describe("recordParticipation — stale 'Asistente' self-heal", () => {

@@ -149,9 +149,6 @@ async function main() {
   console.log(`Found ${rows.length} person rows with name='Asistente'.\n`);
   if (rows.length === 0) {
     console.log("Nothing to do.\n");
-    // Don't bother quitting redis — Node will exit cleanly. The mock has no
-  // quit() either, and explicit quit on the real client occasionally
-  // hangs against Vercel Redis. Process exit closes the socket.
     return;
   }
 
@@ -247,12 +244,14 @@ async function main() {
     console.log("\nDone.\n");
   }
 
-  // Don't bother quitting redis — Node will exit cleanly. The mock has no
-  // quit() either, and explicit quit on the real client occasionally
-  // hangs against Vercel Redis. Process exit closes the socket.
+  // Redis client (when connected) holds a long-lived socket; explicit
+  // process.exit below forces close. Matches the pattern in
+  // seed-preview.ts.
 }
 
-main().catch((err) => {
-  console.error("backfill failed:", err);
-  process.exit(1);
-});
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error("backfill failed:", err);
+    process.exit(1);
+  });
