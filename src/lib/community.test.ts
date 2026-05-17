@@ -544,4 +544,65 @@ describe("upsertPerson", () => {
     expect(b.created).toBe(false);
     expect(b.person.id).toBe(a.person.id);
   });
+
+  it("overwrites a stale 'Asistente' placeholder with the real name", async () => {
+    // Seed a row the way the buggy MP webhook would have: name = "Asistente".
+    const a = await upsertPerson({
+      email: "test-community-asistente@example.com",
+      name: "Asistente",
+    });
+    expect(a.created).toBe(true);
+    expect(a.person.name).toBe("Asistente");
+
+    // A later form submission (e.g. Sinergia RSVP) provides the real name.
+    const b = await upsertPerson({
+      email: "test-community-asistente@example.com",
+      name: "Tomás Aragón",
+    });
+    expect(b.created).toBe(false);
+    expect(b.person.name).toBe("Tomás Aragón");
+    expect(b.person.id).toBe(a.person.id);
+  });
+
+  it("does NOT overwrite a real existing name", async () => {
+    const a = await upsertPerson({
+      email: "test-community-realname@example.com",
+      name: "Maria García",
+    });
+    expect(a.created).toBe(true);
+
+    const b = await upsertPerson({
+      email: "test-community-realname@example.com",
+      name: "Some Other Name",
+    });
+    expect(b.created).toBe(false);
+    // First real name wins.
+    expect(b.person.name).toBe("Maria García");
+  });
+});
+
+describe("recordParticipation — stale 'Asistente' self-heal", () => {
+  it("overwrites 'Asistente' on a follow-up participation that has a real name", async () => {
+    // Simulate a past BROTE ticket where the webhook saved "Asistente".
+    await recordParticipation({
+      email: "test-community-stale@example.com",
+      name: "Asistente",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-STALE0001",
+      role: "attendee",
+    });
+
+    // A later event captures the real name via the form.
+    await recordParticipation({
+      email: "test-community-stale@example.com",
+      name: "Slava Pankov",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-STALE0002",
+      role: "planter",
+    });
+
+    const drill = await getPersonByEmail("test-community-stale@example.com");
+    expect(drill!.person.name).toBe("Slava Pankov");
+    expect(drill!.participations).toHaveLength(2);
+  });
 });

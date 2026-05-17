@@ -185,6 +185,15 @@ const PEOPLE: PersonFixture[] = [
   { email: "preview-tomi@example.com", name: "Tomás Ibáñez" },
   { email: "preview-vale@example.com", name: "Valeria Cruz" },
   { email: "preview-host@example.com", name: "Host de Sinergia" },
+  // Stale "Asistente" placeholder — simulates a row the buggy MP webhook
+  // wrote when every buyer-name source came back empty. Exercises the
+  // self-heal path in `upsertPerson` / `recordParticipation`: when a
+  // future form provides a real name for this email, the placeholder is
+  // overwritten. The corresponding participation below carries an
+  // `external_payment_id`, so the backfill script's filter
+  // (`name='Asistente' AND external_payment_id IS NOT NULL`) matches in
+  // preview too.
+  { email: "preview-asistente@example.com", name: "Asistente" },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -305,6 +314,11 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     { k: "eze", status: "confirmed" as const },
     { k: "flor", status: "confirmed" as const },
     { k: "gabi", status: "cancelled" as const },
+    // Stale "Asistente" row mimicking the production bug. Lets the
+    // backfill script run end-to-end in preview, and demonstrates the
+    // upsertPerson self-heal when an admin or future RSVP touches the
+    // same email.
+    { k: "asistente", status: "confirmed" as const },
   ].map<ParticipationFixture>(({ k, status }, i) => ({
     id: `PREVIEW-SP-${String(i + 1).padStart(3, "0")}`,
     personEmail: `preview-${k}@example.com`,

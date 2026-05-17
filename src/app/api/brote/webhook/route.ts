@@ -8,6 +8,7 @@ import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
 import { db, schema } from "@/db";
 import { recordParticipation } from "@/lib/community";
+import { resolveBuyerInfo } from "@/lib/mp-buyer-info";
 import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import type { BroteTicket } from "@/lib/brote-types";
@@ -158,17 +159,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, status: payment.status });
     }
 
-    buyerEmail = payment.payer?.email || "";
-    buyerName =
-      [payment.payer?.first_name, payment.payer?.last_name]
-        .filter(Boolean)
-        .join(" ") || "Asistente";
+    // BROTE checkout doesn't capture name/email/phone (MP collects them
+    // directly via Checkout Pro), so there's no Redis stash to consult.
+    // Walk MP's own sources via the shared resolver:
+    // additional_info.payer (form-collected) before payer.first_name
+    // (cardholder), with "Asistente" as the last resort. The historical
+    // bug was that we only consulted `payer.first_name`, which is empty
+    // for Account Money flows.
+    const buyerInfo = await resolveBuyerInfo(payment, {
+      readStashByPreferenceId: async () => null,
+      readStashByEmail: async () => null,
+    });
+    buyerEmail = buyerInfo.email;
+    buyerName = buyerInfo.name;
+
+    if (buyerInfo.nameSource === "fallback") {
+      console.warn("brote: buyer name fell back to default", {
+        mpPaymentId,
+        preferenceId: payment.preference_id ?? null,
+        payerEmail: payment.payer?.email ?? null,
+      });
+    }
 
     console.log("Webhook processing:", {
       mpPaymentId,
       status: payment.status,
       buyerEmail,
       buyerName,
+      nameSource: buyerInfo.nameSource,
     });
 
     ticketId = `BROTE-${nanoid(8).toUpperCase()}`;

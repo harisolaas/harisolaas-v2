@@ -156,7 +156,17 @@ export async function recordParticipation(
         }
       )
       ON CONFLICT (email) DO UPDATE SET
-        name = COALESCE(NULLIF(people.name, ''), EXCLUDED.name),
+        -- Self-heal stale "Asistente" rows: the MP webhook writes this
+        -- literal whenever every buyer-name source (Redis stash, MP
+        -- additional_info.payer, MP payer.first_name) comes back empty.
+        -- Once a real form provides a name later (e.g. an RSVP after a
+        -- past BROTE ticket), we overwrite the placeholder. Any other
+        -- existing name is sticky — first form wins.
+        name = CASE
+          WHEN people.name IS NULL OR people.name = '' OR people.name = 'Asistente'
+            THEN EXCLUDED.name
+          ELSE people.name
+        END,
         phone = COALESCE(people.phone, EXCLUDED.phone),
         instagram = COALESCE(people.instagram, EXCLUDED.instagram),
         updated_at = NOW()
@@ -466,7 +476,13 @@ export async function upsertPerson(params: {
       ${params.firstTouch ? JSON.stringify(params.firstTouch) : null}::jsonb
     )
     ON CONFLICT (email) DO UPDATE SET
-      name = COALESCE(NULLIF(people.name, ''), EXCLUDED.name),
+      -- Same self-heal as recordParticipation: overwrite the "Asistente"
+      -- placeholder the MP webhook writes when buyer name is unavailable.
+      name = CASE
+        WHEN people.name IS NULL OR people.name = '' OR people.name = 'Asistente'
+          THEN EXCLUDED.name
+        ELSE people.name
+      END,
       phone = COALESCE(people.phone, EXCLUDED.phone),
       instagram = COALESCE(people.instagram, EXCLUDED.instagram),
       updated_at = NOW()
