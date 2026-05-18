@@ -9,6 +9,7 @@ import { getRedis } from "@/lib/redis";
 import { db, schema } from "@/db";
 import { CapacityReachedError, recordParticipation } from "@/lib/community";
 import type { AttributionTouch } from "@/lib/community";
+import { resolveBuyerInfo, type CheckoutMetaLike } from "@/lib/mp-buyer-info";
 import { sinergiaParrafoConfig } from "@/data/sinergia-parrafo";
 import {
   buildSinergiaParrafoTicketEmailHtml,
@@ -92,10 +93,7 @@ function verifySignature(req: Request, body: string): boolean {
   return true;
 }
 
-interface CheckoutMeta {
-  name?: string;
-  email?: string;
-  phone?: string;
+interface CheckoutMeta extends CheckoutMetaLike {
   locale?: string;
   attribution?: AttributionTouch | null;
   ip?: string;
@@ -115,6 +113,27 @@ async function readCheckoutMeta(
     return JSON.parse(raw) as CheckoutMeta;
   } catch (err) {
     console.error("sinergia-parrafo: failed to read checkout meta:", err);
+    return null;
+  }
+}
+
+async function readCheckoutMetaByEmail(
+  email: string,
+): Promise<CheckoutMeta | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+  try {
+    const redis = await getRedis();
+    const raw = await redis.get(
+      `sinergia-parrafo:checkout-by-email:${normalized}`,
+    );
+    if (!raw) return null;
+    return JSON.parse(raw) as CheckoutMeta;
+  } catch (err) {
+    console.error(
+      "sinergia-parrafo: failed to read checkout meta by email:",
+      err,
+    );
     return null;
   }
 }
@@ -255,23 +274,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, status: payment.status });
     }
 
-    // Buyer info: prefer the Redis stash (captured at checkout from our
-    // form). MP's payer object is unreliable for Account Money flows.
-    const checkoutMeta = await readCheckoutMeta(
-      payment.preference_id as string | undefined,
-    );
+    // Retain whichever stash the resolver hits so attribution and ip/ua
+    // can be read off it below.
+    const stashHolder: { value: CheckoutMeta | null } = { value: null };
+    const buyerInfo = await resolveBuyerInfo(payment, {
+      readStashByPreferenceId: async (preferenceId) => {
+        const stash = await readCheckoutMeta(preferenceId);
+        if (stash) stashHolder.value = stash;
+        return stash;
+      },
+      readStashByEmail: async (email) => {
+        const stash = await readCheckoutMetaByEmail(email);
+        if (stash) stashHolder.value = stash;
+        return stash;
+      },
+    });
+    const checkoutMeta = stashHolder.value;
 
-    buyerEmail =
-      checkoutMeta?.email?.trim() ||
-      payment.payer?.email ||
-      "";
-    buyerName =
-      checkoutMeta?.name?.trim() ||
-      [payment.payer?.first_name, payment.payer?.last_name]
-        .filter(Boolean)
-        .join(" ") ||
-      "Asistente";
-    const buyerPhone = checkoutMeta?.phone?.trim() || undefined;
+    buyerEmail = buyerInfo.email;
+    buyerName = buyerInfo.name;
+    const buyerPhone = buyerInfo.phone;
+
+    if (buyerInfo.nameSource === "fallback") {
+      console.warn("sinergia-parrafo: buyer name fell back to default", {
+        mpPaymentId,
+        preferenceId: payment.preference_id ?? null,
+        payerEmail: payment.payer?.email ?? null,
+      });
+    }
 
     if (!buyerEmail) {
       console.error(

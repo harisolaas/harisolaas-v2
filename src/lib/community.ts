@@ -156,7 +156,17 @@ export async function recordParticipation(
         }
       )
       ON CONFLICT (email) DO UPDATE SET
-        name = COALESCE(NULLIF(people.name, ''), EXCLUDED.name),
+        -- 'Asistente' is the documented placeholder used when no real
+        -- name is available; treat it as if the name slot were empty
+        -- so a later write with a real name can replace it. Any other
+        -- existing name is sticky. EXCLUDED.name must be non-empty so
+        -- the placeholder stays detectable until a real name arrives.
+        name = CASE
+          WHEN (people.name IS NULL OR people.name = '' OR people.name = 'Asistente')
+               AND EXCLUDED.name IS NOT NULL AND EXCLUDED.name <> ''
+            THEN EXCLUDED.name
+          ELSE people.name
+        END,
         phone = COALESCE(people.phone, EXCLUDED.phone),
         instagram = COALESCE(people.instagram, EXCLUDED.instagram),
         updated_at = NOW()
@@ -455,18 +465,31 @@ export async function upsertPerson(params: {
 }): Promise<{ person: Person; created: boolean }> {
   const email = params.email.trim();
   if (!email) throw new Error("email required");
+  // The 'Asistente' placeholder must stay detectable until a real name
+  // replaces it: an empty incoming name would let the CASE below blank
+  // out the placeholder, so reject it here.
+  const name = params.name.trim();
+  if (!name) throw new Error("name required");
 
   const res = await db.execute<Person & { was_inserted: boolean }>(sql`
     INSERT INTO people (email, name, phone, instagram, first_touch)
     VALUES (
       ${email},
-      ${params.name},
+      ${name},
       ${params.phone ?? null},
       ${params.instagram ?? null},
       ${params.firstTouch ? JSON.stringify(params.firstTouch) : null}::jsonb
     )
     ON CONFLICT (email) DO UPDATE SET
-      name = COALESCE(NULLIF(people.name, ''), EXCLUDED.name),
+      -- 'Asistente' is the documented placeholder; treat it as empty so
+      -- a later write with a real name can replace it. EXCLUDED.name
+      -- must be non-empty so the placeholder stays detectable.
+      name = CASE
+        WHEN (people.name IS NULL OR people.name = '' OR people.name = 'Asistente')
+             AND EXCLUDED.name IS NOT NULL AND EXCLUDED.name <> ''
+          THEN EXCLUDED.name
+        ELSE people.name
+      END,
       phone = COALESCE(people.phone, EXCLUDED.phone),
       instagram = COALESCE(people.instagram, EXCLUDED.instagram),
       updated_at = NOW()

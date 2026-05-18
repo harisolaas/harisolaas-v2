@@ -185,6 +185,10 @@ const PEOPLE: PersonFixture[] = [
   { email: "preview-tomi@example.com", name: "Tomás Ibáñez" },
   { email: "preview-vale@example.com", name: "Valeria Cruz" },
   { email: "preview-host@example.com", name: "Host de Sinergia" },
+  // Exercises the 'Asistente' placeholder self-heal path in `upsertPerson`
+  // / `recordParticipation` and the backfill script's filter
+  // (`name='Asistente' AND external_payment_id IS NOT NULL`).
+  { email: "preview-asistente@example.com", name: "Asistente" },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -305,6 +309,9 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     { k: "eze", status: "confirmed" as const },
     { k: "flor", status: "confirmed" as const },
     { k: "gabi", status: "cancelled" as const },
+    // Pairs with the 'Asistente' person row to exercise the self-heal
+    // path and the backfill script end-to-end in preview.
+    { k: "asistente", status: "confirmed" as const },
   ].map<ParticipationFixture>(({ k, status }, i) => ({
     id: `PREVIEW-SP-${String(i + 1).padStart(3, "0")}`,
     personEmail: `preview-${k}@example.com`,
