@@ -156,18 +156,11 @@ export async function recordParticipation(
         }
       )
       ON CONFLICT (email) DO UPDATE SET
-        -- Self-heal stale "Asistente" rows: the MP webhook writes this
-        -- literal whenever every buyer-name source (Redis stash, MP
-        -- additional_info.payer, MP payer.first_name) comes back empty.
-        -- Once a real form provides a name later (e.g. an RSVP after a
-        -- past BROTE ticket), we overwrite the placeholder. Any other
-        -- existing name is sticky — first form wins.
-        --
-        -- Belt-and-suspenders: the JS guard above already requires a
-        -- non-empty trimmed name, but the SQL also rejects empty
-        -- EXCLUDED.name so a future caller that bypasses the helper
-        -- can't blank out the placeholder and slip the row out of the
-        -- backfill filter.
+        -- 'Asistente' is the documented placeholder used when no real
+        -- name is available; treat it as if the name slot were empty
+        -- so a later write with a real name can replace it. Any other
+        -- existing name is sticky. EXCLUDED.name must be non-empty so
+        -- the placeholder stays detectable until a real name arrives.
         name = CASE
           WHEN (people.name IS NULL OR people.name = '' OR people.name = 'Asistente')
                AND EXCLUDED.name IS NOT NULL AND EXCLUDED.name <> ''
@@ -472,11 +465,9 @@ export async function upsertPerson(params: {
 }): Promise<{ person: Person; created: boolean }> {
   const email = params.email.trim();
   if (!email) throw new Error("email required");
-  // Trim + require a non-empty name, same guard recordParticipation uses.
-  // Without this a caller bug or admin import with a blank name would let
-  // the self-heal CASE below overwrite an existing "Asistente" placeholder
-  // with an empty string — and the backfill filter (name='Asistente') would
-  // then stop matching the row, leaving it permanently unrepairable.
+  // The 'Asistente' placeholder must stay detectable until a real name
+  // replaces it: an empty incoming name would let the CASE below blank
+  // out the placeholder, so reject it here.
   const name = params.name.trim();
   if (!name) throw new Error("name required");
 
@@ -490,11 +481,9 @@ export async function upsertPerson(params: {
       ${params.firstTouch ? JSON.stringify(params.firstTouch) : null}::jsonb
     )
     ON CONFLICT (email) DO UPDATE SET
-      -- Same self-heal as recordParticipation: overwrite the "Asistente"
-      -- placeholder the MP webhook writes when buyer name is unavailable.
-      -- Belt-and-suspenders: we already validate non-empty incoming name
-      -- in JS above, but guard the SQL too so a future caller that
-      -- bypasses the helper can't corrupt the row.
+      -- 'Asistente' is the documented placeholder; treat it as empty so
+      -- a later write with a real name can replace it. EXCLUDED.name
+      -- must be non-empty so the placeholder stays detectable.
       name = CASE
         WHEN (people.name IS NULL OR people.name = '' OR people.name = 'Asistente')
              AND EXCLUDED.name IS NOT NULL AND EXCLUDED.name <> ''

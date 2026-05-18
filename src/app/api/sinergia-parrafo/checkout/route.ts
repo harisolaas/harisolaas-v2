@@ -140,26 +140,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // Stash buyer info so the webhook can write the participation with
-    // our captured name/email/phone — MP's payer object is unreliable
-    // for Account Money flows (often empty). 24h TTL covers the longest
-    // plausible time between checkout and payment confirmation.
-    //
-    // We write TWO keys with identical payloads:
-    //   - by preference id: the primary recovery path when MP returns a
-    //     preference_id on the Payment object.
-    //   - by buyer email (lowercased + trimmed): the fallback when
-    //     `payment.preference_id` is undefined, which is the empirically
-    //     common case for Account Money flows. `payment.payer.email`
-    //     remains reliable, so an email key recovers the stash even
-    //     when the preference id is missing.
-    //
-    // The email key is collision-prone (one email can have multiple open
-    // preferences), but the 24h TTL bounds the staleness and the webhook
-    // only consults this stash for buyer identity — re-paying overrides
-    // the row in Redis, so the most recent checkout wins. The
-    // pre-existing participations.id idempotency in `recordParticipation`
-    // is what prevents double-booking, not the stash.
+    // Stash buyer info under two keys so the webhook can recover it:
+    // `preference_id` may be absent on the Payment object, but
+    // `payer.email` is reliable. The email key is collision-prone (same
+    // email can have multiple open preferences) but the webhook only
+    // reads buyer identity from it; participation idempotency lives in
+    // `recordParticipation`.
     try {
       const redis = await getRedis();
       const stash = JSON.stringify({
@@ -187,9 +173,6 @@ export async function POST(req: Request) {
         "sinergia-parrafo: failed to stash checkout meta:",
         err,
       );
-      // Continue anyway — the webhook has fallbacks via MP's
-      // additional_info.payer and payer.email, and a manual recovery
-      // step exists if the buyer info is lost.
     }
 
     const initPoint =

@@ -160,12 +160,8 @@ export async function POST(req: Request) {
     }
 
     // BROTE checkout doesn't capture name/email/phone (MP collects them
-    // directly via Checkout Pro), so there's no Redis stash to consult.
-    // Walk MP's own sources via the shared resolver:
-    // additional_info.payer (form-collected) before payer.first_name
-    // (cardholder), with "Asistente" as the last resort. The historical
-    // bug was that we only consulted `payer.first_name`, which is empty
-    // for Account Money flows.
+    // directly via Checkout Pro), so there's no Redis stash to consult —
+    // both stash readers no-op and the resolver walks MP's own sources.
     const buyerInfo = await resolveBuyerInfo(payment, {
       readStashByPreferenceId: async () => null,
       readStashByEmail: async () => null,

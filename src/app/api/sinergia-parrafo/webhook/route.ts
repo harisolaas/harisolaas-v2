@@ -274,13 +274,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, status: payment.status });
     }
 
-    // Buyer info: walk every available source (Redis stash by preference
-    // id → by email → MP additional_info → MP payer → "Asistente").
-    // MP's `preference_id` is undefined for most Account Money flows
-    // in production, so the email-keyed stash is the primary recovery
-    // path. `resolveBuyerInfo` keeps the precedence chain testable.
-    // We also retain whichever stash hit so attribution and ip/ua land
-    // on the participation row.
+    // Retain whichever stash the resolver hits so attribution and ip/ua
+    // can be read off it below.
     const stashHolder: { value: CheckoutMeta | null } = { value: null };
     const buyerInfo = await resolveBuyerInfo(payment, {
       readStashByPreferenceId: async (preferenceId) => {

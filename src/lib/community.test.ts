@@ -546,7 +546,6 @@ describe("upsertPerson", () => {
   });
 
   it("overwrites a stale 'Asistente' placeholder with the real name", async () => {
-    // Seed a row the way the buggy MP webhook would have: name = "Asistente".
     const a = await upsertPerson({
       email: "test-community-asistente@example.com",
       name: "Asistente",
@@ -554,7 +553,6 @@ describe("upsertPerson", () => {
     expect(a.created).toBe(true);
     expect(a.person.name).toBe("Asistente");
 
-    // A later form submission (e.g. Sinergia RSVP) provides the real name.
     const b = await upsertPerson({
       email: "test-community-asistente@example.com",
       name: "Tomás Aragón",
@@ -576,21 +574,16 @@ describe("upsertPerson", () => {
       name: "Some Other Name",
     });
     expect(b.created).toBe(false);
-    // First real name wins.
     expect(b.person.name).toBe("Maria García");
   });
 
   it("rejects an empty/whitespace name (cannot blank out 'Asistente')", async () => {
-    // Seed a stale "Asistente" row.
     const a = await upsertPerson({
       email: "test-community-blank@example.com",
       name: "Asistente",
     });
     expect(a.created).toBe(true);
 
-    // A blank or whitespace-only name must NOT pass — both because the
-    // helper trims+throws, and because a caller bypassing the helper
-    // would be blocked by the SQL guard. We assert the helper path here.
     await expect(
       upsertPerson({
         email: "test-community-blank@example.com",
@@ -598,7 +591,6 @@ describe("upsertPerson", () => {
       }),
     ).rejects.toThrow(/name required/);
 
-    // Row is unchanged — still "Asistente", still repairable by backfill.
     const drill = await getPersonByEmail("test-community-blank@example.com");
     expect(drill!.person.name).toBe("Asistente");
   });
@@ -606,7 +598,6 @@ describe("upsertPerson", () => {
 
 describe("recordParticipation — stale 'Asistente' self-heal", () => {
   it("overwrites 'Asistente' on a follow-up participation that has a real name", async () => {
-    // Simulate a past BROTE ticket where the webhook saved "Asistente".
     await recordParticipation({
       email: "test-community-stale@example.com",
       name: "Asistente",
@@ -615,7 +606,6 @@ describe("recordParticipation — stale 'Asistente' self-heal", () => {
       role: "attendee",
     });
 
-    // A later event captures the real name via the form.
     await recordParticipation({
       email: "test-community-stale@example.com",
       name: "Slava Pankov",

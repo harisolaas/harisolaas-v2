@@ -1,35 +1,28 @@
 /**
- * One-shot backfill: recover real buyer names (and phones, when possible)
- * for `people` rows the MP webhook stamped with the literal "Asistente"
- * because every buyer-info source came back empty at write time.
+ * Backfill real buyer names (and phones, when available) onto `people`
+ * rows whose name is the 'Asistente' placeholder, by re-reading each
+ * row's most recent MP payment via the SDK.
  *
- * Root cause and fix live in `src/app/api/sinergia-parrafo/webhook/route.ts`
- * and `src/lib/mp-buyer-info.ts`. This script repairs rows the old code
- * already wrote.
- *
- * Strategy, per "Asistente" person row:
- *   1. Find their most recent participation that has a non-null
+ * Strategy, per 'Asistente' person row:
+ *   1. Find their most recent participation with a non-null
  *      `external_payment_id`.
- *   2. Fetch the MP payment via the SDK.
- *   3. Read the real name from `additional_info.payer.first_name` (+
- *      last_name when present), then fall back to `payer.first_name +
- *      last_name`.
- *   4. UPDATE `people.name` when a real name was recovered.
- *   5. Also probe the email-keyed Redis stash
- *      (`sinergia-parrafo:checkout-by-email:{email}`) — when present and
- *      the row has no phone, recover the phone too.
+ *   2. Fetch that MP payment.
+ *   3. Resolve a real name from `additional_info.payer` then
+ *      `payer.first_name + last_name`.
+ *   4. UPDATE `people.name` if a real name was recovered.
+ *   5. Probe the email-keyed Redis stash
+ *      (`sinergia-parrafo:checkout-by-email:{email}`) and recover the
+ *      phone too when the row has none.
  *
  * Usage:
  *   npx tsx scripts/backfill-asistente-names.ts            # dry-run (default)
  *   npx tsx scripts/backfill-asistente-names.ts --apply    # write
  *
- * Idempotent. Re-running on the same rows is a no-op (rows already
- * patched no longer match the filter).
+ * Idempotent: rows already patched no longer match the filter.
  *
- * Operator note: requires `MP_ACCESS_TOKEN`, `DATABASE_URL`, and
- * `REDIS_URL` in `.env.local`. The MP token MUST be production
- * (`APP_USR-...`) to fetch real payments. Run with `--apply` only after
- * a clean dry-run.
+ * Requires `MP_ACCESS_TOKEN` (production, `APP_USR-...`), `DATABASE_URL`,
+ * and `REDIS_URL` in `.env.local`. Run with `--apply` only after a clean
+ * dry-run.
  */
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
@@ -101,8 +94,8 @@ async function main() {
 
   const { db } = await import("@/db");
 
-  // Connect to Redis only if REDIS_URL is set — without it we just skip
-  // phone recovery and continue with the name-only path.
+  // Phone recovery needs Redis; without it the script still runs the
+  // name-only path.
   let redis: { get(key: string): Promise<string | null> } | null = null;
   if (process.env.REDIS_URL) {
     try {
@@ -117,10 +110,8 @@ async function main() {
     );
   }
 
-  // Pick rows to repair: people.name = 'Asistente' AND they have at
-  // least one participation with an external_payment_id. The window
-  // function picks the most recent participation per person so we only
-  // make one MP fetch per stale row.
+  // One MP fetch per person: the window function picks each person's
+  // most recent participation with an external_payment_id.
   const rowsRes = await db.execute<StaleRow>(sql`
     WITH ranked AS (
       SELECT
@@ -176,11 +167,9 @@ async function main() {
     }
 
     const buyerInfo = await resolveBuyerInfo(payment, {
-      // The buggy "Asistente" rows are precisely the ones whose
-      // preference_id was empty in MP's response. We don't have any
-      // current preference-id-keyed stash that would still be alive
-      // (24h TTL elapsed), so this reader is intentionally a no-op
-      // here; the email-keyed stash is the recovery path.
+      // No preference-id stash to consult here: the 24h TTL has long
+      // expired by the time this backfill runs. Recovery goes through
+      // the email-keyed stash.
       readStashByPreferenceId: async () => null,
       readStashByEmail: async (email) => readEmailStash(redis, email),
     });
@@ -205,7 +194,6 @@ async function main() {
 
     if (DRY_RUN) continue;
 
-    // Only touch the columns we recovered. Don't clobber existing phone.
     if (nameIsReal && phoneNeeded) {
       await db.execute(sql`
         UPDATE people
@@ -244,9 +232,8 @@ async function main() {
     console.log("\nDone.\n");
   }
 
-  // Redis client (when connected) holds a long-lived socket; explicit
-  // process.exit below forces close. Matches the pattern in
-  // seed-preview.ts.
+  // Redis holds a long-lived socket; the explicit process.exit below
+  // forces close.
 }
 
 main()
