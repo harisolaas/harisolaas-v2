@@ -43,13 +43,14 @@ export default function ProofCard({ proof, dark = false }: ProofCardProps) {
       <motion.div
         ref={ref}
         onPointerEnter={(e) => {
-          if (e.pointerType === "touch") return;
+          if (e.pointerType === "touch" || reducedMotion) return;
           rect.current = ref.current?.getBoundingClientRect() ?? null;
         }}
         onPointerMove={(e) => {
           const r = rect.current;
-          // Touch stays inert: scroll-dragging over a card must not tilt it
-          if (!r || e.pointerType === "touch") return;
+          // Touch stays inert (scroll-dragging must not tilt the card) and
+          // reduced motion freezes the pointer tracking entirely
+          if (!r || e.pointerType === "touch" || reducedMotion) return;
           px.set((e.clientX - r.left) / r.width);
           py.set((e.clientY - r.top) / r.height);
         }}

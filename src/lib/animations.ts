@@ -1,9 +1,10 @@
 import type { Variants } from "framer-motion";
 
 /**
- * Custom easing curves — the house motion vocabulary.
+ * Custom easing curves — the landing page's motion vocabulary.
  * Expo/quart curves start fast and settle long, which reads far more
- * deliberate than the default easeOut. Use these everywhere; never "easeOut".
+ * deliberate than the default easeOut. New landing-page motion should use
+ * these; the conversion funnels (BROTE, Sinergia) keep their own timing.
  */
 export const easeOutExpo = [0.16, 1, 0.3, 1] as const;
 export const easeOutQuart = [0.25, 1, 0.5, 1] as const;
