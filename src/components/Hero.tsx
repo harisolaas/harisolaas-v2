@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { fadeUp, heroStagger } from "@/lib/animations";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import { easeOutExpo } from "@/lib/animations";
 import { trackSectionView } from "@/lib/analytics";
+import SplitText from "./SplitText";
 import type { Dictionary } from "@/dictionaries/types";
 
 interface HeroProps {
@@ -12,86 +18,127 @@ interface HeroProps {
 }
 
 export default function Hero({ dict }: HeroProps) {
+  const ref = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion();
+
+  // Parallax as the hero scrolls away: type drifts up, portrait lags behind
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "-14%"]);
+  const photoY = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
+
   useEffect(() => {
     trackSectionView("hero");
   }, []);
 
+  const [firstName, ...restName] = dict.name.split(" ");
+  const lastName = restName.join(" ");
+
   return (
     <section
       id="hero"
+      ref={ref}
       style={{ minHeight: "var(--app-height, 100svh)" }}
-      className="texture-overlay relative flex items-center justify-center bg-cream px-6"
+      className="texture-overlay relative flex items-center overflow-hidden bg-cream px-6 pb-24 pt-28 md:px-12 lg:px-20"
     >
-      <motion.div
-        initial="hidden"
-        animate="visible"
-        variants={heroStagger}
-        className="relative z-10 flex max-w-5xl flex-col items-center gap-10 lg:flex-row lg:gap-16"
-      >
-        {/* Text — left on desktop, below photo on mobile */}
-        <div className="order-2 text-center lg:order-1 lg:flex-1 lg:text-left">
-          <motion.h1
-            variants={fadeUp}
-            className="font-serif text-5xl text-forest md:text-7xl lg:text-8xl"
+      <div className="relative z-10 mx-auto w-full max-w-6xl">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+          {/* Type block */}
+          <motion.div
+            style={reducedMotion ? undefined : { y: textY }}
+            className="lg:flex-1"
           >
-            {dict.name}
-          </motion.h1>
-          <motion.p
-            variants={fadeUp}
-            className="mx-auto mt-6 max-w-xl font-serif text-lg italic leading-relaxed text-charcoal/70 md:text-xl lg:mx-0 lg:text-2xl"
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.15 }}
+              className="tech-label flex flex-wrap items-center gap-x-3 gap-y-1 text-charcoal/50"
+            >
+              <span>{dict.metaRole}</span>
+              <span aria-hidden className="text-terracotta">
+                /
+              </span>
+              <span>{dict.metaLocation}</span>
+            </motion.p>
+
+            <h1 className="mt-6 font-serif uppercase leading-[0.95] tracking-tight text-forest">
+              <span className="block text-[clamp(3.4rem,11vw,9.5rem)]">
+                <SplitText
+                  text={firstName}
+                  by="char"
+                  immediate
+                  delay={0.35}
+                  stagger={0.04}
+                />
+              </span>
+              <span className="block text-[clamp(3.4rem,11vw,9.5rem)] lg:pl-[0.9em]">
+                <SplitText
+                  text={lastName}
+                  by="char"
+                  immediate
+                  delay={0.55}
+                  stagger={0.04}
+                />
+              </span>
+            </h1>
+
+            <p className="mt-8 max-w-md font-serif text-lg italic leading-relaxed text-charcoal/70 md:text-xl">
+              <SplitText text={dict.tagline} immediate delay={1.1} stagger={0.02} />
+            </p>
+          </motion.div>
+
+          {/* Portrait */}
+          <motion.figure
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.1, ease: easeOutExpo, delay: 0.9 }}
+            className="w-52 md:w-60 lg:w-[290px] lg:flex-shrink-0"
           >
-            {dict.tagline}
-          </motion.p>
+            <div className="photo-warm-overlay relative aspect-[3/4] overflow-hidden">
+              <motion.div
+                style={reducedMotion ? undefined : { y: photoY }}
+                className="absolute -inset-y-[8%] inset-x-0"
+              >
+                <Image
+                  src="/hari.jpg"
+                  alt={dict.photoAlt}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 240px, 290px"
+                  className="object-cover"
+                  style={{
+                    filter: "brightness(1.02) saturate(0.95) sepia(0.08)",
+                  }}
+                />
+              </motion.div>
+            </div>
+            <figcaption className="tech-label mt-3 text-charcoal/40">
+              {dict.photoCaption}
+            </figcaption>
+          </motion.figure>
         </div>
+      </div>
 
-        {/* Portrait — right on desktop, top on mobile */}
-        <motion.div variants={fadeUp} className="order-1 lg:order-2">
-          <div className="h-[200px] w-[200px] overflow-hidden rounded-full shadow-lg md:h-[280px] md:w-[280px] lg:h-[340px] lg:w-[340px]">
-            <Image
-              src="/hari.jpg"
-              alt={dict.photoAlt}
-              width={340}
-              height={340}
-              priority
-              className="h-full w-full object-cover"
-              style={{
-                filter:
-                  "brightness(1.02) saturate(0.95) sepia(0.08)",
-              }}
-            />
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Scroll indicator */}
+      {/* Scroll cue */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 0.8 }}
-        className="absolute bottom-10 left-1/2 z-10 -translate-x-1/2"
+        transition={{ delay: 1.8, duration: 0.8 }}
+        className="absolute bottom-8 left-6 z-10 md:left-12 lg:left-20"
       >
         <a
           href="#outlive"
-          className="flex flex-col items-center gap-2 text-sage/70 transition-colors hover:text-forest"
+          className="group flex items-center gap-3 text-charcoal/50 transition-colors hover:text-forest"
         >
-          <span className="tech-label">
-            {dict.scrollCta}
-          </span>
-          <motion.svg
-            animate={{ y: [0, 6, 0] }}
-            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m19.5 8.25-7.5 7.5-7.5-7.5"
-            />
-          </motion.svg>
+          <span className="tech-label">{dict.scrollCta}</span>
+          <motion.span
+            aria-hidden
+            animate={reducedMotion ? undefined : { scaleX: [0.25, 1, 0.25] }}
+            transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+            className="block h-px w-12 origin-left bg-terracotta"
+          />
         </a>
       </motion.div>
     </section>

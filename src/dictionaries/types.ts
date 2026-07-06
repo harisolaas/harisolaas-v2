@@ -401,6 +401,9 @@ export interface Dictionary {
     tagline: string;
     scrollCta: string;
     photoAlt: string;
+    metaRole: string;
+    metaLocation: string;
+    photoCaption: string;
   };
   values: ValueData[];
   now: {

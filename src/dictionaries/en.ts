@@ -37,6 +37,9 @@ const en: Dictionary = {
       "I started meditating at 15, teaching at 16, and writing code at 20. I haven\u2019t stopped doing any of them.",
     scrollCta: "Scroll to meet me",
     photoAlt: "Harald Solaas",
+    metaRole: "Software engineer · UI",
+    metaLocation: "Buenos Aires, Argentina",
+    photoCaption: "fig. 01 — the human",
   },
   values: [
     {
