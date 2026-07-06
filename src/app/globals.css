@@ -29,6 +29,16 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Lenis takes over scrolling on the landing page */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
 body {
   background-color: var(--color-cream);
   color: var(--color-charcoal);

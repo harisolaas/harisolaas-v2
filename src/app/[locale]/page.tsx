@@ -1,6 +1,7 @@
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import Navigation from "@/components/Navigation";
+import SmoothScroll from "@/components/SmoothScroll";
 import Hero from "@/components/Hero";
 import ValueSection from "@/components/ValueSection";
 import NowSection from "@/components/NowSection";
@@ -18,6 +19,7 @@ export default async function Home({
 
   return (
     <>
+      <SmoothScroll />
       <Navigation locale={locale} dict={dict.nav} />
       <main>
         <Hero dict={dict.hero} />
