@@ -8,10 +8,14 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
+import dynamic from "next/dynamic";
 import { easeOutExpo } from "@/lib/animations";
 import { trackSectionView } from "@/lib/analytics";
 import SplitText from "./SplitText";
 import type { Dictionary } from "@/dictionaries/types";
+
+// Client-only, loaded after the type has painted; CSS texture is the fallback
+const HeroCanvas = dynamic(() => import("./HeroCanvas"), { ssr: false });
 
 interface HeroProps {
   dict: Dictionary["hero"];
@@ -43,6 +47,7 @@ export default function Hero({ dict }: HeroProps) {
       style={{ minHeight: "var(--app-height, 100svh)" }}
       className="texture-overlay relative flex items-center overflow-hidden bg-cream px-6 pb-24 pt-28 md:px-12 lg:px-20"
     >
+      <HeroCanvas />
       <div className="relative z-10 mx-auto w-full max-w-6xl">
         <div className="flex flex-col gap-10 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
           {/* Type block */}
