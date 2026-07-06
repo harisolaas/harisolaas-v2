@@ -10,26 +10,63 @@ interface MetricDisplayProps {
   dark?: boolean;
 }
 
-function CountUp({ target }: { target: string }) {
+/**
+ * Recognize a numeric token's format so the count-up can re-emit every
+ * intermediate value in the same shape. Unrecognized shapes return null
+ * and render statically — never corrupt a number we can't reproduce.
+ */
+function numberFormat(token: string): ((v: number) => string) | null {
+  if (/^\d+$/.test(token)) {
+    return (v) => Math.round(v).toString();
+  }
+  // Grouped thousands: 50,000 / 18.650 (en / es conventions)
+  if (/^\d{1,3}(,\d{3})+$/.test(token)) {
+    return (v) => Math.round(v).toLocaleString("en-US");
+  }
+  if (/^\d{1,3}(\.\d{3})+$/.test(token)) {
+    return (v) => Math.round(v).toLocaleString("de-DE");
+  }
+  // Short decimals: 0.3 / 0,3
+  const dotDecimal = token.match(/^\d+\.(\d{1,2})$/);
+  if (dotDecimal) {
+    return (v) => v.toFixed(dotDecimal[1].length);
+  }
+  const commaDecimal = token.match(/^\d+,(\d{1,2})$/);
+  if (commaDecimal) {
+    return (v) => v.toFixed(commaDecimal[1].length).replace(".", ",");
+  }
+  return null;
+}
+
+function tokenTarget(token: string): number {
+  if (/^\d{1,3}(,\d{3})+$/.test(token)) return parseFloat(token.replace(/,/g, ""));
+  if (/^\d{1,3}(\.\d{3})+$/.test(token)) return parseFloat(token.replace(/\./g, ""));
+  return parseFloat(token.replace(",", "."));
+}
+
+function CountUp({ token }: { token: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-40px" });
-  const numeric = parseFloat(target);
-  const decimals = target.includes(".") ? target.split(".")[1].length : 0;
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    if (!isInView) return;
-    const controls = animate(0, numeric, {
+    // Skipping the animation (not the markup) keeps server and client
+    // renders identical — no hydration mismatch for reduced-motion users.
+    if (!isInView || reducedMotion) return;
+    const format = numberFormat(token);
+    if (!format) return;
+    const controls = animate(0, tokenTarget(token), {
       duration: 1.6,
       ease: easeOutExpo,
       onUpdate: (v) => {
-        if (ref.current) ref.current.textContent = v.toFixed(decimals);
+        if (ref.current) ref.current.textContent = format(v);
       },
     });
     return () => controls.stop();
-  }, [isInView, numeric, decimals]);
+  }, [isInView, reducedMotion, token]);
 
   // Server-rendered as the final value; the animation takes over in view
-  return <span ref={ref}>{target}</span>;
+  return <span ref={ref}>{token}</span>;
 }
 
 /**
@@ -42,8 +79,8 @@ export default function MetricDisplay({
   label,
   dark = false,
 }: MetricDisplayProps) {
-  const reducedMotion = useReducedMotion();
-  const tokens = value.split(/(\d+(?:\.\d+)?)/);
+  // Capture full grouped/decimal numbers as single tokens (50,000 · 18.650 · 0.3)
+  const tokens = value.split(/(\d(?:[\d.,]*\d)?)/);
 
   return (
     <div className="text-center">
@@ -52,15 +89,13 @@ export default function MetricDisplay({
           dark ? "text-terracotta/90" : "text-terracotta"
         }`}
       >
-        {reducedMotion
-          ? value
-          : tokens.map((token, i) =>
-              /^\d/.test(token) ? (
-                <CountUp key={i} target={token} />
-              ) : (
-                <span key={i}>{token}</span>
-              )
-            )}
+        {tokens.map((token, i) =>
+          /^\d/.test(token) ? (
+            <CountUp key={i} token={token} />
+          ) : (
+            <span key={i}>{token}</span>
+          )
+        )}
       </div>
       <div
         className={`tech-label mt-1 ${
