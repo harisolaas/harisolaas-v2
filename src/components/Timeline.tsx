@@ -120,7 +120,7 @@ export default function Timeline({ dict }: TimelineProps) {
                           : "md:pl-12"
                       }`}
                     >
-                      <span className="text-xs font-semibold uppercase tracking-widest text-terracotta">
+                      <span className="tech-label text-terracotta">
                         {entry.year}
                       </span>
                       <h4 className="mt-1 font-serif text-lg text-forest">
@@ -139,7 +139,7 @@ export default function Timeline({ dict }: TimelineProps) {
 
               {/* Technologies */}
               <motion.div variants={fadeUp} className="mt-10 text-center">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-sage">
+                <h3 className="tech-label text-sage">
                   {dict.techHeading}
                 </h3>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">

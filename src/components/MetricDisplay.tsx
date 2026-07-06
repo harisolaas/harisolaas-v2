@@ -19,7 +19,7 @@ export default function MetricDisplay({
         {value}
       </div>
       <div
-        className={`mt-1 text-xs uppercase tracking-wide ${
+        className={`tech-label mt-1 ${
           dark ? "text-cream/50" : "text-charcoal/50"
         }`}
       >

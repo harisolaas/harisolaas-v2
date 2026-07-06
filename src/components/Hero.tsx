@@ -74,7 +74,7 @@ export default function Hero({ dict }: HeroProps) {
           href="#outlive"
           className="flex flex-col items-center gap-2 text-sage/70 transition-colors hover:text-forest"
         >
-          <span className="text-xs uppercase tracking-widest">
+          <span className="tech-label">
             {dict.scrollCta}
           </span>
           <motion.svg

@@ -59,7 +59,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
                 key={link.href}
                 href={link.href}
                 onClick={() => trackNavClick(link.label, link.href)}
-                className={`text-sm transition-colors ${
+                className={`tech-label transition-colors ${
                   isScrolled
                     ? "text-charcoal/60 hover:text-forest"
                     : "text-charcoal/50 hover:text-forest"

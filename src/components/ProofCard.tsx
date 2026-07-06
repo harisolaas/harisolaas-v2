@@ -21,7 +21,7 @@ export default function ProofCard({ proof, dark = false }: ProofCardProps) {
       }`}
     >
       <span
-        className={`inline-block text-xs font-semibold uppercase tracking-widest ${
+        className={`tech-label inline-block ${
           dark ? "text-sage" : "text-terracotta"
         }`}
       >

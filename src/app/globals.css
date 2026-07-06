@@ -8,10 +8,21 @@
   --color-charcoal: #2C2C2C;
   --color-sage: #A8B5A0;
   --color-cream-dark: #F0EAE0;
+  --color-ink: #16241D;
 
   --font-serif: var(--font-dm-serif);
   --font-sans: var(--font-source-sans);
   --font-script: var(--font-dm-serif);
+  --font-mono: var(--font-jetbrains);
+}
+
+/* Technical label — the mono accent used for eyebrows, metrics, indices */
+.tech-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 html {

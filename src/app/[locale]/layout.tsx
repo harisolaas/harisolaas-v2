@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Source_Sans_3 } from "next/font/google";
+import { DM_Serif_Display, JetBrains_Mono, Source_Sans_3 } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import { locales, type Locale } from "@/i18n/config";
 import { socialLinks } from "@/data/links";
@@ -19,6 +19,13 @@ const dmSerif = DM_Serif_Display({
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],
   variable: "--font-source-sans",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
@@ -107,7 +114,7 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
-      className={`${dmSerif.variable} ${sourceSans.variable}`}
+      className={`${dmSerif.variable} ${sourceSans.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <script
