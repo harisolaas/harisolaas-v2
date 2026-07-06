@@ -20,6 +20,9 @@ interface ProofCardProps {
 export default function ProofCard({ proof, dark = false }: ProofCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+  // Measured once on enter — pre-tilt, so the live rotation never skews the
+  // coordinates — instead of a layout read per pointermove
+  const rect = useRef<DOMRect | null>(null);
 
   // Pointer position within the card, 0–1, springed for the tilt
   const px = useMotionValue(0.5);
@@ -39,13 +42,19 @@ export default function ProofCard({ proof, dark = false }: ProofCardProps) {
     <motion.div variants={fadeUp} style={{ perspective: 800 }}>
       <motion.div
         ref={ref}
+        onPointerEnter={(e) => {
+          if (e.pointerType === "touch") return;
+          rect.current = ref.current?.getBoundingClientRect() ?? null;
+        }}
         onPointerMove={(e) => {
-          const rect = ref.current?.getBoundingClientRect();
-          if (!rect) return;
-          px.set((e.clientX - rect.left) / rect.width);
-          py.set((e.clientY - rect.top) / rect.height);
+          const r = rect.current;
+          // Touch stays inert: scroll-dragging over a card must not tilt it
+          if (!r || e.pointerType === "touch") return;
+          px.set((e.clientX - r.left) / r.width);
+          py.set((e.clientY - r.top) / r.height);
         }}
         onPointerLeave={() => {
+          rect.current = null;
           px.set(0.5);
           py.set(0.5);
         }}
