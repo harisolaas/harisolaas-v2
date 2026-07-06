@@ -49,28 +49,32 @@ export default function Cursor() {
 
   if (!enabled) return null;
 
+  // The blend lives on the transformed element itself: a transform isolates
+  // its children's blending, so a blended child would never see the page and
+  // the cursor would vanish on cream. White + difference self-inverts against
+  // any backdrop (same trick as the BROTE locale switcher).
   return (
     <>
       <motion.div
         aria-hidden
         style={{ x, y }}
-        className="pointer-events-none fixed left-0 top-0 z-[100]"
+        className="pointer-events-none fixed left-0 top-0 z-[100] mix-blend-difference"
       >
-        <div className="h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cream mix-blend-difference" />
+        <div className="h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
       </motion.div>
       <motion.div
         aria-hidden
         style={{ x: ringX, y: ringY }}
-        className="pointer-events-none fixed left-0 top-0 z-[100]"
+        className="pointer-events-none fixed left-0 top-0 z-[100] mix-blend-difference"
       >
         <motion.div
           animate={{
             width: active ? 44 : 28,
             height: active ? 44 : 28,
-            opacity: active ? 1 : 0.6,
+            opacity: active ? 1 : 0.65,
           }}
           transition={{ duration: 0.25 }}
-          className="-translate-x-1/2 -translate-y-1/2 rounded-full border border-cream mix-blend-difference"
+          className="-translate-x-1/2 -translate-y-1/2 rounded-full border border-white"
         />
       </motion.div>
     </>
