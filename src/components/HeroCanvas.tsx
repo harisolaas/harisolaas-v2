@@ -80,13 +80,13 @@ void main() {
   float canopy = c1 * 0.62 + c2 * 0.38;
 
   // Mostly sunlit: shadow only where the canopy is dense, extra warmth
-  // following the pointer
-  float light = smoothstep(0.38, 0.72, canopy);
-  light += smoothstep(0.7, 0.0, md) * 0.2;
+  // following the pointer. Steep smoothstep = defined dapple edges.
+  float light = smoothstep(0.40, 0.66, canopy);
+  light += smoothstep(0.7, 0.0, md) * 0.22;
 
-  vec3 shade = vec3(0.918, 0.910, 0.868);  // sage-tinged leaf shadow
+  vec3 shade = vec3(0.839, 0.851, 0.784);  // sage leaf shadow
   vec3 cream = vec3(0.980, 0.965, 0.945);
-  vec3 sun   = vec3(1.000, 0.972, 0.894);  // warm gold where sun breaks through
+  vec3 sun   = vec3(1.000, 0.961, 0.867);  // warm gold where sun breaks through
 
   vec3 col = mix(shade, cream, smoothstep(0.0, 0.55, light));
   col = mix(col, sun, smoothstep(0.55, 1.0, light));
