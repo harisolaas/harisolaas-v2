@@ -155,34 +155,40 @@ export default function HeroCanvas() {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
+    let frame = 0;
+    let visible = true;
+    const start = performance.now();
+
     // Pointer as canvas UV (0–1, y up to match gl_FragCoord); starts centered
     const mouse = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
     const onPointerMove = (e: PointerEvent) => {
+      if (!visible) return; // hero offscreen — loop is paused, skip the layout read
       const rect = canvas.getBoundingClientRect();
       mouse.tx = (e.clientX - rect.left) / rect.width;
       mouse.ty = 1 - (e.clientY - rect.top) / rect.height;
     };
 
+    const draw = (now: number) => {
+      mouse.x += (mouse.tx - mouse.x) * 0.07;
+      mouse.y += (mouse.ty - mouse.y) * 0.07;
+      gl.uniform1f(uTime, (now - start) / 1000);
+      gl.uniform2f(uMouse, mouse.x, mouse.y);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    };
+
+    // Resolution only changes here, so u_res uploads here rather than every
+    // frame — and the immediate repaint matters: reassigning canvas.width
+    // clears the buffer to opaque black, which would otherwise stay visible
+    // whenever the loop isn't running (hero offscreen, reduced motion).
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       canvas.width = canvas.clientWidth * dpr;
       canvas.height = canvas.clientHeight * dpr;
       gl.viewport(0, 0, canvas.width, canvas.height);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      draw(performance.now());
     };
     resize();
-
-    let frame = 0;
-    let visible = true;
-    const start = performance.now();
-
-    const draw = (now: number) => {
-      mouse.x += (mouse.tx - mouse.x) * 0.07;
-      mouse.y += (mouse.ty - mouse.y) * 0.07;
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-      gl.uniform1f(uTime, (now - start) / 1000);
-      gl.uniform2f(uMouse, mouse.x, mouse.y);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    };
 
     const loop = (now: number) => {
       draw(now);
@@ -190,34 +196,33 @@ export default function HeroCanvas() {
     };
 
     setReady(true);
+    window.addEventListener("resize", resize);
 
+    // No loseContext() in either cleanup: getContext() would hand the same
+    // dead context back on remount (StrictMode re-runs effects), silently
+    // no-op'ing all GL calls. The context is reclaimed with the canvas.
     if (reducedMotion) {
       draw(start);
-    } else {
-      // Only burn GPU while the hero is actually on screen
-      const observer = new IntersectionObserver(([entry]) => {
-        const shouldRun = entry.isIntersecting;
-        if (shouldRun && !visible) frame = requestAnimationFrame(loop);
-        if (!shouldRun && visible) cancelAnimationFrame(frame);
-        visible = shouldRun;
-      });
-      observer.observe(canvas);
-      frame = requestAnimationFrame(loop);
-      window.addEventListener("pointermove", onPointerMove, { passive: true });
-      window.addEventListener("resize", resize);
-
-      // No loseContext() here: getContext() would hand the same dead context
-      // back on remount (StrictMode re-runs effects), silently no-op'ing all
-      // GL calls. The context is reclaimed with the canvas element.
       return () => {
-        observer.disconnect();
-        cancelAnimationFrame(frame);
-        window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("resize", resize);
       };
     }
 
+    // Only burn GPU while the hero is actually on screen
+    const observer = new IntersectionObserver(([entry]) => {
+      const shouldRun = entry.isIntersecting;
+      if (shouldRun && !visible) frame = requestAnimationFrame(loop);
+      if (!shouldRun && visible) cancelAnimationFrame(frame);
+      visible = shouldRun;
+    });
+    observer.observe(canvas);
+    frame = requestAnimationFrame(loop);
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+
     return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("resize", resize);
     };
   }, []);
