@@ -13,7 +13,8 @@ export default function Footer({ dict }: FooterProps) {
         &copy; {new Date().getFullYear()} {dict.copyright}
       </p>
       <p className="mt-2 font-mono text-[10px] tracking-wider text-cream/20">
-        hand-built with next.js · no template{sha ? ` · build ${sha}` : ""}
+        {dict.buildLine}
+        {sha ? ` · build ${sha}` : ""}
       </p>
     </footer>
   );

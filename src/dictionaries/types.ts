@@ -430,6 +430,7 @@ export interface Dictionary {
   };
   footer: {
     copyright: string;
+    buildLine: string;
   };
   brote: BroteDict;
   broteUnArbol: BroteUnArbolDict;

@@ -435,6 +435,7 @@ const en: Dictionary = {
   },
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",
+    buildLine: "hand-built with next.js \u00b7 no template",
   },
   brote: {
     meta: {
