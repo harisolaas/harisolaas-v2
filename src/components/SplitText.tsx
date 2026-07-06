@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment } from "react";
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { Fragment, useEffect, useState } from "react";
+import { motion, type Variants } from "framer-motion";
 import { easeOutExpo } from "@/lib/animations";
 
 interface SplitTextProps {
@@ -17,22 +17,37 @@ interface SplitTextProps {
   immediate?: boolean;
 }
 
+interface UnitCustom {
+  index: number;
+  delay: number;
+  stagger: number;
+  reduced: boolean;
+}
+
 const unit: Variants = {
   hidden: { y: "115%" },
-  visible: (i: { index: number; delay: number; stagger: number }) => ({
-    y: "0%",
-    transition: {
-      duration: 0.9,
-      ease: easeOutExpo,
-      delay: i.delay + i.index * i.stagger,
-    },
-  }),
+  visible: (c: UnitCustom) =>
+    c.reduced
+      ? { y: "0%", transition: { duration: 0 } }
+      : {
+          y: "0%",
+          transition: {
+            duration: 0.9,
+            ease: easeOutExpo,
+            delay: c.delay + c.index * c.stagger,
+          },
+        },
 };
 
 /**
  * Masked type reveal: each word/char rises out of an overflow-hidden slot.
  * The mask carries a small padding/negative-margin pair so descenders
  * (g, y, j) aren't clipped mid-animation.
+ *
+ * The real text lives in an sr-only node (screen readers, find-in-page,
+ * translation); the animated spans are aria-hidden. Reduced-motion is read
+ * after mount so the first client render matches SSR (no hydration
+ * mismatch) — those users get an instant reveal instead of the rise.
  */
 export default function SplitText({
   text,
@@ -42,7 +57,17 @@ export default function SplitText({
   stagger = 0.04,
   immediate = false,
 }: SplitTextProps) {
-  const reducedMotion = useReducedMotion();
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    // Flags that framer is hydrated and driving the reveals — globals.css
+    // scopes the no-JS CSS fallback animation to html:not(.motion-ready)
+    document.documentElement.classList.add("motion-ready");
+    setReduced(
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }, []);
+
   const trigger = immediate
     ? { animate: "visible" as const }
     : {
@@ -50,31 +75,12 @@ export default function SplitText({
         viewport: { once: true, margin: "-80px" },
       };
 
-  if (reducedMotion) {
-    return (
-      <motion.span
-        className={className}
-        initial={{ opacity: 0 }}
-        {...(immediate
-          ? { animate: { opacity: 1 } }
-          : { whileInView: { opacity: 1 }, viewport: { once: true } })}
-        transition={{ duration: 0.6 }}
-      >
-        {text}
-      </motion.span>
-    );
-  }
-
   const words = text.trim().split(/\s+/);
   let unitIndex = 0;
 
   return (
-    <motion.span
-      className={className}
-      initial="hidden"
-      {...trigger}
-      aria-label={text}
-    >
+    <motion.span className={className} initial="hidden" {...trigger}>
+      <span className="sr-only">{text}</span>
       {words.map((word, wi) => (
         <Fragment key={`${word}-${wi}`}>
           <span aria-hidden className="inline-block whitespace-nowrap">
@@ -85,8 +91,15 @@ export default function SplitText({
               >
                 <motion.span
                   variants={unit}
-                  custom={{ index: unitIndex++, delay, stagger }}
-                  className="inline-block will-change-transform"
+                  custom={
+                    {
+                      index: unitIndex++,
+                      delay,
+                      stagger,
+                      reduced,
+                    } satisfies UnitCustom
+                  }
+                  className="st-unit inline-block will-change-transform"
                 >
                   {piece}
                 </motion.span>

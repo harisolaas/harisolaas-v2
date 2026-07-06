@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
-  useReducedMotion,
   useScroll,
   useTransform,
   type MotionValue,
@@ -19,16 +18,21 @@ function Word({
   progress,
   start,
   end,
+  reduced,
 }: {
   word: string;
   progress: MotionValue<number>;
   start: number;
   end: number;
+  reduced: boolean;
 }) {
   const opacity = useTransform(progress, [start, end], [0.14, 1]);
   return (
     <span aria-hidden className="inline-block whitespace-pre">
-      <motion.span style={{ opacity }} className="inline-block">
+      <motion.span
+        style={{ opacity: reduced ? 1 : opacity }}
+        className="st-fade inline-block"
+      >
         {word}
       </motion.span>{" "}
     </span>
@@ -42,20 +46,23 @@ function Word({
  */
 export default function ScrubText({ text, className }: ScrubTextProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const reducedMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start 0.92", "start 0.4"],
   });
 
-  if (reducedMotion) {
-    return <span className={className}>{text}</span>;
-  }
+  // Read after mount so the first client render matches SSR — reduced-motion
+  // users get static full-opacity words instead of the scrub.
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
   const words = text.trim().split(/\s+/);
 
   return (
-    <span ref={ref} className={className} aria-label={text}>
+    <span ref={ref} className={className}>
+      <span className="sr-only">{text}</span>
       {words.map((word, i) => (
         <Word
           key={`${word}-${i}`}
@@ -63,6 +70,7 @@ export default function ScrubText({ text, className }: ScrubTextProps) {
           progress={scrollYProgress}
           start={i / words.length}
           end={(i + 1) / words.length}
+          reduced={reduced}
         />
       ))}
     </span>
