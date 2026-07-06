@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * Living background for the hero: hand-written WebGL fragment shader
- * running slow-drifting fractal noise in the site palette — an animated
- * version of the paper texture. No three.js; a fullscreen triangle and
- * ~60 lines of GLSL keep it at zero bundle cost.
+ * painting dappled sunlight — the moving shadow pattern a tree canopy
+ * throws when sun filters through leaves. Two domain-warped noise layers
+ * sway like branches in wind; where the "canopy" thins, warm gold light
+ * pools. The foliage parts and brightens around the pointer. No three.js;
+ * a fullscreen triangle and ~70 lines of GLSL keep it at zero bundle cost.
  *
  * Degrades to nothing (the CSS texture remains) when WebGL is missing,
  * and renders a single static frame under prefers-reduced-motion.
@@ -53,25 +55,44 @@ float fbm(vec2 p) {
 
 void main() {
   vec2 uv = gl_FragCoord.xy / u_res.xy;
-  vec2 p = uv * vec2(u_res.x / u_res.y, 1.0) * 1.7;
-  float t = u_time * 0.028;
+  vec2 aspect = vec2(u_res.x / u_res.y, 1.0);
+  vec2 p = uv * aspect * 2.4;
+  float t = u_time * 0.12;
 
-  vec2 drift = vec2(fbm(p + t), fbm(p - t + 3.7));
-  float n = fbm(p + 1.8 * drift + u_mouse * 0.3);
+  // Pointer in the same space (u_mouse arrives as 0–1 canvas UV)
+  vec2 m = u_mouse * aspect * 2.4;
+  float md = distance(p, m);
 
+  // Foliage parts around the pointer: push the pattern radially outward.
+  // Scales with the offset itself (no normalization) so there's no
+  // singularity spike at the pointer position.
+  vec2 part = (p - m) * smoothstep(0.9, 0.0, md) * 0.45;
+
+  // Wind: slow sway plus a gentler counter-phase flutter
+  vec2 sway = vec2(
+    sin(t + p.y * 0.8) + 0.35 * sin(t * 2.3 + p.y * 2.1),
+    cos(t * 0.8 + p.x * 0.7) + 0.35 * cos(t * 1.9 + p.x * 1.7)
+  ) * 0.16;
+
+  // Two canopy layers at different scales, drifting like high branches
+  float c1 = fbm(p * 1.1 + sway + part + vec2(0.0, t * 0.05));
+  float c2 = fbm(p * 2.4 - sway * 1.4 + part * 1.5 + vec2(t * 0.04, 0.0) + 4.7);
+  float canopy = c1 * 0.62 + c2 * 0.38;
+
+  // Mostly sunlit: shadow only where the canopy is dense, extra warmth
+  // following the pointer
+  float light = smoothstep(0.38, 0.72, canopy);
+  light += smoothstep(0.7, 0.0, md) * 0.2;
+
+  vec3 shade = vec3(0.918, 0.910, 0.868);  // sage-tinged leaf shadow
   vec3 cream = vec3(0.980, 0.965, 0.945);
-  vec3 tan_  = vec3(0.831, 0.773, 0.698);
-  vec3 sage  = vec3(0.659, 0.710, 0.627);
-  vec3 terra = vec3(0.769, 0.439, 0.294);
+  vec3 sun   = vec3(1.000, 0.972, 0.894);  // warm gold where sun breaks through
 
-  vec3 col = cream;
-  col = mix(col, tan_, smoothstep(0.35, 0.8, n) * 0.30);
-  col = mix(col, sage, smoothstep(0.55, 0.95, fbm(p * 0.8 - drift + t)) * 0.22);
-  col = mix(col, terra, smoothstep(0.80, 0.97, n) * 0.06);
+  vec3 col = mix(shade, cream, smoothstep(0.0, 0.55, light));
+  col = mix(col, sun, smoothstep(0.55, 1.0, light));
 
-  // Soften toward the center so display type stays legible
-  float d = distance(uv, vec2(0.5, 0.55));
-  col = mix(col, cream, smoothstep(0.55, 0.0, d) * 0.5);
+  // Fine grain keeps it organic instead of airbrushed
+  col += (hash(gl_FragCoord.xy) - 0.5) * 0.012;
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -134,10 +155,12 @@ export default function HeroCanvas() {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+    // Pointer as canvas UV (0–1, y up to match gl_FragCoord); starts centered
+    const mouse = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
     const onPointerMove = (e: PointerEvent) => {
-      mouse.tx = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.ty = (e.clientY / window.innerHeight) * 2 - 1;
+      const rect = canvas.getBoundingClientRect();
+      mouse.tx = (e.clientX - rect.left) / rect.width;
+      mouse.ty = 1 - (e.clientY - rect.top) / rect.height;
     };
 
     const resize = () => {
@@ -153,8 +176,8 @@ export default function HeroCanvas() {
     const start = performance.now();
 
     const draw = (now: number) => {
-      mouse.x += (mouse.tx - mouse.x) * 0.04;
-      mouse.y += (mouse.ty - mouse.y) * 0.04;
+      mouse.x += (mouse.tx - mouse.x) * 0.07;
+      mouse.y += (mouse.ty - mouse.y) * 0.07;
       gl.uniform2f(uRes, canvas.width, canvas.height);
       gl.uniform1f(uTime, (now - start) / 1000);
       gl.uniform2f(uMouse, mouse.x, mouse.y);
@@ -183,18 +206,19 @@ export default function HeroCanvas() {
       window.addEventListener("pointermove", onPointerMove, { passive: true });
       window.addEventListener("resize", resize);
 
+      // No loseContext() here: getContext() would hand the same dead context
+      // back on remount (StrictMode re-runs effects), silently no-op'ing all
+      // GL calls. The context is reclaimed with the canvas element.
       return () => {
         observer.disconnect();
         cancelAnimationFrame(frame);
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("resize", resize);
-        gl.getExtension("WEBGL_lose_context")?.loseContext();
       };
     }
 
     return () => {
       window.removeEventListener("resize", resize);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, []);
 
