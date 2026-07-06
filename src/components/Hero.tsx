@@ -31,7 +31,9 @@ export default function Hero({ dict }: HeroProps) {
     offset: ["start start", "end start"],
   });
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "-14%"]);
-  const photoY = useTransform(scrollYProgress, [0, 1], ["0%", "14%"]);
+  // Max travel must stay inside the wrapper's -inset-y-[8%] bleed or the
+  // frame edge exposes background mid-scroll (8% × 1.16 wrapper ≈ 6.9% frame)
+  const photoY = useTransform(scrollYProgress, [0, 1], ["0%", "6%"]);
 
   useEffect(() => {
     trackSectionView("hero");

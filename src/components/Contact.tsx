@@ -77,8 +77,16 @@ export default function Contact({ dict }: ContactProps) {
           <button
             type="button"
             onClick={() => {
-              navigator.clipboard?.writeText(email).then(() => setCopied(true));
-              trackCtaClick("copy_email", email, "contact");
+              navigator.clipboard
+                ?.writeText(email)
+                .then(() => {
+                  setCopied(true);
+                  trackCtaClick("copy_email", email, "contact");
+                })
+                .catch(() => {
+                  // Clipboard can reject (permissions, unfocused document) —
+                  // no feedback and no analytics event for a copy that didn't happen
+                });
             }}
             className="tech-label text-cream/50 transition-colors hover:text-cream"
             aria-live="polite"

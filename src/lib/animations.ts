@@ -46,20 +46,3 @@ export const heroStagger: Variants = {
   },
 };
 
-export const scaleIn: Variants = {
-  hidden: { opacity: 0, scale: 0.92 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.7, ease: easeOutQuart },
-  },
-};
-
-/** Masked line/word reveal — pairs with an overflow-hidden parent. */
-export const maskedRise: Variants = {
-  hidden: { y: "110%" },
-  visible: {
-    y: "0%",
-    transition: { duration: 0.9, ease: easeOutExpo },
-  },
-};

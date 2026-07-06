@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
+import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion";
 import { easeInOutQuint, fadeUp, staggerContainer } from "@/lib/animations";
 import { trackSectionView, trackTimelineToggle } from "@/lib/analytics";
 import type { Dictionary } from "@/dictionaries/types";
@@ -20,6 +20,7 @@ export default function Timeline({ dict }: TimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (isInView) trackSectionView("timeline");
@@ -96,7 +97,7 @@ export default function Timeline({ dict }: TimelineProps) {
               >
                 {/* Timeline line draws itself top-down as the list expands */}
                 <motion.div
-                  initial={{ scaleY: 0 }}
+                  initial={reducedMotion ? false : { scaleY: 0 }}
                   animate={{ scaleY: 1 }}
                   transition={{ duration: 1.6, ease: easeInOutQuint }}
                   className="absolute left-4 top-0 bottom-0 w-px origin-top bg-sage/40 md:left-1/2 md:-translate-x-px"
