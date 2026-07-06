@@ -1,5 +1,6 @@
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
+import ConsoleSignature from "@/components/ConsoleSignature";
 import Cursor from "@/components/Cursor";
 import Navigation from "@/components/Navigation";
 import SmoothScroll from "@/components/SmoothScroll";
@@ -22,6 +23,7 @@ export default async function Home({
     <>
       <SmoothScroll />
       <Cursor />
+      <ConsoleSignature />
       <Navigation locale={locale} dict={dict.nav} />
       <main>
         <Hero dict={dict.hero} />

@@ -1,0 +1,10 @@
+/* TEAM */
+Engineer, designer, gardener: Harald Solaas
+Contact: dev [at] harisolaas.com
+Location: Buenos Aires, Argentina
+
+/* SITE */
+Stack: Next.js, TypeScript, Tailwind CSS, Framer Motion, WebGL
+Doctrine: technology that serves people
+Note: no template, no page builder — every shader, spring and
+      scroll-scrub on this site is hand-written.
