@@ -430,6 +430,8 @@ const en: Dictionary = {
       toptal: "Toptal",
       instagram: "Instagram",
     },
+    copyEmail: "copy email",
+    copiedEmail: "copied ✓",
   },
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",

@@ -439,6 +439,8 @@ const es: Dictionary = {
       toptal: "Toptal",
       instagram: "Instagram",
     },
+    copyEmail: "copiar email",
+    copiedEmail: "copiado ✓",
   },
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",

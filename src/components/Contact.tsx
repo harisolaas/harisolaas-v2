@@ -1,11 +1,16 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { fadeUp, heroStagger } from "@/lib/animations";
 import { trackSectionView, trackCtaClick } from "@/lib/analytics";
 import { socialLinks, caseStudyLink } from "@/data/links";
+import SplitText from "./SplitText";
 import type { Dictionary } from "@/dictionaries/types";
+
+const email =
+  socialLinks.find((l) => l.key === "email")?.href.replace("mailto:", "") ??
+  "";
 
 interface ContactProps {
   dict: Dictionary["contact"];
@@ -14,10 +19,17 @@ interface ContactProps {
 export default function Contact({ dict }: ContactProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (isInView) trackSectionView("contact");
   }, [isInView]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   return (
     <section
@@ -31,12 +43,9 @@ export default function Contact({ dict }: ContactProps) {
         variants={heroStagger}
         className="relative z-10 mx-auto max-w-3xl text-center"
       >
-        <motion.h2
-          variants={fadeUp}
-          className="font-serif text-4xl text-cream md:text-5xl lg:text-6xl"
-        >
-          {dict.heading}
-        </motion.h2>
+        <h2 className="font-serif text-4xl text-cream md:text-5xl lg:text-6xl">
+          <SplitText text={dict.heading} stagger={0.06} />
+        </h2>
         <motion.p
           variants={fadeUp}
           className="mt-6 text-cream/70 md:text-lg md:leading-relaxed"
@@ -61,6 +70,21 @@ export default function Contact({ dict }: ContactProps) {
               {dict.linkLabels[link.key]}
             </a>
           ))}
+        </motion.div>
+
+        {/* Copy-to-clipboard affordance under the link pills */}
+        <motion.div variants={fadeUp} className="mt-5">
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard?.writeText(email).then(() => setCopied(true));
+              trackCtaClick("copy_email", email, "contact");
+            }}
+            className="tech-label text-cream/50 transition-colors hover:text-cream"
+            aria-live="polite"
+          >
+            {copied ? dict.copiedEmail : `${dict.copyEmail} — ${email}`}
+          </button>
         </motion.div>
 
         <motion.div variants={fadeUp} className="mt-8">

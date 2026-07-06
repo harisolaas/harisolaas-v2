@@ -425,6 +425,8 @@ export interface Dictionary {
     description: string;
     caseStudyLabel: string;
     linkLabels: Record<string, string>;
+    copyEmail: string;
+    copiedEmail: string;
   };
   footer: {
     copyright: string;
