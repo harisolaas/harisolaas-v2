@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { easeOutExpo } from "@/lib/animations";
 
@@ -75,23 +76,27 @@ export default function SplitText({
       aria-label={text}
     >
       {words.map((word, wi) => (
-        <span key={`${word}-${wi}`} aria-hidden className="inline-block whitespace-nowrap">
-          {(by === "word" ? [word] : Array.from(word)).map((piece, pi) => (
-            <span
-              key={pi}
-              className="inline-block overflow-hidden pb-[0.14em] -mb-[0.14em] align-bottom"
-            >
-              <motion.span
-                variants={unit}
-                custom={{ index: unitIndex++, delay, stagger }}
-                className="inline-block will-change-transform"
+        <Fragment key={`${word}-${wi}`}>
+          <span aria-hidden className="inline-block whitespace-nowrap">
+            {(by === "word" ? [word] : Array.from(word)).map((piece, pi) => (
+              <span
+                key={pi}
+                className="inline-block overflow-hidden pb-[0.14em] -mb-[0.14em] align-bottom"
               >
-                {piece}
-              </motion.span>
-            </span>
-          ))}
+                <motion.span
+                  variants={unit}
+                  custom={{ index: unitIndex++, delay, stagger }}
+                  className="inline-block will-change-transform"
+                >
+                  {piece}
+                </motion.span>
+              </span>
+            ))}
+          </span>
+          {/* The joining space must sit OUTSIDE the inline-block wrapper —
+              trailing whitespace inside one gets collapsed away */}
           {wi < words.length - 1 ? " " : null}
-        </span>
+        </Fragment>
       ))}
     </motion.span>
   );
