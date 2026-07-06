@@ -85,6 +85,12 @@ body {
   pointer-events: none;
 }
 
+/* Custom cursor replaces the native one on fine pointers */
+html.has-custom-cursor,
+html.has-custom-cursor * {
+  cursor: none !important;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll } from "framer-motion";
 import { trackNavClick, trackLocaleSwitch } from "@/lib/analytics";
+import Magnetic from "./Magnetic";
 import type { Dictionary } from "@/dictionaries/types";
 
 interface NavigationProps {
@@ -13,6 +14,7 @@ interface NavigationProps {
 export default function Navigation({ locale, dict }: NavigationProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { scrollYProgress } = useScroll();
 
   const navLinks = [
     { label: dict.values, href: "#outlive" },
@@ -53,32 +55,35 @@ export default function Navigation({ locale, dict }: NavigationProps) {
           </a>
 
           {/* Desktop nav */}
-          <div className="hidden items-center gap-8 md:flex">
+          <div className="hidden items-center gap-6 md:flex">
             {navLinks.map((link) => (
+              <Magnetic key={link.href} strength={0.35}>
+                <a
+                  href={link.href}
+                  onClick={() => trackNavClick(link.label, link.href)}
+                  className={`tech-label block px-1 py-2 transition-colors ${
+                    isScrolled
+                      ? "text-charcoal/60 hover:text-forest"
+                      : "text-charcoal/50 hover:text-forest"
+                  }`}
+                >
+                  {link.label}
+                </a>
+              </Magnetic>
+            ))}
+            <Magnetic strength={0.35}>
               <a
-                key={link.href}
-                href={link.href}
-                onClick={() => trackNavClick(link.label, link.href)}
-                className={`tech-label transition-colors ${
+                href={`/${otherLocale}`}
+                onClick={() => trackLocaleSwitch(locale, otherLocale)}
+                className={`block rounded-full border px-3 py-1 font-mono text-xs font-medium transition-colors ${
                   isScrolled
-                    ? "text-charcoal/60 hover:text-forest"
-                    : "text-charcoal/50 hover:text-forest"
+                    ? "border-forest/20 text-forest hover:bg-forest/5"
+                    : "border-forest/15 text-forest/70 hover:bg-forest/5"
                 }`}
               >
-                {link.label}
+                {localeLabel}
               </a>
-            ))}
-            <a
-              href={`/${otherLocale}`}
-              onClick={() => trackLocaleSwitch(locale, otherLocale)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
-                isScrolled
-                  ? "border-forest/20 text-forest hover:bg-forest/5"
-                  : "border-forest/15 text-forest/70 hover:bg-forest/5"
-              }`}
-            >
-              {localeLabel}
-            </a>
+            </Magnetic>
           </div>
 
           {/* Mobile hamburger */}
@@ -105,6 +110,13 @@ export default function Navigation({ locale, dict }: NavigationProps) {
             />
           </button>
         </div>
+
+        {/* Reading-progress hairline */}
+        <motion.div
+          aria-hidden
+          style={{ scaleX: scrollYProgress }}
+          className="absolute bottom-0 left-0 h-px w-full origin-left bg-terracotta/70"
+        />
       </motion.nav>
 
       {/* Mobile menu */}

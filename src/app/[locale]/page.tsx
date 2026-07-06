@@ -1,5 +1,6 @@
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
+import Cursor from "@/components/Cursor";
 import Navigation from "@/components/Navigation";
 import SmoothScroll from "@/components/SmoothScroll";
 import Hero from "@/components/Hero";
@@ -20,6 +21,7 @@ export default async function Home({
   return (
     <>
       <SmoothScroll />
+      <Cursor />
       <Navigation locale={locale} dict={dict.nav} />
       <main>
         <Hero dict={dict.hero} />
