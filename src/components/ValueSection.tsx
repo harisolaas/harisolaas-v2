@@ -8,7 +8,7 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { trackSectionView } from "@/lib/analytics";
 import { easeOutExpo, staggerContainer } from "@/lib/animations";
 import type { ValueData } from "@/dictionaries/types";
@@ -18,7 +18,11 @@ import SectionQuote from "./SectionQuote";
 
 /**
  * Flattened section colors used for the scroll-driven background morph.
- * "tan" is bg-tan/30 over cream, pre-blended so we can interpolate solids.
+ * These fork the @theme tokens in globals.css (--color-cream, --color-forest)
+ * because framer-motion interpolates concrete values, not CSS variables:
+ * cream = --color-cream, forest = --color-forest, and tan = --color-tan at
+ * 30% alpha composited over cream (0.7·cream + 0.3·tan per channel). If the
+ * palette in globals.css changes, re-derive these.
  */
 const bgColor = {
   cream: "#FAF6F1",
@@ -49,6 +53,12 @@ export default function ValueSection({
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const reducedMotion = useReducedMotion();
   const config = bgConfig[value.variant];
+
+  // SSR and pre-hydration paint must show the section's OWN color — the
+  // morph's initial value is the previous section's, which server-renders
+  // the forest section cream-on-cream. Morph only after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // The section enters wearing the previous section's color and resolves
   // to its own as it climbs the viewport — boundaries melt instead of cut.
@@ -83,9 +93,9 @@ export default function ValueSection({
       id={value.id}
       ref={ref}
       style={
-        reducedMotion
-          ? { backgroundColor: bgColor[value.variant] }
-          : { backgroundColor }
+        mounted && !reducedMotion
+          ? { backgroundColor }
+          : { backgroundColor: bgColor[value.variant] }
       }
       className="texture-overlay relative"
     >
@@ -98,7 +108,7 @@ export default function ValueSection({
           <span
             className={`tech-label block ${
               config.dark ? "text-sage" : "text-terracotta"
-            } ${isEven ? "" : "text-right"}`}
+            }`}
           >
             {indexLabel}
           </span>
