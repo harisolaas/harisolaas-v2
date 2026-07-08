@@ -44,48 +44,48 @@ export default function BeyondSection({ dict, hasPhoto }: BeyondSectionProps) {
           </p>
         </motion.div>
 
-        <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:gap-12">
-          <div className="self-center lg:w-4/12 lg:flex-shrink-0">
-            {hasPhoto ? (
-              <motion.div
-                initial={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { clipPath: "inset(10% 6% 10% 6%)", opacity: 0 }
-                }
-                whileInView={
-                  reducedMotion
-                    ? { opacity: 1 }
-                    : { clipPath: "inset(0% 0% 0% 0%)", opacity: 1 }
-                }
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 1.2, ease: easeOutExpo }}
-                className="photo-warm-overlay relative aspect-[3/4] overflow-hidden"
-              >
-                <Image
-                  src="/speaking.jpg"
-                  alt={dict.photoAlt}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 33vw"
-                />
-              </motion.div>
-            ) : (
-              <PhotoPlaceholder alt={dict.photoAlt} aspect="portrait" />
-            )}
-          </div>
-
-          <motion.div
-            initial="hidden"
-            animate={isInView ? "visible" : "hidden"}
-            variants={staggerContainer}
-            className="flex flex-col gap-5 lg:w-8/12"
-          >
-            {dict.items.map((item) => (
-              <ProofCard key={item.label} proof={item} />
-            ))}
-          </motion.div>
+        {/* Landscape banner — the speaking photo only works horizontal */}
+        <div className="mt-8">
+          {hasPhoto ? (
+            <motion.div
+              initial={
+                reducedMotion
+                  ? { opacity: 0 }
+                  : { clipPath: "inset(10% 6% 10% 6%)", opacity: 0 }
+              }
+              whileInView={
+                reducedMotion
+                  ? { opacity: 1 }
+                  : { clipPath: "inset(0% 0% 0% 0%)", opacity: 1 }
+              }
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 1.2, ease: easeOutExpo }}
+              className="photo-warm-overlay relative aspect-[3/2] overflow-hidden md:aspect-[2/1]"
+            >
+              <Image
+                src="/speaking.jpg"
+                alt={dict.photoAlt}
+                fill
+                className="object-cover"
+                style={{ objectPosition: "center 35%" }}
+                sizes="(max-width: 1280px) 100vw, 1152px"
+              />
+            </motion.div>
+          ) : (
+            <PhotoPlaceholder alt={dict.photoAlt} aspect="landscape" />
+          )}
         </div>
+
+        <motion.div
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
+          variants={staggerContainer}
+          className="mt-8 grid gap-5 md:grid-cols-3"
+        >
+          {dict.items.map((item) => (
+            <ProofCard key={item.label} proof={item} />
+          ))}
+        </motion.div>
       </div>
     </section>
   );
