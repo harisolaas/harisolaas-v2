@@ -44,6 +44,47 @@ const en: Dictionary = {
     metaLocation: "Buenos Aires, Argentina",
     photoCaption: "fig. 01 — the human",
   },
+  impact: {
+    heading: "Results",
+    items: [
+      {
+        label: "Carewell",
+        title: "A $21M rebuild that paid off in month one",
+        description:
+          "Four engineers rebuilt Carewell's healthcare ecommerce from the ground up. We launched on time, engagement and sales rose in the first month, and the site works even with JavaScript turned off — a board-level requirement full of problems nobody in the industry had solved before.",
+        metrics: [
+          { value: "$21M", label: "Platform rebuilt" },
+          { value: "100", label: "Lighthouse performance" },
+        ],
+      },
+      {
+        label: "Cruise",
+        title: "From weekly firefighting to a year of calm",
+        description:
+          "The analytics platform executives and operations depended on crashed 14 times a month. I changed how the team tested — real use cases over coverage numbers — trained my colleagues, and it ran for a year at nearly zero. That infrastructure is still the team's foundation.",
+        metrics: [
+          { value: "14→0.3", label: "Crashes per month" },
+          { value: "90%", label: "Less execution time" },
+        ],
+      },
+      {
+        label: "Estée Lauder",
+        title: "One system, 200+ storefronts",
+        description:
+          "One component system powering the ecommerce of 200+ brand sites worldwide. When hundreds of thousands of people shop every day, each deploy matters — we raised test coverage from 60% to 85% and cut the time to first interaction.",
+        metrics: [
+          { value: "200+", label: "Sites served" },
+          { value: "60→85%", label: "Test coverage" },
+        ],
+      },
+      {
+        label: "Legal industry · 2023–today",
+        title: "A platform that holds when the flood comes",
+        description:
+          "A US legal company handling mass claims: when a case opens, traffic spikes massively within hours. I migrated their legacy single-page app to a server-rendered platform that stays fast, accessible and secure under load — and keeps their operation online.",
+      },
+    ],
+  },
   values: [
     {
       id: "outlive",

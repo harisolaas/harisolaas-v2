@@ -45,6 +45,47 @@ const es: Dictionary = {
     metaLocation: "Buenos Aires, Argentina",
     photoCaption: "fig. 01 \u2014 el humano",
   },
+  impact: {
+    heading: "Resultados",
+    items: [
+      {
+        label: "Carewell",
+        title: "Una reconstrucción de USD 21M que rindió el primer mes",
+        description:
+          "Cuatro ingenieros reconstruimos el ecommerce de salud de Carewell desde cero. Lanzamos a tiempo, el engagement y las ventas subieron el primer mes, y el sitio funciona incluso sin JavaScript — una exigencia del directorio llena de problemas que nadie en la industria había resuelto antes.",
+        metrics: [
+          { value: "$21M", label: "Plataforma reconstruída" },
+          { value: "100", label: "Performance en Lighthouse" },
+        ],
+      },
+      {
+        label: "Cruise",
+        title: "De apagar incendios a un año de calma",
+        description:
+          "La plataforma de análisis que usaban ejecutivos y operaciones se caía 14 veces por mes. Cambié cómo testeaba el equipo — casos de uso reales por sobre números de cobertura —, entrené a mis colegas, y corrió un año entero casi sin caídas. Esa infraestructura sigue siendo la base del equipo.",
+        metrics: [
+          { value: "14→0.3", label: "Caídas por mes" },
+          { value: "90%", label: "Menos tiempo de ejecución" },
+        ],
+      },
+      {
+        label: "Estée Lauder",
+        title: "Un sistema, 200+ tiendas",
+        description:
+          "Un solo sistema de componentes moviendo el ecommerce de 200+ sitios de marcas en todo el mundo. Cuando cientos de miles de personas compran por día, cada deploy importa — subimos la cobertura de tests de 60% a 85% y redujimos el tiempo a primera interacción.",
+        metrics: [
+          { value: "200+", label: "Sitios servidos" },
+          { value: "60→85%", label: "Cobertura de tests" },
+        ],
+      },
+      {
+        label: "Industria legal · 2023–hoy",
+        title: "Una plataforma que aguanta cuando llega la ola",
+        description:
+          "Una empresa legal de EE.UU. que maneja demandas masivas: cuando se abre un caso, el tráfico se dispara en horas. Migré su aplicación legacy a una plataforma server-rendered que se mantiene rápida, accesible y segura bajo presión — y mantiene su operación en línea.",
+      },
+    ],
+  },
   values: [
     {
       id: "outlive",

@@ -5,6 +5,7 @@ import Cursor from "@/components/Cursor";
 import Navigation from "@/components/Navigation";
 import SmoothScroll from "@/components/SmoothScroll";
 import Hero from "@/components/Hero";
+import ImpactSection from "@/components/ImpactSection";
 import ValueSection from "@/components/ValueSection";
 import NowSection from "@/components/NowSection";
 import Timeline from "@/components/Timeline";
@@ -27,6 +28,7 @@ export default async function Home({
       <Navigation locale={locale} dict={dict.nav} />
       <main>
         <Hero dict={dict.hero} />
+        <ImpactSection dict={dict.impact} />
         {dict.values.map((value, index) => (
           <ValueSection
             key={value.id}

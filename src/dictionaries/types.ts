@@ -31,6 +31,11 @@ export interface NowItem {
   cta?: { label: string; href: string };
 }
 
+export interface ImpactDict {
+  heading: string;
+  items: ProofPoint[];
+}
+
 export interface TimelineEntry {
   year: string;
   title: string;
@@ -407,6 +412,7 @@ export interface Dictionary {
     metaLocation: string;
     photoCaption: string;
   };
+  impact: ImpactDict;
   values: ValueData[];
   now: {
     heading: string;
