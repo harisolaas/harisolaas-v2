@@ -88,7 +88,7 @@ const es: Dictionary = {
           title:
             "El profesor de alivio del trauma m\u00e1s joven de Latinoam\u00e9rica",
           description:
-            "A los 15, me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica. Trabaj\u00e9 con personas que perdieron sus hogares en Villa La Angostura. Trabaj\u00e9 con hu\u00e9rfanos, j\u00f3venes en rehabilitaci\u00f3n y en procesos judiciales. Aprend\u00ed que detr\u00e1s de cada exterior dif\u00edcil, hay una historia y hay amor.",
+            "A los 16, me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica. Trabaj\u00e9 con personas que perdieron sus hogares en Villa La Angostura. Trabaj\u00e9 con hu\u00e9rfanos, j\u00f3venes en rehabilitaci\u00f3n y en procesos judiciales. Aprend\u00ed que detr\u00e1s de cada exterior dif\u00edcil, hay una historia y hay amor.",
         },
         {
           label: "Profesional",
@@ -302,7 +302,7 @@ const es: Dictionary = {
         year: "2009",
         title: "Art of Living \u2014 15 a\u00f1os",
         description:
-          "Comenc\u00e9 la pr\u00e1ctica de meditaci\u00f3n y la formaci\u00f3n como profesor de alivio de trauma. El profesor m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica.",
+          "Empec\u00e9 a meditar a los 15; a los 16 me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica.",
         type: "life",
       },
       {

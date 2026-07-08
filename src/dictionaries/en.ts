@@ -53,19 +53,19 @@ const en: Dictionary = {
           label: "Community",
           title: "50 volunteers, 500+ lives touched",
           description:
-            "Led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continues to this day without him.",
+            "I led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. I built the volunteer infrastructure, then stepped away. The program continues to this day without me.",
         },
         {
           label: "Personal",
           title: "A basketball team from nothing",
           description:
-            "Created a basketball team at age 29 because he was too old to join one. Built it from nothing, played for two years, then left due to injury. The team kept playing for two more years.",
+            "I created a basketball team at 29 because I was too old to join one. I built it from nothing, played for two years, then left due to injury. The team kept playing for two more years.",
         },
         {
           label: "Professional",
           title: "From 14 prod crashes to near-zero",
           description:
-            "At Cruise (autonomous vehicles, Silicon Valley), inherited a codebase with 20% test coverage and 14 crashes/month. Left it at 70%+ coverage with 0.3 crashes/month. The testing infrastructure he built became the team\u2019s foundation.",
+            "At Cruise (autonomous vehicles, Silicon Valley), I inherited a codebase with 20% test coverage and 14 crashes/month. I left it at 70%+ coverage with 0.3 crashes/month. The testing infrastructure I built became the team\u2019s foundation.",
         },
       ],
       photoAlt: "Community volunteering work in Buenos Aires",
@@ -80,19 +80,19 @@ const en: Dictionary = {
           label: "Origin",
           title: "A psychologist\u2019s son",
           description:
-            "Father was a psychologist and organizational consultant. From childhood, Hari learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
+            "My father was a psychologist and organizational consultant. From childhood, I learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
         },
         {
           label: "Formative",
           title: "Youngest trauma relief teacher in Latin America",
           description:
-            "At 15, became the youngest Art of Living trauma relief teacher in Latin America. Worked with people who lost homes in Villa La Angostura. Worked with orphans, rehab youth, and past criminals. Learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
+            "At 16, I became the youngest Art of Living trauma relief teacher in Latin America. I worked with people who lost their homes in Villa La Angostura, with orphans, and with teenagers in conflict with the law. I learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
         },
         {
           label: "Professional",
           title: "The bridge between engineering and people",
           description:
-            "At Carewell, rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, ended up as the bridge between engineering and product \u2014 because he sees the humans, not just the code.",
+            "At Carewell, I rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, I ended up as the bridge between engineering and product \u2014 because I see the humans, not just the code.",
         },
       ],
       photoAlt: "Working with youth in community settings",
@@ -107,7 +107,7 @@ const en: Dictionary = {
           label: "Cruise",
           title: "Autonomous vehicle analytics",
           description:
-            "Built the analytics platform used by executives and operations staff across the company. Reduced execution time by 90% on critical components.",
+            "I built the analytics platform used by executives and operations staff across the company. I reduced execution time by 90% on critical components.",
           metrics: [
             { value: "20\u219270%", label: "Test coverage in 3 months" },
             { value: "14\u21920.3", label: "Crashes per month" },
@@ -128,7 +128,7 @@ const en: Dictionary = {
           label: "Est\u00e9e Lauder",
           title: "200+ brand sites globally",
           description:
-            "Built flexible, reusable components serving 200+ brand sites globally. Reduced time to first interaction. Multi-tenancy at the extreme \u2014 every deployment matters when hundreds of thousands of users depend on it daily.",
+            "I built flexible, reusable components serving 200+ brand sites globally. I reduced time to first interaction. Multi-tenancy at the extreme \u2014 every deployment matters when hundreds of thousands of users depend on it daily.",
           metrics: [
             { value: "200+", label: "Sites served" },
             { value: "60\u219285%", label: "Test coverage" },
@@ -151,13 +151,13 @@ const en: Dictionary = {
           label: "Art of Living",
           title: "Streaming platform for wellbeing",
           description:
-            "Built gamification for the Art of Living Foundation's streaming platform with thousands of monthly users, deepening engagement with meditation and wellbeing content.",
+            "I built gamification for the Art of Living Foundation's streaming platform with thousands of monthly users, deepening engagement with meditation and wellbeing content.",
         },
         {
           label: "Cruise",
           title: "Tools that build the future",
           description:
-            "Built tools that helped car engineers, testers, and data scientists visualize hundreds of thousands of data points from autonomous drives. Building the tools that build the future of transportation.",
+            "I built tools that helped car engineers, testers, and data scientists visualize hundreds of thousands of data points from autonomous drives. Building the tools that build the future of transportation.",
         },
         {
           label: "Carewell",
@@ -169,7 +169,7 @@ const en: Dictionary = {
           label: "Nubi",
           title: "Financial access for 50,000+",
           description:
-            "Gave 50,000+ Latin Americans easier access to their PayPal funds \u2014 international transfers, withdrawals, credit card management.",
+            "We gave 50,000+ Latin Americans easier access to their PayPal funds \u2014 international transfers, withdrawals, credit card management.",
         },
         {
           label: "Philosophy",
@@ -191,9 +191,9 @@ const en: Dictionary = {
       proofPoints: [
         {
           label: "Basketball",
-          title: "Too old to join, so he built one",
+          title: "Too old to join, so I built one",
           description:
-            "Too old to join a team at 29, so he created one. Joined an amateur league. It became its own living thing.",
+            "Too old to join a team at 29, so I created one. We joined an amateur league. It became its own living thing.",
         },
         {
           label: "Teaching",
@@ -293,7 +293,7 @@ const en: Dictionary = {
         year: "2009",
         title: "Art of Living \u2014 Age 15",
         description:
-          "Began meditation practice and training as a trauma relief teacher. Youngest Art of Living teacher in Latin America.",
+          "Began meditating at 15; at 16, became the youngest Art of Living trauma relief teacher in Latin America.",
         type: "life",
       },
       {
@@ -307,7 +307,7 @@ const en: Dictionary = {
         year: "2011\u20132012",
         title: "Service",
         description:
-          "Ense\u00f1ar t\u00e9cnicas de manejo emocional a orphans, at-risk youth, and past criminals.",
+          "Taught emotional-regulation techniques to orphans, at-risk youth, and teenagers in conflict with the law.",
         type: "community",
       },
       {
