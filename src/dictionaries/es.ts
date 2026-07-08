@@ -174,6 +174,31 @@ const es: Dictionary = {
       variant: "forest",
     },
   ],
+  beyond: {
+    heading: "Más allá del código",
+    subheading: "Los mismos principios, lejos de la pantalla.",
+    items: [
+      {
+        label: "Enseñanza",
+        title: "Charlas y docencia en bienestar",
+        description:
+          "Profesor certificado de El Arte de Vivir desde 2022. Doy charlas sobre hábitos, meditación y liderazgo consciente en eventos de bienestar, y facilito un encuentro semanal de meditación y escritura en Buenos Aires.",
+      },
+      {
+        label: "Servicio",
+        title: "Otra manera de crecer",
+        description:
+          "Tres años enseñando a adolescentes en una villa de Buenos Aires — técnicas de respiración, valores humanos, cómo volver a jugar. Ayudando a que dejen el crimen atrás y vean que existe otro camino.",
+      },
+      {
+        label: "Práctica",
+        title: "9 años de práctica diaria",
+        description:
+          "Sudarshan Kriya y meditación, todos los días desde hace 9 años. La alegría no es accidental — es una disciplina.",
+      },
+    ],
+    photoAlt: "Hari dando una charla en un evento de bienestar",
+  },
   now: {
     heading: "Lo que estoy armando ahora",
     subheading:

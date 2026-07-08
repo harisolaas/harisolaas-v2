@@ -172,6 +172,31 @@ const en: Dictionary = {
       variant: "forest",
     },
   ],
+  beyond: {
+    heading: "Beyond the code",
+    subheading: "The same principles, away from the screen.",
+    items: [
+      {
+        label: "Teaching",
+        title: "Talks and teaching on wellbeing",
+        description:
+          "Certified Art of Living teacher since 2022. I give talks on habits, meditation and conscious leadership at wellness events, and facilitate a weekly meditation and writing gathering in Buenos Aires.",
+      },
+      {
+        label: "Service",
+        title: "Another way to grow up",
+        description:
+          "Three years teaching teenagers in a Buenos Aires slum \u2014 breathing techniques, human values, how to play again. Helping them leave crime behind and see that another path exists.",
+      },
+      {
+        label: "Practice",
+        title: "9 years of daily practice",
+        description:
+          "Sudarshan Kriya and meditation, every single day for 9 years. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
+      },
+    ],
+    photoAlt: "Hari giving a talk at a wellness event",
+  },
   now: {
     heading: "What I\u2019m Building Right Now",
     subheading:

@@ -36,6 +36,13 @@ export interface ImpactDict {
   items: ProofPoint[];
 }
 
+export interface BeyondDict {
+  heading: string;
+  subheading: string;
+  items: ProofPoint[];
+  photoAlt: string;
+}
+
 export interface TimelineEntry {
   year: string;
   title: string;
@@ -414,6 +421,7 @@ export interface Dictionary {
   };
   impact: ImpactDict;
   values: ValueData[];
+  beyond: BeyondDict;
   now: {
     heading: string;
     subheading: string;

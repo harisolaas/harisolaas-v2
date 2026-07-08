@@ -1,3 +1,5 @@
+import { existsSync } from "fs";
+import { join } from "path";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import ConsoleSignature from "@/components/ConsoleSignature";
@@ -7,6 +9,7 @@ import SmoothScroll from "@/components/SmoothScroll";
 import Hero from "@/components/Hero";
 import ImpactSection from "@/components/ImpactSection";
 import ValueSection from "@/components/ValueSection";
+import BeyondSection from "@/components/BeyondSection";
 import NowSection from "@/components/NowSection";
 import Timeline from "@/components/Timeline";
 import Contact from "@/components/Contact";
@@ -19,6 +22,10 @@ export default async function Home({
 }) {
   const { locale } = await params;
   const dict = await getDictionary(locale as Locale);
+  // Speaking photo ships separately — placeholder renders until it lands
+  const hasSpeakingPhoto = existsSync(
+    join(process.cwd(), "public", "speaking.jpg")
+  );
 
   return (
     <>
@@ -38,6 +45,7 @@ export default async function Home({
             prevVariant={index === 0 ? "cream" : dict.values[index - 1].variant}
           />
         ))}
+        <BeyondSection dict={dict.beyond} hasPhoto={hasSpeakingPhoto} />
         <NowSection dict={dict.now} />
         <Timeline dict={dict.timeline} />
         <Contact dict={dict.contact} />
