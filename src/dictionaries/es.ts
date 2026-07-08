@@ -4,7 +4,7 @@ const es: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     description:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Una d\u00e9cada de resultados medibles \u2014 un ecommerce de USD 21M reconstru\u00eddo, plataformas moviendo 200+ tiendas globales \u2014 construyendo tecnolog\u00eda al servicio de las personas.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Una d\u00e9cada de resultados medibles \u2014 un ecommerce de USD 21M reconstruido, plataformas moviendo 200+ tiendas globales \u2014 construyendo tecnolog\u00eda al servicio de las personas.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
@@ -55,7 +55,7 @@ const es: Dictionary = {
         description:
           "Cuatro ingenieros reconstruimos el ecommerce de salud de Carewell desde cero. Lanzamos a tiempo, el engagement y las ventas subieron el primer mes, y el sitio funciona incluso sin JavaScript — una exigencia del directorio llena de problemas que nadie en la industria había resuelto antes.",
         metrics: [
-          { value: "$21M", label: "Plataforma reconstruída" },
+          { value: "$21M", label: "Plataforma reconstruida" },
           { value: "100", label: "Performance en Lighthouse" },
         ],
       },
