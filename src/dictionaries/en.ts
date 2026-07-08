@@ -136,7 +136,7 @@ const en: Dictionary = {
         },
       ],
       quote: {
-        text: "Not leaving anything for later. Going the last 1% to make the user experience awesome. Optimizing as much as it makes sense, as much as it adds value.",
+        text: "Not leaving anything for later. Going for the last 1% that makes the user experience awesome. Optimizing as much as it makes sense, as much as it adds value.",
       },
       photoAlt: "Technical excellence and precision",
       photoSrc: "/excellence.jpg",
