@@ -4,7 +4,7 @@ const es: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     description:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Desde soluciones de IA hasta productos full-stack, construyo tecnolog\u00eda al servicio de las personas \u2014 y comunidades que me trasciendan.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Una d\u00e9cada de resultados medibles \u2014 un ecommerce de USD 21M reconstru\u00eddo, plataformas moviendo 200+ tiendas globales \u2014 construyendo tecnolog\u00eda al servicio de las personas.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
@@ -18,7 +18,7 @@ const es: Dictionary = {
     ],
     ogTitle: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     ogDescription:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Desde soluciones de IA hasta productos full-stack, construyo tecnolog\u00eda al servicio de las personas y comunidades que me trasciendan.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Una d\u00e9cada de resultados medibles, construyendo tecnolog\u00eda al servicio de las personas.",
     twitterTitle:
       "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     twitterDescription:
@@ -26,6 +26,7 @@ const es: Dictionary = {
   },
   nav: {
     brand: "Hari",
+    impact: "Resultados",
     values: "Valores",
     now: "Ahora",
     story: "Recorrido",

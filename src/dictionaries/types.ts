@@ -402,6 +402,7 @@ export interface Dictionary {
   };
   nav: {
     brand: string;
+    impact: string;
     values: string;
     now: string;
     story: string;

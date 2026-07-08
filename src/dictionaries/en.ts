@@ -4,7 +4,7 @@ const en: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Technology that serves people",
     description:
-      "Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, I build technology that serves people \u2014 and communities that outlive me.",
+      "Senior Software Engineer & Technology Consultant. A decade of measurable results \u2014 a $21M ecommerce rebuild, platforms powering 200+ global storefronts \u2014 building technology that serves people.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
@@ -18,13 +18,14 @@ const en: Dictionary = {
     ],
     ogTitle: "Harald Solaas \u2014 Technology that serves people",
     ogDescription:
-      "Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, building technology that serves people and communities that outlive me.",
+      "Senior Software Engineer & Technology Consultant. A decade of measurable results, building technology that serves people.",
     twitterTitle: "Harald Solaas \u2014 Technology that serves people",
     twitterDescription:
       "Senior Software Engineer & Technology Consultant. Building technology that serves people.",
   },
   nav: {
     brand: "Hari",
+    impact: "Results",
     values: "Values",
     now: "Now",
     story: "Experience",
