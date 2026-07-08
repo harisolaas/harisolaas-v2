@@ -10,8 +10,8 @@ export interface ValueData {
   statement: string;
   proofPoints: ProofPoint[];
   quote?: { text: string };
-  photoAlt: string;
-  photoSrc: string;
+  photoAlt?: string;
+  photoSrc?: string;
   photoPosition?: string;
   variant: "cream" | "tan" | "forest";
 }

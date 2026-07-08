@@ -89,61 +89,6 @@ const es: Dictionary = {
   },
   values: [
     {
-      id: "outlive",
-      statement: "Construyo cosas que me trascienden.",
-      proofPoints: [
-        {
-          label: "Cruise",
-          title: "Infraestructura de testing que se volvi\u00f3 la base",
-          description:
-            "En Cruise (veh\u00edculos aut\u00f3nomos, Silicon Valley) no solo fren\u00e9 las ca\u00eddas \u2014 cambi\u00e9 c\u00f3mo testeaba el equipo y entren\u00e9 a los ingenieros a mi alrededor. A\u00f1os despu\u00e9s, la infraestructura de testing que constru\u00ed sigue siendo lo que sostiene al equipo.",
-        },
-        {
-          label: "Est\u00e9e Lauder",
-          title: "Componentes que me sobrevivieron",
-          description:
-            "El sistema de componentes que ayud\u00e9 a construir sigue moviendo 200+ tiendas de marcas mucho despu\u00e9s de mi paso. El c\u00f3digo que dura es c\u00f3digo que se pens\u00f3 bien.",
-        },
-        {
-          label: "Comunidad",
-          title: "Un programa que sigue sin m\u00ed",
-          description:
-            "Lider\u00e9, junto a un equipo, a 50 voluntarios para ense\u00f1ar a m\u00e1s de 500 personas en una villa de Buenos Aires. Constru\u00ed la infraestructura de voluntarios y despu\u00e9s migr\u00e9 al pr\u00f3ximo desaf\u00edo. El programa contin\u00faa hasta el d\u00eda de hoy.",
-        },
-      ],
-      photoAlt: "Trabajo voluntario comunitario en Buenos Aires",
-      photoSrc: "/community.jpg",
-      variant: "cream",
-    },
-    {
-      id: "humans",
-      statement: "Veo a las personas detr\u00e1s del sistema.",
-      proofPoints: [
-        {
-          label: "Origen",
-          title: "Hijo de un psic\u00f3logo",
-          description:
-            "Mi padre era psic\u00f3logo y consultor organizacional. Desde chico aprend\u00ed a ver los sistemas como conjuntos de personas \u2014 sus motivaciones, recompensas y sentido de pertenencia.",
-        },
-        {
-          label: "Formativo",
-          title:
-            "El profesor de alivio del trauma m\u00e1s joven de Latinoam\u00e9rica",
-          description:
-            "A los 16, me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica. Trabaj\u00e9 con personas que perdieron sus hogares en Villa La Angostura. Trabaj\u00e9 con hu\u00e9rfanos, j\u00f3venes en rehabilitaci\u00f3n y en procesos judiciales. Aprend\u00ed que detr\u00e1s de cada exterior dif\u00edcil, hay una historia y hay amor.",
-        },
-        {
-          label: "Profesional",
-          title: "El puente entre la ingenier\u00eda y las personas",
-          description:
-            "En Carewell, reconstru\u00ed una plataforma de salud para que familiares agotados que cuidan de adultos mayores puedan encontrar lo que necesitan m\u00e1s r\u00e1pido. En Est\u00e9e Lauder, una librer\u00eda de componentes React sirviendo 200+ sitios de ecommerce no se trataba de c\u00f3digo \u2014 se trataba de la persona del otro lado intentando comprar un producto. En cada empresa, termin\u00e9 siendo el puente entre ingenier\u00eda y producto \u2014 porque veo a las personas, no solo el c\u00f3digo.",
-        },
-      ],
-      photoAlt: "Trabajando con j\u00f3venes en entornos comunitarios",
-      photoSrc: "/working-with-youth.jpg",
-      variant: "tan",
-    },
-    {
       id: "percentile",
       statement: "Voy por el \u00faltimo 1%.",
       proofPoints: [
@@ -173,6 +118,57 @@ const es: Dictionary = {
       photoSrc: "/excellence.jpg",
       photoPosition: "80% center",
       variant: "forest",
+    },
+    {
+      id: "outlive",
+      statement: "Construyo cosas que me trascienden.",
+      proofPoints: [
+        {
+          label: "Cruise",
+          title: "Infraestructura de testing que se volvi\u00f3 la base",
+          description:
+            "En Cruise (veh\u00edculos aut\u00f3nomos, Silicon Valley) no solo fren\u00e9 las ca\u00eddas \u2014 cambi\u00e9 c\u00f3mo testeaba el equipo y entren\u00e9 a los ingenieros a mi alrededor. A\u00f1os despu\u00e9s, la infraestructura de testing que constru\u00ed sigue siendo lo que sostiene al equipo.",
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "Componentes que me sobrevivieron",
+          description:
+            "El sistema de componentes que ayud\u00e9 a construir sigue moviendo 200+ tiendas de marcas mucho despu\u00e9s de mi paso. El c\u00f3digo que dura es c\u00f3digo que se pens\u00f3 bien.",
+        },
+        {
+          label: "Comunidad",
+          title: "Un programa que sigue sin m\u00ed",
+          description:
+            "Lider\u00e9, junto a un equipo, a 50 voluntarios para ense\u00f1ar a m\u00e1s de 500 personas en una villa de Buenos Aires. Constru\u00ed la infraestructura de voluntarios y despu\u00e9s migr\u00e9 al pr\u00f3ximo desaf\u00edo. El programa contin\u00faa hasta el d\u00eda de hoy.",
+        },
+      ],
+      variant: "cream",
+    },
+    {
+      id: "humans",
+      statement: "Veo a las personas detr\u00e1s del sistema.",
+      proofPoints: [
+        {
+          label: "Origen",
+          title: "Hijo de un psic\u00f3logo",
+          description:
+            "Mi padre era psic\u00f3logo y consultor organizacional. Desde chico aprend\u00ed a ver los sistemas como conjuntos de personas \u2014 sus motivaciones, recompensas y sentido de pertenencia.",
+        },
+        {
+          label: "Formativo",
+          title:
+            "El profesor de alivio del trauma m\u00e1s joven de Latinoam\u00e9rica",
+          description:
+            "A los 16, me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica. Trabaj\u00e9 con personas que perdieron sus hogares en Villa La Angostura. Trabaj\u00e9 con hu\u00e9rfanos, j\u00f3venes en rehabilitaci\u00f3n y en procesos judiciales. Aprend\u00ed que detr\u00e1s de cada exterior dif\u00edcil, hay una historia y hay amor.",
+        },
+        {
+          label: "Profesional",
+          title: "El puente entre la ingenier\u00eda y las personas",
+          description:
+            "En Carewell, reconstru\u00ed una plataforma de salud para que familiares agotados que cuidan de adultos mayores puedan encontrar lo que necesitan m\u00e1s r\u00e1pido. En Est\u00e9e Lauder, una librer\u00eda de componentes React sirviendo 200+ sitios de ecommerce no se trataba de c\u00f3digo \u2014 se trataba de la persona del otro lado intentando comprar un producto. En cada empresa, termin\u00e9 siendo el puente entre ingenier\u00eda y producto \u2014 porque veo a las personas, no solo el c\u00f3digo.",
+        },
+      ],
+      variant: "tan",
     },
   ],
   beyond: {

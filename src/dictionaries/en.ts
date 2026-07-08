@@ -88,60 +88,6 @@ const en: Dictionary = {
   },
   values: [
     {
-      id: "outlive",
-      statement: "I build things that outlive me.",
-      proofPoints: [
-        {
-          label: "Cruise",
-          title: "Testing infrastructure that became the foundation",
-          description:
-            "At Cruise (autonomous vehicles, Silicon Valley) I didn\u2019t just stop the crashes \u2014 I changed how the team tested and trained the engineers around me. Years later, the testing infrastructure I built is still what the team stands on.",
-        },
-        {
-          label: "Est\u00e9e Lauder",
-          title: "Components that outlived my tenure",
-          description:
-            "The component system I helped build keeps powering 200+ brand storefronts long after I moved on. Code that lasts is code that was thought through.",
-        },
-        {
-          label: "Community",
-          title: "A program that runs without me",
-          description:
-            "I led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. I built the volunteer infrastructure, then stepped away. The program continues to this day without me.",
-        },
-      ],
-      photoAlt: "Community volunteering work in Buenos Aires",
-      photoSrc: "/community.jpg",
-      variant: "cream",
-    },
-    {
-      id: "humans",
-      statement: "I see the humans behind the system.",
-      proofPoints: [
-        {
-          label: "Origin",
-          title: "A psychologist\u2019s son",
-          description:
-            "My father was a psychologist and organizational consultant. From childhood, I learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
-        },
-        {
-          label: "Formative",
-          title: "Youngest trauma relief teacher in Latin America",
-          description:
-            "At 16, I became the youngest Art of Living trauma relief teacher in Latin America. I worked with people who lost their homes in Villa La Angostura, with orphans, and with teenagers in conflict with the law. I learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
-        },
-        {
-          label: "Professional",
-          title: "The bridge between engineering and people",
-          description:
-            "At Carewell, I rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, I ended up as the bridge between engineering and product \u2014 because I see the humans, not just the code.",
-        },
-      ],
-      photoAlt: "Working with youth in community settings",
-      photoSrc: "/working-with-youth.jpg",
-      variant: "tan",
-    },
-    {
       id: "percentile",
       statement: "I go for the last 1%.",
       proofPoints: [
@@ -171,6 +117,56 @@ const en: Dictionary = {
       photoSrc: "/excellence.jpg",
       photoPosition: "80% center",
       variant: "forest",
+    },
+    {
+      id: "outlive",
+      statement: "I build things that outlive me.",
+      proofPoints: [
+        {
+          label: "Cruise",
+          title: "Testing infrastructure that became the foundation",
+          description:
+            "At Cruise (autonomous vehicles, Silicon Valley) I didn\u2019t just stop the crashes \u2014 I changed how the team tested and trained the engineers around me. Years later, the testing infrastructure I built is still what the team stands on.",
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "Components that outlived my tenure",
+          description:
+            "The component system I helped build keeps powering 200+ brand storefronts long after I moved on. Code that lasts is code that was thought through.",
+        },
+        {
+          label: "Community",
+          title: "A program that runs without me",
+          description:
+            "I led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. I built the volunteer infrastructure, then stepped away. The program continues to this day without me.",
+        },
+      ],
+      variant: "cream",
+    },
+    {
+      id: "humans",
+      statement: "I see the humans behind the system.",
+      proofPoints: [
+        {
+          label: "Origin",
+          title: "A psychologist\u2019s son",
+          description:
+            "My father was a psychologist and organizational consultant. From childhood, I learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
+        },
+        {
+          label: "Formative",
+          title: "Youngest trauma relief teacher in Latin America",
+          description:
+            "At 16, I became the youngest Art of Living trauma relief teacher in Latin America. I worked with people who lost their homes in Villa La Angostura, with orphans, and with teenagers in conflict with the law. I learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
+        },
+        {
+          label: "Professional",
+          title: "The bridge between engineering and people",
+          description:
+            "At Carewell, I rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, I ended up as the bridge between engineering and product \u2014 because I see the humans, not just the code.",
+        },
+      ],
+      variant: "tan",
     },
   ],
   beyond: {

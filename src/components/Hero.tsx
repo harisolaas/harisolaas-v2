@@ -158,7 +158,7 @@ export default function Hero({ dict }: HeroProps) {
         className="absolute bottom-8 left-6 z-10 md:left-12 lg:left-20"
       >
         <a
-          href="#outlive"
+          href="#impact"
           className="group flex items-center gap-3 text-charcoal/50 transition-colors hover:text-forest"
         >
           <span className="tech-label">{dict.scrollCta}</span>

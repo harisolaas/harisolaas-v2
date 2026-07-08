@@ -18,7 +18,7 @@ export default function Navigation({ locale, dict }: NavigationProps) {
 
   const navLinks = [
     { label: dict.impact, href: "#impact" },
-    { label: dict.values, href: "#outlive" },
+    { label: dict.values, href: "#percentile" },
     { label: dict.now, href: "#now" },
     { label: dict.story, href: "#timeline" },
     { label: dict.contact, href: "#contact" },
