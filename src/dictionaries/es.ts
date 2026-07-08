@@ -28,7 +28,7 @@ const es: Dictionary = {
     brand: "Hari",
     values: "Valores",
     now: "Ahora",
-    story: "Historia",
+    story: "Recorrido",
     contact: "Contacto",
     toggleMenu: "Abrir men\u00fa",
   },
@@ -421,7 +421,7 @@ const es: Dictionary = {
   contact: {
     heading: "Construyamos algo.",
     description:
-      "Trabajo como consultor tecnol\u00f3gico senior \u2014 ayudando a empresas a construir los productos correctos con las tecnolog\u00edas correctas, incluyendo soluciones de IA que genuinamente sirvan a tu equipo y a tus usuarios. Traigo experiencia profunda en ingenier\u00eda, comunicaci\u00f3n humana y una mentalidad de servicio. Si quer\u00e9s un ingeniero que se preocupe por tu problema tanto como vos, hablemos.",
+      "Trabajo como consultor tecnol\u00f3gico senior \u2014 ayudo a empresas a construir los productos correctos con las tecnolog\u00edas correctas, incluyendo IA que genuinamente sirva a tu equipo y a tus usuarios. La consultor\u00eda es mi formato habitual, y estoy abierto al rol full-time indicado. Si quer\u00e9s un ingeniero que se preocupe por tu problema tanto como vos, hablemos.",
     caseStudyLabel: "Leer el caso de estudio de Carewell en Toptal",
     linkLabels: {
       email: "Email",

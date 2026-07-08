@@ -27,7 +27,7 @@ const en: Dictionary = {
     brand: "Hari",
     values: "Values",
     now: "Now",
-    story: "Story",
+    story: "Experience",
     contact: "Contact",
     toggleMenu: "Toggle menu",
   },
@@ -412,7 +412,7 @@ const en: Dictionary = {
   contact: {
     heading: "Let\u2019s build something.",
     description:
-      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies, including AI solutions that genuinely serve your team and your users. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
+      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies, including AI that genuinely serves your team and your users. Consulting is how I usually work, and I\u2019m open to the right full-time role. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
     caseStudyLabel: "Read the Carewell Case Study on Toptal",
     linkLabels: {
       email: "Email",
