@@ -544,4 +544,78 @@ describe("upsertPerson", () => {
     expect(b.created).toBe(false);
     expect(b.person.id).toBe(a.person.id);
   });
+
+  it("overwrites a stale 'Asistente' placeholder with the real name", async () => {
+    const a = await upsertPerson({
+      email: "test-community-asistente@example.com",
+      name: "Asistente",
+    });
+    expect(a.created).toBe(true);
+    expect(a.person.name).toBe("Asistente");
+
+    const b = await upsertPerson({
+      email: "test-community-asistente@example.com",
+      name: "Tomás Aragón",
+    });
+    expect(b.created).toBe(false);
+    expect(b.person.name).toBe("Tomás Aragón");
+    expect(b.person.id).toBe(a.person.id);
+  });
+
+  it("does NOT overwrite a real existing name", async () => {
+    const a = await upsertPerson({
+      email: "test-community-realname@example.com",
+      name: "Maria García",
+    });
+    expect(a.created).toBe(true);
+
+    const b = await upsertPerson({
+      email: "test-community-realname@example.com",
+      name: "Some Other Name",
+    });
+    expect(b.created).toBe(false);
+    expect(b.person.name).toBe("Maria García");
+  });
+
+  it("rejects an empty/whitespace name (cannot blank out 'Asistente')", async () => {
+    const a = await upsertPerson({
+      email: "test-community-blank@example.com",
+      name: "Asistente",
+    });
+    expect(a.created).toBe(true);
+
+    await expect(
+      upsertPerson({
+        email: "test-community-blank@example.com",
+        name: "   ",
+      }),
+    ).rejects.toThrow(/name required/);
+
+    const drill = await getPersonByEmail("test-community-blank@example.com");
+    expect(drill!.person.name).toBe("Asistente");
+  });
+});
+
+describe("recordParticipation — stale 'Asistente' self-heal", () => {
+  it("overwrites 'Asistente' on a follow-up participation that has a real name", async () => {
+    await recordParticipation({
+      email: "test-community-stale@example.com",
+      name: "Asistente",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-STALE0001",
+      role: "attendee",
+    });
+
+    await recordParticipation({
+      email: "test-community-stale@example.com",
+      name: "Slava Pankov",
+      eventId: TEST_EVENT_CAPPED,
+      participationId: "TEST-STALE0002",
+      role: "planter",
+    });
+
+    const drill = await getPersonByEmail("test-community-stale@example.com");
+    expect(drill!.person.name).toBe("Slava Pankov");
+    expect(drill!.participations).toHaveLength(2);
+  });
 });
