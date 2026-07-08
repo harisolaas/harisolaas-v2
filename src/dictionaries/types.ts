@@ -28,7 +28,7 @@ export interface NowItem {
   title: string;
   description: string;
   status: string;
-  cta: { label: string; href: string };
+  cta?: { label: string; href: string };
 }
 
 export interface TimelineEntry {

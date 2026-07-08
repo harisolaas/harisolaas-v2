@@ -241,16 +241,7 @@ const en: Dictionary = {
         categoryLabel: "Building",
         title: "Technology & AI Partner for Businesses",
         description:
-          "Helping businesses bring their operations into the digital world \u2014 from AI-powered automation and intelligent workflows to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
-        status: "Ongoing",
-        cta: { label: "Get in Touch", href: "mailto:dev@harisolaas.com" },
-      },
-      {
-        categoryKey: "building",
-        categoryLabel: "Building",
-        title: "AI Solutions That Serve People",
-        description:
-          "Building AI-powered tools that genuinely help \u2014 not replace \u2014 the people who use them. From intelligent automation to custom AI integrations, always with the human at the center.",
+          "I help businesses bring their operations into the digital world \u2014 from AI-powered automation to full product builds. Most recently: a ticketing and payments platform for a community event \u2014 MercadoPago checkout, QR tickets validated at the door, automated emails \u2014 built end to end. If you need a partner who understands both the tech and the business, let\u2019s talk.",
         status: "Ongoing",
         cta: { label: "Get in Touch", href: "mailto:dev@harisolaas.com" },
       },
@@ -260,7 +251,7 @@ const en: Dictionary = {
         title: "Follow My Adventures",
         description:
           "Keeping adventure, art, travel and physical challenges as part of my everyday life. Follow along on Instagram.",
-        status: "In Progress",
+        status: "Ongoing",
         cta: {
           label: "Follow on Instagram",
           href: "https://instagram.com/harisolaas",
@@ -269,14 +260,10 @@ const en: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Community",
-        title: "BROTE \u2014 The Second Movement",
+        title: "BROTE \u2014 100 trees in the ground",
         description:
-          "We close the BROTE cycle with meditation, planting alongside Un \u00c1rbol, and an afternoon at a nature reserve in San Miguel. Free, 40 spots, registration required.",
-        status: "April 19",
-        cta: {
-          label: "Save your spot",
-          href: "/en/brote-cima",
-        },
+          "We closed the BROTE cycle: a reforestation party where every ticket planted a tree, and a closing plantation with Un \u00c1rbol at a nature reserve in San Miguel, ~30 of us with shovels in hand. 100 native trees planted in total.",
+        status: "Cycle closed \u00b7 April 2026",
       },
       {
         categoryKey: "teaching",

@@ -250,16 +250,7 @@ const es: Dictionary = {
         categoryLabel: "Desarrollo",
         title: "Socio tecnol\u00f3gico y de IA para negocios",
         description:
-          "Ayudando a empresas a llevar sus operaciones al mundo digital \u2014 desde automatizaci\u00f3n con IA y flujos de trabajo inteligentes hasta productos completos. Si necesit\u00e1s un socio tecnol\u00f3gico que entienda tanto la tecnolog\u00eda como el negocio, hablemos.",
-        status: "Sucediendo ahora",
-        cta: { label: "Contactame", href: "mailto:dev@harisolaas.com" },
-      },
-      {
-        categoryKey: "building",
-        categoryLabel: "Desarrollo",
-        title: "Soluciones de IA al servicio de las personas",
-        description:
-          "Construyendo herramientas con IA que genuinamente ayudan \u2014 no reemplazan \u2014 a las personas que las usan. Desde automatizaci\u00f3n inteligente hasta integraciones de IA a medida, siempre con el humano en el centro.",
+          "Ayudo a empresas a llevar sus operaciones al mundo digital \u2014 desde automatizaci\u00f3n con IA hasta productos completos. Lo \u00faltimo: una plataforma de entradas y pagos para un evento comunitario \u2014 checkout de MercadoPago, tickets QR validados en la puerta, emails autom\u00e1ticos \u2014 construida de punta a punta. Si necesit\u00e1s un socio que entienda tanto la tecnolog\u00eda como el negocio, hablemos.",
         status: "Sucediendo ahora",
         cta: { label: "Contactame", href: "mailto:dev@harisolaas.com" },
       },
@@ -269,7 +260,7 @@ const es: Dictionary = {
         title: "Segu\u00ed mis aventuras",
         description:
           "Mantengo la aventura, el arte y los desaf\u00edos f\u00edsicos como parte de mi d\u00eda a d\u00eda. Seguime en Instagram.",
-        status: "En progreso",
+        status: "En curso",
         cta: {
           label: "Seguime en Instagram",
           href: "https://instagram.com/harisolaas",
@@ -278,14 +269,10 @@ const es: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Comunidad",
-        title: "BROTE \u2014 El segundo movimiento",
+        title: "BROTE \u2014 100 \u00e1rboles plantados",
         description:
-          "Cerramos el ciclo de BROTE con meditaci\u00f3n, plantaci\u00f3n junto a Un \u00c1rbol y una tarde en una reserva de San Miguel. Gratis, 40 lugares, requiere registraci\u00f3n.",
-        status: "19 de abril",
-        cta: {
-          label: "Reserv\u00e1 tu lugar",
-          href: "/es/brote-cima",
-        },
+          "Cerramos el ciclo de BROTE: una fiesta de reforestaci\u00f3n donde cada entrada plant\u00f3 un \u00e1rbol, y una plantaci\u00f3n de cierre con Un \u00c1rbol en una reserva de San Miguel \u2014 \u00e9ramos ~30 con palas en mano. 100 \u00e1rboles nativos en total.",
+        status: "Ciclo cerrado \u00b7 Abril 2026",
       },
       {
         categoryKey: "teaching",
