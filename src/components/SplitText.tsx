@@ -41,8 +41,10 @@ const unit: Variants = {
 
 /**
  * Masked type reveal: each word/char rises out of an overflow-hidden slot.
- * The mask carries a small padding/negative-margin pair so descenders
- * (g, y, j) aren't clipped mid-animation.
+ * The mask carries padding/negative-margin pairs on both axes so descenders
+ * (g, y, j) and the slant overhang of italic glyphs (the left of a leading
+ * "I", the top-right lean of trailing letters) aren't clipped by the box edge.
+ * Each pair keeps the advance width unchanged, so layout is unaffected.
  *
  * The real text lives in an sr-only node (screen readers, find-in-page,
  * translation); the animated spans are aria-hidden. Reduced-motion is read
@@ -87,7 +89,7 @@ export default function SplitText({
             {(by === "word" ? [word] : Array.from(word)).map((piece, pi) => (
               <span
                 key={pi}
-                className="inline-block overflow-hidden pb-[0.14em] -mb-[0.14em] align-bottom"
+                className="inline-block overflow-hidden px-[0.14em] -mx-[0.14em] pb-[0.14em] -mb-[0.14em] align-bottom"
               >
                 <motion.span
                   variants={unit}
