@@ -119,7 +119,6 @@ export default function Contact({ dict }: ContactProps) {
             {copied ? dict.copiedEmail : `${dict.copyEmail} — ${email}`}
           </button>
         </motion.div>
-
       </motion.div>
     </section>
   );
