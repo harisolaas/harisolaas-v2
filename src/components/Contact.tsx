@@ -53,6 +53,31 @@ export default function Contact({ dict }: ContactProps) {
           {dict.description}
         </motion.p>
 
+        <motion.div variants={fadeUp} className="mt-6">
+          <a
+            href={caseStudyLink}
+            onClick={() => trackCtaClick("case_study", caseStudyLink, "contact")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-terracotta transition-colors hover:text-cream"
+          >
+            {dict.caseStudyLabel}
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25"
+              />
+            </svg>
+          </a>
+        </motion.div>
+
         <motion.div
           variants={fadeUp}
           className="mt-8 flex flex-wrap justify-center gap-3"
@@ -93,31 +118,6 @@ export default function Contact({ dict }: ContactProps) {
           >
             {copied ? dict.copiedEmail : `${dict.copyEmail} — ${email}`}
           </button>
-        </motion.div>
-
-        <motion.div variants={fadeUp} className="mt-8">
-          <a
-            href={caseStudyLink}
-            onClick={() => trackCtaClick("case_study", caseStudyLink, "contact")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-terracotta/80 transition-colors hover:text-terracotta"
-          >
-            {dict.caseStudyLabel}
-            <svg
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25"
-              />
-            </svg>
-          </a>
         </motion.div>
       </motion.div>
     </section>

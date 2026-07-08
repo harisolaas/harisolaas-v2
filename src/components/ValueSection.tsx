@@ -123,52 +123,62 @@ export default function ValueSection({
       {/* Evidence section */}
       <div className="relative px-6 pb-12 md:px-12 md:pb-16 lg:px-20">
         <div className="mx-auto max-w-6xl">
-          {/* Asymmetric layout: photo + cards */}
+          {/* Asymmetric layout: photo + cards — photo-less sections spread the cards in a row */}
           <div
-            className={`flex flex-col gap-8 lg:flex-row lg:gap-12 ${
-              isEven ? "" : "lg:flex-row-reverse"
-            }`}
+            className={
+              value.photoSrc
+                ? `flex flex-col gap-8 lg:flex-row lg:gap-12 ${
+                    isEven ? "" : "lg:flex-row-reverse"
+                  }`
+                : ""
+            }
           >
-            {/* Photo — clip-path reveal, inner parallax */}
-            <div className="self-center lg:w-4/12 lg:flex-shrink-0">
-              <motion.div
-                initial={
-                  reducedMotion
-                    ? { opacity: 0 }
-                    : { clipPath: "inset(10% 6% 10% 6%)", opacity: 0 }
-                }
-                whileInView={
-                  reducedMotion
-                    ? { opacity: 1 }
-                    : { clipPath: "inset(0% 0% 0% 0%)", opacity: 1 }
-                }
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 1.2, ease: easeOutExpo }}
-                className="photo-warm-overlay relative aspect-[3/4] overflow-hidden"
-              >
+            {value.photoSrc && (
+              /* Photo — clip-path reveal, inner parallax */
+              <div className="self-center lg:w-4/12 lg:flex-shrink-0">
                 <motion.div
-                  style={reducedMotion ? undefined : { y: photoY }}
-                  className="absolute -inset-y-[8%] inset-x-0"
+                  initial={
+                    reducedMotion
+                      ? { opacity: 0 }
+                      : { clipPath: "inset(10% 6% 10% 6%)", opacity: 0 }
+                  }
+                  whileInView={
+                    reducedMotion
+                      ? { opacity: 1 }
+                      : { clipPath: "inset(0% 0% 0% 0%)", opacity: 1 }
+                  }
+                  viewport={{ once: true, margin: "-80px" }}
+                  transition={{ duration: 1.2, ease: easeOutExpo }}
+                  className="photo-warm-overlay relative aspect-[3/4] overflow-hidden"
                 >
-                  <Image
-                    src={value.photoSrc}
-                    alt={value.photoAlt}
-                    fill
-                    className="object-cover"
-                    style={{ objectPosition: value.photoPosition ?? "center" }}
-                    sizes="(max-width: 1024px) 100vw, 33vw"
-                    priority={index === 0}
-                  />
+                  <motion.div
+                    style={reducedMotion ? undefined : { y: photoY }}
+                    className="absolute -inset-y-[8%] inset-x-0"
+                  >
+                    <Image
+                      src={value.photoSrc}
+                      alt={value.photoAlt ?? ""}
+                      fill
+                      className="object-cover"
+                      style={{ objectPosition: value.photoPosition ?? "center" }}
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      priority={index === 0}
+                    />
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            </div>
+              </div>
+            )}
 
             {/* Proof cards */}
             <motion.div
               initial="hidden"
               animate={isInView ? "visible" : "hidden"}
               variants={staggerContainer}
-              className="flex flex-col gap-5 lg:w-8/12"
+              className={
+                value.photoSrc
+                  ? "flex flex-col gap-5 lg:w-8/12"
+                  : "grid gap-5 md:grid-cols-3"
+              }
             >
               {value.proofPoints.map((proof) => (
                 <ProofCard key={proof.label} proof={proof} dark={config.dark} />

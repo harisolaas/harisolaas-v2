@@ -10,8 +10,8 @@ export interface ValueData {
   statement: string;
   proofPoints: ProofPoint[];
   quote?: { text: string };
-  photoAlt: string;
-  photoSrc: string;
+  photoAlt?: string;
+  photoSrc?: string;
   photoPosition?: string;
   variant: "cream" | "tan" | "forest";
 }
@@ -28,7 +28,19 @@ export interface NowItem {
   title: string;
   description: string;
   status: string;
-  cta: { label: string; href: string };
+  cta?: { label: string; href: string };
+}
+
+export interface ImpactDict {
+  heading: string;
+  items: ProofPoint[];
+}
+
+export interface BeyondDict {
+  heading: string;
+  subheading: string;
+  items: ProofPoint[];
+  photoAlt: string;
 }
 
 export interface TimelineEntry {
@@ -390,6 +402,7 @@ export interface Dictionary {
   };
   nav: {
     brand: string;
+    impact: string;
     values: string;
     now: string;
     story: string;
@@ -399,13 +412,17 @@ export interface Dictionary {
   hero: {
     name: string;
     tagline: string;
+    positioning: string;
+    ctaLabel: string;
     scrollCta: string;
     photoAlt: string;
     metaRole: string;
     metaLocation: string;
     photoCaption: string;
   };
+  impact: ImpactDict;
   values: ValueData[];
+  beyond: BeyondDict;
   now: {
     heading: string;
     subheading: string;

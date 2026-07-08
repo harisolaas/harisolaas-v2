@@ -17,7 +17,8 @@ export default function Navigation({ locale, dict }: NavigationProps) {
   const { scrollYProgress } = useScroll();
 
   const navLinks = [
-    { label: dict.values, href: "#outlive" },
+    { label: dict.impact, href: "#impact" },
+    { label: dict.values, href: "#percentile" },
     { label: dict.now, href: "#now" },
     { label: dict.story, href: "#timeline" },
     { label: dict.contact, href: "#contact" },

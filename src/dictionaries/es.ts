@@ -4,7 +4,7 @@ const es: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     description:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Desde soluciones de IA hasta productos full-stack, construyo tecnolog\u00eda al servicio de las personas \u2014 y comunidades que me trasciendan.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Una d\u00e9cada de resultados medibles \u2014 un ecommerce de USD 21M reconstruido, plataformas moviendo 200+ tiendas globales \u2014 construyendo tecnolog\u00eda al servicio de las personas.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
@@ -18,7 +18,7 @@ const es: Dictionary = {
     ],
     ogTitle: "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     ogDescription:
-      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Desde soluciones de IA hasta productos full-stack, construyo tecnolog\u00eda al servicio de las personas y comunidades que me trasciendan.",
+      "Ingeniero de Software Senior y Consultor Tecnol\u00f3gico. Una d\u00e9cada de resultados medibles, construyendo tecnolog\u00eda al servicio de las personas.",
     twitterTitle:
       "Harald Solaas \u2014 Tecnolog\u00eda al servicio de las personas",
     twitterDescription:
@@ -26,9 +26,10 @@ const es: Dictionary = {
   },
   nav: {
     brand: "Hari",
+    impact: "Resultados",
     values: "Valores",
     now: "Ahora",
-    story: "Historia",
+    story: "Recorrido",
     contact: "Contacto",
     toggleMenu: "Abrir men\u00fa",
   },
@@ -36,38 +37,111 @@ const es: Dictionary = {
     name: "Harald Solaas",
     tagline:
       "Empec\u00e9 a meditar a los 15, a ense\u00f1ar a los 16 y a programar a los 20. No dej\u00e9 de hacer ninguna.",
+    positioning:
+      "Ayudo a empresas a construir productos que perduran \u2014 hoy tomando proyectos de consultor\u00eda.",
+    ctaLabel: "Construyamos algo",
     scrollCta: "Scrolle\u00e1 para conocerme",
     photoAlt: "Harald Solaas",
-    metaRole: "Ingeniero de software \u00b7 UI",
+    metaRole: "Ingeniero de software senior \u00b7 Consultor tecnol\u00f3gico",
     metaLocation: "Buenos Aires, Argentina",
     photoCaption: "fig. 01 \u2014 el humano",
   },
+  impact: {
+    heading: "Resultados",
+    items: [
+      {
+        label: "Carewell",
+        title: "Una reconstrucción de USD 21M que rindió el primer mes",
+        description:
+          "Cuatro ingenieros reconstruimos el ecommerce de salud de Carewell desde cero. Lanzamos a tiempo, el engagement y las ventas subieron el primer mes, y el sitio funciona incluso sin JavaScript — una exigencia del directorio llena de problemas que nadie en la industria había resuelto antes.",
+        metrics: [
+          { value: "$21M", label: "Plataforma reconstruida" },
+          { value: "100", label: "Performance en Lighthouse" },
+        ],
+      },
+      {
+        label: "Cruise",
+        title: "De apagar incendios a un año de calma",
+        description:
+          "La plataforma de análisis que usaban ejecutivos y operaciones se caía 14 veces por mes. Cambié cómo testeaba el equipo — casos de uso reales por sobre números de cobertura —, entrené a mis colegas, y corrió un año entero casi sin caídas. Esa infraestructura sigue siendo la base del equipo.",
+        metrics: [
+          { value: "14→0.3", label: "Caídas por mes" },
+          { value: "90%", label: "Menos tiempo de ejecución" },
+        ],
+      },
+      {
+        label: "Estée Lauder",
+        title: "Un sistema, 200+ tiendas",
+        description:
+          "Un solo sistema de componentes moviendo el ecommerce de 200+ sitios de marcas en todo el mundo. Cuando cientos de miles de personas compran por día, cada deploy importa — subimos la cobertura de tests de 60% a 85% y redujimos el tiempo a primera interacción.",
+        metrics: [
+          { value: "200+", label: "Sitios servidos" },
+          { value: "60→85%", label: "Cobertura de tests" },
+        ],
+      },
+      {
+        label: "Industria legal · 2023–hoy",
+        title: "Una plataforma que aguanta cuando llega la ola",
+        description:
+          "Una empresa legal de EE.UU. que maneja demandas masivas: cuando se abre un caso, el tráfico se dispara en horas. Migré su aplicación legacy a una plataforma server-rendered que se mantiene rápida, accesible y segura bajo presión — y mantiene su operación en línea.",
+      },
+    ],
+  },
   values: [
+    {
+      id: "percentile",
+      statement: "Voy por el \u00faltimo 1%.",
+      proofPoints: [
+        {
+          label: "Carewell",
+          title: "Un ecommerce que funciona sin JavaScript",
+          description:
+            "El CDO testeaba el sitio entero con JavaScript deshabilitado \u2014 nada pod\u00eda romperse. La mayor\u00eda de lo que eso exig\u00eda no ten\u00eda soluci\u00f3n documentada, as\u00ed que trabaj\u00e9 a base de pruebas de concepto: construir chico, validar con el equipo, incubar cada feature en un rinc\u00f3n del sitio y despu\u00e9s crecerla a todo el stack.",
+        },
+        {
+          label: "Academia online",
+          title: "Terminado significa medido",
+          description:
+            "En una plataforma educativa de alto tr\u00e1fico deploy\u00e1bamos progresivamente por niveles de usuarios. Una feature no estaba completa hasta que el 100% la hab\u00eda usado una semana \u2014 con datos confiables de su impacto.",
+        },
+        {
+          label: "Delivery aumentado con IA",
+          title: "Tres reviews antes de que lo lea un humano",
+          description:
+            "Construyo mis propias herramientas: cada pull request que abro lo revisan dos modelos de IA, se fusionan en un solo review y un tercer agente lo poda antes de que yo lo lea. El \u00faltimo 1% incluye c\u00f3mo se hace el trabajo mismo.",
+        },
+      ],
+      quote: {
+        text: "No dejar nada para despu\u00e9s. Ir hasta el \u00faltimo 1% de hacer que la experiencia del usuario sea incre\u00edble. Optimizar tanto como tenga sentido, tanto como agregue valor.",
+      },
+      photoAlt: "Excelencia t\u00e9cnica y precisi\u00f3n",
+      photoSrc: "/excellence.jpg",
+      photoPosition: "80% center",
+      variant: "forest",
+    },
     {
       id: "outlive",
       statement: "Construyo cosas que me trascienden.",
       proofPoints: [
         {
+          label: "Cruise",
+          title: "Infraestructura de testing que se volvi\u00f3 la base",
+          description:
+            "En Cruise (veh\u00edculos aut\u00f3nomos, Silicon Valley) no solo fren\u00e9 las ca\u00eddas \u2014 cambi\u00e9 c\u00f3mo testeaba el equipo y entren\u00e9 a los ingenieros a mi alrededor. A\u00f1os despu\u00e9s, la infraestructura de testing que constru\u00ed sigue siendo lo que sostiene al equipo.",
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "Componentes que me sobrevivieron",
+          description:
+            "El sistema de componentes que ayud\u00e9 a construir sigue moviendo 200+ tiendas de marcas mucho despu\u00e9s de mi paso. El c\u00f3digo que dura es c\u00f3digo que se pens\u00f3 bien.",
+        },
+        {
           label: "Comunidad",
-          title: "50 voluntarios, 500+ vidas impactadas",
+          title: "Un programa que sigue sin m\u00ed",
           description:
             "Lider\u00e9, junto a un equipo, a 50 voluntarios para ense\u00f1ar a m\u00e1s de 500 personas en una villa de Buenos Aires. Constru\u00ed la infraestructura de voluntarios y despu\u00e9s migr\u00e9 al pr\u00f3ximo desaf\u00edo. El programa contin\u00faa hasta el d\u00eda de hoy.",
         },
-        {
-          label: "Personal",
-          title: "Un equipo de b\u00e1squet desde cero",
-          description:
-            "Arm\u00e9 un equipo de b\u00e1squet a los 29 porque ya estaba grande para sumarme a un club. Lo arm\u00e9 de la nada, desarroll\u00e9 al equipo, la log\u00edstica, jugu\u00e9 dos a\u00f1os y me fui por una lesi\u00f3n. El equipo sigui\u00f3 compitiendo dos a\u00f1os m\u00e1s.",
-        },
-        {
-          label: "Profesional",
-          title: "De 14 explosiones de producci\u00f3n a casi cero",
-          description:
-            "En Cruise (veh\u00edculos aut\u00f3nomos, Silicon Valley), hered\u00e9 una base de c\u00f3digo con 20% de cobertura de tests y 14 ca\u00eddas por mes. Lo dej\u00e9 en 70%+ de cobertura con 0.3 incidentes por mes. La infraestructura de testing que constru\u00ed se convirti\u00f3 en la base del equipo.",
-        },
       ],
-      photoAlt: "Trabajo voluntario comunitario en Buenos Aires",
-      photoSrc: "/community.jpg",
       variant: "cream",
     },
     {
@@ -85,7 +159,7 @@ const es: Dictionary = {
           title:
             "El profesor de alivio del trauma m\u00e1s joven de Latinoam\u00e9rica",
           description:
-            "A los 15, me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica. Trabaj\u00e9 con personas que perdieron sus hogares en Villa La Angostura. Trabaj\u00e9 con hu\u00e9rfanos, j\u00f3venes en rehabilitaci\u00f3n y en procesos judiciales. Aprend\u00ed que detr\u00e1s de cada exterior dif\u00edcil, hay una historia y hay amor.",
+            "A los 16, me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica. Trabaj\u00e9 con personas que perdieron sus hogares en Villa La Angostura. Trabaj\u00e9 con hu\u00e9rfanos, j\u00f3venes en rehabilitaci\u00f3n y en procesos judiciales. Aprend\u00ed que detr\u00e1s de cada exterior dif\u00edcil, hay una historia y hay amor.",
         },
         {
           label: "Profesional",
@@ -94,140 +168,34 @@ const es: Dictionary = {
             "En Carewell, reconstru\u00ed una plataforma de salud para que familiares agotados que cuidan de adultos mayores puedan encontrar lo que necesitan m\u00e1s r\u00e1pido. En Est\u00e9e Lauder, una librer\u00eda de componentes React sirviendo 200+ sitios de ecommerce no se trataba de c\u00f3digo \u2014 se trataba de la persona del otro lado intentando comprar un producto. En cada empresa, termin\u00e9 siendo el puente entre ingenier\u00eda y producto \u2014 porque veo a las personas, no solo el c\u00f3digo.",
         },
       ],
-      photoAlt: "Trabajando con j\u00f3venes en entornos comunitarios",
-      photoSrc: "/working-with-youth.jpg",
-      variant: "tan",
-    },
-    {
-      id: "percentile",
-      statement: "Voy por el \u00faltimo 1%.",
-      proofPoints: [
-        {
-          label: "Cruise",
-          title: "Anal\u00edtica de veh\u00edculos aut\u00f3nomos",
-          description:
-            "Constru\u00ed la plataforma de anal\u00edtica usada por ejecutivos y personal de operaciones de toda la empresa. Reduje el tiempo de ejecuci\u00f3n un 90% en componentes cr\u00edticos.",
-          metrics: [
-            {
-              value: "20\u219270%",
-              label: "Cobertura de tests en 3 meses",
-            },
-            { value: "14\u21920.3", label: "Ca\u00eddas por mes" },
-            {
-              value: "90%",
-              label: "Reducci\u00f3n tiempo de ejecuci\u00f3n",
-            },
-          ],
-        },
-        {
-          label: "Carewell",
-          title: "Reconstrucci\u00f3n de plataforma de salud de $21M",
-          description:
-            "Fui parte clave de un equipo de 4 ingenieros que reconstruy\u00f3 una plataforma de ecommerce de salud de USD $21M con React, Next.js, Tailwind CSS y GraphQL. El sitio carga instant\u00e1neamente, funciona sin JavaScript y logra puntajes SEO excepcionales. Se lanz\u00f3 a tiempo, con mayor engagement y ventas.",
-          metrics: [
-            { value: "$21M", label: "Plataforma reconstru\u00edda" },
-            { value: "100", label: "Performance en Lighthouse" },
-          ],
-        },
-        {
-          label: "Est\u00e9e Lauder",
-          title: "200+ sitios de marcas en todo el mundo",
-          description:
-            "Constru\u00ed componentes flexibles y reutilizables sirviendo 200+ sitios de marcas a nivel global. Reduje el tiempo a primera interacci\u00f3n. Multi-tenancy al extremo \u2014 cada deploy importa cuando cientos de miles de usuarios dependen de \u00e9l diariamente.",
-          metrics: [
-            { value: "200+", label: "Sitios servidos" },
-            { value: "60\u219285%", label: "Cobertura de tests" },
-          ],
-        },
-      ],
-      quote: {
-        text: "No dejar nada para despu\u00e9s. Ir hasta el \u00faltimo 1% de hacer que la experiencia del usuario sea incre\u00edble. Optimizar tanto como tenga sentido, tanto como agregue valor.",
-      },
-      photoAlt: "Excelencia t\u00e9cnica y precisi\u00f3n",
-      photoSrc: "/excellence.jpg",
-      photoPosition: "80% center",
-      variant: "cream",
-    },
-    {
-      id: "serve",
-      statement:
-        "La tecnolog\u00eda debe servir a las personas, no reemplazarlas.",
-      proofPoints: [
-        {
-          label: "Art of Living",
-          title: "Plataforma de streaming para bienestar",
-          description:
-            "Desarrollé gamification para la plataforma de streaming de la Fundaci\u00f3n El Arte de Vivir con miles de usuarios mensuales, mejorarando el compromiso e engagement con contenido de meditaci\u00f3n y bienestar.",
-        },
-        {
-          label: "Cruise",
-          title: "Herramientas que construyen el futuro",
-          description:
-            "Constru\u00ed herramientas que ayudaron a ingenieros de autos, testers y cient\u00edficos de datos a visualizar cientos de miles de puntos de datos de rutas de veh\u00edculos automatizados. Construyendo las herramientas que hacen al futuro del transporte (si, autos robot... si, sin conductor).",
-        },
-        {
-          label: "Carewell",
-          title: "Tecnolog\u00eda para momentos vulnerables",
-          description:
-            "Hacer accesibles los suministros de salud para familias que cuidan a seres queridos mayores. Tecnolog\u00eda que reduce la fricci\u00f3n en un momento de vulnerabilidad.",
-        },
-        {
-          label: "Nubi",
-          title: "Acceso financiero para 50.000+",
-          description:
-            "Dimos a m\u00e1s de 50.000 latinoamericanos acceso m\u00e1s f\u00e1cil a sus fondos de PayPal \u2014 transferencias internacionales, retiros, gesti\u00f3n de tarjetas de cr\u00e9dito.",
-        },
-        {
-          label: "Filosof\u00eda",
-          title: "Inspirado por Muhammad Yunus",
-          description:
-            "Inspirado por el \u00abBanquero de los Pobres\u00bb \u2014 la idea de que los sistemas (financieros, tecnol\u00f3gicos, organizacionales) pueden dise\u00f1arse para servir a personas que han sido olvidadas.",
-        },
-      ],
-      quote: {
-        text: "Quiero hacer de la tecnolog\u00eda tu aliada, tu amiga \u2014 no una amenaza.",
-      },
-      photoAlt: "Tecnolog\u00eda al servicio de las necesidades humanas",
-      photoSrc: "/for-people.png",
-      variant: "forest",
-    },
-    {
-      id: "joy",
-      statement: "Traigo diversi\u00f3n al trabajo.",
-      proofPoints: [
-        {
-          label: "B\u00e1squet",
-          title: "Muy grande para unirme, as\u00ed que arm\u00e9 uno",
-          description:
-            "Muy grande para meterme a un equipo a los 29, as\u00ed que cre\u00e9 uno. Me sum\u00e9 a una liga amateur. Se convirti\u00f3 en algo con vida propia.",
-        },
-        {
-          label: "Ense\u00f1anza",
-          title: "Tres a\u00f1os en una villa",
-          description:
-            "Ense\u00f1ando a adolescentes t\u00e9cnicas de respiraci\u00f3n, valores humanos, c\u00f3mo volver a ser chicos. Ayud\u00e1ndolos a salir del crimen. Mostrando que hay otro camino.",
-        },
-        {
-          label: "Art of Living",
-          title: "Profesor desde 2022",
-          description:
-            "Ense\u00f1ando cursos, construyendo comunidad en redes sociales, aprendiendo a vender con autenticidad, haciendo networking, construyendo grupos de voluntarios basados en \u00e9tica.",
-        },
-        {
-          label: "Pr\u00e1ctica diaria",
-          title: "9 a\u00f1os de pr\u00e1ctica diaria",
-          description:
-            "9 a\u00f1os de pr\u00e1ctica diaria de Sudarshan Kriya y meditaci\u00f3n. La alegr\u00eda no es accidental \u2014 es una disciplina.",
-        },
-      ],
-      quote: {
-        text: "Divertirse mientras hacemos las cosas que hay que hacer. Celebrar nuestras victorias, aprender de nuestras derrotas y mantener la frente en alto.",
-      },
-      photoAlt: "Surf, b\u00e1squet o comunidad de El Arte de Vivir",
-      photoSrc: "/basketball.jpg",
       variant: "tan",
     },
   ],
+  beyond: {
+    heading: "Más allá del código",
+    subheading: "Los mismos principios, lejos de la pantalla.",
+    items: [
+      {
+        label: "Enseñanza",
+        title: "Charlas y docencia en bienestar",
+        description:
+          "Profesor certificado de El Arte de Vivir desde 2022. Doy charlas sobre hábitos, meditación y liderazgo consciente en eventos de bienestar, y facilito un encuentro semanal de meditación y escritura en Buenos Aires.",
+      },
+      {
+        label: "Servicio",
+        title: "Otra manera de crecer",
+        description:
+          "Tres años enseñando a adolescentes en una villa de Buenos Aires — técnicas de respiración, valores humanos, cómo volver a jugar. Ayudando a que dejen el crimen atrás y vean que existe otro camino.",
+      },
+      {
+        label: "Práctica",
+        title: "9 años de práctica diaria",
+        description:
+          "Sudarshan Kriya y meditación, todos los días desde hace 9 años. La alegría no es accidental — es una disciplina.",
+      },
+    ],
+    photoAlt: "Hari dando una charla en un evento de bienestar",
+  },
   now: {
     heading: "Lo que estoy armando ahora",
     subheading:
@@ -250,16 +218,7 @@ const es: Dictionary = {
         categoryLabel: "Desarrollo",
         title: "Socio tecnol\u00f3gico y de IA para negocios",
         description:
-          "Ayudando a empresas a llevar sus operaciones al mundo digital \u2014 desde automatizaci\u00f3n con IA y flujos de trabajo inteligentes hasta productos completos. Si necesit\u00e1s un socio tecnol\u00f3gico que entienda tanto la tecnolog\u00eda como el negocio, hablemos.",
-        status: "Sucediendo ahora",
-        cta: { label: "Contactame", href: "mailto:dev@harisolaas.com" },
-      },
-      {
-        categoryKey: "building",
-        categoryLabel: "Desarrollo",
-        title: "Soluciones de IA al servicio de las personas",
-        description:
-          "Construyendo herramientas con IA que genuinamente ayudan \u2014 no reemplazan \u2014 a las personas que las usan. Desde automatizaci\u00f3n inteligente hasta integraciones de IA a medida, siempre con el humano en el centro.",
+          "Ayudo a empresas a llevar sus operaciones al mundo digital \u2014 desde automatizaci\u00f3n con IA hasta productos completos. Lo \u00faltimo: una plataforma de entradas y pagos para un evento comunitario \u2014 checkout de MercadoPago, tickets QR validados en la puerta, emails autom\u00e1ticos \u2014 construida de punta a punta. Si necesit\u00e1s un socio que entienda tanto la tecnolog\u00eda como el negocio, hablemos.",
         status: "Sucediendo ahora",
         cta: { label: "Contactame", href: "mailto:dev@harisolaas.com" },
       },
@@ -269,7 +228,7 @@ const es: Dictionary = {
         title: "Segu\u00ed mis aventuras",
         description:
           "Mantengo la aventura, el arte y los desaf\u00edos f\u00edsicos como parte de mi d\u00eda a d\u00eda. Seguime en Instagram.",
-        status: "En progreso",
+        status: "En curso",
         cta: {
           label: "Seguime en Instagram",
           href: "https://instagram.com/harisolaas",
@@ -278,14 +237,10 @@ const es: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Comunidad",
-        title: "BROTE \u2014 El segundo movimiento",
+        title: "BROTE \u2014 100 \u00e1rboles plantados",
         description:
-          "Cerramos el ciclo de BROTE con meditaci\u00f3n, plantaci\u00f3n junto a Un \u00c1rbol y una tarde en una reserva de San Miguel. Gratis, 40 lugares, requiere registraci\u00f3n.",
-        status: "19 de abril",
-        cta: {
-          label: "Reserv\u00e1 tu lugar",
-          href: "/es/brote-cima",
-        },
+          "Cerramos el ciclo de BROTE: una fiesta de reforestaci\u00f3n donde cada entrada plant\u00f3 un \u00e1rbol, y una plantaci\u00f3n de cierre con Un \u00c1rbol en una reserva de San Miguel \u2014 \u00e9ramos ~30 con palas en mano. 100 \u00e1rboles nativos en total.",
+        status: "Ciclo cerrado \u00b7 Abril 2026",
       },
       {
         categoryKey: "teaching",
@@ -312,7 +267,7 @@ const es: Dictionary = {
         year: "2009",
         title: "Art of Living \u2014 15 a\u00f1os",
         description:
-          "Comenc\u00e9 la pr\u00e1ctica de meditaci\u00f3n y la formaci\u00f3n como profesor de alivio de trauma. El profesor m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica.",
+          "Empec\u00e9 a meditar a los 15; a los 16 me convert\u00ed en el profesor de alivio de trauma m\u00e1s joven de El Arte de Vivir en Latinoam\u00e9rica.",
         type: "life",
       },
       {
@@ -431,7 +386,7 @@ const es: Dictionary = {
   contact: {
     heading: "Construyamos algo.",
     description:
-      "Trabajo como consultor tecnol\u00f3gico senior \u2014 ayudando a empresas a construir los productos correctos con las tecnolog\u00edas correctas, incluyendo soluciones de IA que genuinamente sirvan a tu equipo y a tus usuarios. Traigo experiencia profunda en ingenier\u00eda, comunicaci\u00f3n humana y una mentalidad de servicio. Si quer\u00e9s un ingeniero que se preocupe por tu problema tanto como vos, hablemos.",
+      "Trabajo como consultor tecnol\u00f3gico senior \u2014 ayudo a empresas a construir los productos correctos con las tecnolog\u00edas correctas, incluyendo IA que genuinamente sirva a tu equipo y a tus usuarios. La consultor\u00eda es mi formato habitual, y estoy abierto al rol full-time indicado. Si quer\u00e9s un ingeniero que se preocupe por tu problema tanto como vos, hablemos.",
     caseStudyLabel: "Leer el caso de estudio de Carewell en Toptal",
     linkLabels: {
       email: "Email",

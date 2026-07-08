@@ -18,6 +18,7 @@ interface NowCardProps {
 
 export default function NowCard({ item }: NowCardProps) {
   const colors = categoryColors[item.categoryKey];
+  const { cta } = item;
 
   return (
     <motion.div
@@ -44,28 +45,30 @@ export default function NowCard({ item }: NowCardProps) {
           {item.description}
         </p>
       </div>
-      <div className="mt-5">
-        <a
-          href={item.cta.href}
-          onClick={() => trackCtaClick(item.cta.label, item.cta.href, "now")}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-terracotta transition-colors hover:text-forest"
-        >
-          {item.cta.label}
-          <svg
-            className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
+      {cta && (
+        <div className="mt-5">
+          <a
+            href={cta.href}
+            onClick={() => trackCtaClick(cta.label, cta.href, "now")}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-terracotta transition-colors hover:text-forest"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
-            />
-          </svg>
-        </a>
-      </div>
+            {cta.label}
+            <svg
+              className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              />
+            </svg>
+          </a>
+        </div>
+      )}
     </motion.div>
   );
 }

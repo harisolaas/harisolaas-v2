@@ -4,7 +4,7 @@ const en: Dictionary = {
   metadata: {
     title: "Harald Solaas \u2014 Technology that serves people",
     description:
-      "Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, I build technology that serves people \u2014 and communities that outlive me.",
+      "Senior Software Engineer & Technology Consultant. A decade of measurable results \u2014 a $21M ecommerce rebuild, platforms powering 200+ global storefronts \u2014 building technology that serves people.",
     keywords: [
       "Harald Solaas",
       "Hari Solaas",
@@ -18,16 +18,17 @@ const en: Dictionary = {
     ],
     ogTitle: "Harald Solaas \u2014 Technology that serves people",
     ogDescription:
-      "Senior Software Engineer & Technology Consultant. From AI solutions to full-stack products, building technology that serves people and communities that outlive me.",
+      "Senior Software Engineer & Technology Consultant. A decade of measurable results, building technology that serves people.",
     twitterTitle: "Harald Solaas \u2014 Technology that serves people",
     twitterDescription:
       "Senior Software Engineer & Technology Consultant. Building technology that serves people.",
   },
   nav: {
     brand: "Hari",
+    impact: "Results",
     values: "Values",
     now: "Now",
-    story: "Story",
+    story: "Experience",
     contact: "Contact",
     toggleMenu: "Toggle menu",
   },
@@ -35,38 +36,111 @@ const en: Dictionary = {
     name: "Harald Solaas",
     tagline:
       "I started meditating at 15, teaching at 16, and writing code at 20. I haven\u2019t stopped doing any of them.",
+    positioning:
+      "I help companies build products that last — currently taking on consulting work.",
+    ctaLabel: "Let’s build something",
     scrollCta: "Scroll to meet me",
     photoAlt: "Harald Solaas",
-    metaRole: "Software engineer · UI",
+    metaRole: "Senior software engineer · Technology consultant",
     metaLocation: "Buenos Aires, Argentina",
     photoCaption: "fig. 01 — the human",
   },
+  impact: {
+    heading: "Results",
+    items: [
+      {
+        label: "Carewell",
+        title: "A $21M rebuild that paid off in month one",
+        description:
+          "Four engineers rebuilt Carewell's healthcare ecommerce from the ground up. We launched on time, engagement and sales rose in the first month, and the site works even with JavaScript turned off — a board-level requirement full of problems nobody in the industry had solved before.",
+        metrics: [
+          { value: "$21M", label: "Platform rebuilt" },
+          { value: "100", label: "Lighthouse performance" },
+        ],
+      },
+      {
+        label: "Cruise",
+        title: "From weekly firefighting to a year of calm",
+        description:
+          "The analytics platform executives and operations depended on crashed 14 times a month. I changed how the team tested — real use cases over coverage numbers — trained my colleagues, and it ran for a year at nearly zero. That infrastructure is still the team's foundation.",
+        metrics: [
+          { value: "14→0.3", label: "Crashes per month" },
+          { value: "90%", label: "Less execution time" },
+        ],
+      },
+      {
+        label: "Estée Lauder",
+        title: "One system, 200+ storefronts",
+        description:
+          "One component system powering the ecommerce of 200+ brand sites worldwide. When hundreds of thousands of people shop every day, each deploy matters — we raised test coverage from 60% to 85% and cut the time to first interaction.",
+        metrics: [
+          { value: "200+", label: "Sites served" },
+          { value: "60→85%", label: "Test coverage" },
+        ],
+      },
+      {
+        label: "Legal industry · 2023–today",
+        title: "A platform that holds when the flood comes",
+        description:
+          "A US legal company handling mass claims: when a case opens, traffic spikes massively within hours. I migrated their legacy single-page app to a server-rendered platform that stays fast, accessible and secure under load — and keeps their operation online.",
+      },
+    ],
+  },
   values: [
+    {
+      id: "percentile",
+      statement: "I go for the last 1%.",
+      proofPoints: [
+        {
+          label: "Carewell",
+          title: "An ecommerce that works without JavaScript",
+          description:
+            "The CDO tested the entire site with JavaScript disabled \u2014 nothing was allowed to break. Most of what that required had no documented solution, so I worked in proof-of-concepts: build small, validate with the team, incubate each feature on a corner of the site, then grow it to the whole stack.",
+        },
+        {
+          label: "Online academy",
+          title: "Done means measured",
+          description:
+            "On a high-traffic learning platform we deployed progressively by user tiers. A feature wasn\u2019t complete until 100% of users had run it for a week \u2014 with reliable data on its impact.",
+        },
+        {
+          label: "AI-augmented delivery",
+          title: "Three reviews before a human reads it",
+          description:
+            "I build my own tooling: every pull request I open gets reviewed by two AI models, merged into one review, and pruned by a third agent before I read it. The last 1% includes how the work itself gets done.",
+        },
+      ],
+      quote: {
+        text: "Not leaving anything for later. Going for the last 1% that makes the user experience awesome. Optimizing as much as it makes sense, as much as it adds value.",
+      },
+      photoAlt: "Technical excellence and precision",
+      photoSrc: "/excellence.jpg",
+      photoPosition: "80% center",
+      variant: "forest",
+    },
     {
       id: "outlive",
       statement: "I build things that outlive me.",
       proofPoints: [
         {
+          label: "Cruise",
+          title: "Testing infrastructure that became the foundation",
+          description:
+            "At Cruise (autonomous vehicles, Silicon Valley) I didn\u2019t just stop the crashes \u2014 I changed how the team tested and trained the engineers around me. Years later, the testing infrastructure I built is still what the team stands on.",
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "Components that outlived my tenure",
+          description:
+            "The component system I helped build keeps powering 200+ brand storefronts long after I moved on. Code that lasts is code that was thought through.",
+        },
+        {
           label: "Community",
-          title: "50 volunteers, 500+ lives touched",
+          title: "A program that runs without me",
           description:
-            "Led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. Built the volunteer infrastructure, then stepped away. The program continues to this day without him.",
-        },
-        {
-          label: "Personal",
-          title: "A basketball team from nothing",
-          description:
-            "Created a basketball team at age 29 because he was too old to join one. Built it from nothing, played for two years, then left due to injury. The team kept playing for two more years.",
-        },
-        {
-          label: "Professional",
-          title: "From 14 prod crashes to near-zero",
-          description:
-            "At Cruise (autonomous vehicles, Silicon Valley), inherited a codebase with 20% test coverage and 14 crashes/month. Left it at 70%+ coverage with 0.3 crashes/month. The testing infrastructure he built became the team\u2019s foundation.",
+            "I led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. I built the volunteer infrastructure, then stepped away. The program continues to this day without me.",
         },
       ],
-      photoAlt: "Community volunteering work in Buenos Aires",
-      photoSrc: "/community.jpg",
       variant: "cream",
     },
     {
@@ -77,148 +151,49 @@ const en: Dictionary = {
           label: "Origin",
           title: "A psychologist\u2019s son",
           description:
-            "Father was a psychologist and organizational consultant. From childhood, Hari learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
+            "My father was a psychologist and organizational consultant. From childhood, I learned to see systems as collections of people \u2014 their motivations, rewards, and sense of belonging.",
         },
         {
           label: "Formative",
           title: "Youngest trauma relief teacher in Latin America",
           description:
-            "At 15, became the youngest Art of Living trauma relief teacher in Latin America. Worked with people who lost homes in Villa La Angostura. Worked with orphans, rehab youth, and past criminals. Learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
+            "At 16, I became the youngest Art of Living trauma relief teacher in Latin America. I worked with people who lost their homes in Villa La Angostura, with orphans, and with teenagers in conflict with the law. I learned that behind every difficult exterior, there\u2019s a story and there\u2019s love.",
         },
         {
           label: "Professional",
           title: "The bridge between engineering and people",
           description:
-            "At Carewell, rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, ended up as the bridge between engineering and product \u2014 because he sees the humans, not just the code.",
+            "At Carewell, I rebuilt a healthcare platform so exhausted family caregivers could find what they need faster. At Est\u00e9e Lauder, a React component library serving 200+ ecommerce sites wasn\u2019t about code \u2014 it was about the person trying to buy a product. At every company, I ended up as the bridge between engineering and product \u2014 because I see the humans, not just the code.",
         },
       ],
-      photoAlt: "Working with youth in community settings",
-      photoSrc: "/working-with-youth.jpg",
-      variant: "tan",
-    },
-    {
-      id: "percentile",
-      statement: "I go to the last percentile.",
-      proofPoints: [
-        {
-          label: "Cruise",
-          title: "Autonomous vehicle analytics",
-          description:
-            "Built the analytics platform used by executives and operations staff across the company. Reduced execution time by 90% on critical components.",
-          metrics: [
-            { value: "20\u219270%", label: "Test coverage in 3 months" },
-            { value: "14\u21920.3", label: "Crashes per month" },
-            { value: "90%", label: "Execution time reduction" },
-          ],
-        },
-        {
-          label: "Carewell",
-          title: "$21M healthcare platform rebuild",
-          description:
-            "I was a key member of a team of four engineers that rebuilt a $21M healthcare ecommerce platform using React, Next.js, Tailwind CSS, and GraphQL. The site loads instantly, works without JavaScript, and achieves exceptional SEO scores. It launched on time, with increased engagement and sales.",
-          metrics: [
-            { value: "$21M", label: "Platform rebuilt" },
-            { value: "100", label: "Lighthouse performance" },
-          ],
-        },
-        {
-          label: "Est\u00e9e Lauder",
-          title: "200+ brand sites globally",
-          description:
-            "Built flexible, reusable components serving 200+ brand sites globally. Reduced time to first interaction. Multi-tenancy at the extreme \u2014 every deployment matters when hundreds of thousands of users depend on it daily.",
-          metrics: [
-            { value: "200+", label: "Sites served" },
-            { value: "60\u219285%", label: "Test coverage" },
-          ],
-        },
-      ],
-      quote: {
-        text: "Not leaving anything for later. Going to the one percentile of making the user experience awesome. Optimizing as much as it makes sense, as much as it adds value.",
-      },
-      photoAlt: "Technical excellence and precision",
-      photoSrc: "/excellence.jpg",
-      photoPosition: "80% center",
-      variant: "cream",
-    },
-    {
-      id: "serve",
-      statement: "Technology should serve people, not replace them.",
-      proofPoints: [
-        {
-          label: "Art of Living",
-          title: "Streaming platform for wellbeing",
-          description:
-            "Built gamification for the Art of Living Foundation's streaming platform with thousands of monthly users, deepening engagement with meditation and wellbeing content.",
-        },
-        {
-          label: "Cruise",
-          title: "Tools that build the future",
-          description:
-            "Built tools that helped car engineers, testers, and data scientists visualize hundreds of thousands of data points from autonomous drives. Building the tools that build the future of transportation.",
-        },
-        {
-          label: "Carewell",
-          title: "Technology for vulnerable moments",
-          description:
-            "Making healthcare supplies accessible to families caring for aging loved ones. Technology that reduces friction in a moment of vulnerability.",
-        },
-        {
-          label: "Nubi",
-          title: "Financial access for 50,000+",
-          description:
-            "Gave 50,000+ Latin Americans easier access to their PayPal funds \u2014 international transfers, withdrawals, credit card management.",
-        },
-        {
-          label: "Philosophy",
-          title: "Inspired by Muhammad Yunus",
-          description:
-            "Inspired by the \u201cBanker to the Poor\u201d \u2014 the idea that systems (financial, technological, organizational) can be designed to serve people who have been forgotten.",
-        },
-      ],
-      quote: {
-        text: "I want to make technology your ally, your friend \u2014 not a threat.",
-      },
-      photoAlt: "Technology serving human needs",
-      photoSrc: "/for-people.png",
-      variant: "forest",
-    },
-    {
-      id: "joy",
-      statement: "I bring joy to the work.",
-      proofPoints: [
-        {
-          label: "Basketball",
-          title: "Too old to join, so he built one",
-          description:
-            "Too old to join a team at 29, so he created one. Joined an amateur league. It became its own living thing.",
-        },
-        {
-          label: "Teaching",
-          title: "Three years in a slum",
-          description:
-            "Teaching teenagers breathing techniques, human values, how to be kids again. Helping adolescents leave crime. Showing that there\u2019s another way.",
-        },
-        {
-          label: "Art of Living",
-          title: "Teacher since 2022",
-          description:
-            "Teaching courses, building community on social media, learning to sell with authenticity, networking, building volunteer groups rooted in ethics.",
-        },
-        {
-          label: "Daily practice",
-          title: "9 years of daily practice",
-          description:
-            "9 years of daily Sudarshan Kriya breathing practice and meditation. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
-        },
-      ],
-      quote: {
-        text: "Having fun while we do the things that need to be done. Celebrating our victories, learning from our defeats and keeping our chin up.",
-      },
-      photoAlt: "Surfing, basketball, or Art of Living community",
-      photoSrc: "/basketball.jpg",
       variant: "tan",
     },
   ],
+  beyond: {
+    heading: "Beyond the code",
+    subheading: "The same principles, away from the screen.",
+    items: [
+      {
+        label: "Teaching",
+        title: "Talks and teaching on wellbeing",
+        description:
+          "Certified Art of Living teacher since 2022. I give talks on habits, meditation and conscious leadership at wellness events, and facilitate a weekly meditation and writing gathering in Buenos Aires.",
+      },
+      {
+        label: "Service",
+        title: "Another way to grow up",
+        description:
+          "Three years teaching teenagers in a Buenos Aires slum \u2014 breathing techniques, human values, how to play again. Helping them leave crime behind and see that another path exists.",
+      },
+      {
+        label: "Practice",
+        title: "9 years of daily practice",
+        description:
+          "Sudarshan Kriya and meditation, every single day for 9 years. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
+      },
+    ],
+    photoAlt: "Hari giving a talk at a wellness event",
+  },
   now: {
     heading: "What I\u2019m Building Right Now",
     subheading:
@@ -241,16 +216,7 @@ const en: Dictionary = {
         categoryLabel: "Building",
         title: "Technology & AI Partner for Businesses",
         description:
-          "Helping businesses bring their operations into the digital world \u2014 from AI-powered automation and intelligent workflows to full product builds. If you need a technology partner who understands both the tech and the business, let\u2019s talk.",
-        status: "Ongoing",
-        cta: { label: "Get in Touch", href: "mailto:dev@harisolaas.com" },
-      },
-      {
-        categoryKey: "building",
-        categoryLabel: "Building",
-        title: "AI Solutions That Serve People",
-        description:
-          "Building AI-powered tools that genuinely help \u2014 not replace \u2014 the people who use them. From intelligent automation to custom AI integrations, always with the human at the center.",
+          "I help businesses bring their operations into the digital world \u2014 from AI-powered automation to full product builds. Most recently: a ticketing and payments platform for a community event \u2014 MercadoPago checkout, QR tickets validated at the door, automated emails \u2014 built end to end. If you need a partner who understands both the tech and the business, let\u2019s talk.",
         status: "Ongoing",
         cta: { label: "Get in Touch", href: "mailto:dev@harisolaas.com" },
       },
@@ -260,7 +226,7 @@ const en: Dictionary = {
         title: "Follow My Adventures",
         description:
           "Keeping adventure, art, travel and physical challenges as part of my everyday life. Follow along on Instagram.",
-        status: "In Progress",
+        status: "Ongoing",
         cta: {
           label: "Follow on Instagram",
           href: "https://instagram.com/harisolaas",
@@ -269,14 +235,10 @@ const en: Dictionary = {
       {
         categoryKey: "community",
         categoryLabel: "Community",
-        title: "BROTE \u2014 The Second Movement",
+        title: "BROTE \u2014 100 trees in the ground",
         description:
-          "We close the BROTE cycle with meditation, planting alongside Un \u00c1rbol, and an afternoon at a nature reserve in San Miguel. Free, 40 spots, registration required.",
-        status: "April 19",
-        cta: {
-          label: "Save your spot",
-          href: "/en/brote-cima",
-        },
+          "We closed the BROTE cycle: a reforestation party where every ticket planted a tree, and a closing plantation with Un \u00c1rbol at a nature reserve in San Miguel, ~30 of us with shovels in hand. 100 native trees planted in total.",
+        status: "Cycle closed \u00b7 April 2026",
       },
       {
         categoryKey: "teaching",
@@ -303,7 +265,7 @@ const en: Dictionary = {
         year: "2009",
         title: "Art of Living \u2014 Age 15",
         description:
-          "Began meditation practice and training as a trauma relief teacher. Youngest Art of Living teacher in Latin America.",
+          "Began meditating at 15; at 16, became the youngest Art of Living trauma relief teacher in Latin America.",
         type: "life",
       },
       {
@@ -317,7 +279,7 @@ const en: Dictionary = {
         year: "2011\u20132012",
         title: "Service",
         description:
-          "Ense\u00f1ar t\u00e9cnicas de manejo emocional a orphans, at-risk youth, and past criminals.",
+          "Taught emotional-regulation techniques to orphans, at-risk youth, and teenagers in conflict with the law.",
         type: "community",
       },
       {
@@ -422,7 +384,7 @@ const en: Dictionary = {
   contact: {
     heading: "Let\u2019s build something.",
     description:
-      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies, including AI solutions that genuinely serve your team and your users. I bring deep engineering expertise, human communication, and a service-oriented mindset. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
+      "I work as a senior technology consultant \u2014 helping companies build the right products with the right technologies, including AI that genuinely serves your team and your users. Consulting is how I usually work, and I\u2019m open to the right full-time role. If you want an engineer who cares about your problem as much as you do, let\u2019s talk.",
     caseStudyLabel: "Read the Carewell Case Study on Toptal",
     linkLabels: {
       email: "Email",
