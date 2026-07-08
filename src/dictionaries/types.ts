@@ -401,6 +401,9 @@ export interface Dictionary {
     tagline: string;
     scrollCta: string;
     photoAlt: string;
+    metaRole: string;
+    metaLocation: string;
+    photoCaption: string;
   };
   values: ValueData[];
   now: {
@@ -422,9 +425,12 @@ export interface Dictionary {
     description: string;
     caseStudyLabel: string;
     linkLabels: Record<string, string>;
+    copyEmail: string;
+    copiedEmail: string;
   };
   footer: {
     copyright: string;
+    buildLine: string;
   };
   brote: BroteDict;
   broteUnArbol: BroteUnArbolDict;

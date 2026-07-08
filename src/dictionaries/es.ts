@@ -38,6 +38,9 @@ const es: Dictionary = {
       "Empec\u00e9 a meditar a los 15, a ense\u00f1ar a los 16 y a programar a los 20. No dej\u00e9 de hacer ninguna.",
     scrollCta: "Scrolle\u00e1 para conocerme",
     photoAlt: "Harald Solaas",
+    metaRole: "Ingeniero de software \u00b7 UI",
+    metaLocation: "Buenos Aires, Argentina",
+    photoCaption: "fig. 01 \u2014 el humano",
   },
   values: [
     {
@@ -436,9 +439,12 @@ const es: Dictionary = {
       toptal: "Toptal",
       instagram: "Instagram",
     },
+    copyEmail: "copiar email",
+    copiedEmail: "copiado ✓",
   },
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",
+    buildLine: "hecho a mano con next.js \u00b7 sin plantillas",
   },
   brote: {
     meta: {

@@ -22,7 +22,7 @@ export default function NowCard({ item }: NowCardProps) {
   return (
     <motion.div
       variants={fadeUp}
-      className="group flex flex-col justify-between rounded-lg bg-white/60 p-5 shadow-sm transition-all duration-300 hover:bg-white/90 hover:shadow-md"
+      className="group flex flex-col justify-between border border-forest/10 bg-white/50 p-5 transition-colors duration-300 hover:border-forest/30 hover:bg-white/80"
     >
       <div>
         <div className="flex items-center justify-between">
@@ -31,7 +31,13 @@ export default function NowCard({ item }: NowCardProps) {
           >
             {item.categoryLabel}
           </span>
-          <span className="text-xs text-charcoal/40">{item.status}</span>
+          <span className="flex items-center gap-1.5 font-mono text-[11px] text-charcoal/40">
+            <span aria-hidden className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sage opacity-60 motion-reduce:animate-none" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-sage" />
+            </span>
+            {item.status}
+          </span>
         </div>
         <h4 className="mt-4 font-serif text-lg text-forest">{item.title}</h4>
         <p className="mt-2 text-sm leading-relaxed text-charcoal/70">

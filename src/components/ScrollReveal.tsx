@@ -1,8 +1,8 @@
 "use client";
 
-import { motion, useInView, type Variants } from "framer-motion";
+import { motion, useInView, useReducedMotion, type Variants } from "framer-motion";
 import { useRef, type ReactNode } from "react";
-import { fadeUp } from "@/lib/animations";
+import { fadeIn, fadeUp } from "@/lib/animations";
 
 interface ScrollRevealProps {
   children: ReactNode;
@@ -19,13 +19,14 @@ export default function ScrollReveal({
 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const reducedMotion = useReducedMotion();
 
   return (
     <motion.div
       ref={ref}
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
-      variants={variants}
+      variants={reducedMotion ? fadeIn : variants}
       transition={delay ? { delay } : undefined}
       className={className}
     >

@@ -12,10 +12,34 @@
   --font-serif: var(--font-dm-serif);
   --font-sans: var(--font-source-sans);
   --font-script: var(--font-dm-serif);
+  /* The var() fallback matters: layouts that don't load JetBrains Mono
+     (admin, brote/flyer) must still resolve font-mono to a monospace stack —
+     an undefined var() without fallback invalidates the whole declaration. */
+  --font-mono: var(--font-jetbrains, ui-monospace), ui-monospace, SFMono-Regular,
+    Menlo, monospace;
+}
+
+/* Technical label — the mono accent used for eyebrows, metrics, indices */
+.tech-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Lenis takes over scrolling on the landing page */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
 }
 
 body {
@@ -62,6 +86,36 @@ body {
   );
   mix-blend-mode: multiply;
   pointer-events: none;
+}
+
+/* Slow-hydration safety net for masked/scrubbed type: if framer-motion
+   hasn't hydrated (html.motion-ready) within ~2s, CSS reveals the text.
+   `to`-only keyframes animate from the current inline value, so once the
+   JS reveals ran this is a no-op. */
+@keyframes st-rise {
+  to {
+    transform: none;
+  }
+}
+
+@keyframes st-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+html:not(.motion-ready) .st-unit {
+  animation: st-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2.2s forwards;
+}
+
+html:not(.motion-ready) .st-fade {
+  animation: st-appear 0.9s ease 2.2s forwards;
+}
+
+/* Custom cursor replaces the native one on fine pointers */
+html.has-custom-cursor,
+html.has-custom-cursor * {
+  cursor: none !important;
 }
 
 /* Custom scrollbar */

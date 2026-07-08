@@ -37,6 +37,9 @@ const en: Dictionary = {
       "I started meditating at 15, teaching at 16, and writing code at 20. I haven\u2019t stopped doing any of them.",
     scrollCta: "Scroll to meet me",
     photoAlt: "Harald Solaas",
+    metaRole: "Software engineer · UI",
+    metaLocation: "Buenos Aires, Argentina",
+    photoCaption: "fig. 01 — the human",
   },
   values: [
     {
@@ -427,9 +430,12 @@ const en: Dictionary = {
       toptal: "Toptal",
       instagram: "Instagram",
     },
+    copyEmail: "copy email",
+    copiedEmail: "copied ✓",
   },
   footer: {
     copyright: "Harald Solaas \u2014 harisolaas.com",
+    buildLine: "hand-built with next.js \u00b7 no template",
   },
   brote: {
     meta: {

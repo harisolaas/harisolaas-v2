@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, useInView, AnimatePresence } from "framer-motion";
-import { fadeUp, staggerContainer } from "@/lib/animations";
+import { motion, useInView, useReducedMotion, AnimatePresence } from "framer-motion";
+import { easeInOutQuint, fadeUp, staggerContainer } from "@/lib/animations";
 import { trackSectionView, trackTimelineToggle } from "@/lib/analytics";
 import type { Dictionary } from "@/dictionaries/types";
 
@@ -20,6 +20,7 @@ export default function Timeline({ dict }: TimelineProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (isInView) trackSectionView("timeline");
@@ -94,8 +95,13 @@ export default function Timeline({ dict }: TimelineProps) {
                 variants={staggerContainer}
                 className="relative mt-10"
               >
-                {/* Timeline line */}
-                <div className="absolute left-4 top-0 bottom-0 w-px bg-sage/40 md:left-1/2 md:-translate-x-px" />
+                {/* Timeline line draws itself top-down as the list expands */}
+                <motion.div
+                  initial={reducedMotion ? false : { scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{ duration: 1.6, ease: easeInOutQuint }}
+                  className="absolute left-4 top-0 bottom-0 w-px origin-top bg-sage/40 md:left-1/2 md:-translate-x-px"
+                />
 
                 {dict.entries.map((entry, i) => (
                   <motion.div
@@ -120,7 +126,7 @@ export default function Timeline({ dict }: TimelineProps) {
                           : "md:pl-12"
                       }`}
                     >
-                      <span className="text-xs font-semibold uppercase tracking-widest text-terracotta">
+                      <span className="tech-label text-terracotta">
                         {entry.year}
                       </span>
                       <h4 className="mt-1 font-serif text-lg text-forest">
@@ -139,7 +145,7 @@ export default function Timeline({ dict }: TimelineProps) {
 
               {/* Technologies */}
               <motion.div variants={fadeUp} className="mt-10 text-center">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-sage">
+                <h3 className="tech-label text-sage">
                   {dict.techHeading}
                 </h3>
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
