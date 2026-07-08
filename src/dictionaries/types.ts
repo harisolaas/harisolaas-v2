@@ -399,6 +399,8 @@ export interface Dictionary {
   hero: {
     name: string;
     tagline: string;
+    positioning: string;
+    ctaLabel: string;
     scrollCta: string;
     photoAlt: string;
     metaRole: string;

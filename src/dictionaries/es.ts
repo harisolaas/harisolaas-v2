@@ -36,9 +36,12 @@ const es: Dictionary = {
     name: "Harald Solaas",
     tagline:
       "Empec\u00e9 a meditar a los 15, a ense\u00f1ar a los 16 y a programar a los 20. No dej\u00e9 de hacer ninguna.",
+    positioning:
+      "Ayudo a empresas a construir productos que perduran \u2014 hoy tomando proyectos de consultor\u00eda.",
+    ctaLabel: "Construyamos algo",
     scrollCta: "Scrolle\u00e1 para conocerme",
     photoAlt: "Harald Solaas",
-    metaRole: "Ingeniero de software \u00b7 UI",
+    metaRole: "Ingeniero de software senior \u00b7 Consultor tecnol\u00f3gico",
     metaLocation: "Buenos Aires, Argentina",
     photoCaption: "fig. 01 \u2014 el humano",
   },

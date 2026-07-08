@@ -10,7 +10,7 @@ import {
 } from "framer-motion";
 import dynamic from "next/dynamic";
 import { easeOutExpo } from "@/lib/animations";
-import { trackSectionView } from "@/lib/analytics";
+import { trackSectionView, trackCtaClick } from "@/lib/analytics";
 import SplitText from "./SplitText";
 import type { Dictionary } from "@/dictionaries/types";
 
@@ -94,6 +94,28 @@ export default function Hero({ dict }: HeroProps) {
             <p className="mt-8 max-w-md font-serif text-lg italic leading-relaxed text-charcoal/70 md:text-xl">
               <SplitText text={dict.tagline} immediate delay={1.1} stagger={0.02} />
             </p>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 1.6 }}
+              className="mt-8"
+            >
+              <p className="max-w-md text-sm leading-relaxed text-charcoal/60 md:text-base">
+                {dict.positioning}
+              </p>
+              <a
+                href="#contact"
+                onClick={() => trackCtaClick("hero_contact", "#contact", "hero")}
+                className="group/cta mt-4 inline-flex items-center gap-3 text-sm font-semibold text-terracotta transition-colors hover:text-forest"
+              >
+                {dict.ctaLabel}
+                <span
+                  aria-hidden
+                  className="block h-px w-8 bg-terracotta transition-all group-hover/cta:w-12 group-hover/cta:bg-forest"
+                />
+              </a>
+            </motion.div>
           </motion.div>
 
           {/* Portrait */}
