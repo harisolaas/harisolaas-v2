@@ -91,22 +91,22 @@ const en: Dictionary = {
       statement: "I build things that outlive me.",
       proofPoints: [
         {
+          label: "Cruise",
+          title: "Testing infrastructure that became the foundation",
+          description:
+            "At Cruise (autonomous vehicles, Silicon Valley) I didn\u2019t just stop the crashes \u2014 I changed how the team tested and trained the engineers around me. Years later, the testing infrastructure I built is still what the team stands on.",
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "Components that outlived my tenure",
+          description:
+            "The component system I helped build keeps powering 200+ brand storefronts long after I moved on. Code that lasts is code that was thought through.",
+        },
+        {
           label: "Community",
-          title: "50 volunteers, 500+ lives touched",
+          title: "A program that runs without me",
           description:
             "I led 50 volunteers as part of a team to teach 500+ people in a Buenos Aires slum. I built the volunteer infrastructure, then stepped away. The program continues to this day without me.",
-        },
-        {
-          label: "Personal",
-          title: "A basketball team from nothing",
-          description:
-            "I created a basketball team at 29 because I was too old to join one. I built it from nothing, played for two years, then left due to injury. The team kept playing for two more years.",
-        },
-        {
-          label: "Professional",
-          title: "From 14 prod crashes to near-zero",
-          description:
-            "At Cruise (autonomous vehicles, Silicon Valley), I inherited a codebase with 20% test coverage and 14 crashes/month. I left it at 70%+ coverage with 0.3 crashes/month. The testing infrastructure I built became the team\u2019s foundation.",
         },
       ],
       photoAlt: "Community volunteering work in Buenos Aires",
@@ -145,35 +145,22 @@ const en: Dictionary = {
       statement: "I go for the last 1%.",
       proofPoints: [
         {
-          label: "Cruise",
-          title: "Autonomous vehicle analytics",
-          description:
-            "I built the analytics platform used by executives and operations staff across the company. I reduced execution time by 90% on critical components.",
-          metrics: [
-            { value: "20\u219270%", label: "Test coverage in 3 months" },
-            { value: "14\u21920.3", label: "Crashes per month" },
-            { value: "90%", label: "Execution time reduction" },
-          ],
-        },
-        {
           label: "Carewell",
-          title: "$21M healthcare platform rebuild",
+          title: "An ecommerce that works without JavaScript",
           description:
-            "I was a key member of a team of four engineers that rebuilt a $21M healthcare ecommerce platform using React, Next.js, Tailwind CSS, and GraphQL. The site loads instantly, works without JavaScript, and achieves exceptional SEO scores. It launched on time, with increased engagement and sales.",
-          metrics: [
-            { value: "$21M", label: "Platform rebuilt" },
-            { value: "100", label: "Lighthouse performance" },
-          ],
+            "The CDO tested the entire site with JavaScript disabled \u2014 nothing was allowed to break. Most of what that required had no documented solution, so I worked in proof-of-concepts: build small, validate with the team, incubate each feature on a corner of the site, then grow it to the whole stack.",
         },
         {
-          label: "Est\u00e9e Lauder",
-          title: "200+ brand sites globally",
+          label: "Online academy",
+          title: "Done means measured",
           description:
-            "I built flexible, reusable components serving 200+ brand sites globally. I reduced time to first interaction. Multi-tenancy at the extreme \u2014 every deployment matters when hundreds of thousands of users depend on it daily.",
-          metrics: [
-            { value: "200+", label: "Sites served" },
-            { value: "60\u219285%", label: "Test coverage" },
-          ],
+            "On a high-traffic learning platform we deployed progressively by user tiers. A feature wasn\u2019t complete until 100% of users had run it for a week \u2014 with reliable data on its impact.",
+        },
+        {
+          label: "AI-augmented delivery",
+          title: "Three reviews before a human reads it",
+          description:
+            "I build my own tooling: every pull request I open gets reviewed by two AI models, merged into one review, and pruned by a third agent before I read it. The last 1% includes how the work itself gets done.",
         },
       ],
       quote: {
@@ -182,85 +169,7 @@ const en: Dictionary = {
       photoAlt: "Technical excellence and precision",
       photoSrc: "/excellence.jpg",
       photoPosition: "80% center",
-      variant: "cream",
-    },
-    {
-      id: "serve",
-      statement: "Technology should serve people, not replace them.",
-      proofPoints: [
-        {
-          label: "Art of Living",
-          title: "Streaming platform for wellbeing",
-          description:
-            "I built gamification for the Art of Living Foundation's streaming platform with thousands of monthly users, deepening engagement with meditation and wellbeing content.",
-        },
-        {
-          label: "Cruise",
-          title: "Tools that build the future",
-          description:
-            "I built tools that helped car engineers, testers, and data scientists visualize hundreds of thousands of data points from autonomous drives. Building the tools that build the future of transportation.",
-        },
-        {
-          label: "Carewell",
-          title: "Technology for vulnerable moments",
-          description:
-            "Making healthcare supplies accessible to families caring for aging loved ones. Technology that reduces friction in a moment of vulnerability.",
-        },
-        {
-          label: "Nubi",
-          title: "Financial access for 50,000+",
-          description:
-            "We gave 50,000+ Latin Americans easier access to their PayPal funds \u2014 international transfers, withdrawals, credit card management.",
-        },
-        {
-          label: "Philosophy",
-          title: "Inspired by Muhammad Yunus",
-          description:
-            "Inspired by the \u201cBanker to the Poor\u201d \u2014 the idea that systems (financial, technological, organizational) can be designed to serve people who have been forgotten.",
-        },
-      ],
-      quote: {
-        text: "I want to make technology your ally, your friend \u2014 not a threat.",
-      },
-      photoAlt: "Technology serving human needs",
-      photoSrc: "/for-people.png",
       variant: "forest",
-    },
-    {
-      id: "joy",
-      statement: "I bring joy to the work.",
-      proofPoints: [
-        {
-          label: "Basketball",
-          title: "Too old to join, so I built one",
-          description:
-            "Too old to join a team at 29, so I created one. We joined an amateur league. It became its own living thing.",
-        },
-        {
-          label: "Teaching",
-          title: "Three years in a slum",
-          description:
-            "Teaching teenagers breathing techniques, human values, how to be kids again. Helping adolescents leave crime. Showing that there\u2019s another way.",
-        },
-        {
-          label: "Art of Living",
-          title: "Teacher since 2022",
-          description:
-            "Teaching courses, building community on social media, learning to sell with authenticity, networking, building volunteer groups rooted in ethics.",
-        },
-        {
-          label: "Daily practice",
-          title: "9 years of daily practice",
-          description:
-            "9 years of daily Sudarshan Kriya breathing practice and meditation. Joy isn\u2019t accidental \u2014 it\u2019s a discipline.",
-        },
-      ],
-      quote: {
-        text: "Having fun while we do the things that need to be done. Celebrating our victories, learning from our defeats and keeping our chin up.",
-      },
-      photoAlt: "Surfing, basketball, or Art of Living community",
-      photoSrc: "/basketball.jpg",
-      variant: "tan",
     },
   ],
   now: {

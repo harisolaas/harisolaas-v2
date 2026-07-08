@@ -92,22 +92,22 @@ const es: Dictionary = {
       statement: "Construyo cosas que me trascienden.",
       proofPoints: [
         {
+          label: "Cruise",
+          title: "Infraestructura de testing que se volvi\u00f3 la base",
+          description:
+            "En Cruise (veh\u00edculos aut\u00f3nomos, Silicon Valley) no solo fren\u00e9 las ca\u00eddas \u2014 cambi\u00e9 c\u00f3mo testeaba el equipo y entren\u00e9 a los ingenieros a mi alrededor. A\u00f1os despu\u00e9s, la infraestructura de testing que constru\u00ed sigue siendo lo que sostiene al equipo.",
+        },
+        {
+          label: "Est\u00e9e Lauder",
+          title: "Componentes que me sobrevivieron",
+          description:
+            "El sistema de componentes que ayud\u00e9 a construir sigue moviendo 200+ tiendas de marcas mucho despu\u00e9s de mi paso. El c\u00f3digo que dura es c\u00f3digo que se pens\u00f3 bien.",
+        },
+        {
           label: "Comunidad",
-          title: "50 voluntarios, 500+ vidas impactadas",
+          title: "Un programa que sigue sin m\u00ed",
           description:
             "Lider\u00e9, junto a un equipo, a 50 voluntarios para ense\u00f1ar a m\u00e1s de 500 personas en una villa de Buenos Aires. Constru\u00ed la infraestructura de voluntarios y despu\u00e9s migr\u00e9 al pr\u00f3ximo desaf\u00edo. El programa contin\u00faa hasta el d\u00eda de hoy.",
-        },
-        {
-          label: "Personal",
-          title: "Un equipo de b\u00e1squet desde cero",
-          description:
-            "Arm\u00e9 un equipo de b\u00e1squet a los 29 porque ya estaba grande para sumarme a un club. Lo arm\u00e9 de la nada, desarroll\u00e9 al equipo, la log\u00edstica, jugu\u00e9 dos a\u00f1os y me fui por una lesi\u00f3n. El equipo sigui\u00f3 compitiendo dos a\u00f1os m\u00e1s.",
-        },
-        {
-          label: "Profesional",
-          title: "De 14 explosiones de producci\u00f3n a casi cero",
-          description:
-            "En Cruise (veh\u00edculos aut\u00f3nomos, Silicon Valley), hered\u00e9 una base de c\u00f3digo con 20% de cobertura de tests y 14 ca\u00eddas por mes. Lo dej\u00e9 en 70%+ de cobertura con 0.3 incidentes por mes. La infraestructura de testing que constru\u00ed se convirti\u00f3 en la base del equipo.",
         },
       ],
       photoAlt: "Trabajo voluntario comunitario en Buenos Aires",
@@ -147,41 +147,22 @@ const es: Dictionary = {
       statement: "Voy por el \u00faltimo 1%.",
       proofPoints: [
         {
-          label: "Cruise",
-          title: "Anal\u00edtica de veh\u00edculos aut\u00f3nomos",
-          description:
-            "Constru\u00ed la plataforma de anal\u00edtica usada por ejecutivos y personal de operaciones de toda la empresa. Reduje el tiempo de ejecuci\u00f3n un 90% en componentes cr\u00edticos.",
-          metrics: [
-            {
-              value: "20\u219270%",
-              label: "Cobertura de tests en 3 meses",
-            },
-            { value: "14\u21920.3", label: "Ca\u00eddas por mes" },
-            {
-              value: "90%",
-              label: "Reducci\u00f3n tiempo de ejecuci\u00f3n",
-            },
-          ],
-        },
-        {
           label: "Carewell",
-          title: "Reconstrucci\u00f3n de plataforma de salud de $21M",
+          title: "Un ecommerce que funciona sin JavaScript",
           description:
-            "Fui parte clave de un equipo de 4 ingenieros que reconstruy\u00f3 una plataforma de ecommerce de salud de USD $21M con React, Next.js, Tailwind CSS y GraphQL. El sitio carga instant\u00e1neamente, funciona sin JavaScript y logra puntajes SEO excepcionales. Se lanz\u00f3 a tiempo, con mayor engagement y ventas.",
-          metrics: [
-            { value: "$21M", label: "Plataforma reconstru\u00edda" },
-            { value: "100", label: "Performance en Lighthouse" },
-          ],
+            "El CDO testeaba el sitio entero con JavaScript deshabilitado \u2014 nada pod\u00eda romperse. La mayor\u00eda de lo que eso exig\u00eda no ten\u00eda soluci\u00f3n documentada, as\u00ed que trabaj\u00e9 a base de pruebas de concepto: construir chico, validar con el equipo, incubar cada feature en un rinc\u00f3n del sitio y despu\u00e9s crecerla a todo el stack.",
         },
         {
-          label: "Est\u00e9e Lauder",
-          title: "200+ sitios de marcas en todo el mundo",
+          label: "Academia online",
+          title: "Terminado significa medido",
           description:
-            "Constru\u00ed componentes flexibles y reutilizables sirviendo 200+ sitios de marcas a nivel global. Reduje el tiempo a primera interacci\u00f3n. Multi-tenancy al extremo \u2014 cada deploy importa cuando cientos de miles de usuarios dependen de \u00e9l diariamente.",
-          metrics: [
-            { value: "200+", label: "Sitios servidos" },
-            { value: "60\u219285%", label: "Cobertura de tests" },
-          ],
+            "En una plataforma educativa de alto tr\u00e1fico deploy\u00e1bamos progresivamente por niveles de usuarios. Una feature no estaba completa hasta que el 100% la hab\u00eda usado una semana \u2014 con datos confiables de su impacto.",
+        },
+        {
+          label: "Delivery aumentado con IA",
+          title: "Tres reviews antes de que lo lea un humano",
+          description:
+            "Construyo mis propias herramientas: cada pull request que abro lo revisan dos modelos de IA, se fusionan en un solo review y un tercer agente lo poda antes de que yo lo lea. El \u00faltimo 1% incluye c\u00f3mo se hace el trabajo mismo.",
         },
       ],
       quote: {
@@ -190,86 +171,7 @@ const es: Dictionary = {
       photoAlt: "Excelencia t\u00e9cnica y precisi\u00f3n",
       photoSrc: "/excellence.jpg",
       photoPosition: "80% center",
-      variant: "cream",
-    },
-    {
-      id: "serve",
-      statement:
-        "La tecnolog\u00eda debe servir a las personas, no reemplazarlas.",
-      proofPoints: [
-        {
-          label: "Art of Living",
-          title: "Plataforma de streaming para bienestar",
-          description:
-            "Desarrollé gamification para la plataforma de streaming de la Fundaci\u00f3n El Arte de Vivir con miles de usuarios mensuales, mejorarando el compromiso e engagement con contenido de meditaci\u00f3n y bienestar.",
-        },
-        {
-          label: "Cruise",
-          title: "Herramientas que construyen el futuro",
-          description:
-            "Constru\u00ed herramientas que ayudaron a ingenieros de autos, testers y cient\u00edficos de datos a visualizar cientos de miles de puntos de datos de rutas de veh\u00edculos automatizados. Construyendo las herramientas que hacen al futuro del transporte (si, autos robot... si, sin conductor).",
-        },
-        {
-          label: "Carewell",
-          title: "Tecnolog\u00eda para momentos vulnerables",
-          description:
-            "Hacer accesibles los suministros de salud para familias que cuidan a seres queridos mayores. Tecnolog\u00eda que reduce la fricci\u00f3n en un momento de vulnerabilidad.",
-        },
-        {
-          label: "Nubi",
-          title: "Acceso financiero para 50.000+",
-          description:
-            "Dimos a m\u00e1s de 50.000 latinoamericanos acceso m\u00e1s f\u00e1cil a sus fondos de PayPal \u2014 transferencias internacionales, retiros, gesti\u00f3n de tarjetas de cr\u00e9dito.",
-        },
-        {
-          label: "Filosof\u00eda",
-          title: "Inspirado por Muhammad Yunus",
-          description:
-            "Inspirado por el \u00abBanquero de los Pobres\u00bb \u2014 la idea de que los sistemas (financieros, tecnol\u00f3gicos, organizacionales) pueden dise\u00f1arse para servir a personas que han sido olvidadas.",
-        },
-      ],
-      quote: {
-        text: "Quiero hacer de la tecnolog\u00eda tu aliada, tu amiga \u2014 no una amenaza.",
-      },
-      photoAlt: "Tecnolog\u00eda al servicio de las necesidades humanas",
-      photoSrc: "/for-people.png",
       variant: "forest",
-    },
-    {
-      id: "joy",
-      statement: "Traigo diversi\u00f3n al trabajo.",
-      proofPoints: [
-        {
-          label: "B\u00e1squet",
-          title: "Muy grande para unirme, as\u00ed que arm\u00e9 uno",
-          description:
-            "Muy grande para meterme a un equipo a los 29, as\u00ed que cre\u00e9 uno. Me sum\u00e9 a una liga amateur. Se convirti\u00f3 en algo con vida propia.",
-        },
-        {
-          label: "Ense\u00f1anza",
-          title: "Tres a\u00f1os en una villa",
-          description:
-            "Ense\u00f1ando a adolescentes t\u00e9cnicas de respiraci\u00f3n, valores humanos, c\u00f3mo volver a ser chicos. Ayud\u00e1ndolos a salir del crimen. Mostrando que hay otro camino.",
-        },
-        {
-          label: "Art of Living",
-          title: "Profesor desde 2022",
-          description:
-            "Ense\u00f1ando cursos, construyendo comunidad en redes sociales, aprendiendo a vender con autenticidad, haciendo networking, construyendo grupos de voluntarios basados en \u00e9tica.",
-        },
-        {
-          label: "Pr\u00e1ctica diaria",
-          title: "9 a\u00f1os de pr\u00e1ctica diaria",
-          description:
-            "9 a\u00f1os de pr\u00e1ctica diaria de Sudarshan Kriya y meditaci\u00f3n. La alegr\u00eda no es accidental \u2014 es una disciplina.",
-        },
-      ],
-      quote: {
-        text: "Divertirse mientras hacemos las cosas que hay que hacer. Celebrar nuestras victorias, aprender de nuestras derrotas y mantener la frente en alto.",
-      },
-      photoAlt: "Surf, b\u00e1squet o comunidad de El Arte de Vivir",
-      photoSrc: "/basketball.jpg",
-      variant: "tan",
     },
   ],
   now: {
