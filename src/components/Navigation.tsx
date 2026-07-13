@@ -20,7 +20,8 @@ export default function Navigation({ locale, dict }: NavigationProps) {
     { label: dict.impact, href: "#impact" },
     { label: dict.values, href: "#percentile" },
     { label: dict.now, href: "#now" },
-    { label: dict.story, href: "#timeline" },
+    // Timeline ("The Full Story") hidden for now — restore to bring the nav link back
+    // { label: dict.story, href: "#timeline" },
     { label: dict.contact, href: "#contact" },
   ];
 
