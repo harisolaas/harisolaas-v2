@@ -11,7 +11,9 @@ import ImpactSection from "@/components/ImpactSection";
 import ValueSection from "@/components/ValueSection";
 import BeyondSection from "@/components/BeyondSection";
 import NowSection from "@/components/NowSection";
-import Timeline from "@/components/Timeline";
+// Timeline ("The Full Story") hidden for now — restore this import and the
+// <Timeline> render below (plus the nav link in Navigation.tsx) to bring it back.
+// import Timeline from "@/components/Timeline";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 
@@ -47,7 +49,8 @@ export default async function Home({
         ))}
         <BeyondSection dict={dict.beyond} hasPhoto={hasSpeakingPhoto} />
         <NowSection dict={dict.now} />
-        <Timeline dict={dict.timeline} />
+        {/* Timeline ("The Full Story") hidden for now — restore to bring it back */}
+        {/* <Timeline dict={dict.timeline} /> */}
         <Contact dict={dict.contact} />
       </main>
       <Footer dict={dict.footer} />
