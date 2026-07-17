@@ -2,7 +2,7 @@ import type { BroteTicket } from "./brote-types";
 import { broteConfig } from "@/data/brote";
 
 // Start hour derived from eventTime ("19:00 a 22:30" → "19") for day-of copy.
-const startHour = broteConfig.eventTime.slice(0, 2);
+const startHour = broteConfig.eventTime.split(":")[0];
 
 export function buildReminderEmailHtml(treesRemaining: number): string {
   const buyUrl = "https://www.harisolaas.com/es/brote";

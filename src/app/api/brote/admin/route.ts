@@ -626,7 +626,7 @@ export async function POST(req: Request) {
       }
 
       const newTicketId = `BROTE2-${nanoid(8).toUpperCase()}`;
-      const giftedName = giftName || "Invitado/a";
+      const giftedName = giftName || "Asistente";
       await recordParticipation({
         email: toEmail,
         name: giftedName,
@@ -723,7 +723,7 @@ export async function POST(req: Request) {
           await resend.emails.send({
             from: `BROTE <${fromEmail}>`,
             to: email,
-            subject: `¡Hoy es BROTE! 🌱 Te esperamos a las ${broteConfig.eventTime.slice(0, 2)}h`,
+            subject: `¡Hoy es BROTE! 🌱 Te esperamos a las ${broteConfig.eventTime.split(":")[0]}h`,
             html,
           });
           results.push({ email, ok: true });

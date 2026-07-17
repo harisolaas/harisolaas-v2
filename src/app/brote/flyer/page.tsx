@@ -253,7 +253,7 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
 
                 <p style={{ fontSize: isStory ? 22 : isVertical ? 18 : 15 }}
                   className={`mt-1 font-medium ${t.promoDeadline}`}>
-                  Hasta el 13 de agosto
+                  {`Hasta el ${broteConfig.earlyBirdDeadlineDisplay}`}
                 </p>
               </div>
 

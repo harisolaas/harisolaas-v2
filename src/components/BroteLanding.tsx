@@ -140,15 +140,19 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
     if (window.fbq) {
       fireViewContent();
-    } else {
-      const interval = setInterval(() => {
-        if (window.fbq) {
-          fireViewContent();
-          clearInterval(interval);
-        }
-      }, 200);
-      setTimeout(() => clearInterval(interval), 5000);
+      return;
     }
+    const interval = setInterval(() => {
+      if (window.fbq) {
+        fireViewContent();
+        clearInterval(interval);
+      }
+    }, 200);
+    const stop = setTimeout(() => clearInterval(interval), 5000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
   }, []);
 
   const handleCheckout = useCallback(async () => {
@@ -206,6 +210,12 @@ export default function BroteLanding({ dict, locale }: Props) {
     const remaining = deadline.getTime() - Date.now();
     // Already past on mount → the lazy initializer already set it false.
     if (remaining <= 0) return;
+    // setTimeout overflows past its 2^31-1 ms (~24.8 day) ceiling and would
+    // fire almost immediately, flipping early-bird off mid-preventa. If the
+    // deadline is further out than that, no live session will span it — the
+    // initializer re-evaluates on the next load — so skip the timer.
+    const MAX_TIMEOUT = 2_147_483_647;
+    if (remaining > MAX_TIMEOUT) return;
     const timer = setTimeout(() => setIsEarlyBird(false), remaining);
     return () => clearTimeout(timer);
   }, []);
