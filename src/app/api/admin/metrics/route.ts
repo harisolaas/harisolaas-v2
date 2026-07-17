@@ -6,9 +6,8 @@ import {
   assertFullAccess,
   requireAdminSession,
 } from "@/lib/admin-api-auth";
-import { plantConfig } from "@/data/brote";
+import { plantConfig, BROTE_EVENT_ID, BROTE_1_EVENT_ID } from "@/data/brote";
 
-const BROTE_EVENT_ID = "brote-2026-03-28";
 const PLANT_EVENT_ID = "plant-2026-04";
 
 export const dynamic = "force-dynamic";
@@ -27,25 +26,28 @@ export async function GET(req: Request) {
     .from(schema.people);
   const totalPeople = Number(totalPeopleRes?.n ?? 0);
 
+  // Historical brote→plant funnel: uses BROTE 1 (edition that preceded the
+  // plantación). BROTE 2 happens after the plantación, so it has no place in
+  // this retention analysis — keeping edition 1 preserves the funnel's meaning.
   const [broteAttendeeRes] = await db
     .select({ n: countDistinct(schema.participations.personId) })
     .from(schema.participations)
-    .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
+    .where(eq(schema.participations.eventId, BROTE_1_EVENT_ID));
   const broteAttendees = Number(broteAttendeeRes?.n ?? 0);
 
-  // Returning = people with BOTH brote + plant participations.
+  // Returning = people with BOTH brote (edition 1) + plant participations.
   const returningRes = await db.execute<{ n: number }>(sql`
     SELECT COUNT(*)::int AS n FROM (
       SELECT person_id
       FROM participations
-      WHERE event_id IN (${BROTE_EVENT_ID}, ${PLANT_EVENT_ID})
+      WHERE event_id IN (${BROTE_1_EVENT_ID}, ${PLANT_EVENT_ID})
       GROUP BY person_id
       HAVING COUNT(DISTINCT event_id) = 2
     ) t
   `);
   const returningCount = Number(returningRes.rows?.[0]?.n ?? 0);
 
-  // New = plant registrants NOT in brote.
+  // New = plant registrants NOT in brote (edition 1).
   const newRes = await db.execute<{ n: number }>(sql`
     SELECT COUNT(*)::int AS n FROM (
       SELECT p1.person_id
@@ -53,7 +55,7 @@ export async function GET(req: Request) {
       WHERE p1.event_id = ${PLANT_EVENT_ID}
         AND NOT EXISTS (
           SELECT 1 FROM participations p2
-          WHERE p2.person_id = p1.person_id AND p2.event_id = ${BROTE_EVENT_ID}
+          WHERE p2.person_id = p1.person_id AND p2.event_id = ${BROTE_1_EVENT_ID}
         )
     ) t
   `);
@@ -148,7 +150,7 @@ export async function GET(req: Request) {
     FROM participations brote
     JOIN participations plant
       ON plant.person_id = brote.person_id
-    WHERE brote.event_id = ${BROTE_EVENT_ID}
+    WHERE brote.event_id = ${BROTE_1_EVENT_ID}
       AND plant.event_id = ${PLANT_EVENT_ID}
       AND plant.date > brote.date
   `);
@@ -156,7 +158,7 @@ export async function GET(req: Request) {
   const avgDaysBroteToPlant =
     avgRaw != null ? Math.round(Number(avgRaw) * 10) / 10 : null;
 
-  // ── BROTE metrics ───────────────────────────────────────────
+  // ── BROTE metrics (live edition = BROTE 2) ──────────────────
   const broteRows = await db
     .select({
       status: schema.participations.status,

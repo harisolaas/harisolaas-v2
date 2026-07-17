@@ -12,8 +12,7 @@ import { resolveBuyerInfo } from "@/lib/mp-buyer-info";
 import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import type { BroteTicket } from "@/lib/brote-types";
-
-const BROTE_EVENT_ID = "brote-2026-03-28";
+import { BROTE_EVENT_ID } from "@/data/brote";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,

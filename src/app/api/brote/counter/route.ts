@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, count, eq, inArray } from "drizzle-orm";
 import { db, schema } from "@/db";
-
-const BROTE_EVENT_ID = "brote-2026-03-28";
+import { BROTE_EVENT_ID } from "@/data/brote";
 
 export const dynamic = "force-dynamic";
 
