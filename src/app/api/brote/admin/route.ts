@@ -625,7 +625,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "toEmail required" }, { status: 400 });
       }
 
-      const newTicketId = `BROTE-${nanoid(8).toUpperCase()}`;
+      const newTicketId = `BROTE2-${nanoid(8).toUpperCase()}`;
       const giftedName = giftName || "Invitado/a";
       await recordParticipation({
         email: toEmail,

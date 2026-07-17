@@ -184,7 +184,7 @@ export async function POST(req: Request) {
       nameSource: buyerInfo.nameSource,
     });
 
-    ticketId = `BROTE-${nanoid(8).toUpperCase()}`;
+    ticketId = `BROTE2-${nanoid(8).toUpperCase()}`;
 
     // Recover Meta CAPI attribution data from checkout stash (24h TTL).
     const preferenceId = payment.preference_id as string | undefined;

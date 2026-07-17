@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { BROTE_EVENT_ID } from "@/data/brote";
 
 export async function POST(req: Request) {
   try {
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
     const rows = await db
       .select({
         id: schema.participations.id,
+        eventId: schema.participations.eventId,
         status: schema.participations.status,
         usedAt: schema.participations.usedAt,
         metadata: schema.participations.metadata,
@@ -37,6 +39,12 @@ export async function POST(req: Request) {
     }
 
     const row = rows[0];
+
+    // Isolate editions: a ticket from another BROTE edition must not open the
+    // door here. Answer clearly rather than a generic "not found".
+    if (row.eventId !== BROTE_EVENT_ID) {
+      return NextResponse.json({ valid: false, error: "wrong_event" });
+    }
     const metadata = (row.metadata as Record<string, unknown>) ?? {};
     const coffeeRedeemed = Boolean(metadata.coffeeRedeemed);
 
