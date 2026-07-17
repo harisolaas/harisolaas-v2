@@ -6,7 +6,7 @@ import { Resend } from "resend";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { recordParticipation } from "@/lib/community";
-import { plantConfig, BROTE_EVENT_ID } from "@/data/brote";
+import { plantConfig, broteConfig, BROTE_EVENT_ID } from "@/data/brote";
 import type { BroteTicket } from "@/lib/brote-types";
 import {
   buildReminderEmailHtml,
@@ -695,7 +695,7 @@ export async function POST(req: Request) {
     // ── send-reminder ──
     if (action === "send-reminder") {
       const counter = await countBroteTickets();
-      const treesRemaining = Math.max(0, 100 - counter);
+      const treesRemaining = Math.max(0, broteConfig.expectedAttendees - counter);
 
       const rows = await db
         .select({ email: schema.people.email })
@@ -723,7 +723,7 @@ export async function POST(req: Request) {
           await resend.emails.send({
             from: `BROTE <${fromEmail}>`,
             to: email,
-            subject: "¡Hoy es BROTE! 🌱 Te esperamos a las 14h",
+            subject: `¡Hoy es BROTE! 🌱 Te esperamos a las ${broteConfig.eventTime.slice(0, 2)}h`,
             html,
           });
           results.push({ email, ok: true });

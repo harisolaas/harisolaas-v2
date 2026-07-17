@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect, Suspense } from "rea
 import { useSearchParams, useRouter } from "next/navigation";
 import { toPng } from "html-to-image";
 import QRCode from "qrcode";
+import { broteConfig } from "@/data/brote";
 
 const FORMATS: Record<string, { label: string; w: number; h: number }> = {
   square: { label: "1:1", w: 1080, h: 1080 },
@@ -17,9 +18,9 @@ type Variant = "original" | "promo" | "forest" | "qr" | "qr-direct";
 
 const ACTIVITIES = [
   { icon: "🎵", text: "Música en vivo" },
-  { icon: "☕", text: "Coffee Rave" },
-  { icon: "🎧", text: "DJ Set" },
-  { icon: "✨", text: "Café de especialidad" },
+  { icon: "🎸", text: "Acústico en vivo" },
+  { icon: "💃", text: "Experiencia de baile" },
+  { icon: "🍽", text: "Catering" },
 ];
 
 // --- Tree generation (mirrors TreeCounter.tsx logic, no framer-motion) ---
@@ -242,17 +243,17 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
                 <div className="flex flex-col items-center">
                   <span style={{ fontSize: isStory ? 28 : isVertical ? 24 : 20 }}
                     className={`font-medium line-through ${t.promoOld}`}>
-                    $23.313
+                    {broteConfig.ticketPrice}
                   </span>
                   <span style={{ fontSize: isStory ? 72 : isVertical ? 60 : isLandscape ? 48 : 54 }}
                     className={`font-serif font-bold ${t.promoNew}`}>
-                    $18.650
+                    {broteConfig.earlyBirdPrice}
                   </span>
                 </div>
 
                 <p style={{ fontSize: isStory ? 22 : isVertical ? 18 : 15 }}
                   className={`mt-1 font-medium ${t.promoDeadline}`}>
-                  Hasta el 16 de marzo
+                  Hasta el 13 de agosto
                 </p>
               </div>
 
@@ -295,11 +296,11 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
           <div className="flex flex-col items-center">
             <p style={{ fontSize: isStory ? 46 : isVertical ? 38 : isLandscape ? 30 : 34 }}
               className={`font-serif font-bold ${t.date}`}>
-              Sábado 28 de marzo
+              {broteConfig.eventDateDisplay}
             </p>
             <p style={{ fontSize: isStory ? 30 : isVertical ? 26 : 22 }}
               className={`mt-1 font-medium ${t.time}`}>
-              14:00 a 19:00h
+              {`${broteConfig.eventTime}h`}
             </p>
           </div>
 
@@ -319,7 +320,7 @@ function Flyer({ format, theme, variant }: { format: keyof typeof FORMATS; theme
 
 // --- Forest Flyer (with live tree count) ---
 
-const GOAL = 100;
+const GOAL = broteConfig.expectedAttendees;
 
 function ForestFlyer({ format, theme, treeCount }: {
   format: keyof typeof FORMATS;
@@ -513,14 +514,14 @@ function ForestFlyer({ format, theme, treeCount }: {
             style={{ fontSize: Math.round(32 * s) }}
             className={`font-serif font-bold ${t.date}`}
           >
-            Sábado 28 de marzo
+            {broteConfig.eventDateDisplay}
           </p>
 
           <p
             style={{ fontSize: Math.round(20 * s) }}
             className={`font-medium ${t.time}`}
           >
-            14:00 a 19:00h · Costa Rica 5644, Palermo
+            {`${broteConfig.eventTime}h · Costa Rica 5644, Palermo`}
           </p>
 
           <p
@@ -665,14 +666,14 @@ function QRFlyer({ format, theme, direct }: { format: keyof typeof FORMATS; them
             style={{ fontSize: Math.round(32 * s) }}
             className={`font-serif font-bold ${t.date}`}
           >
-            Sábado 28 de marzo
+            {broteConfig.eventDateDisplay}
           </p>
 
           <p
             style={{ fontSize: Math.round(20 * s) }}
             className={`font-medium ${t.time}`}
           >
-            14:00 a 19:00h · Costa Rica 5644, Palermo
+            {`${broteConfig.eventTime}h · Costa Rica 5644, Palermo`}
           </p>
 
           <p
