@@ -68,13 +68,14 @@ function Tree({ x, baseY, height, canopyRx, canopyRy, lean, shade }: TreeData) {
   );
 }
 
+// Luminous greens so the forest reads against the night-edition dark ground.
 const GREENS = [
-  "#2D4A3E",
-  "#3A5F4F",
-  "#4A7A5E",
   "#3E6B52",
-  "#4F7D5F",
+  "#4A7A5E",
   "#5C8A6A",
+  "#6E9E7A",
+  "#7FB08A",
+  "#8FBE9A",
 ];
 
 export default function TreeCounter({ goal, label, treesLabel, locale, onCheckout, optimisticBump = 0 }: Props) {
@@ -146,10 +147,10 @@ export default function TreeCounter({ goal, label, treesLabel, locale, onCheckou
         role="img"
         aria-label={`${count} ${treesLabel}`}
       >
-        {/* Ground hill */}
+        {/* Ground hill — a moonlit rise against the night ground */}
         <path
           d="M0,65 Q25,56 50,53 Q75,56 100,65 L100,70 L0,70 Z"
-          fill="#A8B5A0"
+          fill="#25352C"
         />
 
         {/* Trees */}
@@ -162,7 +163,7 @@ export default function TreeCounter({ goal, label, treesLabel, locale, onCheckou
           x="50"
           y="63"
           textAnchor="middle"
-          fill="#2D4A3E"
+          fill="#FAF6F1"
           fontSize="3.2"
           fontWeight="600"
           opacity={0.7}
@@ -173,7 +174,7 @@ export default function TreeCounter({ goal, label, treesLabel, locale, onCheckou
           x="50"
           y="67.5"
           textAnchor="middle"
-          fill="#2D4A3E"
+          fill="#FAF6F1"
           fontSize="4.5"
           fontWeight="700"
         >
@@ -185,7 +186,7 @@ export default function TreeCounter({ goal, label, treesLabel, locale, onCheckou
         onClick={onCheckout}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="mt-2 block w-full cursor-pointer text-center text-md font-semibold text-forest underline decoration-forest/30 underline-offset-2 transition-colors hover:text-terracotta hover:decoration-terracotta/30"
+        className="mt-2 block w-full cursor-pointer text-center text-md font-semibold text-cream/80 underline decoration-cream/25 underline-offset-2 transition-colors hover:text-terracotta hover:decoration-terracotta/40"
       >
         {locale === "es"
           ? "Comprá tu entrada y hacé crecer el bosque ☝️"
@@ -196,25 +197,25 @@ export default function TreeCounter({ goal, label, treesLabel, locale, onCheckou
         <div className="mt-2 flex gap-2 justify-center">
           <button
             onClick={() => setCount((c) => Math.min(c + 1, goal))}
-            className="rounded bg-forest/10 px-3 py-1 text-xs text-forest hover:bg-forest/20"
+            className="rounded bg-cream/10 px-3 py-1 text-xs text-cream/80 hover:bg-cream/20"
           >
             + 1
           </button>
           <button
             onClick={() => setCount((c) => Math.min(c + 10, goal))}
-            className="rounded bg-forest/10 px-3 py-1 text-xs text-forest hover:bg-forest/20"
+            className="rounded bg-cream/10 px-3 py-1 text-xs text-cream/80 hover:bg-cream/20"
           >
             + 10
           </button>
           <button
             onClick={() => setCount(goal)}
-            className="rounded bg-forest/10 px-3 py-1 text-xs text-forest hover:bg-forest/20"
+            className="rounded bg-cream/10 px-3 py-1 text-xs text-cream/80 hover:bg-cream/20"
           >
             Max
           </button>
           <button
             onClick={() => setCount(0)}
-            className="rounded bg-forest/10 px-3 py-1 text-xs text-forest hover:bg-forest/20"
+            className="rounded bg-cream/10 px-3 py-1 text-xs text-cream/80 hover:bg-cream/20"
           >
             Reset
           </button>
