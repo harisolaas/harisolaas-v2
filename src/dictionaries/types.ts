@@ -51,7 +51,6 @@ export interface TimelineEntry {
 }
 
 export interface BroteExperienceItem {
-  icon: string;
   title: string;
   description: string;
   subtitle?: string;

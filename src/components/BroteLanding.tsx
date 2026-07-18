@@ -359,18 +359,13 @@ export default function BroteLanding({ dict, locale }: Props) {
                   transition={{ duration: 0.5, delay: i * 0.08 }}
                   className="flex items-start gap-5 py-6"
                 >
-                  <span className="shrink-0 text-3xl leading-none md:text-4xl">
-                    {item.icon}
+                  <span className="tech-label shrink-0 pt-1.5 text-base text-terracotta/70">
+                    {String(i + 1).padStart(2, "0")}
                   </span>
                   <div>
-                    <div className="flex items-baseline gap-3">
-                      <span className="tech-label text-terracotta/70">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <h3 className="font-serif text-xl text-cream md:text-2xl">
-                        {item.title}
-                      </h3>
-                    </div>
+                    <h3 className="font-serif text-xl text-cream md:text-2xl">
+                      {item.title}
+                    </h3>
                     {item.subtitle && (
                       <span className="text-xs italic text-cream/40">
                         {item.subtitle}

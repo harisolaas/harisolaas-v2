@@ -63,7 +63,7 @@ export function buildReminderEmailHtml(treesRemaining: number): string {
 
 <!-- Footer -->
 <tr><td style="padding:20px 24px 28px;text-align:center;border-top:1px solid #f0f0f0">
-  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE &middot; Sky Campus &middot; El Arte de Vivir</p>
+  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE &middot; El Arte de Vivir</p>
   <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
 </td></tr>
 
@@ -136,7 +136,7 @@ export function buildTicketEmailHtml(
 
 <!-- Footer -->
 <tr><td style="padding:20px 24px 28px;text-align:center;border-top:1px solid #f0f0f0">
-  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE · Sky Campus · El Arte de Vivir</p>
+  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE · El Arte de Vivir</p>
   <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
 </td></tr>
 

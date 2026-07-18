@@ -418,25 +418,21 @@ const es: Dictionary = {
     },
     experience: [
       {
-        icon: "\ud83c\udf7d",
         title: "Catering para la noche",
         description:
           "Comida rica para acompa\u00f1ar la noche. Lleg\u00e1s, pic\u00e1s algo y te acomod\u00e1s antes de que arranque la m\u00fasica.",
       },
       {
-        icon: "\ud83c\udfb5",
         title: "M\u00fasica ac\u00fastica en vivo",
         description:
           "Abrimos la noche con m\u00fasica ac\u00fastica en vivo. Un momento para bajar un cambio y estar presentes.",
       },
       {
-        icon: "\ud83d\udc83",
         title: "Experiencia de baile",
         description:
           "Y de la calma pasamos al baile. La noche sube y nos movemos juntos hasta el cierre.",
       },
       {
-        icon: "\ud83c\udf31",
         title: "1 entrada = 1 \u00e1rbol",
         description:
           "Cada ticket planta un \u00e1rbol real en Argentina junto a Un \u00c1rbol, una ONG con m\u00e1s de 15 a\u00f1os y miles de \u00e1rboles plantados en el pa\u00eds.",
@@ -498,9 +494,9 @@ const es: Dictionary = {
     about: {
       intro: {
         before: "Esto nace de ",
-        sponsors: "Sky Campus y El Arte de Vivir",
+        sponsors: "El Arte de Vivir",
         after:
-          ", comunidades que practican respiraci\u00f3n, yoga y servicio en m\u00e1s de 100 universidades y 180 pa\u00edses del mundo.",
+          ", una comunidad que practica respiraci\u00f3n, yoga y servicio en m\u00e1s de 100 universidades y 180 pa\u00edses del mundo.",
       },
       body: "No organizamos eventos. Creamos experiencias donde lo que hac\u00e9s por afuera refleja lo que cultiv\u00e1s por dentro.",
       closing: "Esta fiesta es abierta a todos. Ven\u00ed como sos.",

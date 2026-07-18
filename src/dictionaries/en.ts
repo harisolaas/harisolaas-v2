@@ -416,25 +416,21 @@ const en: Dictionary = {
     },
     experience: [
       {
-        icon: "\ud83c\udf7d",
         title: "Catering for the night",
         description:
           "Good food to go with the night. Arrive, grab a bite, and settle in before the music starts.",
       },
       {
-        icon: "\ud83c\udfb5",
         title: "Live acoustic music",
         description:
           "We open the night with live acoustic music. A moment to slow down and be present.",
       },
       {
-        icon: "\ud83d\udc83",
         title: "Dance experience",
         description:
           "And from the calm we move to dancing. The night builds and we move together until close.",
       },
       {
-        icon: "\ud83c\udf31",
         title: "1 ticket = 1 tree",
         description:
           "Each ticket plants a real tree in Argentina with Un \u00c1rbol, an NGO with over 15 years and thousands of trees planted across the country.",
@@ -493,9 +489,9 @@ const en: Dictionary = {
     about: {
       intro: {
         before: "This comes from ",
-        sponsors: "Sky Campus and The Art of Living",
+        sponsors: "The Art of Living",
         after:
-          ", communities practicing breathwork, yoga, and service across 100+ universities and 180 countries worldwide.",
+          ", a community practicing breathwork, yoga, and service across 100+ universities and 180 countries worldwide.",
       },
       body: "We don\u2019t organize events. We create experiences where what you do on the outside reflects what you cultivate within.",
       closing: "This party is open to everyone. Come as you are.",
