@@ -118,6 +118,18 @@ const EVENTS: EventFixture[] = [
     landingPath: "/es/brote",
   },
   {
+    id: "preview-brote2",
+    type: "brote",
+    series: null,
+    name: "BROTE 2 · Fiesta de reforestación (preview)",
+    date: "2026-08-20T19:00:00-03:00",
+    // capacity null mirrors prod: the 100-tree goal is display-only and never
+    // enforced, so checkout can't fail with CapacityReachedError after payment.
+    capacity: null,
+    status: "upcoming",
+    landingPath: "/es/brote",
+  },
+  {
     id: "preview-plant",
     type: "plant",
     series: null,
@@ -224,6 +236,33 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       }),
     };
   }),
+  // BROTE 2 (upcoming) — live-edition ticketing. Mix of early-bird and regular
+  // prices plus a couple of already-scanned (used) tickets and one cancelled
+  // (no payment) so the admin panels show realistic edition-2 revenue and the
+  // gate can be exercised against a used ticket.
+  ...(
+    [
+      { k: "kari", status: "confirmed", price: 2475000 },
+      { k: "leo", status: "confirmed", price: 2475000 },
+      { k: "mica", status: "confirmed", price: 2475000 },
+      { k: "nico", status: "confirmed", price: 3300000 },
+      { k: "oli", status: "confirmed", price: 3300000 },
+      { k: "pau", status: "used", price: 2475000 },
+      { k: "quin", status: "used", price: 3300000 },
+      { k: "rocio", status: "cancelled", price: null },
+    ] as const
+  ).map<ParticipationFixture>((row, i) => ({
+    id: `PREVIEW-B2-${String(i + 1).padStart(3, "0")}`,
+    personEmail: `preview-${row.k}@example.com`,
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: row.status,
+    ...(row.price !== null && {
+      priceCents: row.price,
+      currency: "ARS",
+      paymentId: `PREVIEW-MP-B2-${String(i + 1).padStart(3, "0")}`,
+    }),
+  })),
   // Plant (upcoming) — confirmed + a couple waitlist.
   ...[
     "ana",

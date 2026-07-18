@@ -1,12 +1,26 @@
+// Event IDs — namespace participations/counters per edition.
+// The historical constant is kept so cross-edition queries (e.g. returning
+// community in admin/metrics) can still reference edition 1.
+export const BROTE_EVENT_ID = "brote-2026-08-20"; // current edition (BROTE 2)
+export const BROTE_1_EVENT_ID = "brote-2026-03-28"; // historical (BROTE 1)
+
 export const broteConfig = {
+  // Event date/time — single source of truth (mirrors plantConfig naming).
+  eventDate: "2026-08-20", // YYYY-MM-DD, Argentina time
+  eventDateDisplay: "Jueves 20 de agosto",
+  eventTime: "19:00 a 22:30",
+
   // Prices
-  ticketPrice: "$23.313",
-  ticketPriceRaw: 23313,
-  earlyBirdPrice: "$18.650",
-  earlyBirdPriceRaw: 18650,
-  earlyBirdDeadline: "2026-03-16", // YYYY-MM-DD, inclusive (Argentina time)
+  ticketPrice: "$33.000",
+  ticketPriceRaw: 33000,
+  earlyBirdPrice: "$24.750",
+  earlyBirdPriceRaw: 24750,
+  earlyBirdDeadline: "2026-08-13", // YYYY-MM-DD, inclusive (Argentina time)
+  earlyBirdDeadlineDisplay: "13 de agosto", // must match earlyBirdDeadline
+  // STALE — precio ed. 1, actualizar antes de reactivar el flujo Un Árbol.
   unArbolPrice: "$17.477",
   unArbolPriceRaw: 17477,
+  // STALE — precio ed. 1, actualizar antes de reactivar el flujo CIMA.
   cimaPrice: "$17.477",
   cimaPriceRaw: 17477,
   currency: "ARS",

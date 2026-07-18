@@ -1,6 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from "react";
 import Script from "next/script";
 import Image from "next/image";
 import { motion, useInView, AnimatePresence } from "framer-motion";
@@ -20,16 +27,21 @@ declare global {
   }
 }
 
-/* ─── animated section wrapper ─── */
+/* ─── night palette (inverted from edition 1: dark grounds, cream as light) ─── */
+const NIGHT = "#131C18"; // deepest ground — a forest pushed toward black
+const NIGHT_2 = "#1A2621"; // one step up, for section rhythm
 
+/* ─── scroll-reveal section wrapper (also fires analytics) ─── */
 function Section({
   id,
   children,
   className = "",
+  style,
 }: {
   id: string;
   children: ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-60px" });
@@ -42,18 +54,63 @@ function Section({
     <motion.section
       id={id}
       ref={ref}
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 22 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className={className}
+      style={style}
     >
       {children}
     </motion.section>
   );
 }
 
-/* ─── page ─── */
+/* ─── drifting fireflies / embers — the hero's night atmosphere.
+   Positions are derived from the index so server and client render the
+   same layout (no hydration mismatch, no Math.random). ─── */
+function Fireflies({ count = 16 }: { count?: number }) {
+  const dots = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        left: (i * 37.5) % 100,
+        top: (i * 53.7) % 92,
+        size: 2 + (i % 3),
+        delay: (i % 6) * 0.7,
+        duration: 5 + (i % 5),
+        drift: i % 2 === 0 ? 10 : -10,
+      })),
+    [count],
+  );
 
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-[2]">
+      {dots.map((d, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: `${d.left}%`,
+            top: `${d.top}%`,
+            width: d.size,
+            height: d.size,
+            background: "rgba(196,112,75,0.9)",
+            boxShadow: "0 0 8px 2px rgba(196,112,75,0.5)",
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.9, 0], y: [0, d.drift, 0] }}
+          transition={{
+            duration: d.duration,
+            delay: d.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ─── page ─── */
 interface Props {
   dict: BroteDict;
   locale: string;
@@ -62,18 +119,15 @@ interface Props {
 export default function BroteLanding({ dict, locale }: Props) {
   const otherLocale = locale === "en" ? "es" : "en";
   const localeLabel = locale === "en" ? "ES" : "EN";
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [ctaHovered, setCtaHovered] = useState(false);
   const [lineupOpen, setLineupOpen] = useState(false);
 
   useEffect(() => {
     initPostHog();
     trackSectionView("brote_hero");
-    videoRef.current?.load();
 
-    // Meta Pixel — ViewContent (wait for fbq to load)
+    // Meta Pixel — ViewContent (poll until fbq is ready, up to 5s)
     const fireViewContent = () => {
       if (window.fbq) {
         window.fbq("track", "ViewContent", {
@@ -86,30 +140,41 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
     if (window.fbq) {
       fireViewContent();
-    } else {
-      // Pixel hasn't loaded yet — poll briefly
-      const interval = setInterval(() => {
-        if (window.fbq) { fireViewContent(); clearInterval(interval); }
-      }, 200);
-      setTimeout(() => clearInterval(interval), 5000);
+      return;
     }
+    const interval = setInterval(() => {
+      if (window.fbq) {
+        fireViewContent();
+        clearInterval(interval);
+      }
+    }, 200);
+    const stop = setTimeout(() => clearInterval(interval), 5000);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(stop);
+    };
   }, []);
 
   const handleCheckout = useCallback(async () => {
     if (checkoutLoading) return;
-    setCheckoutLoading("ticket");
+    setCheckoutLoading(true);
     trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
 
     // Meta Pixel — InitiateCheckout with dedup event ID
     const eventId = crypto.randomUUID();
     const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
-    const price = new Date() <= deadline ? broteConfig.earlyBirdPriceRaw : broteConfig.ticketPriceRaw;
+    const price =
+      new Date() <= deadline
+        ? broteConfig.earlyBirdPriceRaw
+        : broteConfig.ticketPriceRaw;
 
     if (typeof window !== "undefined" && window.fbq) {
-      window.fbq("track", "InitiateCheckout", {
-        currency: "ARS",
-        value: price,
-      }, { eventID: eventId });
+      window.fbq(
+        "track",
+        "InitiateCheckout",
+        { currency: "ARS", value: price },
+        { eventID: eventId },
+      );
     }
 
     // Read Meta cookies for server-side dedup
@@ -123,17 +188,18 @@ export default function BroteLanding({ dict, locale }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type: "ticket", eventId, fbp, fbc }),
       });
-
       const data = await res.json();
       if (data.init_point) {
         window.location.href = data.init_point;
+      } else {
+        setCheckoutLoading(false);
       }
     } catch {
-      setCheckoutLoading(null);
+      setCheckoutLoading(false);
     }
   }, [checkoutLoading]);
 
-  // Early bird check (client-side, Argentina UTC-3) — auto-updates after deadline
+  // Early-bird check (Argentina UTC-3) — flips live when the deadline passes
   const [isEarlyBird, setIsEarlyBird] = useState(() => {
     const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
     return new Date() <= deadline;
@@ -142,115 +208,127 @@ export default function BroteLanding({ dict, locale }: Props) {
   useEffect(() => {
     const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
     const remaining = deadline.getTime() - Date.now();
-    if (remaining <= 0) {
-      setIsEarlyBird(false);
-      return;
-    }
+    // Already past on mount → the lazy initializer already set it false.
+    if (remaining <= 0) return;
+    // setTimeout overflows past its 2^31-1 ms (~24.8 day) ceiling and would
+    // fire almost immediately, flipping early-bird off mid-preventa. If the
+    // deadline is further out than that, no live session will span it — the
+    // initializer re-evaluates on the next load — so skip the timer.
+    const MAX_TIMEOUT = 2_147_483_647;
+    if (remaining > MAX_TIMEOUT) return;
     const timer = setTimeout(() => setIsEarlyBird(false), remaining);
     return () => clearTimeout(timer);
   }, []);
 
-  const { expectedAttendees } = broteConfig;
   const attendeesText = dict.impact.attendees.replace(
     /\{count\}/g,
-    String(expectedAttendees),
+    String(broteConfig.expectedAttendees),
+  );
+
+  const ctaButton = (
+    label: string,
+    variant: "solid" | "ghost" = "solid",
+  ) => (
+    <button
+      onClick={() => handleCheckout()}
+      onMouseEnter={() => setCtaHovered(true)}
+      onMouseLeave={() => setCtaHovered(false)}
+      disabled={checkoutLoading}
+      className={
+        variant === "solid"
+          ? "group relative inline-flex cursor-pointer items-center justify-center rounded-full bg-terracotta px-9 py-4 text-lg font-semibold text-cream shadow-[0_0_30px_rgba(196,112,75,0.35)] transition-all hover:shadow-[0_0_45px_rgba(196,112,75,0.55)] disabled:opacity-60"
+          : "inline-flex cursor-pointer items-center justify-center rounded-full border border-cream/25 bg-cream/5 px-9 py-4 text-lg font-semibold text-cream backdrop-blur-sm transition-all hover:border-cream/50 hover:bg-cream/10 disabled:opacity-60"
+      }
+    >
+      {checkoutLoading ? "…" : label}
+    </button>
   );
 
   return (
-    <>
+    <div className="texture-overlay" style={{ background: NIGHT }}>
       {/* Locale switch */}
       <a
         href={`/${otherLocale}/brote`}
         onClick={() => trackLocaleSwitch(locale, otherLocale)}
-        className="fixed right-4 top-4 z-50 mix-blend-difference rounded-full border border-white/30 px-3 py-1 text-xs font-semibold text-white transition-colors hover:border-white/60"
+        className="fixed right-4 top-4 z-50 rounded-full border border-cream/30 px-3 py-1 text-xs font-semibold text-cream/80 transition-colors hover:border-cream/60 hover:text-cream"
       >
         {localeLabel}
       </a>
 
-      <main>
-        {/* ───────── BLOCK 1 — Hero ───────── */}
-        <section className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-6 py-16 text-center">
-          {/* Gradient fallback — visible while video loads */}
-          <div className="absolute inset-0 bg-gradient-to-br from-tan/40 via-cream to-sage/20" />
-
-          {/* Background video — loads progressively after page render */}
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-
-            playsInline
-            preload="none"
-            onPlaying={() => setVideoLoaded(true)}
-            className={`absolute inset-0 z-[1] h-full w-full object-cover object-center transition-opacity duration-1000 ${
-              videoLoaded ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <source src="/brote-hero-v2.mp4" type="video/mp4" />
-          </video>
-
-          {/* Cream overlay */}
-          <div className="absolute inset-0 z-[2] bg-cream/75" />
+      <main className="relative z-0">
+        {/* ───────── Hero — night ───────── */}
+        <section className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-6 py-20 text-center">
+          {/* Generated night sky (placeholder for a future night photo/video) */}
+          <div
+            aria-hidden
+            className="absolute inset-0 z-[1]"
+            style={{
+              background:
+                "radial-gradient(120% 90% at 50% 8%, #24352C 0%, #17211C 45%, #0E1512 100%)",
+            }}
+          />
+          {/* Warm horizon glow — a gathering somewhere below the fold */}
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 z-[1] h-1/2"
+            style={{
+              background:
+                "radial-gradient(80% 70% at 50% 120%, rgba(196,112,75,0.35) 0%, rgba(196,112,75,0) 60%)",
+            }}
+          />
+          <Fireflies />
 
           <div className="relative z-10 mx-auto max-w-xl">
+            <motion.p
+              initial={{ opacity: 0, letterSpacing: "0.5em" }}
+              animate={{ opacity: 1, letterSpacing: "0.32em" }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="tech-label text-terracotta"
+            >
+              {dict.hero.subtitle}
+            </motion.p>
+
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 22 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="font-serif text-7xl tracking-tight text-forest md:text-8xl"
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mt-4 font-serif text-7xl tracking-tight text-cream md:text-8xl [text-shadow:0_0_45px_rgba(196,112,75,0.25)]"
             >
               BROTE
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.25 }}
-              className="mt-2 font-serif text-xl italic text-forest md:text-2xl"
-            >
-              {dict.hero.subtitle}
-            </motion.p>
-
-            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-5 text-sm font-semibold uppercase tracking-widest text-terracotta"
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mt-4 text-sm font-semibold uppercase tracking-[0.18em] text-sage"
             >
               {dict.hero.dateTime}
             </motion.p>
 
             <motion.p
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.55 }}
-              className="mx-auto mt-6 max-w-md text-base leading-relaxed text-charcoal md:text-lg"
+              transition={{ duration: 0.6, delay: 0.55 }}
+              className="mx-auto mt-6 max-w-md text-base leading-relaxed text-cream/70 md:text-lg"
             >
               {dict.hero.subhead}
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-              className="mt-8"
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="mt-9"
             >
-              <button
-                onClick={() => handleCheckout()}
-                onMouseEnter={() => setCtaHovered(true)}
-                onMouseLeave={() => setCtaHovered(false)}
-                disabled={checkoutLoading === "ticket"}
-                className="inline-block cursor-pointer rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg disabled:opacity-60"
-              >
-                {checkoutLoading === "ticket" ? "..." : dict.hero.cta}
-              </button>
+              {ctaButton(dict.hero.cta)}
             </motion.div>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.9 }}
-              className="mt-10"
+              transition={{ duration: 0.6, delay: 0.95 }}
+              className="mt-12"
             >
               <TreeCounter
                 goal={broteConfig.expectedAttendees}
@@ -258,50 +336,54 @@ export default function BroteLanding({ dict, locale }: Props) {
                 treesLabel={locale === "es" ? "árboles" : "trees"}
                 locale={locale}
                 onCheckout={() => handleCheckout()}
-                optimisticBump={checkoutLoading === "ticket" || ctaHovered ? 1 : 0}
+                optimisticBump={checkoutLoading || ctaHovered ? 1 : 0}
               />
             </motion.div>
           </div>
         </section>
 
-        {/* ───────── BLOCK 2 — Qué vas a vivir ───────── */}
-        <Section id="experiencia" className="px-6 py-12 md:py-16">
+        {/* ───────── Experience — the program, as an editorial list ───────── */}
+        <Section
+          id="experiencia"
+          className="px-6 py-16 md:py-24"
+          style={{ background: NIGHT_2 }}
+        >
           <div className="mx-auto max-w-2xl">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ul className="divide-y divide-cream/10">
               {dict.experience.map((item, i) => (
-                <motion.div
+                <motion.li
                   key={item.title}
-                  initial={{ opacity: 0, y: 14 }}
+                  initial={{ opacity: 0, y: 16 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.4, delay: i * 0.08 }}
-                  className="rounded-xl border border-sage/15 bg-white/70 p-4"
+                  transition={{ duration: 0.5, delay: i * 0.08 }}
+                  className="flex items-start gap-5 py-6"
                 >
-                  <span className="text-2xl">{item.icon}</span>
-                  <h3 className="mt-2 font-serif text-base text-forest md:text-lg">
-                    {item.title}
-                  </h3>
-                  {item.subtitle && (
-                    <span className="text-xs italic text-charcoal/40">
-                      {item.subtitle}
-                    </span>
-                  )}
-                  <p className="mt-1.5 text-sm leading-relaxed text-charcoal/60">
-                    {item.description}
-                  </p>
-                </motion.div>
+                  <span className="tech-label shrink-0 pt-1.5 text-base text-terracotta/70">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3 className="font-serif text-xl text-cream md:text-2xl">
+                      {item.title}
+                    </h3>
+                    {item.subtitle && (
+                      <span className="text-xs italic text-cream/40">
+                        {item.subtitle}
+                      </span>
+                    )}
+                    <p className="mt-1.5 text-sm leading-relaxed text-cream/60 md:text-base">
+                      {item.description}
+                    </p>
+                  </div>
+                </motion.li>
               ))}
-            </div>
-          </div>
-        </Section>
+            </ul>
 
-        {/* ───────── BLOCK 2.5 — Lineup accordion ───────── */}
-        <Section id="lineup" className="-mt-6 px-6 pb-4 md:-mt-8">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex justify-center">
+            {/* Lineup accordion */}
+            <div className="mt-12 flex justify-center">
               <button
                 onClick={() => setLineupOpen((o) => !o)}
-                className="group flex items-center gap-2 rounded-full border border-forest/20 px-6 py-3 text-sm font-semibold text-forest transition-all hover:border-forest/40 hover:bg-forest/5"
+                className="group flex items-center gap-2 rounded-full border border-cream/20 px-6 py-3 text-sm font-semibold text-cream/80 transition-all hover:border-cream/40 hover:text-cream"
               >
                 {dict.lineup.toggle}
                 <motion.svg
@@ -331,9 +413,9 @@ export default function BroteLanding({ dict, locale }: Props) {
                   transition={{ duration: 0.5, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <div className="relative mt-8 ml-4">
-                    {/* Timeline line */}
-                    <div className="absolute left-0 top-0 bottom-0 w-px bg-sage/40" />
+                  <div className="relative mx-auto mt-8 max-w-md pl-4">
+                    {/* Luminous timeline line */}
+                    <div className="absolute bottom-1 left-0 top-1 w-px bg-gradient-to-b from-terracotta/60 via-sage/40 to-transparent" />
 
                     {dict.lineup.items.map((item, i) => (
                       <motion.div
@@ -341,15 +423,13 @@ export default function BroteLanding({ dict, locale }: Props) {
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: i * 0.08 }}
-                        className="relative mb-6 pl-8 last:mb-0"
+                        className="relative mb-7 pl-8 last:mb-0"
                       >
-                        {/* Dot */}
-                        <div className="absolute left-0 top-1.5 h-2.5 w-2.5 -translate-x-1 rounded-full bg-terracotta" />
-
-                        <span className="text-xs font-semibold uppercase tracking-widest text-terracotta">
+                        <div className="absolute left-0 top-1.5 h-2.5 w-2.5 -translate-x-1 rounded-full bg-terracotta shadow-[0_0_10px_2px_rgba(196,112,75,0.6)]" />
+                        <span className="tech-label text-terracotta">
                           {item.time}
                         </span>
-                        <h4 className="mt-1 font-serif text-base text-forest md:text-lg">
+                        <h4 className="mt-1 font-serif text-lg text-cream">
                           {item.link ? (
                             <a
                               href={item.link.url}
@@ -363,7 +443,7 @@ export default function BroteLanding({ dict, locale }: Props) {
                             item.title
                           )}
                         </h4>
-                        <p className="mt-1 text-sm leading-relaxed text-charcoal/60">
+                        <p className="mt-1 text-sm leading-relaxed text-cream/55">
                           {item.description}
                           {item.link && item.title !== item.link.label && (
                             <>
@@ -372,7 +452,7 @@ export default function BroteLanding({ dict, locale }: Props) {
                                 href={item.link.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-medium text-terracotta/70 underline decoration-terracotta/30 underline-offset-2 transition-colors hover:text-terracotta"
+                                className="font-medium text-terracotta/80 underline decoration-terracotta/30 underline-offset-2 transition-colors hover:text-terracotta"
                               >
                                 @{item.link.label}
                               </a>
@@ -388,10 +468,10 @@ export default function BroteLanding({ dict, locale }: Props) {
           </div>
         </Section>
 
-        {/* ───────── BLOCK 3 — El árbol ───────── */}
+        {/* ───────── Impact — the tree (photo + deep forest overlay) ───────── */}
         <Section
           id="impacto"
-          className="relative overflow-hidden px-6 py-12 md:py-16"
+          className="relative overflow-hidden px-6 py-20 md:py-28"
         >
           <Image
             src="/unarbol-en-accion.jpg"
@@ -400,13 +480,19 @@ export default function BroteLanding({ dict, locale }: Props) {
             className="object-cover"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-forest/70" />
-
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(19,28,24,0.82) 0%, rgba(19,28,24,0.9) 100%)",
+            }}
+          />
           <div className="relative z-10 mx-auto max-w-xl">
             <h2 className="font-serif text-3xl text-cream md:text-4xl">
               {dict.impact.heading}
             </h2>
-            <div className="mt-6 space-y-4 text-base leading-relaxed text-cream md:text-lg">
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-cream/80 md:text-lg">
               <p>
                 {dict.impact.partner.intro}
                 <a
@@ -420,11 +506,11 @@ export default function BroteLanding({ dict, locale }: Props) {
                 {dict.impact.partner.rest}
               </p>
               <p>{dict.impact.body}</p>
-              <p className="font-semibold text-cream">{attendeesText}</p>
+              <p className="font-semibold text-terracotta">{attendeesText}</p>
             </div>
 
             <div className="mt-8 flex items-center gap-3">
-              <span className="text-xs uppercase tracking-widest text-cream">
+              <span className="tech-label text-cream/70">
                 {dict.impact.partnerLabel}
               </span>
               <Image
@@ -435,67 +521,72 @@ export default function BroteLanding({ dict, locale }: Props) {
                 className="h-7 w-auto"
               />
             </div>
-
           </div>
         </Section>
 
-        {/* ───────── BLOCK 4 — CTA + precio ───────── */}
-        <Section id="precio" className="px-6 py-12 text-center md:py-16">
-          <div className="mx-auto max-w-md">
+        {/* ───────── Pricing — the luminous focal moment ───────── */}
+        <Section
+          id="precio"
+          className="px-6 py-20 text-center md:py-28"
+          style={{ background: NIGHT_2 }}
+        >
+          <div
+            className="mx-auto max-w-md rounded-3xl border border-cream/10 px-8 py-12"
+            style={{
+              background:
+                "radial-gradient(120% 100% at 50% 0%, rgba(196,112,75,0.12) 0%, rgba(196,112,75,0) 60%)",
+            }}
+          >
             {isEarlyBird ? (
               <>
-                <span className="inline-block rounded-full bg-terracotta/15 px-4 py-1.5 text-sm font-semibold tracking-wide text-terracotta">
+                <span className="inline-block rounded-full bg-terracotta/20 px-4 py-1.5 text-sm font-semibold tracking-wide text-terracotta">
                   {dict.pricing.earlyBirdBadge}
                 </span>
-                <p className="mt-4 font-serif text-5xl text-terracotta md:text-6xl">
+                <p className="mt-5 font-serif text-6xl text-cream md:text-7xl [text-shadow:0_0_35px_rgba(196,112,75,0.3)]">
                   {broteConfig.earlyBirdPrice}
                 </p>
-                <p className="mt-2 text-base text-charcoal/40 line-through">
+                <p className="mt-2 text-base text-cream/40 line-through">
                   {broteConfig.ticketPrice}
                 </p>
-                <p className="mt-1 text-sm text-charcoal/50">
+                <p className="mt-1 text-sm text-sage">
                   {dict.pricing.earlyBirdUntil}
                 </p>
               </>
             ) : (
-              <p className="font-serif text-5xl text-terracotta md:text-6xl">
+              <p className="font-serif text-6xl text-cream md:text-7xl [text-shadow:0_0_35px_rgba(196,112,75,0.3)]">
                 {broteConfig.ticketPrice}
               </p>
             )}
-            <p className="mt-4 text-base leading-relaxed text-charcoal/70 md:text-lg">
+            <p className="mt-5 text-base leading-relaxed text-cream/70 md:text-lg">
               {dict.pricing.reanchor}
             </p>
-            <button
-              onClick={() => handleCheckout()}
-              disabled={checkoutLoading === "ticket"}
-              className="mt-6 inline-block cursor-pointer rounded-full bg-forest px-8 py-4 text-lg font-semibold text-cream shadow-md transition-all hover:bg-forest/90 hover:shadow-lg disabled:opacity-60"
-            >
-              {checkoutLoading === "ticket" ? "..." : dict.pricing.cta}
-            </button>
-            <p className="mt-4 text-xs text-charcoal/40">
-              {dict.pricing.payment}
-            </p>
+            <div className="mt-7">{ctaButton(dict.pricing.cta)}</div>
+            <p className="mt-4 text-xs text-cream/40">{dict.pricing.payment}</p>
           </div>
         </Section>
 
-        {/* ───────── BLOCK 5 — Quiénes somos ───────── */}
-        <Section id="nosotros" className="px-6 py-12 md:py-16">
-          <div className="mx-auto max-w-xl space-y-4 text-base leading-relaxed text-charcoal/70 md:text-lg">
+        {/* ───────── About — the quiet section ───────── */}
+        <Section id="nosotros" className="px-6 py-16 md:py-24">
+          <div className="mx-auto max-w-xl space-y-4 text-base leading-relaxed text-cream/70 md:text-lg">
             <p>
               {dict.about.intro.before}
-              <strong className="text-charcoal">
-                {dict.about.intro.sponsors}
-              </strong>
+              <strong className="text-cream">{dict.about.intro.sponsors}</strong>
               {dict.about.intro.after}
             </p>
             <p>{dict.about.body}</p>
-            <p className="font-semibold text-forest">{dict.about.closing}</p>
+            <p className="font-serif text-2xl italic text-terracotta">
+              {dict.about.closing}
+            </p>
           </div>
         </Section>
 
-        {/* ───────── BLOCK 6 — Datos prácticos ───────── */}
-        <Section id="datos" className="bg-tan/20 px-6 py-12 md:py-16">
-          <ul className="mx-auto max-w-md space-y-4 text-base text-charcoal/80">
+        {/* ───────── Practical details ───────── */}
+        <Section
+          id="datos"
+          className="px-6 py-16 md:py-24"
+          style={{ background: NIGHT_2 }}
+        >
+          <ul className="mx-auto max-w-md space-y-5 text-base text-cream/80">
             <li className="flex items-start gap-3">
               <span className="text-xl">📅</span>
               <span>{dict.practical.dateTime}</span>
@@ -506,7 +597,7 @@ export default function BroteLanding({ dict, locale }: Props) {
                 href={broteConfig.locationLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="underline decoration-terracotta/30 underline-offset-2 transition-colors hover:text-forest"
+                className="underline decoration-terracotta/40 underline-offset-2 transition-colors hover:text-terracotta"
               >
                 {broteConfig.locationAddress}
               </a>
@@ -522,24 +613,26 @@ export default function BroteLanding({ dict, locale }: Props) {
           </ul>
         </Section>
 
-        {/* ───────── BLOCK 7 — CTA final + donación ───────── */}
+        {/* ───────── Final CTA + planting fallback ───────── */}
         <Section
           id="final"
-          className="bg-forest px-6 py-14 text-center md:py-20"
+          className="relative overflow-hidden px-6 py-20 text-center md:py-28"
         >
-          <div className="mx-auto max-w-md">
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(90% 80% at 50% 100%, rgba(196,112,75,0.28) 0%, rgba(196,112,75,0) 60%)",
+            }}
+          />
+          <div className="relative z-10 mx-auto max-w-md">
             <p className="font-serif text-3xl text-cream md:text-4xl">
               {dict.final.heading}
             </p>
-            <button
-              onClick={() => handleCheckout()}
-              disabled={checkoutLoading === "ticket"}
-              className="mt-6 inline-block cursor-pointer rounded-full bg-cream px-8 py-4 text-lg font-semibold text-forest shadow-md transition-all hover:bg-cream/90 hover:shadow-lg disabled:opacity-60"
-            >
-              {checkoutLoading === "ticket" ? "..." : dict.final.cta}
-            </button>
+            <div className="mt-7">{ctaButton(dict.final.cta)}</div>
 
-            <div className="mx-auto my-8 h-px w-16 bg-cream/20" />
+            <div className="mx-auto my-9 h-px w-16 bg-cream/15" />
 
             <p className="text-sm text-cream/50">{dict.final.plantingPrompt}</p>
             <a
@@ -578,6 +671,6 @@ fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID}');`}
           />
         </>
       )}
-    </>
+    </div>
   );
 }

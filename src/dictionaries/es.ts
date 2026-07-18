@@ -405,38 +405,34 @@ const es: Dictionary = {
     meta: {
       title: "BROTE \u2014 Fiesta de reforestaci\u00f3n",
       description:
-        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Argentina. S\u00e1bado 28 de marzo.",
+        "M\u00fasica en vivo, catering y una noche con sentido. Cada entrada planta un \u00e1rbol real en Argentina. Jueves 20 de agosto.",
       ogDescription:
-        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
+        "M\u00fasica en vivo, catering y una noche con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
     },
     hero: {
       subtitle: "Fiesta de reforestaci\u00f3n",
-      dateTime: "S\u00e1bado 28 de marzo \u00b7 14 a 19h \u00b7 Argentina",
+      dateTime: "Jueves 20 de agosto \u00b7 19 a 22:30h \u00b7 Argentina",
       subhead:
-        "M\u00fasica en vivo, caf\u00e9 de especialidad, DJ set y una tarde entera con gente que celebra con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
+        "M\u00fasica ac\u00fastica en vivo, catering y una noche entera con gente que celebra con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
       cta: "Quiero mi entrada",
     },
     experience: [
       {
-        icon: "\u2615",
-        title: "Caf\u00e9 de especialidad y pasteler\u00eda",
+        title: "Catering para la noche",
         description:
-          "Un stand de caf\u00e9 curado para arrancar la tarde con los sentidos abiertos.",
+          "Comida rica para acompa\u00f1ar la noche. Lleg\u00e1s, pic\u00e1s algo y te acomod\u00e1s antes de que arranque la m\u00fasica.",
       },
       {
-        icon: "\ud83c\udfb5",
-        title: "M\u00fasica en vivo + DJ set",
+        title: "M\u00fasica ac\u00fastica en vivo",
         description:
-          "Apertura con m\u00fasica ac\u00fastica en vivo y DJ para cerrar. De la calma al baile, todo en una tarde.",
+          "Abrimos la noche con m\u00fasica ac\u00fastica en vivo. Un momento para bajar un cambio y estar presentes.",
       },
       {
-        icon: "\ud83e\uddd8",
-        title: "Meditaci\u00f3n grupal + intenci\u00f3n por la naturaleza",
+        title: "Experiencia de baile",
         description:
-          "Cerr\u00e1 la tarde conectando con vos y con la naturaleza. Una experiencia guiada para llevarte algo que dure m\u00e1s que la m\u00fasica.",
+          "Y de la calma pasamos al baile. La noche sube y nos movemos juntos hasta el cierre.",
       },
       {
-        icon: "\ud83c\udf31",
         title: "1 entrada = 1 \u00e1rbol",
         description:
           "Cada ticket planta un \u00e1rbol real en Argentina junto a Un \u00c1rbol, una ONG con m\u00e1s de 15 a\u00f1os y miles de \u00e1rboles plantados en el pa\u00eds.",
@@ -446,35 +442,32 @@ const es: Dictionary = {
       toggle: "Ver el lineup",
       items: [
         {
-          time: "15:00",
+          time: "19:00",
           title: "Apertura",
           description:
-            "Caf\u00e9, pasteler\u00eda y encuentro. Un momento para llegar, conocer gente y acomodarse antes de que empiece todo.",
-          link: { url: "https://www.instagram.com/nuezabsas/", label: "Nueza" },
+            "Llegada, catering y encuentro. Un rato para acomodarse antes de que arranque la noche. (Por confirmar.)",
         },
         {
-          time: "15:30",
-          title: "Ximena en vivo",
-          description: "M\u00fasica ac\u00fastica para settear el mood.",
-          link: {
-            url: "https://www.instagram.com/ximenasmusica/",
-            label: "Ximena",
-          },
-        },
-        {
-          time: "16:00",
-          title: "Un \u00c1rbol",
+          time: "19:45",
+          title: "Ac\u00fastico en vivo",
           description:
-            "Charla sobre reforestaci\u00f3n y siembra colectiva. Cada uno hace su propio brote de planta nativa y se lo lleva a casa. Seguido de una siembra de intenci\u00f3n: una meditaci\u00f3n colectiva breve para cerrar ese momento.",
+            "M\u00fasica en vivo para abrir la noche. Artista por confirmar.",
+        },
+        {
+          time: "21:00",
+          title: "Momento Un \u00c1rbol",
+          description:
+            "Charla de reforestaci\u00f3n y siembra colectiva junto a Un \u00c1rbol. Detalles por confirmar.",
           link: {
             url: "https://www.instagram.com/unarbol_ong/",
             label: "Un \u00c1rbol",
           },
         },
         {
-          time: "17:00",
-          title: "DJ set",
-          description: "Baile hasta el final.",
+          time: "21:30",
+          title: "Experiencia de baile",
+          description:
+            "De la calma al baile: cerramos la noche movi\u00e9ndonos juntos. Por confirmar.",
         },
       ],
     },
@@ -492,26 +485,26 @@ const es: Dictionary = {
     },
     pricing: {
       reanchor:
-        "Una tarde de m\u00fasica, caf\u00e9, comunidad y un \u00e1rbol plantado a tu nombre.",
+        "Una noche de m\u00fasica, comunidad y un \u00e1rbol plantado a tu nombre.",
       cta: "Quiero mi entrada",
       payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
-      earlyBirdBadge: "Preventa \u2014 20% OFF",
-      earlyBirdUntil: "Hasta el 16 de marzo",
+      earlyBirdBadge: "Preventa \u2014 25% OFF",
+      earlyBirdUntil: "Hasta el 13 de agosto",
     },
     about: {
       intro: {
         before: "Esto nace de ",
-        sponsors: "Sky Campus y El Arte de Vivir",
+        sponsors: "El Arte de Vivir",
         after:
-          ", comunidades que practican respiraci\u00f3n, yoga y servicio en m\u00e1s de 100 universidades y 180 pa\u00edses del mundo.",
+          ", una comunidad que practica respiraci\u00f3n, yoga y servicio en m\u00e1s de 100 universidades y 180 pa\u00edses del mundo.",
       },
       body: "No organizamos eventos. Creamos experiencias donde lo que hac\u00e9s por afuera refleja lo que cultiv\u00e1s por dentro.",
       closing: "Esta fiesta es abierta a todos. Ven\u00ed como sos.",
     },
     practical: {
-      dateTime: "S\u00e1bado 28 de marzo \u00b7 14:00 a 19:00",
+      dateTime: "Jueves 20 de agosto \u00b7 19:00 a 22:30",
       includes:
-        "Tu entrada incluye: m\u00fasica, caf\u00e9, actividades y la plantaci\u00f3n de 1 \u00e1rbol",
+        "Tu entrada incluye: m\u00fasica, catering, actividades y la plantaci\u00f3n de 1 \u00e1rbol",
       bring: "Ven\u00ed con buena energ\u00eda, ropa cool y c\u00f3moda",
     },
     final: {
@@ -523,7 +516,7 @@ const es: Dictionary = {
     success: {
       title: "BROTE \u2014 \u00a1Listo!",
       heading: "\u00a1Ya sos parte del bosque!",
-      body: "Gracias a vos, un \u00e1rbol nuevo va a echar ra\u00edces en Argentina. Eso es real, y es gracias a tu decisi\u00f3n de hoy. Nos vemos el 28 de marzo para celebrarlo juntos.",
+      body: "Gracias a vos, un \u00e1rbol nuevo va a echar ra\u00edces en Argentina. Eso es real, y es gracias a tu decisi\u00f3n de hoy. Nos vemos el 20 de agosto para celebrarlo juntos.",
       emailNote:
         "Tu entrada con el c\u00f3digo QR va a llegar al email que usaste en MercadoPago en los pr\u00f3ximos minutos. Revis\u00e1 tu bandeja de entrada y spam.",
       noEmail: "\u00bfNo te lleg\u00f3 el email? Escribime y lo resolvemos.",

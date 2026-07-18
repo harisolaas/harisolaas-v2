@@ -1,17 +1,9 @@
 import { NextResponse } from "next/server";
-
-// BROTE event ended March 28, 2026. QR checkout disabled.
-// Redirects to the planting registration page.
-
-export async function GET() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-  return NextResponse.redirect(`${baseUrl}/es/brote`, 302);
-}
-
-/* --- Original QR checkout code (preserved for future events) ---
-
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { broteConfig } from "@/data/brote";
+
+// Direct-to-MercadoPago checkout for printed QR flyers: scanning the QR hits
+// this GET and lands the buyer straight on the MP checkout (no landing hop).
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
@@ -64,4 +56,3 @@ export async function GET(req: Request) {
     return NextResponse.redirect(`${baseUrl}/es/brote`, 302);
   }
 }
-*/

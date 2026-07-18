@@ -1,17 +1,4 @@
 import { NextResponse } from "next/server";
-
-// BROTE event ended March 28, 2026. Checkout disabled.
-// Original code preserved below for reference.
-
-export async function POST() {
-  return NextResponse.json(
-    { error: "BROTE event has ended. Registration for tree planting is open at /brote" },
-    { status: 410 },
-  );
-}
-
-/* --- Original checkout code (preserved for future events) ---
-
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { broteConfig } from "@/data/brote";
 import { getRedis } from "@/lib/redis";
@@ -133,4 +120,3 @@ export async function POST(req: Request) {
     );
   }
 }
-*/

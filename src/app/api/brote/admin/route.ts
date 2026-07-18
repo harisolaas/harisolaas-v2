@@ -6,7 +6,7 @@ import { Resend } from "resend";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { recordParticipation } from "@/lib/community";
-import { plantConfig } from "@/data/brote";
+import { plantConfig, broteConfig, BROTE_EVENT_ID } from "@/data/brote";
 import type { BroteTicket } from "@/lib/brote-types";
 import {
   buildReminderEmailHtml,
@@ -21,7 +21,6 @@ import {
 import { runPlantReminderCampaign } from "@/lib/plant-reminder";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
-const BROTE_EVENT_ID = "brote-2026-03-28";
 const PLANT_EVENT_ID = "plant-2026-04";
 
 function auth(req: Request): boolean {
@@ -626,8 +625,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "toEmail required" }, { status: 400 });
       }
 
-      const newTicketId = `BROTE-${nanoid(8).toUpperCase()}`;
-      const giftedName = giftName || "Invitado/a";
+      const newTicketId = `BROTE2-${nanoid(8).toUpperCase()}`;
+      const giftedName = giftName || "Asistente";
       await recordParticipation({
         email: toEmail,
         name: giftedName,
@@ -696,7 +695,7 @@ export async function POST(req: Request) {
     // ── send-reminder ──
     if (action === "send-reminder") {
       const counter = await countBroteTickets();
-      const treesRemaining = Math.max(0, 100 - counter);
+      const treesRemaining = Math.max(0, broteConfig.expectedAttendees - counter);
 
       const rows = await db
         .select({ email: schema.people.email })
@@ -724,7 +723,7 @@ export async function POST(req: Request) {
           await resend.emails.send({
             from: `BROTE <${fromEmail}>`,
             to: email,
-            subject: "¡Hoy es BROTE! 🌱 Te esperamos a las 14h",
+            subject: `¡Hoy es BROTE! 🌱 Te esperamos a las ${broteConfig.eventTime.split(":")[0]}h`,
             html,
           });
           results.push({ email, ok: true });

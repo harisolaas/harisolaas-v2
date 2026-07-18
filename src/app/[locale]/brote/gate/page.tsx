@@ -18,7 +18,14 @@ function GateContent() {
   const [ticketId, setTicketId] = useState(ticketParam);
   const [ticket, setTicket] = useState<TicketInfo | null>(null);
   const [status, setStatus] = useState<
-    "idle" | "loading" | "valid" | "used" | "not_found" | "marked" | "coffee_redeemed"
+    | "idle"
+    | "loading"
+    | "valid"
+    | "used"
+    | "not_found"
+    | "wrong_event"
+    | "marked"
+    | "coffee_redeemed"
   >("idle");
   const [usedAt, setUsedAt] = useState<string | null>(null);
   const [coffeeRedeemedAt, setCoffeeRedeemedAt] = useState<string | null>(null);
@@ -36,6 +43,9 @@ function GateContent() {
         const data = await res.json();
         if (data.error === "not_found") {
           setStatus("not_found");
+          setTicket(null);
+        } else if (data.error === "wrong_event") {
+          setStatus("wrong_event");
           setTicket(null);
         } else if (data.ticket) {
           setTicket(data.ticket);
@@ -116,11 +126,13 @@ function GateContent() {
       <h1 className="mb-8 text-3xl font-bold text-white">BROTE — Gate</h1>
 
       {/* Manual input */}
-      {status === "idle" || status === "not_found" ? (
+      {status === "idle" ||
+      status === "not_found" ||
+      status === "wrong_event" ? (
         <div className="w-full max-w-sm">
           <input
             type="text"
-            placeholder="Ticket ID (e.g. BROTE-XXXXXXXX)"
+            placeholder="Ticket ID (e.g. BROTE2-XXXXXXXX)"
             value={ticketId}
             onChange={(e) => setTicketId(e.target.value.toUpperCase())}
             className="w-full rounded-lg border-2 border-white/30 bg-white/10 px-4 py-3 text-center text-lg text-white placeholder-white/40 focus:border-white/60 focus:outline-none"
@@ -134,6 +146,11 @@ function GateContent() {
           {status === "not_found" && (
             <p className="mt-4 text-lg text-white/80">
               Ticket no encontrado.
+            </p>
+          )}
+          {status === "wrong_event" && (
+            <p className="mt-4 text-lg text-white/80">
+              Entrada de otra edición — no válida para este evento.
             </p>
           )}
         </div>

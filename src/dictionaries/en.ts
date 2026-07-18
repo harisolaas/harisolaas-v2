@@ -403,38 +403,34 @@ const en: Dictionary = {
     meta: {
       title: "BROTE \u2014 Reforestation party",
       description:
-        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Argentina. Saturday March 28.",
+        "Live music, catering, and a night with purpose. Every ticket plants a real tree in Argentina. Thursday August 20.",
       ogDescription:
-        "Live music, specialty coffee, DJ set, and an afternoon with purpose. Every ticket plants a real tree in Argentina.",
+        "Live music, catering, and a night with purpose. Every ticket plants a real tree in Argentina.",
     },
     hero: {
       subtitle: "Reforestation party",
-      dateTime: "Saturday March 28 \u00b7 2 to 7 PM \u00b7 Argentina",
+      dateTime: "Thursday August 20 \u00b7 7 to 10:30 PM \u00b7 Argentina",
       subhead:
-        "Live music, specialty coffee, DJ set, and a full afternoon with people who celebrate with purpose. Every ticket plants a real tree in Argentina.",
+        "Live acoustic music, catering, and a full night with people who celebrate with purpose. Every ticket plants a real tree in Argentina.",
       cta: "I want my ticket",
     },
     experience: [
       {
-        icon: "\u2615",
-        title: "Specialty coffee & pastries",
+        title: "Catering for the night",
         description:
-          "A curated coffee stand to kick off the afternoon with your senses wide open.",
+          "Good food to go with the night. Arrive, grab a bite, and settle in before the music starts.",
       },
       {
-        icon: "\ud83c\udfb5",
-        title: "Live music + DJ set",
+        title: "Live acoustic music",
         description:
-          "Opening with live acoustic music and a DJ to close. From calm to dance, all in one afternoon.",
+          "We open the night with live acoustic music. A moment to slow down and be present.",
       },
       {
-        icon: "\ud83e\uddd8",
-        title: "Group meditation + intention for nature",
+        title: "Dance experience",
         description:
-          "Close the afternoon connecting with yourself and nature. A guided experience to take something home that lasts longer than the music.",
+          "And from the calm we move to dancing. The night builds and we move together until close.",
       },
       {
-        icon: "\ud83c\udf31",
         title: "1 ticket = 1 tree",
         description:
           "Each ticket plants a real tree in Argentina with Un \u00c1rbol, an NGO with over 15 years and thousands of trees planted across the country.",
@@ -444,29 +440,29 @@ const en: Dictionary = {
       toggle: "See the lineup",
       items: [
         {
-          time: "15:00",
+          time: "19:00",
           title: "Opening",
           description:
-            "Coffee, pastries, and meeting people. A moment to arrive, get comfortable and settle in before everything starts.",
-          link: { url: "https://www.instagram.com/nuezabsas/", label: "Nueza" },
+            "Arrival, catering, and meeting people. A moment to settle in before the night starts. (To be confirmed.)",
         },
         {
-          time: "15:30",
-          title: "Ximena live",
-          description: "Acoustic music to set the mood.",
-          link: { url: "https://www.instagram.com/ximenasmusica/", label: "Ximena" },
-        },
-        {
-          time: "16:00",
-          title: "Un \u00c1rbol",
+          time: "19:45",
+          title: "Live acoustic",
           description:
-            "Talk about reforestation and collective planting. Everyone makes their own native plant sprout and takes it home. Followed by an intention planting: a brief collective meditation to close the moment.",
+            "Live music to open the night. Artist to be confirmed.",
+        },
+        {
+          time: "21:00",
+          title: "Un \u00c1rbol moment",
+          description:
+            "Reforestation talk and collective planting with Un \u00c1rbol. Details to be confirmed.",
           link: { url: "https://www.instagram.com/unarbol_ong/", label: "Un \u00c1rbol" },
         },
         {
-          time: "17:00",
-          title: "DJ set",
-          description: "Dancing until the end.",
+          time: "21:30",
+          title: "Dance experience",
+          description:
+            "From calm to dance: we close the night moving together. To be confirmed.",
         },
       ],
     },
@@ -484,26 +480,26 @@ const en: Dictionary = {
     },
     pricing: {
       reanchor:
-        "An afternoon of music, coffee, community, and a tree planted in your name.",
+        "A night of music, community, and a tree planted in your name.",
       cta: "I want my ticket",
       payment: "Pay with MercadoPago / card / bank transfer.",
-      earlyBirdBadge: "Early bird — 20% OFF",
-      earlyBirdUntil: "Until March 16",
+      earlyBirdBadge: "Early bird — 25% OFF",
+      earlyBirdUntil: "Until August 13",
     },
     about: {
       intro: {
         before: "This comes from ",
-        sponsors: "Sky Campus and The Art of Living",
+        sponsors: "The Art of Living",
         after:
-          ", communities practicing breathwork, yoga, and service across 100+ universities and 180 countries worldwide.",
+          ", a community practicing breathwork, yoga, and service across 100+ universities and 180 countries worldwide.",
       },
       body: "We don\u2019t organize events. We create experiences where what you do on the outside reflects what you cultivate within.",
       closing: "This party is open to everyone. Come as you are.",
     },
     practical: {
-      dateTime: "Saturday March 28 \u00b7 2:00 to 7:00 PM",
+      dateTime: "Thursday August 20 \u00b7 7:00 to 10:30 PM",
       includes:
-        "Your ticket includes: music, coffee, activities, and planting 1 tree",
+        "Your ticket includes: music, catering, activities, and planting 1 tree",
       bring: "Come in cool and comfy clothes and good vibes",
     },
     final: {
@@ -515,7 +511,7 @@ const en: Dictionary = {
     success: {
       title: "BROTE \u2014 You\u2019re in!",
       heading: "You\u2019re part of the forest now!",
-      body: "Because of you, a new tree will take root in Argentina. That\u2019s real, and it\u2019s because of what you chose to do today. See you on March 28 to celebrate together.",
+      body: "Because of you, a new tree will take root in Argentina. That\u2019s real, and it\u2019s because of what you chose to do today. See you on August 20 to celebrate together.",
       emailNote: "Your ticket with the QR code will arrive at the email you used in MercadoPago in the next few minutes. Check your inbox and spam.",
       noEmail: "Didn\u2019t get the email? Reach out and we\u2019ll sort it out.",
       whatsappCta: "Message me on WhatsApp",
