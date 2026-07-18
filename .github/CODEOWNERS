@@ -1,0 +1,3 @@
+# Hari reviews everything. This auto-requests his review on every PR —
+# the merge gate itself is the branch ruleset (1 approval required on main).
+* @harisolaas
