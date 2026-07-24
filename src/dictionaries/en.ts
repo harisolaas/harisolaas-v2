@@ -407,12 +407,20 @@ const en: Dictionary = {
       ogDescription:
         "Live music, catering, and a night with purpose. Every ticket plants a real tree in Argentina.",
     },
+    topbar: { left: "Party", right: "2026" },
     hero: {
-      subtitle: "Reforestation party",
-      dateTime: "Thursday August 20 \u00b7 7 to 10:30 PM \u00b7 Argentina",
-      subhead:
-        "Live acoustic music, catering, and a full night with people who celebrate with purpose. Every ticket plants a real tree in Argentina.",
       cta: "I want my ticket",
+      textureAlt: "Textures of tree rings and leaf veins",
+    },
+    infoBar: {
+      date: { label: "August", value: "20" },
+      time: { label: "7:00 PM", value: "to 10:30" },
+      place: { label: "Palermo", value: "CABA" },
+    },
+    eyebrows: {
+      experience: "The night",
+      lineup: "Lineup",
+      pricing: "Tickets",
     },
     experience: [
       {
@@ -437,36 +445,27 @@ const en: Dictionary = {
       },
     ],
     lineup: {
-      toggle: "See the lineup",
       items: [
         {
-          time: "19:00",
-          title: "Opening",
-          description:
-            "Arrival, catering, and meeting people. A moment to settle in before the night starts. (To be confirmed.)",
+          name: "Jos\u00e9 Dezanzo",
+          tag: "Acoustic set",
+          detail:
+            "We open the night with Jos\u00e9 Dezanzo\u2019s acoustic set. A moment to slow down and be present before the night builds.",
+          link: {
+            url: "https://www.instagram.com/josedezanzo/",
+            label: "josedezanzo",
+          },
         },
         {
-          time: "19:45",
-          title: "Live acoustic",
-          description:
-            "Live music to open the night. Artist to be confirmed.",
-        },
-        {
-          time: "21:00",
-          title: "Un \u00c1rbol moment",
-          description:
-            "Reforestation talk and collective planting with Un \u00c1rbol. Details to be confirmed.",
-          link: { url: "https://www.instagram.com/unarbol_ong/", label: "Un \u00c1rbol" },
-        },
-        {
-          time: "21:30",
-          title: "Dance experience",
-          description:
-            "From calm to dance: we close the night moving together. To be confirmed.",
+          name: "To be announced",
+          tag: "Dance experience",
+          detail:
+            "From the calm we move to dancing. The night builds and we move together until close. Artist to be confirmed.",
         },
       ],
     },
     impact: {
+      counterLabel: "Trees planted so far",
       heading: "Your ticket doesn\u2019t get spent. It gets planted.",
       partner: {
         intro: "We work with ",
@@ -476,37 +475,45 @@ const en: Dictionary = {
       body: "Each ticket funds the planting of a native tree. It\u2019s not symbolic: it\u2019s a real tree, in a real place, that will keep growing long after the music stops.",
       attendees:
         "If {count} people come, that\u2019s {count} trees. Simple as that.",
-      partnerLabel: "In partnership with",
     },
     pricing: {
-      reanchor:
-        "A night of music, community, and a tree planted in your name.",
-      cta: "I want my ticket",
-      payment: "Pay with MercadoPago / card / bank transfer.",
-      earlyBirdBadge: "Early bird — 25% OFF",
+      earlyBirdLabel: "Early bird — 25% OFF",
+      earlyBirdExpired: "Early bird ended",
       earlyBirdUntil: "Until August 13",
+      generalLabel: "General",
+      generalFrom: "From August 14",
+      generalUntil: "While they last",
+      includesLabel: "Includes",
+      includesItems: [
+        "Live acoustic music",
+        "Catering",
+        "Dance experience",
+        "1 tree planted in your name",
+      ],
+      payment: "Pay with MercadoPago / card / bank transfer.",
     },
-    about: {
+    community: {
       intro: {
         before: "This comes from ",
         sponsors: "The Art of Living",
         after:
-          ", a community practicing breathwork, yoga, and service across 100+ universities and 180 countries worldwide.",
+          ", a community practicing breathwork, yoga, and service across 180 countries worldwide.",
       },
-      body: "We don\u2019t organize events. We create experiences where what you do on the outside reflects what you cultivate within.",
-      closing: "This party is open to everyone. Come as you are.",
-    },
-    practical: {
-      dateTime: "Thursday August 20 \u00b7 7:00 to 10:30 PM",
-      includes:
-        "Your ticket includes: music, catering, activities, and planting 1 tree",
-      bring: "Come in cool and comfy clothes and good vibes",
+      body: "We don\u2019t organize events: we create experiences where what you do on the outside reflects what you cultivate within.",
+      tagline: "This party is for everyone \u00b7 Come as you are",
     },
     final: {
       heading: "Are you coming?",
+      compactDate: "Thu Aug 20",
+      compactTime: "7:00\u201310:30 PM",
+      address: "Costa Rica 5644",
       cta: "I want my ticket",
-      plantingPrompt: "Can\u2019t make it but want to be part of it?",
-      plantingCta: "Join the planting",
+      plantingPrompt: "Can\u2019t make it?",
+      plantingCta: "Join the planting \u2192",
+    },
+    footer: {
+      left: "Brote",
+      right: "In partnership with Un \u00c1rbol",
     },
     success: {
       title: "BROTE \u2014 You\u2019re in!",

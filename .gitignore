@@ -40,3 +40,6 @@ next-env.d.ts
 
 # claude agent state
 .claude/
+
+# Design handoff bundles (source material, kept locally)
+design_handoff_brote_redesign/
