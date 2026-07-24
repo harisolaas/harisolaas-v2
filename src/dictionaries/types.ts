@@ -72,6 +72,7 @@ export interface BroteDict {
   topbar: { left: string; right: string };
   hero: {
     cta: string;
+    textureAlt: string;
   };
   infoBar: {
     date: BroteInfoCell;

@@ -410,6 +410,7 @@ const en: Dictionary = {
     topbar: { left: "Party", right: "2026" },
     hero: {
       cta: "I want my ticket",
+      textureAlt: "Textures of tree rings and leaf veins",
     },
     infoBar: {
       date: { label: "August", value: "20" },

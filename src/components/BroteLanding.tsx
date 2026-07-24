@@ -231,10 +231,12 @@ function InfoBar({
   );
 }
 
-/* ─── eyebrow (mono, tracked, forest-60) ─── */
+/* ─── eyebrow (mono, tracked, forest-60)
+   Rendered as <h2> so each section has a heading and the document doesn't
+   jump h1 → h3 on the experience cards. ─── */
 function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <div
+    <h2
       style={{
         ...mono,
         fontSize: 12,
@@ -242,11 +244,11 @@ function Eyebrow({ children }: { children: ReactNode }) {
         letterSpacing: "0.4em",
         textTransform: "uppercase",
         color: FOREST_60,
-        marginBottom: 16,
+        margin: "0 0 16px",
       }}
     >
       {children}
-    </div>
+    </h2>
   );
 }
 
@@ -474,6 +476,19 @@ export default function BroteLanding({ dict, locale }: Props) {
           /* clear the fixed locale toggle so the top-bar "2026" isn't covered */
           .brote-scope .brote-topbar { padding-right: 42px; }
         }
+        /* Accordion row fill is declarative — hover via CSS, open state via the
+           aria-expanded attribute — so it can't desync from React state. */
+        .brote-scope .brote-lineup-row {
+          background: transparent;
+          transition: background 0.2s ease;
+        }
+        .brote-scope .brote-lineup-row:hover,
+        .brote-scope .brote-lineup-row[aria-expanded="true"] {
+          background: ${FOREST_10};
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .brote-scope .brote-lineup-row { transition: none; }
+        }
       `}</style>
 
       {/* grain overlay */}
@@ -557,12 +572,7 @@ export default function BroteLanding({ dict, locale }: Props) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            {texture(
-              locale === "es"
-                ? "Texturas de anillos de árbol y venas de hoja"
-                : "Textures of tree rings and leaf veins",
-              true,
-            )}
+            {texture(dict.hero.textureAlt, true)}
           </motion.div>
 
           {/* info bar */}
@@ -671,23 +681,14 @@ export default function BroteLanding({ dict, locale }: Props) {
                   <button
                     onClick={() => setOpenLineup((o) => (o === i ? -1 : i))}
                     aria-expanded={open}
-                    className="flex w-full cursor-pointer items-baseline gap-4 bg-transparent text-left"
+                    aria-controls={`brote-lineup-panel-${i}`}
+                    className="brote-lineup-row flex w-full cursor-pointer items-baseline gap-4 text-left"
                     style={{
                       ...mono,
                       color: FOREST,
                       padding: "clamp(16px,2.5vw,24px) 4px",
-                      background: open ? FOREST_10 : "transparent",
-                      transition: "background 0.2s ease",
                       border: "none",
                     }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.background = FOREST_10)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.background = open
-                        ? FOREST_10
-                        : "transparent")
-                    }
                   >
                     <span
                       style={{
@@ -723,7 +724,11 @@ export default function BroteLanding({ dict, locale }: Props) {
                     </span>
                     <span style={{ fontSize: 18 }}>{open ? "−" : "+"}</span>
                   </button>
+                  {/* `inert` keeps the collapsed panel out of the tab order and
+                      the a11y tree — max-height alone leaves the link focusable. */}
                   <div
+                    id={`brote-lineup-panel-${i}`}
+                    inert={!open}
                     style={{
                       overflow: "hidden",
                       transition: "max-height 0.4s ease",
