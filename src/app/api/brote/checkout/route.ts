@@ -36,7 +36,10 @@ function isRateLimited(ip: string): boolean {
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    // Keep the real header value separate from the rate-limit key: the
+    // "unknown" fallback must never be stashed or sent to Meta as an IP.
+    const ipHeader = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    const ip = ipHeader || "unknown";
     if (isRateLimited(ip)) {
       return NextResponse.json(
         { error: "Too many requests" },
@@ -160,7 +163,7 @@ export async function POST(req: Request) {
         eventId,
         fbp,
         fbc,
-        ip,
+        ip: ipHeader,
         ua: req.headers.get("user-agent") || "",
       });
       const emailKey = email.toLowerCase();
@@ -181,7 +184,7 @@ export async function POST(req: Request) {
         event_id: eventId,
         event_source_url: `${baseUrl}/${locale}/brote/checkout`,
         user_data: {
-          client_ip_address: ip,
+          client_ip_address: ipHeader,
           client_user_agent: req.headers.get("user-agent") || undefined,
           fbp: fbp || undefined,
           fbc: fbc || undefined,

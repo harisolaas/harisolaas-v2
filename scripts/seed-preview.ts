@@ -398,12 +398,14 @@ const EMAIL_VERIFICATIONS: EmailVerificationFixture[] = [
   },
   // Verified 5 min ago — token still inside the 30-min consume window, so
   // a checkout POST with this token exercises the happy consume path.
+  // expires_at stays (irrelevantly) in the future: the code was verified
+  // well before its 10-min TTL ran out.
   {
     email: "preview-verif-verified@example.com",
     token: "preview-verif-token-usable",
     status: "verified",
     attempts: 1,
-    expiresInMin: -5,
+    expiresInMin: 2,
     verifiedMinAgo: 5,
   },
   // Already consumed — replaying its token must 403 at checkout.
