@@ -21,6 +21,7 @@
 import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
 
+import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 
 const args = process.argv.slice(2);
@@ -365,6 +366,74 @@ const PARTICIPATIONS: ParticipationFixture[] = [
   })),
 ];
 
+// Email-verification fixtures for the BROTE verified checkout
+// (/es/brote/checkout). One row per lifecycle state so every UI branch can
+// be exercised in preview. The pending rows use the code below — type it
+// in the checkout form to walk the verify path against the seeded rows.
+const VERIFICATION_CODE = "123456";
+const VERIFICATION_CODE_HASH = createHash("sha256")
+  .update(VERIFICATION_CODE)
+  .digest("hex");
+
+interface EmailVerificationFixture {
+  email: string;
+  token: string;
+  status: "pending" | "verified" | "consumed" | "superseded";
+  attempts: number;
+  /** Minutes from seed time until expiresAt (negative = already expired). */
+  expiresInMin: number;
+  /** Minutes ago verifiedAt/consumedAt happened, when applicable. */
+  verifiedMinAgo?: number;
+  consumedMinAgo?: number;
+}
+
+const EMAIL_VERIFICATIONS: EmailVerificationFixture[] = [
+  // Live pending row near expiry — verify it with 123456 before ~8 min pass.
+  {
+    email: "preview-verif-pending@example.com",
+    token: "preview-verif-token-pending",
+    status: "pending",
+    attempts: 1,
+    expiresInMin: 8,
+  },
+  // Verified 5 min ago — token still inside the 30-min consume window, so
+  // a checkout POST with this token exercises the happy consume path.
+  {
+    email: "preview-verif-verified@example.com",
+    token: "preview-verif-token-usable",
+    status: "verified",
+    attempts: 1,
+    expiresInMin: -5,
+    verifiedMinAgo: 5,
+  },
+  // Already consumed — replaying its token must 403 at checkout.
+  {
+    email: "preview-verif-consumed@example.com",
+    token: "preview-verif-token-consumed",
+    status: "consumed",
+    attempts: 1,
+    expiresInMin: -20,
+    verifiedMinAgo: 20,
+    consumedMinAgo: 18,
+  },
+  // Superseded + newer pending on the same email — mirrors what a resend
+  // leaves behind (the partial unique index allows exactly one pending).
+  {
+    email: "preview-verif-resent@example.com",
+    token: "preview-verif-token-superseded",
+    status: "superseded",
+    attempts: 2,
+    expiresInMin: -3,
+  },
+  {
+    email: "preview-verif-resent@example.com",
+    token: "preview-verif-token-resent-pending",
+    status: "pending",
+    attempts: 0,
+    expiresInMin: 9,
+  },
+];
+
 const LINKS: LinkFixture[] = [
   {
     slug: "preview-instagram-story-20260420",
@@ -404,6 +473,7 @@ async function main() {
   console.log(`  ${EVENTS.length} events`);
   console.log(`  ${PEOPLE.length} people`);
   console.log(`  ${PARTICIPATIONS.length} participations`);
+  console.log(`  ${EMAIL_VERIFICATIONS.length} email verifications`);
   console.log(`  ${LINKS.length} links`);
   if (ADMIN_EMAIL) console.log(`  1 admin_users row (${ADMIN_EMAIL})`);
 
@@ -475,6 +545,30 @@ async function main() {
     `);
   }
   console.log(`✓ participations`);
+
+  // Email verifications. Idempotency keys off the unique token; the
+  // partial pending-per-email unique index also guards duplicate pendings
+  // on re-runs (ON CONFLICT DO NOTHING covers both).
+  for (const v of EMAIL_VERIFICATIONS) {
+    await db.execute(sql`
+      INSERT INTO email_verifications (
+        email, code_hash, token, attempts, status,
+        expires_at, verified_at, consumed_at
+      )
+      VALUES (
+        ${v.email},
+        ${VERIFICATION_CODE_HASH},
+        ${v.token},
+        ${v.attempts},
+        ${v.status},
+        NOW() + ${v.expiresInMin} * INTERVAL '1 minute',
+        ${v.verifiedMinAgo !== undefined ? sql`NOW() - ${v.verifiedMinAgo} * INTERVAL '1 minute'` : sql`NULL`},
+        ${v.consumedMinAgo !== undefined ? sql`NOW() - ${v.consumedMinAgo} * INTERVAL '1 minute'` : sql`NULL`}
+      )
+      ON CONFLICT DO NOTHING
+    `);
+  }
+  console.log(`✓ email verifications (code: ${VERIFICATION_CODE})`);
 
   // Links, with optional referrer lookup.
   for (const l of LINKS) {

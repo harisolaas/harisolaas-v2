@@ -92,6 +92,61 @@ export async function notifyAdminOfCampaign(
   }
 }
 
+/**
+ * One-off operational alert to the admin (e.g. "payment received but no new
+ * ticket was created"). Best-effort like `notifyAdminOfCampaign`: never
+ * throws, so webhook handlers can fire it without affecting their response.
+ */
+export async function notifyAdminOfIncident(input: {
+  subject: string;
+  lines: string[];
+}): Promise<{ notified: boolean; reason?: string }> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error("notifyAdminOfIncident: RESEND_API_KEY missing");
+    return { notified: false, reason: "RESEND_API_KEY missing" };
+  }
+
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL || DEFAULT_ADMIN_EMAIL;
+  const from = process.env.RESEND_FROM_EMAIL || "hola@harisolaas.com";
+  const resend = new Resend(apiKey);
+  const rows = input.lines
+    .map(
+      (line) =>
+        `<p style="margin:0 0 8px;font-size:14px;color:#2C2C2C">${escapeHtml(line)}</p>`,
+    )
+    .join("");
+  const html = `<!DOCTYPE html>
+<html lang="es"><body style="margin:0;padding:24px;background:#FAF6F1;font-family:system-ui,-apple-system,sans-serif;color:#2C2C2C">
+<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,0.06)">
+  <h1 style="margin:0 0 16px;font-size:20px;color:#2D4A3E">${escapeHtml(input.subject)}</h1>
+  ${rows}
+</div>
+</body></html>`;
+
+  try {
+    const result = await resend.emails.send({
+      from: `Harisolaas alerts <${from}>`,
+      to: adminEmail,
+      subject: `[alerta] ${input.subject}`,
+      html,
+    });
+    if (result.error) {
+      console.error(
+        `notifyAdminOfIncident: Resend returned error — ${result.error.name}: ${result.error.message}`,
+      );
+      return { notified: false, reason: result.error.name };
+    }
+    return { notified: true };
+  } catch (err) {
+    console.error("notifyAdminOfIncident threw:", err);
+    return {
+      notified: false,
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 function buildAlertHtml(
   input: CampaignAlertInput,
   warnings: BulkEmailWarning[],

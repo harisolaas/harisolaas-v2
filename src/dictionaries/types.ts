@@ -138,6 +138,57 @@ export interface BroteDict {
   };
 }
 
+export interface BroteCheckoutDict {
+  meta: { title: string; description: string };
+  backLink: string;
+  eyebrow: string;
+  heading: string;
+  subheading: string;
+  summary: {
+    dateValue: string;
+    timeValue: string;
+    placeValue: string;
+    earlyBirdTag: string;
+    generalTag: string;
+    totalLabel: string;
+    treeNote: string;
+  };
+  form: {
+    nameLabel: string;
+    emailLabel: string;
+    emailHelper: string;
+    phoneLabel: string;
+    phonePlaceholder: string;
+    phoneHelper: string;
+    sendCode: string;
+    sending: string;
+    codeSentNote: string;
+    codeLabel: string;
+    verifyButton: string;
+    verifying: string;
+    resend: string;
+    resendCountdown: string;
+    verified: string;
+    verifyFirst: string;
+    payButton: string;
+    processing: string;
+  };
+  errors: {
+    nameRequired: string;
+    emailInvalid: string;
+    phoneInvalid: string;
+    invalidCode: string;
+    expired: string;
+    tooManyAttempts: string;
+    notFound: string;
+    resendTooSoon: string;
+    hourlyLimit: string;
+    verificationRequired: string;
+    duplicateTicket: string;
+    generic: string;
+  };
+}
+
 export interface PlantActivityItem {
   icon: string;
   title: string;
@@ -464,6 +515,7 @@ export interface Dictionary {
     buildLine: string;
   };
   brote: BroteDict;
+  broteCheckout: BroteCheckoutDict;
   broteUnArbol: BroteUnArbolDict;
   broteCima: BroteUnArbolDict;
   plant: PlantDict;
