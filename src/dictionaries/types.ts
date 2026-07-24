@@ -53,59 +53,73 @@ export interface TimelineEntry {
 export interface BroteExperienceItem {
   title: string;
   description: string;
-  subtitle?: string;
 }
 
 export interface BroteLineupItem {
-  time: string;
-  title: string;
-  description: string;
+  name: string;
+  tag: string;
+  detail: string;
   link?: { url: string; label: string };
+}
+
+export interface BroteInfoCell {
+  label: string;
+  value: string;
 }
 
 export interface BroteDict {
   meta: { title: string; description: string; ogDescription: string };
+  topbar: { left: string; right: string };
   hero: {
-    subtitle: string;
-    dateTime: string;
-    subhead: string;
     cta: string;
+  };
+  infoBar: {
+    date: BroteInfoCell;
+    time: BroteInfoCell;
+    place: BroteInfoCell;
+  };
+  eyebrows: {
+    experience: string;
+    lineup: string;
+    pricing: string;
   };
   experience: BroteExperienceItem[];
   lineup: {
-    toggle: string;
     items: BroteLineupItem[];
   };
   impact: {
+    counterLabel: string;
     heading: string;
     partner: { intro: string; name: string; rest: string };
     body: string;
     attendees: string;
-    partnerLabel: string;
   };
   pricing: {
-    reanchor: string;
-    cta: string;
-    payment: string;
-    earlyBirdBadge: string;
+    earlyBirdLabel: string;
+    earlyBirdExpired: string;
     earlyBirdUntil: string;
+    generalLabel: string;
+    generalFrom: string;
+    generalUntil: string;
+    includesLabel: string;
+    includesItems: string[];
+    payment: string;
   };
-  about: {
+  community: {
     intro: { before: string; sponsors: string; after: string };
     body: string;
-    closing: string;
-  };
-  practical: {
-    dateTime: string;
-    includes: string;
-    bring: string;
+    tagline: string;
   };
   final: {
     heading: string;
+    compactDate: string;
+    compactTime: string;
+    address: string;
     cta: string;
     plantingPrompt: string;
     plantingCta: string;
   };
+  footer: { left: string; right: string };
   success: {
     title: string;
     heading: string;

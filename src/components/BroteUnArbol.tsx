@@ -87,7 +87,7 @@ export default function BroteUnArbol({ dict, locale }: Props) {
   }, [validCode, checkoutLoading]);
 
   return (
-    <main className="flex min-h-[100svh] flex-col items-center bg-[#FAF6F1] px-6 py-12 md:py-16">
+    <main className="flex min-h-[100svh] flex-col items-center bg-[#EAE3D2] px-6 py-12 md:py-16">
       <div className="mx-auto w-full max-w-lg">
         {/* Header */}
         <div className="text-center">
@@ -99,11 +99,11 @@ export default function BroteUnArbol({ dict, locale }: Props) {
               height={34}
               className="h-6 w-auto brightness-0 opacity-40"
             />
-            <span className="text-[#A8B5A0]">×</span>
-            <span className="font-serif text-lg text-[#2D4A3E]/80">BROTE</span>
+            <span className="text-[#BBC2A9]">×</span>
+            <span className="font-serif text-lg text-[#3E5226]/80">BROTE</span>
           </div>
 
-          <h1 className="mt-8 font-serif text-3xl text-[#2D4A3E] md:text-4xl">
+          <h1 className="mt-8 font-serif text-3xl text-[#3E5226] md:text-4xl">
             {dict.headline}
           </h1>
         </div>
@@ -115,8 +115,8 @@ export default function BroteUnArbol({ dict, locale }: Props) {
               key={i}
               className={`text-base leading-relaxed ${
                 i === 1
-                  ? "font-semibold text-[#C4704B]"
-                  : "text-[#2C2C2C]/70"
+                  ? "font-semibold text-[#3E5226]"
+                  : "text-[#5C6B45]/70"
               }`}
             >
               {p}
@@ -125,14 +125,14 @@ export default function BroteUnArbol({ dict, locale }: Props) {
         </div>
 
         {/* What's included */}
-        <div className="mt-8 rounded-xl border border-[#A8B5A0]/20 bg-white/70 p-5">
+        <div className="mt-8 rounded-[2px] border border-[#BBC2A9]/20 bg-white/70 p-5">
           <ul className="space-y-2.5">
             {dict.includes.map((item) => (
               <li
                 key={item}
-                className="flex items-start gap-2.5 text-sm text-[#2C2C2C]/70"
+                className="flex items-start gap-2.5 text-sm text-[#5C6B45]/70"
               >
-                <span className="mt-0.5 text-[#A8B5A0]">•</span>
+                <span className="mt-0.5 text-[#BBC2A9]">•</span>
                 {item}
               </li>
             ))}
@@ -141,19 +141,19 @@ export default function BroteUnArbol({ dict, locale }: Props) {
 
         {/* Pricing table */}
         <div className="mt-8">
-          <h3 className="text-xs font-semibold uppercase tracking-widest text-[#A8B5A0]">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-[#BBC2A9]">
             {dict.pricingTitle}
           </h3>
-          <div className="mt-3 overflow-hidden rounded-xl border border-[#A8B5A0]/20">
+          <div className="mt-3 overflow-hidden rounded-[2px] border border-[#BBC2A9]/20">
             {dict.pricing.map((row, i) => (
               <div
                 key={row.label}
                 className={`flex items-center justify-between px-4 py-3 text-sm ${
-                  i > 0 ? "border-t border-[#A8B5A0]/10" : ""
+                  i > 0 ? "border-t border-[#BBC2A9]/10" : ""
                 } ${
                   row.highlight
-                    ? "bg-[#C4704B]/10 font-semibold text-[#C4704B]"
-                    : "text-[#2C2C2C]/50"
+                    ? "bg-[#3E5226]/10 font-semibold text-[#3E5226]"
+                    : "text-[#5C6B45]/50"
                 }`}
               >
                 <span>{row.label}</span>
@@ -177,36 +177,36 @@ export default function BroteUnArbol({ dict, locale }: Props) {
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleValidate()}
                   placeholder={dict.codePlaceholder}
-                  className="flex-1 rounded-full border border-[#A8B5A0]/30 bg-white px-5 py-3 text-sm text-[#2C2C2C] placeholder-[#2C2C2C]/30 outline-none transition-colors focus:border-[#2D4A3E]/40"
+                  className="flex-1 rounded-[2px] border border-[#BBC2A9]/30 bg-white px-5 py-3 text-sm text-[#5C6B45] placeholder-[#5C6B45]/30 outline-none transition-colors focus:border-[#3E5226]/40"
                 />
                 <button
                   onClick={handleValidate}
                   disabled={!code.trim() || validating}
-                  className="rounded-full bg-[#2D4A3E] px-6 py-3 text-sm font-semibold text-[#FAF6F1] transition-colors hover:bg-[#2D4A3E]/90 disabled:opacity-50"
+                  className="rounded-[2px] bg-[#3E5226] px-6 py-3 text-sm font-semibold text-[#EAE3D2] transition-colors hover:bg-[#3E5226]/90 disabled:opacity-50"
                 >
                   {validating ? "..." : dict.codeButton}
                 </button>
               </div>
               {error && (
-                <p className="mt-3 text-center text-sm text-[#C4704B]">
+                <p className="mt-3 text-center text-sm text-[#3E5226]">
                   {error}
                 </p>
               )}
             </>
           ) : (
             <div className="flex flex-col items-center gap-3">
-              <p className="text-sm text-[#2D4A3E]/60">
+              <p className="text-sm text-[#3E5226]/60">
                 ✓ {validCode}
               </p>
               <button
                 onClick={handleCheckout}
                 disabled={checkoutLoading}
-                className="w-full rounded-full bg-[#2D4A3E] px-8 py-3.5 text-base font-semibold text-[#FAF6F1] transition-colors hover:bg-[#2D4A3E]/90 disabled:opacity-50"
+                className="w-full rounded-[2px] bg-[#3E5226] px-8 py-3.5 text-base font-semibold text-[#EAE3D2] transition-colors hover:bg-[#3E5226]/90 disabled:opacity-50"
               >
                 {checkoutLoading ? dict.loading : dict.cta}
               </button>
               {error && (
-                <p className="text-center text-sm text-[#C4704B]">{error}</p>
+                <p className="text-center text-sm text-[#3E5226]">{error}</p>
               )}
             </div>
           )}
@@ -216,7 +216,7 @@ export default function BroteUnArbol({ dict, locale }: Props) {
         <div className="mt-10 text-center">
           <a
             href={`/${locale}/brote`}
-            className="text-sm text-[#2C2C2C]/40 underline decoration-[#2C2C2C]/20 underline-offset-2 transition-colors hover:text-[#2D4A3E]"
+            className="text-sm text-[#5C6B45]/40 underline decoration-[#5C6B45]/20 underline-offset-2 transition-colors hover:text-[#3E5226]"
           >
             {dict.backLink}
           </a>

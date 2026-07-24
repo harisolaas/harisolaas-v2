@@ -24,18 +24,15 @@ export default async function BroteFailurePage({
   return (
     <main
       className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden px-6 py-12 text-center"
-      style={{
-        background:
-          "radial-gradient(120% 90% at 50% 8%, #24352C 0%, #17211C 45%, #0E1512 100%)",
-      }}
+      style={{ background: "#EAE3D2", color: "#3E5226" }}
     >
       <div className="relative z-10 mx-auto max-w-md">
         <p className="text-6xl">😔</p>
-        <h1 className="mt-6 font-serif text-4xl text-cream">{t.heading}</h1>
-        <p className="mt-4 text-lg leading-relaxed text-cream/70">{t.body}</p>
+        <h1 className="mt-6 font-serif text-4xl text-[#3E5226]">{t.heading}</h1>
+        <p className="mt-4 text-lg leading-relaxed text-[#5C6B45]">{t.body}</p>
         <a
           href={`/${locale}/brote`}
-          className="mt-8 inline-block rounded-full bg-terracotta px-8 py-3 text-base font-semibold text-cream shadow-[0_0_30px_rgba(196,112,75,0.35)] transition-all hover:shadow-[0_0_45px_rgba(196,112,75,0.55)]"
+          className="mt-8 inline-block rounded-[2px] bg-[#3E5226] px-8 py-3 text-base font-semibold text-[#EAE3D2] transition-colors hover:bg-[#2E3D1C]"
         >
           {t.backLink}
         </a>

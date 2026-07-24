@@ -409,12 +409,19 @@ const es: Dictionary = {
       ogDescription:
         "M\u00fasica en vivo, catering y una noche con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
     },
+    topbar: { left: "Fiesta", right: "2026" },
     hero: {
-      subtitle: "Fiesta de reforestaci\u00f3n",
-      dateTime: "Jueves 20 de agosto \u00b7 19 a 22:30h \u00b7 Argentina",
-      subhead:
-        "M\u00fasica ac\u00fastica en vivo, catering y una noche entera con gente que celebra con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
       cta: "Quiero mi entrada",
+    },
+    infoBar: {
+      date: { label: "Agosto", value: "20" },
+      time: { label: "19:00", value: "a 22:30" },
+      place: { label: "Palermo", value: "CABA" },
+    },
+    eyebrows: {
+      experience: "La noche",
+      lineup: "Lineup",
+      pricing: "Entradas",
     },
     experience: [
       {
@@ -439,39 +446,27 @@ const es: Dictionary = {
       },
     ],
     lineup: {
-      toggle: "Ver el lineup",
       items: [
         {
-          time: "19:00",
-          title: "Apertura",
-          description:
-            "Llegada, catering y encuentro. Un rato para acomodarse antes de que arranque la noche. (Por confirmar.)",
-        },
-        {
-          time: "19:45",
-          title: "Ac\u00fastico en vivo",
-          description:
-            "M\u00fasica en vivo para abrir la noche. Artista por confirmar.",
-        },
-        {
-          time: "21:00",
-          title: "Momento Un \u00c1rbol",
-          description:
-            "Charla de reforestaci\u00f3n y siembra colectiva junto a Un \u00c1rbol. Detalles por confirmar.",
+          name: "Jos\u00e9 Dezanzo",
+          tag: "Set ac\u00fastico",
+          detail:
+            "Abrimos la noche con el set ac\u00fastico de Jos\u00e9 Dezanzo. Un momento para bajar un cambio y estar presentes antes de que la noche suba.",
           link: {
-            url: "https://www.instagram.com/unarbol_ong/",
-            label: "Un \u00c1rbol",
+            url: "https://www.instagram.com/josedezanzo/",
+            label: "josedezanzo",
           },
         },
         {
-          time: "21:30",
-          title: "Experiencia de baile",
-          description:
-            "De la calma al baile: cerramos la noche movi\u00e9ndonos juntos. Por confirmar.",
+          name: "A anunciar",
+          tag: "Experiencia de baile",
+          detail:
+            "De la calma pasamos al baile. La noche sube y nos movemos juntos hasta el cierre. Artista a confirmar.",
         },
       ],
     },
     impact: {
+      counterLabel: "\u00c1rboles plantados hasta hoy",
       heading: "Tu entrada no se gasta. Se planta.",
       partner: {
         intro: "Trabajamos con ",
@@ -481,37 +476,45 @@ const es: Dictionary = {
       body: "Cada entrada financia la plantaci\u00f3n de un \u00e1rbol nativo. No es simb\u00f3lico: es un \u00e1rbol real, en un lugar real, que va a crecer mucho despu\u00e9s de que termine la m\u00fasica.",
       attendees:
         "Si vienen {count} personas, son {count} \u00e1rboles. As\u00ed de simple.",
-      partnerLabel: "En alianza con",
     },
     pricing: {
-      reanchor:
-        "Una noche de m\u00fasica, comunidad y un \u00e1rbol plantado a tu nombre.",
-      cta: "Quiero mi entrada",
-      payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
-      earlyBirdBadge: "Preventa \u2014 25% OFF",
+      earlyBirdLabel: "Preventa \u2014 25% OFF",
+      earlyBirdExpired: "Preventa finalizada",
       earlyBirdUntil: "Hasta el 13 de agosto",
+      generalLabel: "General",
+      generalFrom: "Desde el 14 de agosto",
+      generalUntil: "Hasta agotar",
+      includesLabel: "Incluye",
+      includesItems: [
+        "M\u00fasica ac\u00fastica en vivo",
+        "Catering",
+        "Experiencia de baile",
+        "1 \u00e1rbol plantado a tu nombre",
+      ],
+      payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
     },
-    about: {
+    community: {
       intro: {
         before: "Esto nace de ",
         sponsors: "El Arte de Vivir",
         after:
-          ", una comunidad que practica respiraci\u00f3n, yoga y servicio en m\u00e1s de 100 universidades y 180 pa\u00edses del mundo.",
+          ", una comunidad que practica respiraci\u00f3n, yoga y servicio en m\u00e1s de 180 pa\u00edses del mundo.",
       },
-      body: "No organizamos eventos. Creamos experiencias donde lo que hac\u00e9s por afuera refleja lo que cultiv\u00e1s por dentro.",
-      closing: "Esta fiesta es abierta a todos. Ven\u00ed como sos.",
-    },
-    practical: {
-      dateTime: "Jueves 20 de agosto \u00b7 19:00 a 22:30",
-      includes:
-        "Tu entrada incluye: m\u00fasica, catering, actividades y la plantaci\u00f3n de 1 \u00e1rbol",
-      bring: "Ven\u00ed con buena energ\u00eda, ropa cool y c\u00f3moda",
+      body: "No organizamos eventos: creamos experiencias donde lo que hac\u00e9s por afuera refleja lo que cultiv\u00e1s por dentro.",
+      tagline: "Esta fiesta es para todo el mundo \u00b7 Ven\u00ed como sos",
     },
     final: {
       heading: "\u00bfVen\u00eds?",
+      compactDate: "Jue 20 Ago",
+      compactTime: "19:00\u201322:30",
+      address: "Costa Rica 5644",
       cta: "Quiero mi entrada",
-      plantingPrompt: "\u00bfNo pod\u00e9s venir pero quer\u00e9s ser parte?",
-      plantingCta: "Sumate a la plantaci\u00f3n",
+      plantingPrompt: "\u00bfNo pod\u00e9s venir?",
+      plantingCta: "Sumate a la plantaci\u00f3n \u2192",
+    },
+    footer: {
+      left: "Brote",
+      right: "En alianza con Un \u00c1rbol",
     },
     success: {
       title: "BROTE \u2014 \u00a1Listo!",
