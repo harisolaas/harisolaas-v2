@@ -569,7 +569,7 @@ const es: Dictionary = {
       verifyButton: "Verificar c\u00f3digo",
       verifying: "Verificando\u2026",
       resend: "Reenviar c\u00f3digo",
-      resendCountdown: "Reenviar c\u00f3digo (0:{seconds})",
+      resendCountdown: "Reenviar c\u00f3digo ({seconds}s)",
       verified: "Email verificado \u2713",
       verifyFirst: "Primero verific\u00e1 tu email.",
       payButton: "Ir a pagar",

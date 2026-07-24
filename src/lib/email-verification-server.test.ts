@@ -239,6 +239,28 @@ describe("verifyEmailCode", () => {
     expect(pendingRow.attempts).toBe(1);
   });
 
+  it("re-returns the token when re-verifying an already-verified row with the correct code", async () => {
+    const email = testEmail("ana");
+    const code = await sendAndGetCode(email);
+    const first = await verifyEmailCode(email, code);
+    if (first.outcome !== "verified") throw new Error("setup failed");
+
+    const second = await verifyEmailCode(email, code);
+
+    expect(second).toEqual({ outcome: "verified", token: first.token });
+  });
+
+  it("does not leak the token when re-verifying an already-verified row with a wrong code", async () => {
+    const email = testEmail("ana");
+    const code = await sendAndGetCode(email);
+    await verifyEmailCode(email, code);
+    const wrongCode = code === "000000" ? "111111" : "000000";
+
+    const result = await verifyEmailCode(email, wrongCode);
+
+    expect(result).toEqual({ outcome: "not_found" });
+  });
+
   it("verifies with a messy-cased/whitespace email", async () => {
     const email = testEmail("ana");
     const code = await sendAndGetCode(email);

@@ -85,6 +85,13 @@ export default function BroteCheckoutForm({
 
   const [isSending, setIsSending] = useState(false);
   const [sentAt, setSentAt] = useState<number | null>(null);
+  // Address the last code actually went to (normalized). Drives the code
+  // step visibility and the "te mandamos un código a X" note, so editing
+  // the email never claims a code was sent somewhere it wasn't. Seeded
+  // from the magic link, whose code was emailed to initialEmail.
+  const [sentToEmail, setSentToEmail] = useState<string | null>(
+    initialEmail && initialCode ? normalizeEmail(initialEmail) : null,
+  );
   const [sendError, setSendError] = useState<string | null>(null);
 
   const [isVerifying, setIsVerifying] = useState(false);
@@ -107,7 +114,7 @@ export default function BroteCheckoutForm({
 
   const isVerified =
     verifToken !== null && verifiedEmail === normalizeEmail(email);
-  const showCodeStep = !isVerified && (sentAt !== null || Boolean(initialCode));
+  const showCodeStep = !isVerified && sentToEmail !== null;
 
   // Meta Pixel — InitiateCheckout fires on checkout-page mount (moved here
   // from the landing CTA). Polls briefly because the pixel script loads async.
@@ -169,6 +176,14 @@ export default function BroteCheckoutForm({
       setVerifiedEmail(null);
       setVerifToken(null);
     }
+    // Any pending code belongs to the previous address — back to "send".
+    if (sentToEmail && normalizeEmail(value) !== sentToEmail) {
+      setSentToEmail(null);
+      setSentAt(null);
+      setCode("");
+      setSendError(null);
+      setVerifyError(null);
+    }
   }
 
   async function handleSend() {
@@ -189,10 +204,12 @@ export default function BroteCheckoutForm({
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.outcome === "sent") {
         setSentAt(Date.now());
+        setSentToEmail(normalizeEmail(email));
         setCode("");
       } else if (data.outcome === "resend_too_soon") {
         setSendError(dict.errors.resendTooSoon);
         // The previous code is still live — show the code step anyway.
+        if (!sentToEmail) setSentToEmail(normalizeEmail(email));
         if (!sentAt) setSentAt(Date.now());
       } else if (data.outcome === "hourly_limit") {
         setSendError(dict.errors.hourlyLimit);
@@ -291,12 +308,22 @@ export default function BroteCheckoutForm({
         setVerifToken(null);
         setVerifiedEmail(null);
         setSentAt(null);
+        setSentToEmail(null);
         setCode("");
         setCheckoutError(dict.errors.verificationRequired);
         setCheckoutLoading(false);
         return;
       }
       if (res.status === 409) {
+        // The copy tells the person to use a different email — unlock the
+        // (readOnly-while-verified) input so they actually can. The new
+        // address needs its own verification anyway: tokens are
+        // email-bound.
+        setVerifToken(null);
+        setVerifiedEmail(null);
+        setSentAt(null);
+        setSentToEmail(null);
+        setCode("");
         setCheckoutError(dict.errors.duplicateTicket);
         setCheckoutLoading(false);
         return;
@@ -458,7 +485,10 @@ export default function BroteCheckoutForm({
                 {showCodeStep && (
                   <>
                     <span className="text-[12px]" style={{ color: FOREST_60 }}>
-                      {dict.form.codeSentNote.replace("{email}", email)}
+                      {dict.form.codeSentNote.replace(
+                        "{email}",
+                        sentToEmail ?? email,
+                      )}
                     </span>
                     <label className="flex flex-col gap-2">
                       <span style={labelStyle}>{dict.form.codeLabel}</span>
@@ -493,7 +523,7 @@ export default function BroteCheckoutForm({
                         {secondsLeft > 0
                           ? dict.form.resendCountdown.replace(
                               "{seconds}",
-                              String(secondsLeft).padStart(2, "0"),
+                              String(secondsLeft),
                             )
                           : dict.form.resend}
                       </button>

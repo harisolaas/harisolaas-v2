@@ -136,6 +136,12 @@ export async function verifyEmailCode(rawEmail: string, code: string): Promise<V
     .limit(1);
 
   if (!latest) return { outcome: "not_found" };
+  // Double verify (second tab, magic link after manual entry): the row is
+  // already verified — re-return the token on a correct code instead of
+  // confusing the person who just proved ownership with "not_found".
+  if (latest.status === "verified" && latest.codeHash === hash) {
+    return { outcome: "verified", token: latest.token };
+  }
   if (latest.attempts >= MAX_ATTEMPTS) return { outcome: "too_many_attempts" };
   if (latest.expiresAt <= new Date()) return { outcome: "expired" };
   return { outcome: "not_found" };

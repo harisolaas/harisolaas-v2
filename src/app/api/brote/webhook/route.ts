@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { and, count, eq, sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { Resend } from "resend";
 import QRCode from "qrcode";
 import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
 import { db, schema } from "@/db";
-import { recordParticipation } from "@/lib/community";
+import { CapacityReachedError, recordParticipation } from "@/lib/community";
 import { resolveBuyerInfo, type CheckoutMetaLike } from "@/lib/mp-buyer-info";
 import { notifyAdminOfIncident } from "@/lib/admin-alert";
 import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
@@ -208,18 +208,28 @@ export async function POST(req: Request) {
 
     // The checkout page stashes the verified buyer identity (name, email,
     // phone) in Redis under both the preference id and the buyer email.
-    // Retain whichever stash the resolver hits so attribution and Meta
-    // fields can be read off it below without a second Redis roundtrip.
-    const stashHolder: { value: CheckoutMeta | null } = { value: null };
+    // Retain whichever stash the resolver hits — and which key matched —
+    // so attribution and Meta fields can be read off it below without a
+    // second Redis roundtrip.
+    const stashHolder: {
+      value: CheckoutMeta | null;
+      source: "preference" | "email" | null;
+    } = { value: null, source: null };
     const buyerInfo = await resolveBuyerInfo(payment, {
       readStashByPreferenceId: async (preferenceId) => {
         const stash = await readCheckoutMeta(preferenceId);
-        if (stash) stashHolder.value = stash;
+        if (stash) {
+          stashHolder.value = stash;
+          stashHolder.source = "preference";
+        }
         return stash;
       },
       readStashByEmail: async (email) => {
         const stash = await readCheckoutMetaByEmail(email);
-        if (stash) stashHolder.value = stash;
+        if (stash) {
+          stashHolder.value = stash;
+          stashHolder.source = "email";
+        }
         return stash;
       },
     });
@@ -227,15 +237,25 @@ export async function POST(req: Request) {
 
     buyerEmail = buyerInfo.email;
     buyerName = buyerInfo.name;
+    let buyerPhone = buyerInfo.phone;
 
-    // Durable fallback: the checkout stamps the verified identity onto the
-    // MP preference metadata, which MP propagates to the Payment. If the
-    // Redis stash expired (>24h between checkout and payment), the verified
-    // email still beats whatever MP's payer object carries.
+    // The checkout stamps the verified identity onto the MP preference
+    // metadata, which MP propagates to the Payment — payment-bound and
+    // durable past the 24h stash TTL. Trust it over anything that isn't
+    // the preference-id stash: the by-email stash is keyed on the payer's
+    // MP *account* email, which can belong to a different checkout than
+    // this payment (same account buying for a friend the next day).
     const metaBuyerEmail = String(payment.metadata?.buyer_email ?? "").trim();
     const metaBuyerName = String(payment.metadata?.buyer_name ?? "").trim();
-    if (!checkoutMeta) {
-      if (metaBuyerEmail) buyerEmail = metaBuyerEmail;
+    if (metaBuyerEmail && stashHolder.source !== "preference") {
+      const stashEmail = (checkoutMeta?.email ?? "").trim().toLowerCase();
+      if (stashEmail !== metaBuyerEmail.toLowerCase()) {
+        // Wrong-checkout (or absent) stash — its phone/attribution belong
+        // to someone else's purchase. Drop it entirely.
+        checkoutMeta = null;
+        buyerPhone = undefined;
+      }
+      buyerEmail = metaBuyerEmail;
       if (metaBuyerName) buyerName = metaBuyerName;
     }
 
@@ -257,8 +277,17 @@ export async function POST(req: Request) {
 
     if (!buyerEmail) {
       // No identity at all (no stash, no metadata, empty payer). A 500
-      // would make MP retry forever; log loudly and exit 200.
+      // would make MP retry forever; alert the admin and exit 200. Money
+      // was received with no way to deliver a ticket — human follow-up.
       console.error("brote: no buyer email available for payment", mpPaymentId);
+      await notifyAdminOfIncident({
+        subject: "BROTE: pago sin email de comprador",
+        lines: [
+          `MP payment id: ${mpPaymentId}`,
+          `Monto: ${payment.transaction_amount ?? "?"} ${payment.currency_id ?? "ARS"}`,
+          "Llegó un pago aprobado pero no se pudo resolver ningún email (sin stash, sin metadata, payer vacío). Buscá el pago en MercadoPago y emití la entrada a mano.",
+        ],
+      });
       return NextResponse.json({ error: "No buyer email" }, { status: 200 });
     }
 
@@ -283,21 +312,48 @@ export async function POST(req: Request) {
       };
     }
 
-    const result = await recordParticipation({
-      email: buyerEmail,
-      name: buyerName,
-      phone: buyerInfo.phone,
-      eventId: BROTE_EVENT_ID,
-      participationId: newTicketId,
-      role: "attendee",
-      status: "confirmed",
-      externalPaymentId: mpPaymentId,
-      priceCents: Math.round(Number(payment.transaction_amount ?? 0) * 100),
-      currency: payment.currency_id ?? "ARS",
-      attribution: attribution
-        ? { ...attribution, capturedAt: attribution.capturedAt }
-        : undefined,
-    });
+    let result;
+    try {
+      result = await recordParticipation({
+        email: buyerEmail,
+        name: buyerName,
+        phone: buyerPhone,
+        eventId: BROTE_EVENT_ID,
+        participationId: newTicketId,
+        role: "attendee",
+        status: "confirmed",
+        externalPaymentId: mpPaymentId,
+        priceCents: Math.round(Number(payment.transaction_amount ?? 0) * 100),
+        currency: payment.currency_id ?? "ARS",
+        attribution: attribution
+          ? { ...attribution, capturedAt: attribution.capturedAt }
+          : undefined,
+      });
+    } catch (err) {
+      if (err instanceof CapacityReachedError) {
+        // The BROTE event has no capacity in prod, but if one is ever
+        // set, this error is deterministic — a 500 would loop MP retries
+        // forever with money taken and no ticket. Alert and exit 200.
+        console.error("brote: capacity reached after payment", {
+          mpPaymentId,
+          buyerEmail,
+        });
+        await notifyAdminOfIncident({
+          subject: "BROTE: pago recibido con evento lleno",
+          lines: [
+            `MP payment id: ${mpPaymentId}`,
+            `Email: ${buyerEmail}`,
+            `Nombre: ${buyerName}`,
+            "El evento alcanzó su capacidad entre el checkout y la confirmación del pago. Revisá si corresponde reembolso o sumar el lugar a mano.",
+          ],
+        });
+        return NextResponse.json(
+          { ok: false, error: "Capacity reached after payment" },
+          { status: 200 },
+        );
+      }
+      throw err;
+    }
 
     // recordParticipation returns the existing participation id when
     // (personId, eventId) is already taken. Honor it so Redis, the email,

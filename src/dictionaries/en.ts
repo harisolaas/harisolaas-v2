@@ -565,7 +565,7 @@ const en: Dictionary = {
       verifyButton: "Verify code",
       verifying: "Verifying…",
       resend: "Resend code",
-      resendCountdown: "Resend code (0:{seconds})",
+      resendCountdown: "Resend code ({seconds}s)",
       verified: "Email verified ✓",
       verifyFirst: "Verify your email first.",
       payButton: "Continue to payment",
