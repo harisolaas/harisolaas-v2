@@ -325,6 +325,46 @@ export const participations = pgTable(
 );
 
 // ============================================================
+// email_verifications — pre-payment email ownership proof (BROTE checkout)
+// ============================================================
+// Ported from avivarte. A buyer requests a 6-digit code (stored hashed),
+// verifies it (atomic UPDATE counts the attempt and flips status only on
+// hash match), and the checkout consumes the resulting single-use token
+// right before creating the MP preference. Text + CHECK over citext on
+// purpose: the lib normalizes (lower/trim) before every read/write.
+export const emailVerifications = pgTable(
+  "email_verifications",
+  {
+    id: bigserial({ mode: "number" }).primaryKey(),
+    email: text().notNull(),
+    codeHash: text().notNull(),
+    token: text().notNull().unique(),
+    attempts: integer().notNull().default(0),
+    status: text().notNull().default("pending"),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    verifiedAt: timestamp({ withTimezone: true }),
+    consumedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    index("email_verifications_email_idx").on(t.email),
+    // At most one live pending verification per email; a resend
+    // supersedes the previous one.
+    uniqueIndex("email_verifications_pending_email_uniq")
+      .on(t.email)
+      .where(sql`${t.status} = 'pending'`),
+    check(
+      "email_verifications_status_check",
+      sql`${t.status} IN ('pending', 'verified', 'consumed', 'superseded')`,
+    ),
+    check(
+      "email_verifications_email_normalized_check",
+      sql`${t.email} = lower(trim(${t.email}))`,
+    ),
+  ],
+);
+
+// ============================================================
 // admin_users — dashboard collaborators with per-event scoping
 // ============================================================
 // Seeded from the ADMIN_EMAILS env var on first deploy; that env var
@@ -399,6 +439,8 @@ export type Link = typeof links.$inferSelect;
 export type NewLink = typeof links.$inferInsert;
 export type LinkClick = typeof linkClicks.$inferSelect;
 export type NewLinkClick = typeof linkClicks.$inferInsert;
+export type EmailVerification = typeof emailVerifications.$inferSelect;
+export type NewEmailVerification = typeof emailVerifications.$inferInsert;
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type NewAdminUser = typeof adminUsers.$inferInsert;
 export type AdminUserEventScope = typeof adminUserEventScopes.$inferSelect;

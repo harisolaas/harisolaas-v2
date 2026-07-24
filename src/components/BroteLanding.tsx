@@ -352,51 +352,14 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
   }, []);
 
-  const handleCheckout = useCallback(async () => {
+  const handleCheckout = useCallback(() => {
     if (checkoutLoading) return;
     setCheckoutLoading(true);
-    trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
-
-    // Meta Pixel — InitiateCheckout with dedup event ID
-    const eventId = crypto.randomUUID();
-    const deadline = new Date(
-      broteConfig.earlyBirdDeadline + "T23:59:59-03:00",
-    );
-    const price =
-      new Date() <= deadline
-        ? broteConfig.earlyBirdPriceRaw
-        : broteConfig.ticketPriceRaw;
-
-    if (typeof window !== "undefined" && window.fbq) {
-      window.fbq(
-        "track",
-        "InitiateCheckout",
-        { currency: "ARS", value: price },
-        { eventID: eventId },
-      );
-    }
-
-    // Read Meta cookies for server-side dedup
-    const cookies = document.cookie.split("; ");
-    const fbp = cookies.find((c) => c.startsWith("_fbp="))?.split("=")[1];
-    const fbc = cookies.find((c) => c.startsWith("_fbc="))?.split("=")[1];
-
-    try {
-      const res = await fetch("/api/brote/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "ticket", eventId, fbp, fbc }),
-      });
-      const data = await res.json();
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else {
-        setCheckoutLoading(false);
-      }
-    } catch {
-      setCheckoutLoading(false);
-    }
-  }, [checkoutLoading]);
+    trackCtaClick("ticket", `/${locale}/brote/checkout`, "brote_ticket");
+    // Identity capture + email verification + payment happen on the
+    // checkout page (the Meta Pixel InitiateCheckout fires there on mount).
+    window.location.href = `/${locale}/brote/checkout`;
+  }, [checkoutLoading, locale]);
 
   // Early-bird check (Argentina UTC-3) — flips live when the deadline passes
   const [isEarlyBird, setIsEarlyBird] = useState(() => {
