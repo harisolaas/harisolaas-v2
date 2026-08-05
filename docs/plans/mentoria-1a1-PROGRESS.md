@@ -41,6 +41,10 @@ before doing anything.
 
 | Item | Severity | Size | Revive trigger |
 |---|---|---|---|
+| Pre-existing site-wide: dotted locale segments (e.g. `/x.y/mentoria`) bypass proxy matcher and 500 in `getDictionary` — fix via `dynamicParams = false` in `[locale]/layout.tsx` or locale validation (midpoint audit) | med | S | next site-wide hardening pass |
+| Placeholder-token guard test (`/\[(PRECIO\|PRICE)\]/` must not appear in dict copy) — can only go green once owner sets the price (midpoint audit) | low | XS | price placeholder replaced |
+| /mentoria is indexable but not in sitemap — matches the sinergia precedent (intentional); add sitemap entries + alternates if it should rank (midpoint audit) | low | XS | owner wants /mentoria in search |
+| Dedicated OG image for /mentoria (currently reuses site-wide `/og-image.jpg`) | low | S | owner provides/requests an asset |
 | Request + publish Cris's testimonial on /mentoria | med | S | owner asks Cris ("cuando corresponda") |
 | Final price replaces placeholder | high | XS | owner decides price before merging integration PR |
 | Dedicated booking flow (Calendly or form) if WhatsApp CTA underperforms | low | M | owner defines CTA destination (open tablero task) |
