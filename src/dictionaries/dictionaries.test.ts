@@ -55,6 +55,19 @@ describe.each(dicts)("$locale dictionary — mentoria", ({ locale, dict }) => {
     }
   });
 
+  it("has a landing Now card linking to the mentoria page", () => {
+    const card = dict.now.items.find(
+      (item) => item.cta?.href === `/${locale}/mentoria`
+    );
+    expect(
+      card,
+      `now.items must contain a card whose CTA is /${locale}/mentoria`
+    ).toBeDefined();
+    expect(card!.title.trim()).not.toBe("");
+    expect(card!.description.trim()).not.toBe("");
+    expect(card!.cta!.label.trim()).not.toBe("");
+  });
+
   it("uses the site WhatsApp number for the mentoria CTA", () => {
     const mentoria = (dict as Record<string, unknown>).mentoria;
     const waLinks = collectStrings(mentoria).filter((s) =>
