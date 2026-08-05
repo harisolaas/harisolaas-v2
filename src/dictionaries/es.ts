@@ -1178,11 +1178,6 @@ const es: Dictionary = {
           label: "Compromiso",
           value: "Ciclos de tres meses",
         },
-        {
-          // PLACEHOLDER: precio final a definir por Hari antes de publicar
-          label: "Inversión",
-          value: "USD [PRECIO] por mes",
-        },
       ],
       note: "Empezamos con una conversación. Si no soy la persona indicada para acompañarte, te lo digo yo.",
     },

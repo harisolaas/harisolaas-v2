@@ -1154,11 +1154,6 @@ const en: Dictionary = {
           label: "Commitment",
           value: "Three-month cycles",
         },
-        {
-          // PLACEHOLDER: final price to be set by Hari before publishing
-          label: "Investment",
-          value: "USD [PRICE] per month",
-        },
       ],
       note: "We start with a conversation. If I'm not the right person to accompany you, I'll be the one to tell you.",
     },
