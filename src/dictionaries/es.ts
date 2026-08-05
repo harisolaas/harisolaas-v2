@@ -428,7 +428,7 @@ const es: Dictionary = {
     },
     infoBar: {
       date: { label: "Agosto", value: "20" },
-      time: { label: "19:00", value: "a 22:30" },
+      time: { label: "Horario", value: "19–22:30" },
       place: { label: "Palermo", value: "CABA" },
     },
     eyebrows: {
