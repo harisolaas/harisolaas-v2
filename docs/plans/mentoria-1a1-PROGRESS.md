@@ -11,11 +11,12 @@ before doing anything.
 
 ## Queue
 
-1. (midpoint) zero-context audit — one-sentence charge per spec.
-2. U2 — landing Now card. Branch `feat/mentoria-u2-card` off `feat/mentoria`,
-   PR targets `feat/mentoria`.
-4. Integration PR `feat/mentoria` → `main`: repo review lifecycle, then LEAVE
+1. Integration PR `feat/mentoria` → `main`: repo review lifecycle, then LEAVE
    OPEN for owner preview review. Do not merge to main under any circumstances.
+
+Done: U1 = #48; U2 = #49 (Now card, both locales, programme reviewer APPROVE,
+Copilot no inline findings, all 3 candidate mutations caught). Midpoint audit
+ran after U1 — triage in Carry-forward.
 
 ## Blocked
 
