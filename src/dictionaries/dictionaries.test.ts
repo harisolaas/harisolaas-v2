@@ -49,8 +49,8 @@ describe.each(dicts)("$locale dictionary — mentoria", ({ locale, dict }) => {
     const hrefs = internalHrefs(sections);
     for (const href of hrefs) {
       expect(
-        href.startsWith(`/${locale}/`),
-        `internal href ${href} must be under /${locale}/`
+        href === `/${locale}` || href.startsWith(`/${locale}/`),
+        `internal href ${href} must be under /${locale}`
       ).toBe(true);
     }
   });
