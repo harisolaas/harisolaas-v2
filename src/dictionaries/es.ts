@@ -1088,6 +1088,85 @@ const es: Dictionary = {
       cta: "Reservar mi lugar",
     },
   },
+  mentoria: {
+    meta: {
+      title: "Mentoría 1 a 1 — Harald Solaas",
+      description:
+        "Acompañamiento individual con encuentros semanales. Sin método fijo: las herramientas aparecen según la persona.",
+      ogDescription:
+        "Acompañamiento individual con encuentros semanales. Sin método fijo: las herramientas aparecen según la persona.",
+    },
+    hero: {
+      eyebrow: "Mentoría 1 a 1",
+      heading: "Acompañamiento individual, un encuentro por semana.",
+      intro:
+        "No es un programa ni un método con pasos. Es caminar al lado tuyo mientras construís lo tuyo — con las herramientas que uso conmigo mismo hace más de quince años.",
+    },
+    sections: {
+      forWho: {
+        heading: "Para quién",
+        paragraphs: [
+          "Personas que emprenden y lideran algo real: un negocio, un equipo, un proyecto que les importa. Gente que ya demostró que puede trabajar duro, y ahora quiere que esa fuerza no le cueste la paz.",
+          "No hace falta llegar con una crisis. Alcanza con no querer seguir eligiendo entre el negocio y la vida interior.",
+        ],
+        quote: "En el momento en que decís «ya entendí», tu alerta se cae.",
+      },
+      what: {
+        heading: "Qué es",
+        paragraphs: [
+          "Acompañamiento individual, con encuentros semanales. No es un programa con pasos ni un método con nombre: cada proceso se arma alrededor de quien lo vive.",
+          "Meditación, respiración, escritura, lecturas, prácticas concretas o una conversación honesta — lo que aparece en cada encuentro depende de lo que estés atravesando, no de un temario.",
+        ],
+        quote:
+          "Las herramientas que aparecen no son un método: son las que llevo en mi propio cinturón, porque las uso conmigo mismo.",
+      },
+      how: {
+        heading: "Cómo trabajamos",
+        paragraphs: [
+          "Un encuentro por semana, por videollamada o en persona en Buenos Aires. Entre encuentros, lo que haga falta: una práctica, una lectura, un mensaje a tiempo.",
+          "El compromiso es mensual y se renueva si tiene sentido para ambas partes. Hoy acompaño así — semana a semana, sin saltear ninguna — a un emprendedor que está integrando su vida interior a la manera en que lidera su negocio.",
+        ],
+        quote:
+          "Ver lo que está debajo: las motivaciones ocultas, el nudo real bajo el síntoma. Esa es la materia prima de lo que hago como mentor.",
+      },
+      whyMe: {
+        heading: "Por qué yo",
+        paragraphs: [
+          "Empecé a meditar a los 15 y a enseñar a los 16. Llevo una década como ingeniero de software senior — la mayor parte para empresas de Silicon Valley — y los mismos años enseñando meditación y acompañando procesos humanos. Nunca elegí entre las dos vidas: aprendí a que se alimenten entre sí.",
+          "Eso es lo que ofrezco: alguien que conoce por dentro la presión de construir — los números, los equipos, la ambición — y que sostiene hace años las prácticas que evitan que esa presión te coma.",
+        ],
+        quote:
+          "La idea cambia, y la práctica tiene que atravesar eso. Esa es la disciplina.",
+      },
+    },
+    practical: {
+      heading: "Lo práctico",
+      items: [
+        {
+          label: "Formato",
+          value: "Encuentros 1 a 1, por videollamada o en persona (Buenos Aires)",
+        },
+        {
+          label: "Frecuencia",
+          value: "Semanal, con acompañamiento entre encuentros",
+        },
+        {
+          // PLACEHOLDER: precio final a definir por Hari antes de publicar
+          label: "Inversión",
+          value: "USD [PRECIO] por mes",
+        },
+      ],
+      note: "Empezamos con una conversación. Si no soy la persona indicada para acompañarte, te lo digo yo.",
+    },
+    cta: {
+      heading: "Empecemos con una conversación",
+      body: "Escribime y contame en qué estás. Sin compromiso y sin guion: una charla para ver si esto es para vos.",
+      buttonLabel: "Escribime por WhatsApp",
+      // CTA destination: WhatsApp por convención del sitio. Swappable — el
+      // destino definitivo del CTA es una decisión abierta del owner.
+      href: "https://wa.me/5491122555110?text=Hola%21%20Quiero%20saber%20m%C3%A1s%20sobre%20la%20mentor%C3%ADa%201%20a%201",
+    },
+  },
 };
 
 export default es;

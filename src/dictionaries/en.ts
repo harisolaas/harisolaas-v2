@@ -1064,6 +1064,85 @@ const en: Dictionary = {
       cta: "Save my seat",
     },
   },
+  mentoria: {
+    meta: {
+      title: "1:1 Mentorship — Harald Solaas",
+      description:
+        "Individual accompaniment with weekly sessions. No fixed method: the tools show up according to the person.",
+      ogDescription:
+        "Individual accompaniment with weekly sessions. No fixed method: the tools show up according to the person.",
+    },
+    hero: {
+      eyebrow: "1:1 Mentorship",
+      heading: "Individual accompaniment, one session a week.",
+      intro:
+        "Not a program, not a method with steps. It's walking alongside you while you build what's yours — with the tools I've used on myself for over fifteen years.",
+    },
+    sections: {
+      forWho: {
+        heading: "Who it's for",
+        paragraphs: [
+          "People building and leading something real: a business, a team, a project they care about. People who have already proven they can work hard, and now want that force to stop costing them their peace.",
+          "You don't need to arrive in crisis. Not wanting to keep choosing between the business and the inner life is enough.",
+        ],
+        quote: "The moment you say “I've got it,” your alertness drops.",
+      },
+      what: {
+        heading: "What it is",
+        paragraphs: [
+          "Individual accompaniment, with weekly sessions. It's not a program with steps or a method with a name: each process takes shape around the person living it.",
+          "Meditation, breathwork, writing, readings, concrete practices or an honest conversation — what shows up in each session depends on what you're going through, not on a syllabus.",
+        ],
+        quote:
+          "The tools that show up aren't a method: they're the ones on my own belt, because I use them on myself.",
+      },
+      how: {
+        heading: "How we work",
+        paragraphs: [
+          "One session a week, over video call or in person in Buenos Aires. Between sessions, whatever is needed: a practice, a reading, a message at the right time.",
+          "The commitment is monthly and renews if it makes sense for both sides. This is how I currently accompany — week after week, without skipping one — an entrepreneur who is integrating his inner life into the way he leads his business.",
+        ],
+        quote:
+          "Seeing what's underneath: the hidden motivations, the real knot beneath the symptom. That's the raw material of what I do as a mentor.",
+      },
+      whyMe: {
+        heading: "Why me",
+        paragraphs: [
+          "I started meditating at 15 and teaching at 16. I've spent a decade as a senior software engineer — most of it for Silicon Valley companies — and just as long teaching meditation and accompanying human processes. I never chose between the two lives: I learned to let them feed each other.",
+          "That's what I offer: someone who knows from the inside the pressure of building — the numbers, the teams, the ambition — and who has kept up, for years, the practices that stop that pressure from eating you.",
+        ],
+        quote:
+          "The idea changes, and the practice has to carry you through that. That's what discipline is.",
+      },
+    },
+    practical: {
+      heading: "The practical part",
+      items: [
+        {
+          label: "Format",
+          value: "1:1 sessions, over video call or in person (Buenos Aires)",
+        },
+        {
+          label: "Frequency",
+          value: "Weekly, with accompaniment between sessions",
+        },
+        {
+          // PLACEHOLDER: final price to be set by Hari before publishing
+          label: "Investment",
+          value: "USD [PRICE] per month",
+        },
+      ],
+      note: "We start with a conversation. If I'm not the right person to accompany you, I'll be the one to tell you.",
+    },
+    cta: {
+      heading: "Let's start with a conversation",
+      body: "Write to me and tell me where you're at. No commitment, no script: a chat to see whether this is for you.",
+      buttonLabel: "Message me on WhatsApp",
+      // CTA destination: WhatsApp per site convention. Swappable — the final
+      // CTA destination is an open owner decision.
+      href: "https://wa.me/5491122555110?text=Hi%21%20I%27d%20like%20to%20know%20more%20about%20the%201%3A1%20mentorship",
+    },
+  },
 };
 
 export default en;
