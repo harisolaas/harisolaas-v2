@@ -16,11 +16,13 @@ export async function generateMetadata({
     openGraph: {
       title: dict.mentoria.meta.title,
       description: dict.mentoria.meta.ogDescription,
+      images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: dict.mentoria.meta.title,
       description: dict.mentoria.meta.ogDescription,
+      images: ["/og-image.jpg"],
     },
   };
 }

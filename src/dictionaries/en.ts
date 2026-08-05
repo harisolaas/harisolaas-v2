@@ -1100,7 +1100,7 @@ const en: Dictionary = {
         heading: "How we work",
         paragraphs: [
           "One session a week, over video call or in person in Buenos Aires. Between sessions, whatever is needed: a practice, a reading, a message at the right time.",
-          "The commitment is monthly and renews if it makes sense for both sides. This is how I currently accompany — week after week, without skipping one — an entrepreneur who is integrating his inner life into the way he leads his business.",
+          "The commitment is monthly and renews if it makes sense for both sides. For the past few months I've been accompanying an entrepreneur this way, week after week.",
         ],
         quote:
           "Seeing what's underneath: the hidden motivations, the real knot beneath the symptom. That's the raw material of what I do as a mentor.",

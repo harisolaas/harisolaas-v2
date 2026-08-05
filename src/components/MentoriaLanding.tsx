@@ -40,9 +40,9 @@ function Section({
       >
         {section.heading}
       </motion.h2>
-      {section.paragraphs.map((paragraph) => (
+      {section.paragraphs.map((paragraph, i) => (
         <motion.p
-          key={paragraph}
+          key={`${id}-${i}`}
           variants={fadeUp}
           className="mt-5 leading-relaxed text-charcoal/80 md:text-lg"
         >

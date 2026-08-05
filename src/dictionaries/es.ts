@@ -1124,7 +1124,7 @@ const es: Dictionary = {
         heading: "Cómo trabajamos",
         paragraphs: [
           "Un encuentro por semana, por videollamada o en persona en Buenos Aires. Entre encuentros, lo que haga falta: una práctica, una lectura, un mensaje a tiempo.",
-          "El compromiso es mensual y se renueva si tiene sentido para ambas partes. Hoy acompaño así — semana a semana, sin saltear ninguna — a un emprendedor que está integrando su vida interior a la manera en que lidera su negocio.",
+          "El compromiso es mensual y se renueva si tiene sentido para ambas partes. Desde hace unos meses acompaño así, semana a semana, a una persona que emprende.",
         ],
         quote:
           "Ver lo que está debajo: las motivaciones ocultas, el nudo real bajo el síntoma. Esa es la materia prima de lo que hago como mentor.",
