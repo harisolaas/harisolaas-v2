@@ -50,6 +50,31 @@ ran after U1 — triage in Carry-forward.
 | Final price replaces placeholder | high | XS | owner decides price before merging integration PR |
 | Dedicated booking flow (Calendly or form) if WhatsApp CTA underperforms | low | M | owner defines CTA destination (open tablero task) |
 
-## Dispositions
+## Dispositions (Landing phase — programme closed 2026-08-05)
 
-(Landing phase fills this.)
+Closing verifier verdict: **SAFE TO STOP** — all 5 claims HOLD (U1 page, U2
+card, test suite + candidate mapping, no regression beyond the mentoria
+surface, git/PR state). Nothing was ever in Blocked.
+
+- **Done**: U1 (#48, merged into `feat/mentoria`, review cycle complete).
+- **Done**: U2 (#49, merged, programme reviewer APPROVE, review cycle complete).
+- **Done**: midpoint zero-context audit (findings triaged into Carry-forward).
+- **Done**: Copilot cycle on #50 — over-restrictive locale test fixed (f727c07);
+  "gente" grammar flag declined with documented reason (singular collective).
+- **Owner checklist** (trigger: before merging #50):
+  1. Set the price — replace `USD [PRECIO]`/`USD [PRICE]` in `es.ts`/`en.ts`.
+  2. Veto or bless the 4 quotes (table in #50 body, each with vault source).
+  3. Confirm the CTA destination (currently wa.me per site convention).
+  4. Review the Vercel preview, then explicitly merge #50 to publish.
+- **Owner checklist** (trigger: "cuando corresponda", per tablero): ask Cris
+  for the testimonial before ever publishing one.
+- **Backlogged**: all Carry-forward rows above, with their triggers.
+
+## Lessons (durable, codebase-wide)
+
+- `src/dictionaries/dictionaries.test.ts` must stay pure (dict imports only) —
+  it is the only suite that runs without DB access and guards locale-link
+  consistency site-wide. Internal locale-root links (`/es`, `/en`) are valid;
+  don't re-tighten the assertion to require a trailing slash.
+- "Gente" is a singular collective in es copy — automated reviewers repeatedly
+  flag correct agreement ("gente… quiere… le") as a slip; decline with reason.
