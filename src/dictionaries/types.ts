@@ -472,6 +472,9 @@ export interface MentoriaDict {
     how: MentoriaSection;
     whyMe: MentoriaSection;
   };
+  /** Mentee's words — the value proposition in the client's voice.
+   *  [0] renders under the hero, [1] inside the CTA section. */
+  testimonials: { text: string; attribution: string }[];
   practical: {
     heading: string;
     items: { label: string; value: string }[];

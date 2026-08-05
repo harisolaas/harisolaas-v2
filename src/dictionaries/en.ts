@@ -204,7 +204,7 @@ const en: Dictionary = {
         categoryLabel: "Teaching",
         title: "1:1 Mentorship",
         description:
-          "Individual accompaniment with weekly sessions, in three-month cycles. No fixed method: the tools show up according to the person.",
+          "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around you, with the tools I use on myself.",
         status: "Happening now",
         cta: {
           label: "Learn more",
@@ -1080,16 +1080,28 @@ const en: Dictionary = {
     meta: {
       title: "1:1 Mentorship — Harald Solaas",
       description:
-        "Individual accompaniment with weekly sessions. No fixed method: the tools show up according to the person.",
+        "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around each person.",
       ogDescription:
-        "Individual accompaniment with weekly sessions. No fixed method: the tools show up according to the person.",
+        "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around each person.",
     },
     hero: {
       eyebrow: "1:1 Mentorship",
       heading: "Individual accompaniment, one session a week.",
       intro:
-        "Not a program, not a method with steps. It's walking alongside you while you build what's yours — with the tools I've used on myself for over fifteen years.",
+        "Weekly one-on-one sessions, in three-month cycles. A process shaped around you, with the tools I've used on myself for over fifteen years.",
     },
+    // Testimonials from Cris (first mentee) — sources: Sesión Cris 2026-07-22
+    // and 2026-07-29. Publication pending his explicit OK before merge.
+    testimonials: [
+      {
+        text: "A big change in my life, without a doubt: priorities and order back where they belong.",
+        attribution: "Cris, entrepreneur — three months into the mentorship",
+      },
+      {
+        text: "You were the person I needed to find this year. You made me reconnect with so many things.",
+        attribution: "Cris",
+      },
+    ],
     sections: {
       forWho: {
         heading: "Who it's for",
@@ -1102,7 +1114,7 @@ const en: Dictionary = {
       what: {
         heading: "What it is",
         paragraphs: [
-          "Individual accompaniment, with weekly sessions. It's not a program with steps or a method with a name: each process takes shape around the person living it.",
+          "Individual accompaniment, with weekly sessions. Each process takes shape around the person living it — you won't be walked through someone else's program.",
           "Meditation, breathwork, writing, readings, concrete practices or an honest conversation — what shows up in each session depends on what you're going through, not on a syllabus.",
         ],
         quote:

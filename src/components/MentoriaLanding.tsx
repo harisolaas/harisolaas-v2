@@ -5,6 +5,8 @@ import { motion, useInView } from "framer-motion";
 import { fadeUp, heroStagger, staggerContainer } from "@/lib/animations";
 import { trackSectionView, trackCtaClick } from "@/lib/analytics";
 import SectionQuote from "./SectionQuote";
+import ScrollReveal from "./ScrollReveal";
+import { fadeUpSlow } from "@/lib/animations";
 import type { MentoriaDict, MentoriaSection } from "@/dictionaries/types";
 
 interface MentoriaLandingProps {
@@ -51,6 +53,40 @@ function Section({
       ))}
       {section.quote && <SectionQuote text={section.quote} />}
     </motion.section>
+  );
+}
+
+/** The mentee's voice — visually distinct from Hari's italic pull quotes. */
+function Testimonial({
+  testimonial,
+  dark = false,
+}: {
+  testimonial: { text: string; attribution: string };
+  dark?: boolean;
+}) {
+  return (
+    <ScrollReveal variants={fadeUpSlow}>
+      <figure
+        className={`border-l-2 pl-6 md:pl-8 ${
+          dark ? "border-cream/30" : "border-sage"
+        }`}
+      >
+        <blockquote
+          className={`font-serif text-xl leading-relaxed md:text-2xl ${
+            dark ? "text-cream/90" : "text-forest"
+          }`}
+        >
+          &ldquo;{testimonial.text}&rdquo;
+        </blockquote>
+        <figcaption
+          className={`mt-3 text-sm ${
+            dark ? "text-cream/60" : "text-charcoal/60"
+          }`}
+        >
+          — {testimonial.attribution}
+        </figcaption>
+      </figure>
+    </ScrollReveal>
   );
 }
 
@@ -103,6 +139,12 @@ export default function MentoriaLanding({
           </motion.p>
         </motion.header>
 
+        {dict.testimonials[0] && (
+          <div className="mx-auto max-w-2xl px-6 pt-10 md:pt-14">
+            <Testimonial testimonial={dict.testimonials[0]} />
+          </div>
+        )}
+
         <div className="mt-6 md:mt-10">
           <Section id="for_who" section={dict.sections.forWho} />
           <Section id="what" section={dict.sections.what} />
@@ -154,6 +196,14 @@ export default function MentoriaLanding({
             >
               {dict.cta.body}
             </motion.p>
+            {dict.testimonials[1] && (
+              <motion.div
+                variants={fadeUp}
+                className="mx-auto mt-8 max-w-xl text-left"
+              >
+                <Testimonial testimonial={dict.testimonials[1]} dark />
+              </motion.div>
+            )}
             <motion.div variants={fadeUp} className="mt-8">
               <a
                 href={dict.cta.href}

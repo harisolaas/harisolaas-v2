@@ -206,7 +206,7 @@ const es: Dictionary = {
         categoryLabel: "Ense\u00f1anza",
         title: "Mentor\u00eda 1 a 1",
         description:
-          "Acompa\u00f1amiento individual con encuentros semanales, en ciclos de tres meses. Sin m\u00e9todo fijo: las herramientas aparecen seg\u00fan la persona.",
+          "Acompa\u00f1amiento individual con encuentros semanales, en ciclos de tres meses. Un proceso a medida, con las herramientas que uso conmigo mismo.",
         status: "Sucediendo ahora",
         cta: {
           label: "Conoc\u00e9 m\u00e1s",
@@ -1104,16 +1104,28 @@ const es: Dictionary = {
     meta: {
       title: "Mentoría 1 a 1 — Harald Solaas",
       description:
-        "Acompañamiento individual con encuentros semanales. Sin método fijo: las herramientas aparecen según la persona.",
+        "Acompañamiento individual con encuentros semanales, en ciclos de tres meses. Un proceso que se arma a medida de cada persona.",
       ogDescription:
-        "Acompañamiento individual con encuentros semanales. Sin método fijo: las herramientas aparecen según la persona.",
+        "Acompañamiento individual con encuentros semanales, en ciclos de tres meses. Un proceso que se arma a medida de cada persona.",
     },
     hero: {
       eyebrow: "Mentoría 1 a 1",
       heading: "Acompañamiento individual, un encuentro por semana.",
       intro:
-        "No es un programa ni un método con pasos. Es caminar al lado tuyo mientras construís lo tuyo — con las herramientas que uso conmigo mismo hace más de quince años.",
+        "Encuentros semanales, uno a uno, en ciclos de tres meses. Un proceso que se arma a tu medida, con las herramientas que uso conmigo mismo hace más de quince años.",
     },
+    // Testimonios de Cris (primer mentoreado) — fuentes: Sesión Cris 2026-07-22
+    // y 2026-07-29. Publicación sujeta a su OK explícito antes del merge.
+    testimonials: [
+      {
+        text: "Un gran cambio en mi vida, sin lugar a dudas: las prioridades y el orden donde tienen que ir.",
+        attribution: "Cris, emprendedor — tres meses de mentoría",
+      },
+      {
+        text: "Fuiste la persona que necesitaba encontrar este año. Me hiciste reconectar con un montón de cosas.",
+        attribution: "Cris",
+      },
+    ],
     sections: {
       forWho: {
         heading: "Para quién",
@@ -1126,7 +1138,7 @@ const es: Dictionary = {
       what: {
         heading: "Qué es",
         paragraphs: [
-          "Acompañamiento individual, con encuentros semanales. No es un programa con pasos ni un método con nombre: cada proceso se arma alrededor de quien lo vive.",
+          "Acompañamiento individual, con encuentros semanales. Cada proceso se arma alrededor de quien lo vive — no vas a atravesar el programa de otra persona.",
           "Meditación, respiración, escritura, lecturas, prácticas concretas o una conversación honesta — lo que aparece en cada encuentro depende de lo que estés atravesando, no de un temario.",
         ],
         quote:
