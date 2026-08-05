@@ -7,15 +7,13 @@ before doing anything.
 
 | Unit | PR | What shipped | Notable catches |
 |---|---|---|---|
-| — | — | — | — |
+| U1 | #48 (merged into `feat/mentoria`) | `/mentoria` page: `MentoriaDict` types, es/en copy, `MentoriaLanding`, dict test suite. All 4 candidate mutations run and caught (3 by suite, 1 by manual `next start` render check). | Programme reviewer: case-1 description exceeded the recorded privacy formula → trimmed. Copilot: gendered "un emprendedor"/"his" → neutral; text-based React keys → section-scoped index; Twitter card downgraded from `summary_large_image` → restored with site OG image. Owner mid-flight input: minimum commitment is **three-month cycles** → "how" copy + practical row updated in both locales. |
 
 ## Queue
 
-1. U1 — `/mentoria` surface (types + es/en copy + page + component). Branch
-   `feat/mentoria-u1-page` off `feat/mentoria`, PR targets `feat/mentoria`.
-2. (midpoint) zero-context audit — one-sentence charge per spec.
-3. U2 — landing Now card. Branch `feat/mentoria-u2-card` off `feat/mentoria`
-   (after U1 merges), PR targets `feat/mentoria`.
+1. (midpoint) zero-context audit — one-sentence charge per spec.
+2. U2 — landing Now card. Branch `feat/mentoria-u2-card` off `feat/mentoria`,
+   PR targets `feat/mentoria`.
 4. Integration PR `feat/mentoria` → `main`: repo review lifecycle, then LEAVE
    OPEN for owner preview review. Do not merge to main under any circumstances.
 
