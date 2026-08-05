@@ -1100,7 +1100,7 @@ const en: Dictionary = {
         heading: "How we work",
         paragraphs: [
           "One session a week, over video call or in person in Buenos Aires. Between sessions, whatever is needed: a practice, a reading, a message at the right time.",
-          "The commitment is monthly and renews if it makes sense for both sides. For the past few months I've been accompanying an entrepreneur this way, week after week.",
+          "We work in three-month cycles — that's the minimum commitment. At the close of each cycle we decide whether to continue. For the past few months I've been accompanying an entrepreneur this way, week after week.",
         ],
         quote:
           "Seeing what's underneath: the hidden motivations, the real knot beneath the symptom. That's the raw material of what I do as a mentor.",
@@ -1125,6 +1125,10 @@ const en: Dictionary = {
         {
           label: "Frequency",
           value: "Weekly, with accompaniment between sessions",
+        },
+        {
+          label: "Commitment",
+          value: "Three-month cycles",
         },
         {
           // PLACEHOLDER: final price to be set by Hari before publishing

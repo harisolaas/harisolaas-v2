@@ -1124,7 +1124,7 @@ const es: Dictionary = {
         heading: "Cómo trabajamos",
         paragraphs: [
           "Un encuentro por semana, por videollamada o en persona en Buenos Aires. Entre encuentros, lo que haga falta: una práctica, una lectura, un mensaje a tiempo.",
-          "El compromiso es mensual y se renueva si tiene sentido para ambas partes. Desde hace unos meses acompaño así, semana a semana, a una persona que emprende.",
+          "Trabajamos en ciclos de tres meses — ese es el compromiso mínimo. Al cierre de cada ciclo decidimos si seguimos. Desde hace unos meses acompaño así, semana a semana, a una persona que emprende.",
         ],
         quote:
           "Ver lo que está debajo: las motivaciones ocultas, el nudo real bajo el síntoma. Esa es la materia prima de lo que hago como mentor.",
@@ -1149,6 +1149,10 @@ const es: Dictionary = {
         {
           label: "Frecuencia",
           value: "Semanal, con acompañamiento entre encuentros",
+        },
+        {
+          label: "Compromiso",
+          value: "Ciclos de tres meses",
         },
         {
           // PLACEHOLDER: precio final a definir por Hari antes de publicar
