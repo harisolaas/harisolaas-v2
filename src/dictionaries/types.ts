@@ -455,6 +455,46 @@ export interface SinergiaParrafoDict {
   };
 }
 
+export interface MentoriaDict {
+  meta: {
+    title: string;
+    description: string;
+    ogDescription: string;
+  };
+  hero: {
+    eyebrow: string;
+    heading: string;
+    intro: string;
+  };
+  sections: {
+    forWho: MentoriaSection;
+    what: MentoriaSection;
+    how: MentoriaSection;
+    whyMe: MentoriaSection;
+  };
+  /** Mentee's words — the value proposition in the client's voice.
+   *  [0] renders under the hero, [1] inside the CTA section. */
+  testimonials: { text: string; attribution: string }[];
+  practical: {
+    heading: string;
+    items: { label: string; value: string }[];
+    note: string;
+  };
+  cta: {
+    heading: string;
+    body: string;
+    buttonLabel: string;
+    href: string;
+  };
+}
+
+export interface MentoriaSection {
+  heading: string;
+  paragraphs: string[];
+  /** Pull quote shown after the section — Hari's own words. */
+  quote?: string;
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -521,4 +561,5 @@ export interface Dictionary {
   plant: PlantDict;
   sinergia: SinergiaDict;
   sinergiaParrafo: SinergiaParrafoDict;
+  mentoria: MentoriaDict;
 }

@@ -204,6 +204,18 @@ const es: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Ense\u00f1anza",
+        title: "Mentor\u00eda 1 a 1",
+        description:
+          "Acompa\u00f1amiento individual con encuentros semanales, en ciclos de tres meses. Un proceso a medida, con las herramientas que uso conmigo mismo.",
+        status: "Sucediendo ahora",
+        cta: {
+          label: "Conoc\u00e9 m\u00e1s",
+          href: "/es/mentoria",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Ense\u00f1anza",
         title: "Sinergia \u2014 Meditaci\u00f3n y lectura/escritura",
         description:
           "Encuentro semanal los mi\u00e9rcoles a las 19:30 en Palermo. Meditaci\u00f3n, un rato con un libro o una hoja en blanco, y una cena opcional para quedarte. A colaboraci\u00f3n, sin experiencia previa.",
@@ -1086,6 +1098,96 @@ const es: Dictionary = {
       heading: "Te esperamos el 16.",
       subtitle: "Un día largo, tranquilo y con mesa.",
       cta: "Reservar mi lugar",
+    },
+  },
+  mentoria: {
+    meta: {
+      title: "Mentoría 1 a 1 — Harald Solaas",
+      description:
+        "Acompañamiento individual con encuentros semanales, en ciclos de tres meses. Un proceso que se arma a medida de cada persona.",
+      ogDescription:
+        "Acompañamiento individual con encuentros semanales, en ciclos de tres meses. Un proceso que se arma a medida de cada persona.",
+    },
+    hero: {
+      eyebrow: "Mentoría 1 a 1",
+      heading: "Acompañamiento individual, un encuentro por semana.",
+      intro:
+        "Encuentros semanales, uno a uno, en ciclos de tres meses. Un proceso que se arma a tu medida, con las herramientas que uso conmigo mismo hace más de quince años.",
+    },
+    // Testimonios de Cris (primer mentoreado) — fuentes: Sesión Cris 2026-07-22
+    // y 2026-07-29. Publicación sujeta a su OK explícito antes del merge.
+    testimonials: [
+      {
+        text: "Un gran cambio en mi vida, sin lugar a dudas: las prioridades y el orden donde tienen que ir.",
+        attribution: "Cris, emprendedor — tres meses de mentoría",
+      },
+      {
+        text: "Fuiste la persona que necesitaba encontrar este año. Me hiciste reconectar con un montón de cosas.",
+        attribution: "Cris",
+      },
+    ],
+    sections: {
+      forWho: {
+        heading: "Para quién",
+        paragraphs: [
+          "Personas que emprenden y lideran algo real: un negocio, un equipo, un proyecto que les importa. Gente que ya demostró que puede trabajar duro, y ahora quiere que esa fuerza no le cueste la paz.",
+          "No hace falta llegar con una crisis. Alcanza con no querer seguir eligiendo entre el negocio y la vida interior.",
+        ],
+        quote: "En el momento en que decís «ya entendí», tu alerta se cae.",
+      },
+      what: {
+        heading: "Qué es",
+        paragraphs: [
+          "Acompañamiento individual, con encuentros semanales. Cada proceso se arma alrededor de quien lo vive — no vas a atravesar el programa de otra persona.",
+          "Meditación, respiración, escritura, lecturas, prácticas concretas o una conversación honesta — lo que aparece en cada encuentro depende de lo que estés atravesando, no de un temario.",
+        ],
+        quote:
+          "Las herramientas que aparecen no son un método: son las que llevo en mi propio cinturón, porque las uso conmigo mismo.",
+      },
+      how: {
+        heading: "Cómo trabajamos",
+        paragraphs: [
+          "Un encuentro por semana, por videollamada o en persona en Buenos Aires. Entre encuentros, lo que haga falta: una práctica, una lectura, un mensaje a tiempo.",
+          "Trabajamos en ciclos de tres meses — ese es el compromiso mínimo. Al cierre de cada ciclo decidimos si seguimos. Desde hace unos meses acompaño así, semana a semana, a una persona que emprende.",
+        ],
+        quote:
+          "Ver lo que está debajo: las motivaciones ocultas, el nudo real bajo el síntoma. Esa es la materia prima de lo que hago como mentor.",
+      },
+      whyMe: {
+        heading: "Por qué yo",
+        paragraphs: [
+          "Empecé a meditar a los 15 y a enseñar a los 16. Llevo una década como ingeniero de software senior — la mayor parte para empresas de Silicon Valley — y los mismos años enseñando meditación y acompañando procesos humanos. Nunca elegí entre las dos vidas: aprendí a que se alimenten entre sí.",
+          "Eso es lo que ofrezco: alguien que conoce por dentro la presión de construir — los números, los equipos, la ambición — y que sostiene hace años las prácticas que evitan que esa presión te coma.",
+        ],
+        quote:
+          "La idea cambia, y la práctica tiene que atravesar eso. Esa es la disciplina.",
+      },
+    },
+    practical: {
+      heading: "Lo práctico",
+      items: [
+        {
+          label: "Formato",
+          value: "Encuentros 1 a 1, por videollamada o en persona (Buenos Aires)",
+        },
+        {
+          label: "Frecuencia",
+          value: "Semanal, con acompañamiento entre encuentros",
+        },
+        {
+          label: "Compromiso",
+          value: "Ciclos de tres meses",
+        },
+      ],
+      note: "Empezamos con una conversación. Si no soy la persona indicada para acompañarte, te lo digo yo.",
+    },
+    cta: {
+      heading: "Empecemos con una conversación",
+      body: "Escribime y contame en qué estás. Sin compromiso y sin guion: una charla para ver si esto es para vos.",
+      buttonLabel: "Escribime por WhatsApp",
+      // CTA destination: WhatsApp por convención del sitio. Swappable — el
+      // destino definitivo del CTA es una decisión abierta del owner.
+      href: "https://wa.me/5491122555110?text=Hola%21%20Quiero%20saber%20m%C3%A1s%20sobre%20la%20mentor%C3%ADa%201%20a%201",
     },
   },
 };

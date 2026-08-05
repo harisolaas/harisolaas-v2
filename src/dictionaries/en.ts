@@ -202,6 +202,18 @@ const en: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Teaching",
+        title: "1:1 Mentorship",
+        description:
+          "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around you, with the tools I use on myself.",
+        status: "Happening now",
+        cta: {
+          label: "Learn more",
+          href: "/en/mentoria",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
         title: "Sinergia \u2014 Meditation + reading/writing",
         description:
           "Weekly gathering on Wednesdays at 7:30pm in Palermo. Meditation, time with a book or a blank page, and an optional dinner to stay for. By donation, no experience required.",
@@ -1062,6 +1074,96 @@ const en: Dictionary = {
       heading: "See you on the 16th.",
       subtitle: "A long, slow day with a shared table.",
       cta: "Save my seat",
+    },
+  },
+  mentoria: {
+    meta: {
+      title: "1:1 Mentorship — Harald Solaas",
+      description:
+        "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around each person.",
+      ogDescription:
+        "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around each person.",
+    },
+    hero: {
+      eyebrow: "1:1 Mentorship",
+      heading: "Individual accompaniment, one session a week.",
+      intro:
+        "Weekly one-on-one sessions, in three-month cycles. A process shaped around you, with the tools I've used on myself for over fifteen years.",
+    },
+    // Testimonials from Cris (first mentee) — sources: Sesión Cris 2026-07-22
+    // and 2026-07-29. Publication pending his explicit OK before merge.
+    testimonials: [
+      {
+        text: "A big change in my life, without a doubt: priorities and order back where they belong.",
+        attribution: "Cris, entrepreneur — three months into the mentorship",
+      },
+      {
+        text: "You were the person I needed to find this year. You made me reconnect with so many things.",
+        attribution: "Cris",
+      },
+    ],
+    sections: {
+      forWho: {
+        heading: "Who it's for",
+        paragraphs: [
+          "People building and leading something real: a business, a team, a project they care about. People who have already proven they can work hard, and now want that force to stop costing them their peace.",
+          "You don't need to arrive in crisis. Not wanting to keep choosing between the business and the inner life is enough.",
+        ],
+        quote: "The moment you say “I've got it,” your alertness drops.",
+      },
+      what: {
+        heading: "What it is",
+        paragraphs: [
+          "Individual accompaniment, with weekly sessions. Each process takes shape around the person living it — you won't be walked through someone else's program.",
+          "Meditation, breathwork, writing, readings, concrete practices or an honest conversation — what shows up in each session depends on what you're going through, not on a syllabus.",
+        ],
+        quote:
+          "The tools that show up aren't a method: they're the ones on my own belt, because I use them on myself.",
+      },
+      how: {
+        heading: "How we work",
+        paragraphs: [
+          "One session a week, over video call or in person in Buenos Aires. Between sessions, whatever is needed: a practice, a reading, a message at the right time.",
+          "We work in three-month cycles — that's the minimum commitment. At the close of each cycle we decide whether to continue. For the past few months I've been accompanying an entrepreneur this way, week after week.",
+        ],
+        quote:
+          "Seeing what's underneath: the hidden motivations, the real knot beneath the symptom. That's the raw material of what I do as a mentor.",
+      },
+      whyMe: {
+        heading: "Why me",
+        paragraphs: [
+          "I started meditating at 15 and teaching at 16. I've spent a decade as a senior software engineer — most of it for Silicon Valley companies — and just as long teaching meditation and accompanying human processes. I never chose between the two lives: I learned to let them feed each other.",
+          "That's what I offer: someone who knows from the inside the pressure of building — the numbers, the teams, the ambition — and who has kept up, for years, the practices that stop that pressure from eating you.",
+        ],
+        quote:
+          "The idea changes, and the practice has to carry you through that. That's what discipline is.",
+      },
+    },
+    practical: {
+      heading: "The practical part",
+      items: [
+        {
+          label: "Format",
+          value: "1:1 sessions, over video call or in person (Buenos Aires)",
+        },
+        {
+          label: "Frequency",
+          value: "Weekly, with accompaniment between sessions",
+        },
+        {
+          label: "Commitment",
+          value: "Three-month cycles",
+        },
+      ],
+      note: "We start with a conversation. If I'm not the right person to accompany you, I'll be the one to tell you.",
+    },
+    cta: {
+      heading: "Let's start with a conversation",
+      body: "Write to me and tell me where you're at. No commitment, no script: a chat to see whether this is for you.",
+      buttonLabel: "Message me on WhatsApp",
+      // CTA destination: WhatsApp per site convention. Swappable — the final
+      // CTA destination is an open owner decision.
+      href: "https://wa.me/5491122555110?text=Hi%21%20I%27d%20like%20to%20know%20more%20about%20the%201%3A1%20mentorship",
     },
   },
 };
