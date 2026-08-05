@@ -204,6 +204,18 @@ const es: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Ense\u00f1anza",
+        title: "Mentor\u00eda 1 a 1",
+        description:
+          "Acompa\u00f1amiento individual con encuentros semanales, en ciclos de tres meses. Sin m\u00e9todo fijo: las herramientas aparecen seg\u00fan la persona.",
+        status: "Sucediendo ahora",
+        cta: {
+          label: "Conoc\u00e9 m\u00e1s",
+          href: "/es/mentoria",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Ense\u00f1anza",
         title: "Sinergia \u2014 Meditaci\u00f3n y lectura/escritura",
         description:
           "Encuentro semanal los mi\u00e9rcoles a las 19:30 en Palermo. Meditaci\u00f3n, un rato con un libro o una hoja en blanco, y una cena opcional para quedarte. A colaboraci\u00f3n, sin experiencia previa.",

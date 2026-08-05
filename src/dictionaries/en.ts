@@ -202,6 +202,18 @@ const en: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Teaching",
+        title: "1:1 Mentorship",
+        description:
+          "Individual accompaniment with weekly sessions, in three-month cycles. No fixed method: the tools show up according to the person.",
+        status: "Happening now",
+        cta: {
+          label: "Learn more",
+          href: "/en/mentoria",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
         title: "Sinergia \u2014 Meditation + reading/writing",
         description:
           "Weekly gathering on Wednesdays at 7:30pm in Palermo. Meditation, time with a book or a blank page, and an optional dinner to stay for. By donation, no experience required.",
