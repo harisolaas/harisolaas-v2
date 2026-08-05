@@ -62,12 +62,15 @@ surface, git/PR state). Nothing was ever in Blocked.
 - **Done**: Copilot cycle on #50 — over-restrictive locale test fixed (f727c07);
   "gente" grammar flag declined with documented reason (singular collective).
 - **Owner checklist** (trigger: before merging #50):
-  1. Set the price — replace `USD [PRECIO]`/`USD [PRICE]` in `es.ts`/`en.ts`.
-  2. Veto or bless the 4 quotes (table in #50 body, each with vault source).
-  3. Confirm the CTA destination (currently wa.me per site convention).
-  4. Review the Vercel preview, then explicitly merge #50 to publish.
-- **Owner checklist** (trigger: "cuando corresponda", per tablero): ask Cris
-  for the testimonial before ever publishing one.
+  1. **Get Cris's explicit OK** on the two published testimonials (Sesión
+     2026-07-22 "un gran cambio en mi vida…" + 2026-07-29 "la persona que
+     necesitaba encontrar este año…", attributed "Cris, emprendedor"). Added
+     2026-08-05 after the owner asked for the value prop in the mentee's
+     voice; supersedes the earlier "no testimonial in v1" exclusion.
+  2. Set the price — replace `USD [PRECIO]`/`USD [PRICE]` in `es.ts`/`en.ts`.
+  3. Veto or bless the 4 Hari quotes (table in #50 body, each with source).
+  4. Confirm the CTA destination (currently wa.me per site convention).
+  5. Review the Vercel preview, then explicitly merge #50 to publish.
 - **Backlogged**: all Carry-forward rows above, with their triggers.
 
 ## Lessons (durable, codebase-wide)
