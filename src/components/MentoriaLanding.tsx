@@ -126,9 +126,11 @@ function Testimonial({
   quoteClassName: string;
   dark?: boolean;
 }) {
+  // One reveal around the whole figure, not one per part: figcaption has to
+  // stay a direct child of figure for the two to be associated at all.
   return (
-    <figure>
-      <ScrollReveal variants={fadeUpSlow}>
+    <ScrollReveal variants={fadeUpSlow}>
+      <figure>
         <blockquote
           className={`font-serif font-normal ${quoteClassName} ${
             dark ? "text-cream" : "text-forest"
@@ -140,8 +142,6 @@ function Testimonial({
           </span>
           {testimonial.text}
         </blockquote>
-      </ScrollReveal>
-      <ScrollReveal variants={fadeUp}>
         <figcaption className="mt-[clamp(1.75rem,3vw,2.75rem)] flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.98rem]">
           <span
             aria-hidden="true"
@@ -156,8 +156,8 @@ function Testimonial({
             </span>
           )}
         </figcaption>
-      </ScrollReveal>
-    </figure>
+      </figure>
+    </ScrollReveal>
   );
 }
 
@@ -404,9 +404,11 @@ export default function MentoriaLanding({
             initial="hidden"
             animate={ctaInView ? "visible" : "hidden"}
             variants={staggerContainer}
-            className="-mt-px bg-forest pt-[clamp(3rem,7vw,5.5rem)] pb-[clamp(3.5rem,8vw,6rem)]"
+            // Its own texture layer: the root overlay sits behind content, so
+            // the forest background would otherwise paint over it.
+            className="texture-overlay relative -mt-px bg-forest pt-[clamp(3rem,7vw,5.5rem)] pb-[clamp(3.5rem,8vw,6rem)]"
           >
-            <div className={`${WRAP} ${COLS}`}>
+            <div className={`relative z-10 ${WRAP} ${COLS}`}>
               <div className="hidden min-[52rem]:block" />
               <div>
                 <motion.h2
@@ -457,8 +459,8 @@ export default function MentoriaLanding({
           </motion.section>
         </main>
 
-        <footer className="bg-forest pb-10">
-          <div className={`${WRAP} border-t border-sage/30 pt-6`}>
+        <footer className="texture-overlay relative bg-forest pb-10">
+          <div className={`relative z-10 ${WRAP} border-t border-sage/30 pt-6`}>
             <a
               href={brandLink}
               onClick={() => trackCtaClick("brand_footer", brandLink, "mentoria")}
