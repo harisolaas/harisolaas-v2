@@ -1119,11 +1119,12 @@ const es: Dictionary = {
     testimonials: [
       {
         text: "Un gran cambio en mi vida, sin lugar a dudas: las prioridades y el orden donde tienen que ir.",
-        attribution: "Cris, emprendedor — tres meses de mentoría",
+        name: "Cris",
+        role: "emprendedor — tres meses de mentoría",
       },
       {
         text: "Fuiste la persona que necesitaba encontrar este año. Me hiciste reconectar con un montón de cosas.",
-        attribution: "Cris",
+        name: "Cris",
       },
     ],
     sections: {
@@ -1152,6 +1153,8 @@ const es: Dictionary = {
         ],
         quote:
           "Ver lo que está debajo: las motivaciones ocultas, el nudo real bajo el síntoma. Esa es la materia prima de lo que hago como mentor.",
+        imageAlt:
+          "Hari dando una charla al aire libre frente a un grupo sentado, con luz natural.",
       },
       whyMe: {
         heading: "Por qué yo",
@@ -1161,6 +1164,7 @@ const es: Dictionary = {
         ],
         quote:
           "La idea cambia, y la práctica tiene que atravesar eso. Esa es la disciplina.",
+        imageAlt: "Retrato de Hari Solaas, con luz natural.",
       },
     },
     practical: {

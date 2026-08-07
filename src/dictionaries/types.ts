@@ -473,8 +473,10 @@ export interface MentoriaDict {
     whyMe: MentoriaSection;
   };
   /** Mentee's words — the value proposition in the client's voice.
-   *  [0] renders under the hero, [1] inside the CTA section. */
-  testimonials: { text: string; attribution: string }[];
+   *  [0] renders under the hero, [1] inside the CTA section.
+   *  `name` and `role` are split so the attribution can render in two
+   *  weights (named person / context) without parsing the string. */
+  testimonials: { text: string; name: string; role?: string }[];
   practical: {
     heading: string;
     items: { label: string; value: string }[];
@@ -493,6 +495,9 @@ export interface MentoriaSection {
   paragraphs: string[];
   /** Pull quote shown after the section — Hari's own words. */
   quote?: string;
+  /** Alt text for the section's photo. Only the sections that carry one
+   *  (how, whyMe) set it; its absence is what hides the image slot. */
+  imageAlt?: string;
 }
 
 export interface Dictionary {
