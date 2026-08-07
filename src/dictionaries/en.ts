@@ -1095,11 +1095,12 @@ const en: Dictionary = {
     testimonials: [
       {
         text: "A big change in my life, without a doubt: priorities and order back where they belong.",
-        attribution: "Cris, entrepreneur — three months into the mentorship",
+        name: "Cris",
+        role: "entrepreneur — three months into the mentorship",
       },
       {
         text: "You were the person I needed to find this year. You made me reconnect with so many things.",
-        attribution: "Cris",
+        name: "Cris",
       },
     ],
     sections: {
@@ -1128,6 +1129,8 @@ const en: Dictionary = {
         ],
         quote:
           "Seeing what's underneath: the hidden motivations, the real knot beneath the symptom. That's the raw material of what I do as a mentor.",
+        imageAlt:
+          "Hari speaking outdoors to a seated group, in natural light.",
       },
       whyMe: {
         heading: "Why me",
@@ -1137,6 +1140,7 @@ const en: Dictionary = {
         ],
         quote:
           "The idea changes, and the practice has to carry you through that. That's what discipline is.",
+        imageAlt: "Portrait of Hari Solaas, in natural light.",
       },
     },
     practical: {
