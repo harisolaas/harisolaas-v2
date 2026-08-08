@@ -18,7 +18,7 @@ Rama base: `main`. **El sitio está VIVO — no se pushea a main sin aprobación
 
 | # | Unidad | Estado |
 |---|---|---|
-| U1 | Capturar atribución en el camino de pago de BROTE | **en curso** |
+| U1 | Capturar atribución en el camino de pago de BROTE | **PR [#57](https://github.com/harisolaas/harisolaas-v2/pull/57) — review adversarial + Copilot respondidos. Esperando "mergealo" del owner y limpieza de la DB dev (CI rojo por infra, no por el diff).** |
 | U2 | Registro de invitaciones + precio autoritativo del servidor | pendiente |
 | U3 | Filas de links rastreados + seeder de preview | pendiente |
 | U4 | Las cinco páginas de invitación | pendiente |
@@ -80,7 +80,9 @@ Crece durante la ejecución por diseño.
 | `/api/brote/qr-checkout` redirige con `?src=qr` y nadie lee ese param | baja | XS | si se quiere atribuir el tráfico de los flyers impresos |
 | `gift-ticket` en `/api/brote/admin` no pasa `priceCents`/`currency` → las entradas regaladas son invisibles para reporting de ingresos | media | S | cuando el reporting de ingresos importe |
 | No hay rollup por referrer (la query "top referrers" de `docs/specs/01-data-model.md:602-616` nunca se implementó) | media | M | si liquidar fees a mano se vuelve tedioso |
-| La expresión de early bird estaba duplicada en 3 archivos | baja | XS | U2 lo centraliza; verificar que no reaparezca |
+| La expresión de early bird estaba duplicada en 3 archivos | baja | XS | resuelto por `currentTicketPrice()` en main; U2 sólo lo consume |
+| **Anclar el stash del checkout por `confirmToken` (`external_reference`) en vez de por `preferenceId`.** Un Payment sin `preference_id` hoy pierde la atribución entera; el by-email que lo cubría desapareció con checkout-directo. El webhook ya lee `payment.external_reference` en `:243`, incondicionalmente y **antes** del lookup del stash, así que el fallback son ~6 líneas. Verificado por la sesión de checkout-directo. **No degrada la emisión de la entrada ni el flujo de contacto** — sólo se pierde atribución y los campos de Meta CAPI. | Media | XS | Decisión del owner, planteada junto al merge de U1 |
+| **CI compartiendo una sola branch dev de Neon sin aislamiento por corrida.** Dos corridas concurrentes se pisan, una aborta, su cleanup falla con FK violation y las filas de fixture sobreviven rompiendo todas las corridas siguientes. Pasó el 8/8 y dejó CI rojo para los 5 PRs abiertos. | Media | M | Cuando vuelva a pasar, o antes del próximo programa multi-PR |
 
 ## Dispositions
 
