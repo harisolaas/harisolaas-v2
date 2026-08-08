@@ -26,6 +26,23 @@ export default async function BroteSuccessPage({
 
   // Build WhatsApp link with context from MP redirect query params
   const paymentId = typeof query.payment_id === "string" ? query.payment_id : "";
+
+  // Cash / offline payments arrive via back_urls.pending. MP also reports
+  // its own `status`, so either signal flips the copy — nothing here
+  // depends on MP preserving our query param.
+  // MP reports the same state under two different param names depending on
+  // the flow, and uses two different words for it. Accept all of them —
+  // showing "your ticket is on its way" to someone whose cash payment
+  // hasn't cleared is the failure this variant exists to prevent.
+  const pendingValues = ["pending", "in_process"];
+  const isPending =
+    query.state === "pending" ||
+    (typeof query.status === "string" && pendingValues.includes(query.status)) ||
+    (typeof query.collection_status === "string" &&
+      pendingValues.includes(query.collection_status));
+  const view = isPending
+    ? { heading: t.pending.heading, body: t.pending.body, note: t.pending.emailNote }
+    : { heading: t.heading, body: t.body, note: t.emailNote };
   const whatsappText = encodeURIComponent(
     locale === "es"
       ? `Hola! Compré mi entrada para BROTE pero no me llegó el email con el QR.${paymentId ? ` Mi ID de pago es ${paymentId}.` : ""}`
@@ -39,12 +56,16 @@ export default async function BroteSuccessPage({
       style={{ background: "#EAE3D2", color: "#3E5226" }}
     >
       <div className="relative z-10 mx-auto max-w-md">
-        <p className="text-6xl">🌳</p>
-        <h1 className="mt-6 font-serif text-4xl text-[#3E5226]">{t.heading}</h1>
-        <p className="mt-4 text-lg leading-relaxed text-[#5C6B45]">{t.body}</p>
+        <p className="text-6xl">{isPending ? "🌱" : "🌳"}</p>
+        <h1 className="mt-6 font-serif text-4xl text-[#3E5226]">
+          {view.heading}
+        </h1>
+        <p className="mt-4 text-lg leading-relaxed text-[#5C6B45]">
+          {view.body}
+        </p>
 
         <div className="mt-8 rounded-[2px] border border-[#3E5226]/20 bg-[#3E5226]/[0.06] p-5">
-          <p className="text-sm leading-relaxed text-[#5C6B45]">{t.emailNote}</p>
+          <p className="text-sm leading-relaxed text-[#5C6B45]">{view.note}</p>
         </div>
 
         <BroteSuccessContact dict={t.contact} />

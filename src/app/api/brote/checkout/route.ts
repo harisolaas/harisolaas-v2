@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { and, eq, inArray, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { nanoid } from "nanoid";
-import { db, schema } from "@/db";
-import { broteConfig, BROTE_EVENT_ID, currentTicketPrice } from "@/data/brote";
-import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
-import { consumeEmailVerification } from "@/lib/email-verification-server";
+// `currentTicketPrice()` comes from the landing redesign (#54): the landing
+// and this route price from one helper, so what's shown and what's charged
+// cannot drift. The identity imports are gone — no name/email/phone is
+// collected before payment any more.
+import { broteConfig, currentTicketPrice } from "@/data/brote";
 import { getRedis } from "@/lib/redis";
 import { CONFIRM_TTL } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
@@ -53,55 +53,16 @@ export async function POST(req: Request) {
     const eventId = body.eventId as string | undefined;
     const fbp = body.fbp as string | undefined;
     const fbc = body.fbc as string | undefined;
-    const name = ((body.name as string) || "").trim();
-    const email = ((body.email as string) || "").trim();
-    const phone = ((body.phone as string) || "").trim();
-    const verificationToken = ((body.verificationToken as string) || "").trim();
     const locale = body.locale === "en" ? "en" : "es";
 
-    if (!name || !isValidEmail(email) || !isValidWhatsApp(phone)) {
-      return NextResponse.json(
-        { error: "Name, valid email, and valid WhatsApp required" },
-        { status: 400 },
-      );
-    }
-
-    // One ticket per email: block before burning the verification token so
-    // the buyer can fix the email and retry without re-verifying. The
-    // webhook double-checks as a safety net (concurrent checkouts can both
-    // pass this pre-check).
-    const existing = await db
-      .select({ id: schema.participations.id })
-      .from(schema.participations)
-      .innerJoin(
-        schema.people,
-        eq(schema.people.id, schema.participations.personId),
-      )
-      .where(
-        and(
-          eq(schema.participations.eventId, BROTE_EVENT_ID),
-          inArray(schema.participations.status, ["confirmed", "used"]),
-          sql`${schema.people.email} = ${email.toLowerCase()}`,
-        ),
-      )
-      .limit(1);
-    if (existing.length > 0) {
-      return NextResponse.json(
-        { error: "duplicate_ticket" },
-        { status: 409 },
-      );
-    }
-
-    // Proof the buyer owns the inbox. Single-use: consuming here means an
-    // MP failure after this point sends the buyer through verify again —
-    // safe (the reverse order would leak unconsumed tokens).
-    const consumed = await consumeEmailVerification(verificationToken, email);
-    if (!consumed) {
-      return NextResponse.json(
-        { error: "verification_required" },
-        { status: 403 },
-      );
-    }
+    // No identity is collected here on purpose: the CTA goes straight to
+    // MercadoPago. Whatever we need to reach this person is asked for after
+    // paying, on /brote/success, where it's optional. The ticket goes to
+    // MP's payer email until they say otherwise.
+    //
+    // The one-ticket-per-email pre-check went with it — there is no email
+    // to check. The webhook still catches it after the fact: a payment that
+    // produces no new participation alerts the admin for a refund decision.
 
     // Same helper the landing renders from, so the price shown and the price
     // charged cannot drift apart.
@@ -132,21 +93,22 @@ export async function POST(req: Request) {
         back_urls: {
           success: `${baseUrl}/${locale}/brote/success`,
           failure: `${baseUrl}/${locale}/brote/failure`,
-          pending: `${baseUrl}/${locale}/brote/failure`,
+          // Cash (Rapipago/Pago Fácil) lands here, and it is NOT a failure —
+          // the payment is in progress. Sending it to /failure told people
+          // their purchase died and threw away the one chance to capture
+          // their contact. The success page renders a pending variant and
+          // still offers the contact step, which is parked until the
+          // webhook sees the payment clear.
+          pending: `${baseUrl}/${locale}/brote/success?state=pending`,
         },
         auto_return: "approved",
         notification_url: `${baseUrl}/api/brote/webhook`,
-        // buyer_* in metadata is the durable fallback: MP propagates
-        // preference metadata onto the Payment, so the webhook can recover
-        // the verified identity even if the Redis stash expired.
+        // `type` is load-bearing, not decorative: all three MP flows share
+        // one access token, so the webhook uses it to refuse anything that
+        // isn't a BROTE ticket. No buyer_* — there is no pre-payment
+        // identity to stamp any more.
         metadata: {
           type: "ticket",
-          buyer_email: email,
-          buyer_name: name,
-        },
-        payer: {
-          name,
-          email,
         },
       },
     });
@@ -159,15 +121,16 @@ export async function POST(req: Request) {
       );
     }
 
-    // Stash verified buyer info + Meta tracking under two keys so the
-    // webhook can recover it: `preference_id` may be absent on the Payment
-    // object, but `payer.email` is reliable.
+    // Meta tracking only now — no identity to stash. The by-email key is
+    // gone with it: it was keyed on the buyer's address, which we no longer
+    // have, and it was always the riskier of the two (an MP account buying
+    // for a friend the next day would hit the wrong checkout's stash).
+    //
+    // 7 days, not 24h: a cash payment (Rapipago/Pago Fácil) can take days
+    // to clear, and the stash has to outlive it.
     try {
       const redis = await getRedis();
       const stash = JSON.stringify({
-        name,
-        email,
-        phone,
         locale,
         eventId,
         confirmToken,
@@ -176,15 +139,9 @@ export async function POST(req: Request) {
         ip: ipHeader,
         ua: req.headers.get("user-agent") || "",
       });
-      const emailKey = email.toLowerCase();
-      // 7 days, not 24h: a cash payment (Rapipago/Pago Fácil) can take
-      // days to clear, and the stash has to outlive it.
-      await Promise.all([
-        redis.set(`brote:checkout:${preferenceId}`, stash, { EX: CONFIRM_TTL }),
-        redis.set(`brote:checkout-by-email:${emailKey}`, stash, {
-          EX: CONFIRM_TTL,
-        }),
-      ]);
+      await redis.set(`brote:checkout:${preferenceId}`, stash, {
+        EX: CONFIRM_TTL,
+      });
     } catch (err) {
       console.error("Failed to store checkout meta:", err);
     }
@@ -194,7 +151,8 @@ export async function POST(req: Request) {
       sendMetaEvent({
         event_name: "InitiateCheckout",
         event_id: eventId,
-        event_source_url: `${baseUrl}/${locale}/brote/checkout`,
+        // The CTA lives on the landing now — /brote/checkout is gone.
+        event_source_url: `${baseUrl}/${locale}/brote`,
         user_data: {
           client_ip_address: ipHeader,
           client_user_agent: req.headers.get("user-agent") || undefined,

@@ -55,6 +55,22 @@ driver podría moverla otra vez).
 | C2b **sink drop**: el call site llama al helper pero omite `markBroteTicketEmailSent` → el webhook reenvía la entrada en cada notificación de MP | ❌ ningún test — probe: `grep -rn "sendBroteTicketEmail(\|markBroteTicketEmailSent(" src/app/api/brote/` → 3 pares (webhook 400/407, admin 267/274, admin 611/618) | ✅ refutado |
 | C7 **ordering**: el caller marca `emailSent` antes de esperar el envío | ❌ ningún test — mitigado por diseño (el helper no escribe el flag) + review | ⚠️ sin cobertura automática |
 
+### U3 — candidate table (corregida tras el review)
+
+| Wrong implementation | Qué lo mata | Re-run |
+|---|---|---|
+| N1 el CTA sigue navegando a la página borrada | ❌ **ningún test ni el build.** `window.location.href = "/es/brote/checkout"` es un string; Next no valida hrefs, así que el build queda verde y el CTA 404ea en runtime. Killer real = grep BC2 + smoke manual | ⚠️ **sin cobertura** |
+| N2 queda un link interno a `/brote/checkout` | BC2: `grep -rn "brote/checkout" src scripts` | ✅ encontró 2 reales |
+| N3 `resolveBuyerInfo` explota sin `readStashByEmail` | `skips the email stash entirely when no reader is supplied` | ✅ muere (contra el código previo: TypeError) |
+| N4 el guard de `type` rechaza pagos legítimos | ❌ ningún test — no hay tests de webhook en el repo. Verificado por lectura en toda la historia de git: **toda** preferencia BROTE estampa `type:"ticket"` (`634b2db`, `771a17b`, `87adfe5`, HEAD), unarbol y cima también, y `gift-ticket` no crea preferencia | ⚠️ sin cobertura automática |
+| N5 el dict queda desparejo entre es/en | `tsc` sobre `Dictionary` — **no** `dictionaries.test.ts`, que solo camina `mentoria` y `now` | ✅ |
+| N6 el error del CTA se renderiza al lado del botón en vez de abajo | ❌ ningún test — no hay infra de tests de componente (`environment: "node"`, sin RTL/jsdom). Lo encontró el review leyendo el contenedor flex | ⚠️ sin cobertura |
+
+**El camino que este PR cambia — el click del CTA en un sitio que está
+vendiendo — no tiene cobertura automática de ningún tipo.** Agregar infra de
+tests de componente es alcance nuevo y queda cortado; la mitigación es el
+grep BC2 más el smoke test del owner en el preview.
+
 ## Queue
 
 1. ~~**U1**~~ — en vuelo.
@@ -147,4 +163,21 @@ necesitan decisión del owner y están en el handback.**
 
 ## Dispositions
 
-_(se completa en Landing)_
+Programa cerrado. Handback: [`tasks/HANDBACK.md`](HANDBACK.md).
+Veredicto del verificador de cierre: **SAFE TO STOP** — 16/16 claims HOLDS,
+5 confirmados por mutación.
+
+| Item que estuvo bloqueado o en espera | Disposición |
+|---|---|
+| U1 — helper del mail de entrada | **Done** — PR #53, CI verde, review adversarial + Copilot respondidos, threads resueltos |
+| U2 — confirmación de contacto post-pago | **Done** — PR #55, review (3 required) + Copilot (3) respondidos |
+| U3 — fricción pre-pago | **Done** — PR #56, review (2 required) + Copilot (3) respondidos |
+| BC1 lint/build/test | **Done** — verde local en las tres unidades; CI verde en #53. #55/#56 **Owner checklist**: CI corre recién cuando su base sea `main` |
+| BC2 grep de `/brote/checkout` | **Done** — encontró 2 leftovers reales (event_source_url de Meta, magic link dormant), los dos arreglados |
+| BC3 pago real en prod | **Owner checklist** — no es verificable desde acá; trigger: post-merge |
+| Si MP manda `external_reference` en el back_url | **Done por diseño** — el diseño dejó de depender de eso (localStorage primario). Ya no hace falta averiguarlo |
+| Si MP auto-redirige pagos pendientes | **Owner checklist** — trigger: primer pago en efectivo real |
+| Smoke test de UI | **Owner checklist** — sin infra de tests de componente; trigger: preview de #56 |
+| 9 hallazgos de la auditoría zero-context | 2 **Done** (los introdujo este programa, arreglados en U2); 7 **Backlogged** con severidad y trigger |
+| Conflicto con PR #54 | **Owner checklist** — toca 8 archivos compartidos, incluida una página que U3 borra; el orden de merge lo decide el owner |
+| Copilot no engancha por REST | **Done** — igual comenta a los pocos minutos; anotado en `lessons.md` |

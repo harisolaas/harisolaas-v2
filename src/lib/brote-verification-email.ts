@@ -25,10 +25,19 @@ function escapeHtml(value: string): string {
 }
 
 /**
- * The link autofills email, code and name on /brote/checkout — same TTL and
- * attempt limit as typing the code by hand. It carries the name because the
- * link opens a fresh browser context (mail app), where nothing the person
- * already typed in the original form survives.
+ * DORMANT — `/brote/checkout` no longer exists.
+ *
+ * BROTE went back to sending buyers straight to MercadoPago, so the
+ * pre-payment verification form was deleted along with the route that
+ * triggered these emails. This module and `email-verification-server.ts`
+ * are kept intact (with the `email_verifications` table) because the flow
+ * is worth reusing, but **the URL below points at a 404 today**. Whoever
+ * reactivates it has to re-point it at whatever page hosts the code form.
+ *
+ * The link autofills email, code and name — same TTL and attempt limit as
+ * typing the code by hand. It carries the name because the link opens a
+ * fresh browser context (mail app), where nothing the person already typed
+ * in the original form survives.
  */
 export function verificationLinkUrl(
   email: string,

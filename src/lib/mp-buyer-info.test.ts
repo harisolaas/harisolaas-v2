@@ -19,6 +19,28 @@ function makeReaders(opts: {
 }
 
 describe("resolveBuyerInfo", () => {
+  it("skips the email stash entirely when no reader is supplied", async () => {
+    // BROTE's webhook stops passing `readStashByEmail`: that key is keyed
+    // on the payer's MP *account* email, so it can match a different
+    // checkout than the payment in hand. Omitting the reader must fall
+    // through to MP's own payer fields, not throw and not invent a name.
+    // (`scripts/backfill-asistente-names.ts` still supplies one, against
+    // the unrelated sinergia-parrafo key — hence optional, not removed.)
+    const payment: MpPaymentLike = {
+      preference_id: null,
+      payer: { email: "buyer@example.com", first_name: "Ana", last_name: "Pérez" },
+    };
+
+    const out = await resolveBuyerInfo(payment, {
+      readStashByPreferenceId: async () => null,
+    });
+
+    expect(out.name).toBe("Ana Pérez");
+    expect(out.nameSource).toBe("payer");
+    expect(out.email).toBe("buyer@example.com");
+    expect(out.phone).toBeUndefined();
+  });
+
   it("prefers the preference-id stash when it exists", async () => {
     const payment: MpPaymentLike = {
       preference_id: "PREF-1",

@@ -18,6 +18,7 @@ import {
   pricingTokens,
 } from "@/data/brote";
 import type { BroteDict } from "@/dictionaries/types";
+import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
 import {
   initPostHog,
   trackSectionView,
@@ -475,6 +476,10 @@ export default function BroteLanding({ dict, locale }: Props) {
   const otherLocale = locale === "en" ? "es" : "en";
   const localeLabel = locale === "en" ? "ES" : "EN";
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<{
+    ctaId: string;
+    message: string;
+  } | null>(null);
   const [ctaHover, setCtaHover] = useState<string | null>(null);
 
   useEffect(() => {
@@ -509,14 +514,73 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
   }, []);
 
-  const handleCheckout = useCallback(() => {
+  const handleCheckout = useCallback(async (ctaId: string) => {
     if (checkoutLoading) return;
     setCheckoutLoading(true);
-    trackCtaClick("ticket", `/${locale}/brote/checkout`, "brote_ticket");
-    // Identity capture + email verification + payment happen on the
-    // checkout page (the Meta Pixel InitiateCheckout fires there on mount).
-    window.location.href = `/${locale}/brote/checkout`;
-  }, [checkoutLoading, locale]);
+    setCheckoutError(null);
+    trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
+
+    // Straight to MercadoPago — no identity step in the way. Whatever we
+    // need to reach this person is asked for AFTER paying, on
+    // /brote/success, where it's optional.
+    const eventId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Priced at click time rather than from the `isEarlyBird` state below,
+    // so a tab left open across the deadline reports what the server will
+    // actually charge.
+    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
+    const value =
+      new Date() <= deadline
+        ? broteConfig.earlyBirdPriceRaw
+        : broteConfig.ticketPriceRaw;
+
+    window.fbq?.(
+      "track",
+      "InitiateCheckout",
+      { currency: "ARS", value },
+      { eventID: eventId },
+    );
+
+    const cookies = document.cookie.split("; ");
+    const fbp = cookies.find((c) => c.startsWith("_fbp="))?.split("=")[1];
+    const fbc = cookies.find((c) => c.startsWith("_fbc="))?.split("=")[1];
+
+    try {
+      const res = await fetch("/api/brote/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, fbp, fbc, locale }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (data.init_point) {
+        // Stash the capability token before leaving. The round trip through
+        // MercadoPago is same-origin on return, so localStorage survives —
+        // and unlike a URL param it never reaches analytics.
+        if (data.confirmToken) {
+          try {
+            window.localStorage.setItem(
+              CONFIRM_TOKEN_STORAGE_KEY,
+              data.confirmToken,
+            );
+          } catch {
+            // Locked-down browser: the ticket still goes to the MP email,
+            // the success page just won't offer the contact step.
+          }
+        }
+        window.location.href = data.init_point;
+        return;
+      }
+      setCheckoutError({ ctaId, message: dict.checkoutError });
+      setCheckoutLoading(false);
+    } catch {
+      setCheckoutError({ ctaId, message: dict.checkoutError });
+      setCheckoutLoading(false);
+    }
+  }, [checkoutLoading, locale, dict.checkoutError]);
 
   // The price shown here and the price the checkout API charges come from the
   // same helper, so they cannot drift. Held in state only so the block flips
@@ -545,32 +609,51 @@ export default function BroteLanding({ dict, locale }: Props) {
   const ctaButton = (label: string, id: string, invert = false) => {
     const hovered = ctaHover === id;
     return (
-      <button
-        onClick={() => handleCheckout()}
-        onMouseEnter={() => setCtaHover(id)}
-        onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
-        disabled={checkoutLoading}
-        className="inline-block cursor-pointer uppercase disabled:opacity-60"
-        style={{
-          ...mono,
-          background: invert
-            ? hovered
-              ? "#FFFFFF"
-              : PAPER
-            : hovered
-              ? FOREST_HOVER
-              : FOREST,
-          color: invert ? (hovered ? FOREST_HOVER : FOREST) : PAPER,
-          fontWeight: 700,
-          fontSize: invert ? 14 : 15,
-          letterSpacing: "0.25em",
-          padding: invert ? "16px 34px" : "18px 40px",
-          borderRadius: 2,
-          transition: "background 0.2s ease, color 0.2s ease",
-        }}
-      >
-        {checkoutLoading ? "…" : label}
-      </button>
+      // Own column: one call site's container is `flex justify-center` (a
+      // row), where a bare fragment would lay the error message BESIDE the
+      // button and squeeze the CTA. One flex item, error underneath.
+      <div className="flex flex-col items-center">
+        <button
+          onClick={() => void handleCheckout(id)}
+          onMouseEnter={() => setCtaHover(id)}
+          onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
+          disabled={checkoutLoading}
+          className="inline-block cursor-pointer uppercase disabled:opacity-60"
+          style={{
+            ...mono,
+            background: invert
+              ? hovered
+                ? "#FFFFFF"
+                : PAPER
+              : hovered
+                ? FOREST_HOVER
+                : FOREST,
+            color: invert ? (hovered ? FOREST_HOVER : FOREST) : PAPER,
+            fontWeight: 700,
+            fontSize: invert ? 14 : 15,
+            letterSpacing: "0.25em",
+            padding: invert ? "16px 34px" : "18px 40px",
+            borderRadius: 2,
+            transition: "background 0.2s ease, color 0.2s ease",
+          }}
+        >
+          {checkoutLoading ? "…" : label}
+        </button>
+        {/* Scoped to the CTA that was actually clicked — the landing renders
+            more than one, and a shared error would fire duplicate
+            `role="alert"` announcements and show a failure next to a button
+            nobody touched. On the green block the terracotta would fall
+            through the floor for contrast, so invert uses cream. */}
+        {checkoutError?.ctaId === id && (
+          <p
+            role="alert"
+            className="mt-3 max-w-[32ch] text-center text-[13px] leading-relaxed"
+            style={{ ...mono, color: invert ? PAPER : "#A0522D" }}
+          >
+            {checkoutError.message}
+          </p>
+        )}
+      </div>
     );
   };
 

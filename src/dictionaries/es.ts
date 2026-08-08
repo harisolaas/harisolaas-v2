@@ -529,6 +529,8 @@ const es: Dictionary = {
       left: "Brote",
       right: "En alianza con Un \u00c1rbol",
     },
+    checkoutError:
+      "No pudimos abrir el pago. Prob\u00e1 de nuevo en un momento, o escribinos por WhatsApp.",
     success: {
       title: "BROTE \u2014 \u00a1Listo!",
       heading: "\u00a1Ya sos parte del bosque!",
@@ -538,6 +540,12 @@ const es: Dictionary = {
       noEmail: "\u00bfNo te lleg\u00f3 el email? Escribime y lo resolvemos.",
       whatsappCta: "Escribime por WhatsApp",
       backLink: "Volver a BROTE",
+      pending: {
+        heading: "Tu pago est\u00e1 en camino",
+        body: "Elegiste un medio de pago que tarda un rato en acreditarse. Apenas se confirme, te llega la entrada con el QR \u2014 puede tardar hasta un par de d\u00edas si pagaste en efectivo.",
+        emailNote:
+          "Te la mandamos al mail de tu cuenta de MercadoPago. Si quer\u00e9s recibirla en otro, dejanos los datos ac\u00e1 abajo y la mandamos ah\u00ed.",
+      },
       contact: {
         heading: "\u00bfD\u00f3nde quer\u00e9s recibir la entrada?",
         intro:
@@ -574,66 +582,6 @@ const es: Dictionary = {
       heading: "El pago no se complet\u00f3",
       body: "Algo sali\u00f3 mal con el pago o fue cancelado. Pod\u00e9s intentar de nuevo desde la p\u00e1gina de BROTE.",
       backLink: "Volver a BROTE",
-    },
-  },
-  broteCheckout: {
-    meta: {
-      title: "BROTE \u2014 Tu entrada",
-      description:
-        "Complet\u00e1 tus datos, verific\u00e1 tu email y pag\u00e1 con MercadoPago.",
-    },
-    backLink: "\u2190 Volver a BROTE",
-    eyebrow: "Tu entrada",
-    heading: "Casi en el bosque",
-    subheading:
-      "Verificamos tu email antes de pagar para que la entrada con el QR llegue a la casilla correcta.",
-    summary: {
-      dateValue: "Jueves 20 de agosto",
-      timeValue: "19:00 a 22:30",
-      placeValue: "Costa Rica 5644, Palermo",
-      earlyBirdTag: "Preventa \u2014 25% OFF",
-      generalTag: "Entrada general",
-      totalLabel: "Total",
-      treeNote: "Tu entrada planta un \u00e1rbol nativo en Argentina.",
-    },
-    form: {
-      nameLabel: "Nombre",
-      emailLabel: "Email",
-      emailHelper: "Ah\u00ed te mandamos tu entrada con el QR.",
-      phoneLabel: "WhatsApp",
-      phonePlaceholder: "11 2345 6789",
-      phoneHelper: "Para avisarte cualquier novedad del evento.",
-      sendCode: "Enviar c\u00f3digo",
-      sending: "Enviando\u2026",
-      codeSentNote:
-        "Te mandamos un c\u00f3digo a {email}. Revis\u00e1 tambi\u00e9n el spam.",
-      codeLabel: "C\u00f3digo",
-      verifyButton: "Verificar c\u00f3digo",
-      verifying: "Verificando\u2026",
-      resend: "Reenviar c\u00f3digo",
-      resendCountdown: "Reenviar c\u00f3digo ({seconds}s)",
-      verified: "Email verificado \u2713",
-      verifyFirst: "Primero verific\u00e1 tu email.",
-      payButton: "Ir a pagar",
-      processing: "Procesando\u2026",
-    },
-    errors: {
-      nameRequired: "Contanos tu nombre.",
-      emailInvalid: "Revis\u00e1 el email \u2014 parece incompleto.",
-      phoneInvalid: "Revis\u00e1 el n\u00famero de WhatsApp.",
-      invalidCode: "El c\u00f3digo no coincide. Prob\u00e1 de nuevo.",
-      expired: "El c\u00f3digo venci\u00f3. Ped\u00ed uno nuevo.",
-      tooManyAttempts: "Demasiados intentos. Ped\u00ed un c\u00f3digo nuevo.",
-      notFound:
-        "No encontramos un c\u00f3digo para ese email. Envi\u00e1 uno nuevo.",
-      resendTooSoon: "Esper\u00e1 un minuto antes de pedir otro c\u00f3digo.",
-      hourlyLimit:
-        "Alcanzaste el l\u00edmite de env\u00edos por ahora. Prob\u00e1 de nuevo en una hora.",
-      verificationRequired:
-        "La verificaci\u00f3n venci\u00f3. Verific\u00e1 tu email de nuevo.",
-      duplicateTicket:
-        "Esa direcci\u00f3n ya tiene una entrada. Us\u00e1 el email de quien va a asistir.",
-      generic: "Algo sali\u00f3 mal. Prob\u00e1 de nuevo.",
     },
   },
   broteUnArbol: {

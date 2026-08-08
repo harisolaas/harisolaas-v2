@@ -69,22 +69,6 @@ async function readPendingContact(
   }
 }
 
-async function readCheckoutMetaByEmail(
-  email: string,
-): Promise<CheckoutMeta | null> {
-  const normalized = email.trim().toLowerCase();
-  if (!normalized) return null;
-  try {
-    const redis = await getRedis();
-    const raw = await redis.get(`brote:checkout-by-email:${normalized}`);
-    if (!raw) return null;
-    return JSON.parse(raw) as CheckoutMeta;
-  } catch (err) {
-    console.error("brote: failed to read checkout meta by email:", err);
-    return null;
-  }
-}
-
 function verifySignature(req: Request, body: string): boolean {
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!secret) return true; // skip in dev if not set
@@ -241,32 +225,34 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, status: payment.status });
     }
 
+    // BROTE, Sinergia and Sinergia-Párrafo all share one MP access token
+    // and one signing secret, and CLAUDE.md has you register several
+    // webhook URLs. If MercadoPago is ever configured to fan out at the
+    // account level, a Sinergia donation lands here too — and without this
+    // guard it would mint a free BROTE ticket. Every flow stamps its own
+    // `type`, so refuse anything that isn't ours.
+    const paymentType = String(payment.metadata?.type ?? "").trim();
+    if (paymentType && paymentType !== "ticket") {
+      console.log("brote: ignoring non-ticket payment", {
+        mpPaymentId,
+        paymentType,
+      });
+      return NextResponse.json({ ok: true, ignored: paymentType });
+    }
+
     confirmToken = String(payment.external_reference ?? "").trim();
 
-    // The checkout page stashes the verified buyer identity (name, email,
-    // phone) in Redis under both the preference id and the buyer email.
-    // Retain whichever stash the resolver hits — and which key matched —
-    // so attribution and Meta fields can be read off it below without a
-    // second Redis roundtrip.
-    const stashHolder: {
-      value: CheckoutMeta | null;
-      source: "preference" | "email" | null;
-    } = { value: null, source: null };
+    // The checkout no longer collects identity, so the stash carries only
+    // locale and Meta tracking. Buyer identity comes from MP's payer object
+    // until the person confirms something better on /brote/success.
+    // Held in an object so the assignment inside the callback survives
+    // TypeScript's control-flow narrowing (a bare `let` gets narrowed to
+    // `never` because closure writes aren't tracked).
+    const stashHolder: { value: CheckoutMeta | null } = { value: null };
     const buyerInfo = await resolveBuyerInfo(payment, {
       readStashByPreferenceId: async (preferenceId) => {
         const stash = await readCheckoutMeta(preferenceId);
-        if (stash) {
-          stashHolder.value = stash;
-          stashHolder.source = "preference";
-        }
-        return stash;
-      },
-      readStashByEmail: async (email) => {
-        const stash = await readCheckoutMetaByEmail(email);
-        if (stash) {
-          stashHolder.value = stash;
-          stashHolder.source = "email";
-        }
+        if (stash) stashHolder.value = stash;
         return stash;
       },
     });
@@ -276,25 +262,6 @@ export async function POST(req: Request) {
     buyerName = buyerInfo.name;
     let buyerPhone = buyerInfo.phone;
 
-    // The checkout stamps the verified identity onto the MP preference
-    // metadata, which MP propagates to the Payment — payment-bound and
-    // durable past the 24h stash TTL. Trust it over anything that isn't
-    // the preference-id stash: the by-email stash is keyed on the payer's
-    // MP *account* email, which can belong to a different checkout than
-    // this payment (same account buying for a friend the next day).
-    const metaBuyerEmail = String(payment.metadata?.buyer_email ?? "").trim();
-    const metaBuyerName = String(payment.metadata?.buyer_name ?? "").trim();
-    if (metaBuyerEmail && stashHolder.source !== "preference") {
-      const stashEmail = (checkoutMeta?.email ?? "").trim().toLowerCase();
-      if (stashEmail !== metaBuyerEmail.toLowerCase()) {
-        // Wrong-checkout (or absent) stash — its phone/attribution belong
-        // to someone else's purchase. Drop it entirely.
-        checkoutMeta = null;
-        buyerPhone = undefined;
-      }
-      buyerEmail = metaBuyerEmail;
-      if (metaBuyerName) buyerName = metaBuyerName;
-    }
 
     // A contact confirmed on /brote/success outranks everything above.
     // The person read that address off their own screen and typed it;
@@ -326,7 +293,7 @@ export async function POST(req: Request) {
       }
     }
 
-    if (buyerInfo.nameSource === "fallback" && !metaBuyerName) {
+    if (buyerInfo.nameSource === "fallback") {
       console.warn("brote: buyer name fell back to default", {
         mpPaymentId,
         preferenceId: payment.preference_id ?? null,

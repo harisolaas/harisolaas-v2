@@ -59,6 +59,87 @@ programme-specific notes; those live in each programme's PROGRESS.md.
   defeated by rewording; pairwise inequality is not, because rewording into
   English *is* the fix.
 
+## Data model
+
+- **BROTE tickets do NOT live in Redis** — they live in `people` +
+  `participations`. `CLAUDE.md` is out of date on this; `BroteTicket` is only
+  the shape the email template consumes. Redis holds idempotency keys and
+  short-lived stashes, nothing durable.
+- **`people` is the cross-event identity table.** The same row backs Sinergia
+  RSVPs, plant registrations and every bulk-email audience. Changing
+  `people.email` or `people.phone` from one event's flow reaches all of them.
+- **`people.email` is `citext` with a unique index**, so uniqueness is already
+  case-insensitive — no need to lowercase to *compare*. Do normalize what you
+  *store*, so the persisted form doesn't depend on which code path got there
+  first.
+- **`participations` has a unique on `(person_id, event_id)`.** Re-pointing
+  `personId` can violate it.
+- **`BROTE_EVENT_ID` does not exist on the Neon dev branch.** A helper that
+  closes over it is untestable; take `eventId` as a parameter. DB-backed tests
+  create their own synthetic event and clean up by email prefix.
+
+## Drizzle / Postgres
+
+- **Drizzle does not rethrow the pg error — it wraps it.** `DrizzleQueryError`
+  has `code: undefined`; the real code lives on `cause`. `if (err.code ===
+  "23505")` silently never matches, so any race handler written that way is
+  dead code. Walk the `cause` chain, and pin it with a test that provokes a
+  real violation — a driver upgrade can move it again.
+- **The jsonb `||` merge is shallow.** It replaces the whole top-level key
+  rather than deep-merging: writing `{a:{x:1}}` over `{a:{y:2}}` loses `y`.
+
+## Email
+
+- **The Resend SDK does not throw on API errors** — it returns `{data, error}`.
+  Success means *both*: no `error`, and an id in `data`. Getting this wrong
+  cost 19 undelivered emails on 2026-04-19 (documented in `bulk-email.ts`) and
+  came back through a second door in the BROTE ticket email. Any idempotency
+  flag stamped after "send" inherits the bug.
+- **The email builders interpolate without escaping.** `plant-email.ts`,
+  `brote-email.ts`, `bulk-email.ts` and `sinergia-email.ts` have no
+  `escapeHtml`; `brote-verification-email.ts` does. Escape anything
+  user-supplied before it reaches the HTML.
+
+## MercadoPago
+
+- **All three flows share `MP_ACCESS_TOKEN` and `MP_WEBHOOK_SECRET`.** Each
+  stamps its own `metadata.type`, and the webhook *must* check it — otherwise a
+  payment from another flow delivered to the wrong URL issues the wrong thing.
+- **What MP returns on the back_url is unverified in this repo.** Sinergia only
+  proves `external_reference` reaches the `Payment` object server-side. Don't
+  hang anything on the return query string without a real payment — and if
+  something sensitive goes there anyway, remember `capture_pageview` ships the
+  whole `$current_url` to PostHog.
+- **`auto_return: "approved"` only auto-redirects approved payments.** A cash
+  payment sits pending for days and the buyer has to click "volver al sitio";
+  many never do.
+
+## Analytics
+
+- **PostHog captures `$current_url` including the query string.** Any credential
+  in a URL (verification codes, capability tokens) is exported to a third party.
+  `analytics.ts` has a `sanitize_properties` redaction list — **add to it** when
+  you introduce a sensitive param. Note a param strip done in a child
+  component's `useEffect` runs *after* the layout-level PostHog effect, so it
+  does not help.
+
+## CI
+
+- **CI does not run on stacked PRs.** `.github/workflows/ci.yml` triggers on
+  `pull_request: branches: [main]`; a PR targeting another branch gets only the
+  Vercel checks. Merging the parent re-points the base and CI then runs. If you
+  stack, plan the merge order and say so in the PR.
+- **CI runs `npm run build`**, which type-checks Next's route types.
+  `tsc --noEmit` is not equivalent — it does not see
+  `.next/types/validator.ts`, which references every route. After deleting a
+  route, `rm -rf .next` before trusting a local typecheck.
+- **`vitest.config.ts` forces `MOCK_REDIS=1`** for the whole suite, so a test
+  cannot reach the production Redis that `.env.local` points at. Email and
+  MercadoPago have no equivalent guard — mock those explicitly.
+- **Copilot may not attach.** The REST POST with the `[bot]` suffix sometimes
+  returns 200 with `requested_reviewers` empty. It usually comments a few
+  minutes later anyway — check `/pulls/{n}/comments` before giving up.
+
 ## Browser verification
 
 - **The automation tab is throttled to zero `requestAnimationFrame` frames.**
