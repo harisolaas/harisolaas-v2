@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 // collected before payment any more.
 import { broteConfig, currentTicketPrice } from "@/data/brote";
 import { getRedis } from "@/lib/redis";
-import { CONFIRM_TTL } from "@/lib/brote-confirm-token";
+import { CONFIRM_TTL, checkoutByTokenKey } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { buildAttribution } from "@/lib/attribution";
 
@@ -153,9 +153,18 @@ export async function POST(req: Request) {
         ...(attribution?.campaign && { campaign: attribution.campaign }),
         ...(attribution?.linkSlug && { linkSlug: attribution.linkSlug }),
       });
-      await redis.set(`brote:checkout:${preferenceId}`, stash, {
-        EX: CONFIRM_TTL,
-      });
+      // Two anchors, same payload. `preference_id` is absent on some MP
+      // Payment objects and the by-email key that used to cover that is
+      // gone, so the confirmToken mirror is what keeps attribution from
+      // silently vanishing on those payments.
+      await Promise.all([
+        redis.set(`brote:checkout:${preferenceId}`, stash, {
+          EX: CONFIRM_TTL,
+        }),
+        redis.set(checkoutByTokenKey(confirmToken), stash, {
+          EX: CONFIRM_TTL,
+        }),
+      ]);
     } catch (err) {
       console.error("Failed to store checkout meta:", err);
     }

@@ -207,6 +207,21 @@ describe("BROTE checkout — attribution reaches the Redis stash", () => {
     expect(stash.linkSlug).toBeUndefined();
   });
 
+  it("T1.5 — mirrors the stash under the confirmToken key", async () => {
+    const { POST } = await import("./checkout/route");
+
+    await POST(checkoutRequest({ utm: UTM }, { "x-forwarded-for": ip() }));
+
+    // `preference_id` is absent on some MP Payment objects (mp-buyer-info's
+    // docstring says so explicitly), and the by-email fallback that used to
+    // cover that case is gone. `external_reference` always carries the
+    // confirmToken, so it is the anchor that cannot go missing.
+    const token = stashedPayload().confirmToken as string;
+    const raw = redisStore.get(`brote:checkout-ct:${token}`);
+    expect(raw, "checkout did not mirror the stash by confirmToken").toBeDefined();
+    expect(JSON.parse(raw!).linkSlug).toBe("ig-story-x");
+  });
+
   it("T1.3b — keeps the fields the contact flow depends on (non-regression pin)", async () => {
     const { POST } = await import("./checkout/route");
 
@@ -256,6 +271,37 @@ describe("BROTE webhook — the stash the checkout actually wrote", () => {
 
     // referred_by_person_id is written ONLY from bypassLinkSlug — passing
     // attribution alone yields click credit with a null referrer.
+    expect(params.bypassLinkSlug).toBe("ig-story-x");
+  });
+
+  it("T1.6 — attributes a payment that carries no preference_id", async () => {
+    const checkout = await import("./checkout/route");
+    await checkout.POST(
+      checkoutRequest({ utm: UTM }, { "x-forwarded-for": ip() }),
+    );
+    const token = stashedPayload().confirmToken as string;
+
+    // MP omits `preference_id` on some funding sources. The ticket still
+    // gets issued either way — what would silently vanish is the
+    // attribution, i.e. the artist's payout count.
+    paymentGet.mockResolvedValue({
+      status: "approved",
+      external_reference: token,
+      transaction_amount: 24750,
+      currency_id: "ARS",
+      metadata: { type: "ticket" },
+      payer: { email: "ana@example.com", first_name: "Ana" },
+    });
+    dbNext = [{ n: 7 }];
+
+    const { POST } = await import("./webhook/route");
+    await POST(webhookRequest("MP-9003"));
+
+    const params = recordParticipation.mock.calls[0][0] as {
+      attribution?: Record<string, unknown>;
+      bypassLinkSlug?: string;
+    };
+    expect(params.attribution?.linkSlug).toBe("ig-story-x");
     expect(params.bypassLinkSlug).toBe("ig-story-x");
   });
 
