@@ -32,6 +32,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Anchor jumps (e.g. BROTE's "¿Qué incluye tu entrada? ↓") should land
+   instantly for anyone who asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 /* Lenis takes over scrolling on the landing page */
 html.lenis,
 html.lenis body {
