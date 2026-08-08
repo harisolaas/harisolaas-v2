@@ -22,6 +22,17 @@ async function resetTestData() {
   await db.execute(sql`
     DELETE FROM participations WHERE event_id IN (${TEST_EVENT_UNLIMITED}, ${TEST_EVENT_CAPPED})
   `);
+  // The bypass-link fixtures used to be dropped only at the end of the tests
+  // that create them. A run that died in between (two CI runs racing on the
+  // shared dev branch is enough) left the row behind, and since nothing here
+  // swept it, EVERY later run failed on a duplicate-key insert — for every
+  // PR in the repo, not just the one that crashed. Sweeping them here makes
+  // the fixture self-healing instead of needing a manual DB cleanup.
+  // Safe before participations are gone too: `participations.link_slug` is
+  // ON DELETE SET NULL.
+  await db.execute(sql`
+    DELETE FROM links WHERE slug LIKE 'test-bypass-link-%'
+  `);
   await db.execute(sql`
     DELETE FROM events WHERE id IN (${TEST_EVENT_UNLIMITED}, ${TEST_EVENT_CAPPED})
   `);

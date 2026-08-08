@@ -150,7 +150,20 @@ export function formatArs(amount: number): string;
 export function buildInvitationCheckoutHref(locale: string, slug: InvitationSlug): string;
 ```
 
-El 35% se **deriva** de `broteConfig.ticketPriceRaw`; nada de literales pegados al estilo de `unArbolPriceRaw`. `isEarlyBird` centraliza la expresión `new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00")` que está repetida en exactamente 3 archivos (sondeado: `brote/checkout/page.tsx:66`, `api/brote/checkout/route.ts:105`, `BroteLanding.tsx:367,374`); los tres pasan a usarla.
+> ### ⚠️ REPLANIFICADO tras `checkout-directo` (2026-08-08)
+>
+> Esta unidad se escribió contra un checkout que ya no existe. Lo que cambia:
+>
+> - **[R1] queda ANULADA.** No hay más mail de verificación ni round-trip, así que no hay nada que threadear. `verify-email`, `email-verification-server` y `brote-verification-email` **salen de la lista de archivos**, y T2.8 se borra.
+> - **La página de checkout no existe.** `/[locale]/brote/checkout/page.tsx` y `BroteCheckoutForm.tsx` fueron borrados. Sale el paso de leer `?inv=` de `searchParams` y de pasar props de precio: **no hay página intermedia**. Sale también `buildInvitationCheckoutHref` y con él T2.7.
+> - **El CTA de la invitación hace lo mismo que el de la landing**: `POST /api/brote/checkout` con `{ invite, eventId, fbp, fbc, locale, ...readBrowserAttribution() }` → `init_point` → redirect. Un solo hop.
+> - **`isEarlyBird` ya está centralizado** en `currentTicketPrice()` (`src/data/brote.ts`, del rediseño #54), que comparten la landing y la ruta. `resolveInvitationPrice` lo **consume**, no lo reimplementa — recalcular el early bird a mano es justo la deriva que ese helper existe para evitar. Sale `isEarlyBird` de la superficie pública del módulo nuevo.
+> - **[R3] se simplifica**: el guard que la enmienda desarmaba ya fue eliminado por `checkout-directo`. `payment.metadata.invite` se lee sin condición, que era la conclusión igual.
+> - **Consecuencia para U4**: la página deja de ser 100% server component. El CTA necesita un island cliente mínimo (un botón que hace el POST y redirige). El resto del árbol sigue siendo server.
+>
+> Neto: U2 se achica a **registro + resolver + la ruta acepta `invite`**. Menos archivos, menos superficie, mismo objetivo.
+
+El 35% se **deriva** de `broteConfig.ticketPriceRaw`; nada de literales pegados al estilo de `unArbolPriceRaw`.
 
 En el checkout: parsear `invite`, **revalidarlo contra `getInvitation()` en el servidor**, y sacar el precio de `resolveInvitationPrice`. Slug desconocido → precio público, sin error. `title = "BROTE — Entrada (Invitación Pulso)"` para reconciliar en el panel de MP. `metadata: { …, invite: slug }` en la Preference — canal durable, inmune al TTL de 24 h del stash. Si hay `invite` y no vino `linkSlug`, default a `{ linkSlug: inv.linkSlug, source: "partner", medium: "referral", campaign: "brote-invitacion" }` (sondeado: el canal `partner` ya existe en `src/lib/links.ts:50` con ese source/medium exactos).
 
