@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { nanoid } from "nanoid";
-import { broteConfig } from "@/data/brote";
+// `currentTicketPrice()` comes from the landing redesign (#54): the landing
+// and this route price from one helper, so what's shown and what's charged
+// cannot drift. The identity imports are gone — no name/email/phone is
+// collected before payment any more.
+import { broteConfig, currentTicketPrice } from "@/data/brote";
 import { getRedis } from "@/lib/redis";
 import { CONFIRM_TTL } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
@@ -60,11 +64,9 @@ export async function POST(req: Request) {
     // to check. The webhook still catches it after the fact: a payment that
     // produces no new participation alerts the admin for a refund decision.
 
-    // Early bird: check if we're before the deadline (end of day Argentina time, UTC-3)
-    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
-    const isEarlyBird = new Date() <= deadline;
-
-    const price = isEarlyBird ? broteConfig.earlyBirdPriceRaw : broteConfig.ticketPriceRaw;
+    // Same helper the landing renders from, so the price shown and the price
+    // charged cannot drift apart.
+    const { raw: price, isEarlyBird } = currentTicketPrice();
     const title = `BROTE — Entrada${isEarlyBird ? " (Preventa)" : ""}`;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 

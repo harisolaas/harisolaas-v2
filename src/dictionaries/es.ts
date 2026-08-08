@@ -432,79 +432,79 @@ const es: Dictionary = {
       place: { label: "Palermo", value: "CABA" },
     },
     eyebrows: {
-      experience: "La noche",
-      lineup: "Lineup",
+      lineup: "Line up",
       pricing: "Entradas",
     },
-    experience: [
-      {
-        title: "Catering para la noche",
-        description:
-          "Comida rica para acompa\u00f1ar la noche. Lleg\u00e1s, pic\u00e1s algo y te acomod\u00e1s antes de que arranque la m\u00fasica.",
-      },
-      {
-        title: "M\u00fasica ac\u00fastica en vivo",
-        description:
-          "Abrimos la noche con m\u00fasica ac\u00fastica en vivo. Un momento para bajar un cambio y estar presentes.",
-      },
-      {
-        title: "Experiencia de baile",
-        description:
-          "Y de la calma pasamos al baile. La noche sube y nos movemos juntos hasta el cierre.",
-      },
-      {
-        title: "1 entrada = 1 \u00e1rbol",
-        description:
-          "Cada ticket planta un \u00e1rbol real en Argentina junto a Un \u00c1rbol, una ONG con m\u00e1s de 15 a\u00f1os y miles de \u00e1rboles plantados en el pa\u00eds.",
-      },
-    ],
     lineup: {
-      items: [
-        {
-          name: "Jos\u00e9 Dezanzo",
-          tag: "Set ac\u00fastico",
-          detail:
-            "Abrimos la noche con el set ac\u00fastico de Jos\u00e9 Dezanzo. Un momento para bajar un cambio y estar presentes antes de que la noche suba.",
-          link: {
-            url: "https://www.instagram.com/josedezanzo/",
-            label: "josedezanzo",
-          },
+      timeRange: "19:00 \u2192 22:30",
+      welcome: {
+        number: "01",
+        time: "19:00 \u00b7 Llegada",
+        title: "\u00bfNo sab\u00e9s con qui\u00e9n venir?",
+        kicker: "Ven\u00ed igual. Estamos nosotros.",
+        body1:
+          "Arrancamos tranqui: algo para comer, algo para tomar y una hora entera para conocerse. Los que organizamos esto estamos en la puerta y adentro, charlando con todo el mundo \u2014 si ven\u00eds solo/a, te presentamos gente.",
+        body2:
+          "Tambi\u00e9n van a estar las marcas con prop\u00f3sito que nos acompa\u00f1an, para que las conozcas de cerca.",
+      },
+      live: {
+        number: "02",
+        time: "20:00 \u00b7 En vivo",
+        title: "M\u00fasica ac\u00fastica\nen vivo",
+        body: "Jos\u00e9 Dezanzo, solo y con guitarra. No hay mucho m\u00e1s para explicar: se escucha.",
+      },
+      dj: {
+        number: "03",
+        time: "21:15 \u00b7 Cierre",
+        title: "DJ set",
+        bodyBefore: "Recibimos a ",
+        bodyAfter:
+          " para una intervenci\u00f3n de baile performativo que marca el pulso hasta el cierre.",
+        link: {
+          url: "https://www.instagram.com/gianbejarano/",
+          name: "Gian Bejarano",
+          label: "gianbejarano",
         },
-        {
-          name: "A anunciar",
-          tag: "Experiencia de baile",
-          detail:
-            "De la calma pasamos al baile. La noche sube y nos movemos juntos hasta el cierre. Artista a confirmar.",
-        },
-      ],
+      },
     },
     impact: {
       counterLabel: "\u00c1rboles plantados hasta hoy",
-      heading: "Tu entrada no se gasta. Se planta.",
-      partner: {
-        intro: "Trabajamos con ",
-        name: "Un \u00c1rbol",
-        rest: ", una asociaci\u00f3n civil con m\u00e1s de 15 a\u00f1os dedicada a reforestar zonas de toda Argentina. Ya hicimos un viaje de plantaci\u00f3n con ellos y vimos de primera mano c\u00f3mo trabajan.",
-      },
-      body: "Cada entrada financia la plantaci\u00f3n de un \u00e1rbol nativo. No es simb\u00f3lico: es un \u00e1rbol real, en un lugar real, que va a crecer mucho despu\u00e9s de que termine la m\u00fasica.",
-      attendees:
-        "Si vienen {count} personas, son {count} \u00e1rboles. As\u00ed de simple.",
     },
     pricing: {
-      earlyBirdLabel: "Preventa \u2014 25% OFF",
+      earlyBirdLabel: "Preventa",
+      earlyBirdBadge: "-25%",
       earlyBirdExpired: "Preventa finalizada",
       earlyBirdUntil: "Hasta el 13 de agosto",
-      generalLabel: "General",
-      generalFrom: "Desde el 14 de agosto",
-      generalUntil: "Hasta agotar",
-      includesLabel: "Incluye",
-      includesItems: [
-        "M\u00fasica ac\u00fastica en vivo",
-        "Catering",
-        "Experiencia de baile",
-        "1 \u00e1rbol plantado a tu nombre",
-      ],
+      earlyBirdClosed: "Cerr\u00f3 el 13 de agosto",
+      savingsLine: "Es el precio de hoy. Ahorr\u00e1s {savings} sobre el general.",
+      includesLink: "\u00bfQu\u00e9 incluye tu entrada?",
+      generalNote: "Desde el 14 de agosto pasa a {price}, hasta agotar.",
       payment: "Pag\u00e1s con MercadoPago / tarjeta / transferencia.",
+    },
+    includes: {
+      eyebrow: "\u00bfQu\u00e9 incluye tu entrada?",
+      items: [
+        {
+          number: "01",
+          title: "Un \u00e1rbol a tu nombre",
+          body: "Plantado en Argentina junto a Un \u00c1rbol. Real, en un lugar real.",
+        },
+        {
+          number: "02",
+          title: "Una bebida Matelab",
+          body: "Fr\u00eda, esper\u00e1ndote apenas lleg\u00e1s.",
+        },
+        {
+          number: "03",
+          title: "El show",
+          body: "M\u00fasica ac\u00fastica en vivo y DJ set, de punta a punta.",
+        },
+      ],
+      featured: {
+        number: "04",
+        title: "Un brote para llevarte a casa",
+        body: "Lo sembramos juntos esa misma noche. Te lo llev\u00e1s, lo plant\u00e1s donde vivas y sigue creciendo cuando la fiesta ya pas\u00f3.",
+      },
     },
     community: {
       intro: {

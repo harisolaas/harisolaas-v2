@@ -50,21 +50,22 @@ export interface TimelineEntry {
   type: "life" | "work" | "community";
 }
 
-export interface BroteExperienceItem {
-  title: string;
-  description: string;
-}
-
-export interface BroteLineupItem {
-  name: string;
-  tag: string;
-  detail: string;
-  link?: { url: string; label: string };
-}
-
 export interface BroteInfoCell {
   label: string;
   value: string;
+}
+
+/** Shared header of each numbered line-up block: "01 ····· 19:00 · Llegada". */
+interface BroteLineupBlock {
+  number: string;
+  time: string;
+  title: string;
+}
+
+export interface BroteIncludesItem {
+  number: string;
+  title: string;
+  body: string;
 }
 
 /** Optional post-payment contact step on /brote/success. */
@@ -108,31 +109,44 @@ export interface BroteDict {
     place: BroteInfoCell;
   };
   eyebrows: {
-    experience: string;
     lineup: string;
     pricing: string;
   };
-  experience: BroteExperienceItem[];
+  /**
+   * Three blocks of deliberately unequal weight — the width and alignment of
+   * each carries the hierarchy, so they are named rather than an array.
+   */
   lineup: {
-    items: BroteLineupItem[];
+    timeRange: string;
+    welcome: BroteLineupBlock & { kicker: string; body1: string; body2: string };
+    live: BroteLineupBlock & { body: string };
+    dj: BroteLineupBlock & {
+      bodyBefore: string;
+      bodyAfter: string;
+      /** `name` is the inline link text, `label` the @handle on the tag. */
+      link: { url: string; name: string; label: string };
+    };
   };
   impact: {
     counterLabel: string;
-    heading: string;
-    partner: { intro: string; name: string; rest: string };
-    body: string;
-    attendees: string;
   };
   pricing: {
     earlyBirdLabel: string;
+    earlyBirdBadge: string;
     earlyBirdExpired: string;
     earlyBirdUntil: string;
-    generalLabel: string;
-    generalFrom: string;
-    generalUntil: string;
-    includesLabel: string;
-    includesItems: string[];
+    earlyBirdClosed: string;
+    /** Carries a {savings} token, filled from the configured prices. */
+    savingsLine: string;
+    includesLink: string;
+    /** Carries a {price} token. */
+    generalNote: string;
     payment: string;
+  };
+  includes: {
+    eyebrow: string;
+    items: BroteIncludesItem[];
+    featured: BroteIncludesItem;
   };
   community: {
     intro: { before: string; sponsors: string; after: string };
