@@ -354,9 +354,12 @@ function InstagramIcon() {
    playsInline> is a change inside this component only — the surrounding
    layout never moves. Falls back to the dotted frame until the photo lands. */
 const LINEUP_PHOTO = "/brote/lineup-acustico.jpg";
-const LINEUP_PHOTO_READY = false; // flip when the file is dropped in public/brote
 
 function LineupMedia({ alt }: { alt: string }) {
+  // The asset itself is the source of truth: try to render it, fall back to
+  // the frame if it 404s. Dropping the file in public/brote is all it takes —
+  // there is no flag to remember to flip.
+  const [photoMissing, setPhotoMissing] = useState(false);
   return (
     <div
       style={{
@@ -369,40 +372,42 @@ function LineupMedia({ alt }: { alt: string }) {
         overflow: "hidden",
       }}
     >
-      {LINEUP_PHOTO_READY ? (
+      {/* The frame is always rendered underneath. If the photo exists it
+          covers it; if it 404s the frame is already on screen, so there is
+          no empty box and no flash — and nothing to remember to switch on. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 flex flex-col items-center justify-center"
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 10,
+            border: `1px dotted ${FOREST_30}`,
+          }}
+        />
+        <div
+          style={{
+            ...mono,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.35em",
+            textTransform: "uppercase",
+            color: FOREST_60,
+          }}
+        >
+          Foto 3:4
+        </div>
+      </div>
+      {!photoMissing && (
         <Image
           src={LINEUP_PHOTO}
           alt={alt}
           fill
           className="object-cover"
           sizes="(max-width: 640px) 100vw, 420px"
+          onError={() => setPhotoMissing(true)}
         />
-      ) : (
-        <div
-          className="flex h-full w-full flex-col items-center justify-center gap-2"
-          style={{ padding: 20 }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              inset: 10,
-              border: `1px dotted ${FOREST_30}`,
-              pointerEvents: "none",
-            }}
-          />
-          <div
-            style={{
-              ...mono,
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.35em",
-              textTransform: "uppercase",
-              color: FOREST_60,
-            }}
-          >
-            Foto 3:4
-          </div>
-        </div>
       )}
     </div>
   );

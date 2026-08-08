@@ -1,7 +1,6 @@
 # PROGRESS — BROTE landing redesign
 
-Spec: `tasks/brote-landing-redesign.md` · Design plan: `~/.claude/plans/piped-finding-avalanche.md`
-Worktree: `/Users/haraldsolaas/code/harisolaas-v2/.claude/worktrees/piped-finding-avalanche`
+Spec: `tasks/brote-landing-redesign.md`
 Branch: `worktree-piped-finding-avalanche`
 
 **Every spawned agent reads this file first.**
