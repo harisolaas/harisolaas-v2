@@ -5,21 +5,21 @@ Branch: `worktree-piped-finding-avalanche`
 
 **Every spawned agent reads this file first.**
 
-## Merged
+## Complete — awaiting the owner's merge decision
 
 | Unit | PR | What shipped | Notable catches |
 |---|---|---|---|
-| — | — | — | — |
+| U1 | [#54](https://github.com/harisolaas/harisolaas-v2/pull/54) | Line up merge (3 asymmetric blocks), counter simplified, single-block pricing, new "¿Qué incluye tu entrada?", `currentTicketPrice()` single-sourcing | **Plan review:** post-preventa would have shown $24.750 while charging $33.000 from Aug 13 (D1). **Candidate table:** C1 passed all 15 tests — the savings assertion blessed a hardcoded value. **PR review:** three sections lost their `<h2>`; group opacity dimmed the closed-state buy button to 2.5:1. **Copilot:** the flag-free photo fallback, resolved a third way after the suggested `onError` proved worse. |
+
+PR is green and both review cycles are addressed. **Not merged** — `CLAUDE.md` requires an explicit "ship"/"mergealo" and the site is live.
 
 ## Queue
 
-1. **U1 — the redesign.** Single unit by revert boundary (argument in spec). In progress.
+Empty. One-unit programme by revert boundary (argument in the spec).
 
 ## Blocked
 
-| Item | Waiting on | Asked | Downgrade |
-|---|---|---|---|
-| Musician photo for Line up block 02 | Owner to drop the file at `public/brote/lineup-acustico.jpg` — it was attached to chat, which is not the filesystem | 2026-08-08, at plan time | `LineupMedia` renders the handoff's dotted placeholder when the file is absent; swap is a file drop, no code change |
+Empty — see Dispositions.
 
 ## Hard-won constraints
 
@@ -59,4 +59,12 @@ Each line below cost a probe to learn. Violating one costs a full cycle.
 
 ## Dispositions
 
-_(Landing phase — every row that ever appeared in Blocked gets a terminal state here.)_
+Every row that ever appeared in Blocked, with a terminal state.
+
+| Item | Disposition | Evidence / trigger |
+|---|---|---|
+| Musician photo for Line up block 02 | **Owner checklist** | Drop the file at `public/brote/lineup-acustico.jpg`. No code change and no flag — the dotted frame renders underneath and the photo covers it automatically. Both paths verified in-browser. Trigger: before the landing is pushed in ads. |
+| Merge of PR #54 | **Owner checklist** | PR is green, both review cycles addressed, threads resolved. Trigger: owner says "ship"/"mergealo". |
+| `npm run build` blocked by missing `DATABASE_URL` | **Done** | Ran with a throwaway `postgresql://build:build@127.0.0.1:5432/build`, which satisfies module-eval without touching prod. Build compiles and generates all 62 pages. |
+| True 390px viewport check | **Done, with a stated limit** | The OS window would not shrink below ~1710px, so this was verified by constraining the `.brote-scope` container to 390px: zero overflowing elements across all four sections, includes grid collapses to one column. The grids are `auto-fit minmax()` (container-driven), so this is a faithful proxy — but it is a proxy, not a real 390px viewport. |
+| Reveal-on-anchor (`#incluye`) | **Done** | Hash load → `opacity: 1`, `scroll-margin-top` respected. Click path → observer fires, opacity leaves 0. The automation tab throttles rAF to zero frames, which freezes the fade mid-way; that is a harness artifact, confirmed by measuring rAF liveness directly. |
