@@ -23,6 +23,22 @@ describe("getInvitation", () => {
     }
   });
 
+  it("does not resolve inherited Object properties", () => {
+    // A bare `RECORD[slug]` lookup answers `constructor`, `toString` and
+    // friends with something truthy off Object.prototype. The price stays
+    // public either way, but the caller gets an object that is not an
+    // invitation and stamps "Invitación undefined" on the MercadoPago item.
+    for (const key of [
+      "constructor",
+      "toString",
+      "__proto__",
+      "hasOwnProperty",
+      "valueOf",
+    ]) {
+      expect(getInvitation(key), key).toBeNull();
+    }
+  });
+
   it("does not accept a slug in the wrong case", () => {
     // The slug is a URL segment and a Redis-adjacent key, not free text.
     // Accepting case variants would mint a second identity for one partner.

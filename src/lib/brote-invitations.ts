@@ -81,12 +81,21 @@ const INVITATIONS: Record<InvitationSlug, BroteInvitation> = {
   },
 };
 
-/** Exact match only — a slug is a URL segment and a link key, not free text. */
+/**
+ * Exact match only — a slug is a URL segment and a link key, not free text.
+ *
+ * `Object.hasOwn` rather than a bare index: the slug comes off a request body,
+ * and a plain lookup answers `constructor` or `toString` with something
+ * truthy from Object.prototype. That never mispriced anything (the inherited
+ * value has no `discountPct`, so it falls through to the public price) but it
+ * did hand callers a non-invitation that stamped "Invitación undefined" onto
+ * the MercadoPago item.
+ */
 export function getInvitation(
   slug: string | undefined | null,
 ): BroteInvitation | null {
-  if (!slug) return null;
-  return INVITATIONS[slug as InvitationSlug] ?? null;
+  if (!slug || !Object.hasOwn(INVITATIONS, slug)) return null;
+  return INVITATIONS[slug as InvitationSlug];
 }
 
 export interface InvitationPrice {
