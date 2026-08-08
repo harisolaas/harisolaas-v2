@@ -89,15 +89,25 @@ export function readBrowserAttribution(
   if (campaign) utm.campaign = campaign;
   if (content) utm.content = content;
 
-  return { utm, linkSlug: content ?? readCookieHeader(cookieHeader) };
+  return {
+    utm,
+    linkSlug: content ?? readCookieHeader(cookieHeader, LINK_COOKIE_NAME),
+  };
 }
 
-/** Cookie lookup over a raw `Cookie:`/`document.cookie` string. */
-function readCookieHeader(header: string): string | undefined {
+/**
+ * Cookie lookup over a raw cookie string — a `Cookie:` header server-side,
+ * `document.cookie` in the browser. Both spellings are the same grammar, so
+ * they share one parser rather than drifting apart.
+ */
+function readCookieHeader(
+  header: string | null,
+  name: string,
+): string | undefined {
   if (!header) return undefined;
   for (const part of header.split(";")) {
     const [k, ...rest] = part.trim().split("=");
-    if (k === LINK_COOKIE_NAME) {
+    if (k === name) {
       const value = rest.join("=");
       return value ? decodeURIComponent(value) : undefined;
     }
@@ -107,17 +117,7 @@ function readCookieHeader(header: string): string | undefined {
 
 /** Read a cookie value from a Next.js Request without Next's cookies() helper. */
 export function readCookie(req: Request, name: string): string | undefined {
-  const header = req.headers.get("cookie");
-  if (!header) return undefined;
-  const parts = header.split(";");
-  for (const part of parts) {
-    const [k, ...rest] = part.trim().split("=");
-    if (k === name) {
-      const value = rest.join("=");
-      return value ? decodeURIComponent(value) : undefined;
-    }
-  }
-  return undefined;
+  return readCookieHeader(req.headers.get("cookie"), name);
 }
 
 function trimOrUndefined(v: string | null | undefined): string | undefined {
