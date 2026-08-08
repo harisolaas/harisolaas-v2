@@ -430,79 +430,79 @@ const en: Dictionary = {
       place: { label: "Palermo", value: "CABA" },
     },
     eyebrows: {
-      experience: "The night",
-      lineup: "Lineup",
+      lineup: "Line up",
       pricing: "Tickets",
     },
-    experience: [
-      {
-        title: "Catering for the night",
-        description:
-          "Good food to go with the night. Arrive, grab a bite, and settle in before the music starts.",
-      },
-      {
-        title: "Live acoustic music",
-        description:
-          "We open the night with live acoustic music. A moment to slow down and be present.",
-      },
-      {
-        title: "Dance experience",
-        description:
-          "And from the calm we move to dancing. The night builds and we move together until close.",
-      },
-      {
-        title: "1 ticket = 1 tree",
-        description:
-          "Each ticket plants a real tree in Argentina with Un \u00c1rbol, an NGO with over 15 years and thousands of trees planted across the country.",
-      },
-    ],
     lineup: {
-      items: [
-        {
-          name: "Jos\u00e9 Dezanzo",
-          tag: "Acoustic set",
-          detail:
-            "We open the night with Jos\u00e9 Dezanzo\u2019s acoustic set. A moment to slow down and be present before the night builds.",
-          link: {
-            url: "https://www.instagram.com/josedezanzo/",
-            label: "josedezanzo",
-          },
+      timeRange: "7:00 \u2192 10:30 PM",
+      welcome: {
+        number: "01",
+        time: "7:00 PM \u00b7 Doors",
+        title: "Not sure who to come with?",
+        kicker: "Come anyway. We\u2019ll be there.",
+        body1:
+          "We start easy: something to eat, something to drink, and a full hour just to meet people. Those of us putting this together are at the door and inside, talking to everyone \u2014 if you\u2019re coming on your own, we\u2019ll introduce you around.",
+        body2:
+          "The purpose-driven brands backing us will be there too, so you can get to know them up close.",
+      },
+      live: {
+        number: "02",
+        time: "8:00 PM \u00b7 Live",
+        title: "Live acoustic\nmusic",
+        body: "Jos\u00e9 Dezanzo, alone with a guitar. There isn\u2019t much more to explain: you just listen.",
+      },
+      dj: {
+        number: "03",
+        time: "9:15 PM \u00b7 Close",
+        title: "DJ set",
+        bodyBefore: "We\u2019re joined by ",
+        bodyAfter:
+          " for a performative dance intervention that sets the pulse through to the close.",
+        link: {
+          url: "https://www.instagram.com/gianbejarano/",
+          name: "Gian Bejarano",
+          label: "gianbejarano",
         },
-        {
-          name: "To be announced",
-          tag: "Dance experience",
-          detail:
-            "From the calm we move to dancing. The night builds and we move together until close. Artist to be confirmed.",
-        },
-      ],
+      },
     },
     impact: {
       counterLabel: "Trees planted so far",
-      heading: "Your ticket doesn\u2019t get spent. It gets planted.",
-      partner: {
-        intro: "We work with ",
-        name: "Un \u00c1rbol",
-        rest: ", a civil association with over 15 years dedicated to reforesting areas across Argentina. We\u2019ve already done a planting trip with them and saw firsthand how they work.",
-      },
-      body: "Each ticket funds the planting of a native tree. It\u2019s not symbolic: it\u2019s a real tree, in a real place, that will keep growing long after the music stops.",
-      attendees:
-        "If {count} people come, that\u2019s {count} trees. Simple as that.",
     },
     pricing: {
-      earlyBirdLabel: "Early bird — 25% OFF",
+      earlyBirdLabel: "Early bird",
+      earlyBirdBadge: "-25%",
       earlyBirdExpired: "Early bird ended",
       earlyBirdUntil: "Until August 13",
-      generalLabel: "General",
-      generalFrom: "From August 14",
-      generalUntil: "While they last",
-      includesLabel: "Includes",
-      includesItems: [
-        "Live acoustic music",
-        "Catering",
-        "Dance experience",
-        "1 tree planted in your name",
-      ],
+      earlyBirdClosed: "Closed August 13",
+      savingsLine: "That’s today’s price. You save {savings} off general.",
+      includesLink: "What’s included?",
+      generalNote: "From August 14 it goes to {price}, while they last.",
       payment: "Pay with MercadoPago / card / bank transfer.",
+    },
+    includes: {
+      eyebrow: "What’s included in your ticket?",
+      items: [
+        {
+          number: "01",
+          title: "A tree in your name",
+          body: "Planted in Argentina with Un Árbol. Real, in a real place.",
+        },
+        {
+          number: "02",
+          title: "A Matelab drink",
+          body: "Cold, waiting for you the moment you arrive.",
+        },
+        {
+          number: "03",
+          title: "The show",
+          body: "Live acoustic music and a DJ set, start to finish.",
+        },
+      ],
+      featured: {
+        number: "04",
+        title: "A seedling to take home",
+        body: "We sow it together that same night. You take it with you, plant it where you live, and it keeps growing long after the party is over.",
+      },
     },
     community: {
       intro: {
