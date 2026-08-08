@@ -24,8 +24,10 @@ Spec: [`docs/plans/brote-checkout-directo.md`](../docs/plans/brote-checkout-dire
 | C4 el QR codifica `paymentId` en vez de `ticketId` | `encodes the gate URL for this exact ticket in the QR` | ✅ muere |
 | C5 el subject pierde el número de árbol | `sends to the requested address with the QR attached inline` | ✅ muere |
 | C6 error de Resend logueado en vez de lanzado | `throws on a non-throwing Resend API error` | ✅ muere |
-| C2 **null implementation**: helper exportado pero los call sites conservan su copia inline | ❌ ningún test — probe estructural: `grep buildTicketEmailHtml src/app/api/brote/` → NONE | ✅ refutado por probe |
-| C7 **ordering**: el caller marca `emailSent` antes de esperar el envío | ❌ ningún test — mitigado por diseño (el helper no escribe el flag; son dos llamadas separadas en los 3 call sites) + review | ⚠️ sin cobertura automática |
+| C8 respuesta ambigua `{data:null,error:null}` → devuelve éxito y el caller estampa `emailSent` | `throws on an ambiguous {data:null,error:null} response` | ✅ muere (agregado tras el review) |
+| C2a **null implementation**: helper exportado pero los call sites conservan su copia inline | ❌ ningún test — probe: `grep -rn "buildTicketEmailHtml\|qrDataUrlToBuffer" src/app/api/brote/` → **NONE** | ✅ refutado |
+| C2b **sink drop**: el call site llama al helper pero omite `markBroteTicketEmailSent` → el webhook reenvía la entrada en cada notificación de MP | ❌ ningún test — probe: `grep -rn "sendBroteTicketEmail(\|markBroteTicketEmailSent(" src/app/api/brote/` → 3 pares (webhook 400/407, admin 267/274, admin 611/618) | ✅ refutado |
+| C7 **ordering**: el caller marca `emailSent` antes de esperar el envío | ❌ ningún test — mitigado por diseño (el helper no escribe el flag) + review | ⚠️ sin cobertura automática |
 
 ## Queue
 

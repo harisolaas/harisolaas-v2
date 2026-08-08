@@ -46,6 +46,9 @@ const apiError = (): CreateEmailResponse =>
     headers: null,
   } as unknown as CreateEmailResponse);
 
+const ambiguous = (): CreateEmailResponse =>
+  ({ data: null, error: null, headers: null } as unknown as CreateEmailResponse);
+
 const params = {
   ticketId: TEST_TICKET,
   to: "buyer@example.com",
@@ -98,6 +101,17 @@ describe("sendBroteTicketEmail", () => {
     const sender = makeSender(() => apiError());
     await expect(sendBroteTicketEmail(params, sender)).rejects.toThrow(
       /rate_limit_exceeded|429/,
+    );
+  });
+
+  it("throws on an ambiguous {data:null,error:null} response", async () => {
+    // The other door into the same failure: no error to inspect, but no
+    // message id either. Returning success here lets the caller stamp
+    // `emailSent` on a ticket that was never accepted, which in the webhook
+    // also kills MP's retry. `bulk-email.ts` already treats this as failure.
+    const sender = makeSender(() => ambiguous());
+    await expect(sendBroteTicketEmail(params, sender)).rejects.toThrow(
+      /neither data nor error/,
     );
   });
 

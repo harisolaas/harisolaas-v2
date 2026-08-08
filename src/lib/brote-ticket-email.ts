@@ -36,16 +36,18 @@ export interface SendBroteTicketEmailParams {
  * what makes it impossible to stamp "sent" on a send that didn't happen.
  *
  * The Resend SDK returns `{data, error}` instead of throwing on API errors
- * (429s included), so `error` is inspected explicitly. All three call sites
- * this helper replaces read `result.data?.id` without checking `error`,
- * which is the same defect that cost 19 undelivered emails on 2026-04-19
- * (see `bulk-email.ts`) — there it silently miscounted, here it silently
- * marked an undelivered ticket as sent, suppressing the webhook's retry.
+ * (429s included), so success means BOTH: no `error`, and a message id in
+ * `data`. All three call sites this helper replaces read `result.data?.id`
+ * without checking `error` — the same defect that cost 19 undelivered
+ * emails on 2026-04-19 (see `bulk-email.ts`). There it silently miscounted;
+ * here it silently marked an undelivered ticket as sent, suppressing the
+ * webhook's retry. Resolving therefore guarantees a real message id, which
+ * is what makes it safe for the caller to stamp the flag next.
  */
 export async function sendBroteTicketEmail(
   params: SendBroteTicketEmailParams,
   sender: TicketEmailSender = defaultSender(),
-): Promise<{ resendId: string | undefined }> {
+): Promise<{ resendId: string }> {
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
   const qrDataUrl = await QRCode.toDataURL(
@@ -85,12 +87,30 @@ export async function sendBroteTicketEmail(
       message?: string;
       statusCode?: number | null;
     };
+    const detail = [
+      name ?? "error",
+      statusCode == null ? null : `status ${statusCode}`,
+      message || null,
+    ]
+      .filter(Boolean)
+      .join(" — ");
     throw new Error(
-      `Resend rejected the BROTE ticket email for ${params.ticketId}: ${name ?? "error"} (${statusCode ?? "no status"}) — ${message ?? ""}`,
+      `Resend rejected the BROTE ticket email for ${params.ticketId}: ${detail}`,
     );
   }
 
-  return { resendId: result.data?.id };
+  // `{data: null, error: null}` shouldn't happen per Resend's types, but
+  // treating it as success is the same failure as ignoring `error`: the
+  // caller stamps `emailSent` on a ticket that was never accepted, and in
+  // the webhook that also kills MercadoPago's retry. Same defence as
+  // `bulk-email.ts`.
+  if (!result.data?.id) {
+    throw new Error(
+      `Resend returned neither data nor error for the BROTE ticket email for ${params.ticketId}`,
+    );
+  }
+
+  return { resendId: result.data.id };
 }
 
 /**
