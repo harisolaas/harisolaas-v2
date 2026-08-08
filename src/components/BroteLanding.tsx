@@ -19,6 +19,7 @@ import {
 } from "@/data/brote";
 import type { BroteDict } from "@/dictionaries/types";
 import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
+import { readBrowserAttribution } from "@/lib/attribution";
 import {
   initPostHog,
   trackSectionView,
@@ -552,7 +553,16 @@ export default function BroteLanding({ dict, locale }: Props) {
       const res = await fetch("/api/brote/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ eventId, fbp, fbc, locale }),
+        // Where this visitor came from. Read at click time, not on mount:
+        // this page never rewrites its own URL, and the server needs it to
+        // stamp `link_slug` on the participation the webhook creates.
+        body: JSON.stringify({
+          eventId,
+          fbp,
+          fbc,
+          locale,
+          ...readBrowserAttribution(window.location.search, document.cookie),
+        }),
       });
       const data = await res.json().catch(() => ({}));
 

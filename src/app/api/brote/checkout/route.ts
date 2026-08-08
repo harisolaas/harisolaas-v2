@@ -9,6 +9,7 @@ import { broteConfig, currentTicketPrice } from "@/data/brote";
 import { getRedis } from "@/lib/redis";
 import { CONFIRM_TTL } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import { buildAttribution } from "@/lib/attribution";
 
 let _mp: MercadoPagoConfig | null = null;
 function getMp(): MercadoPagoConfig {
@@ -54,6 +55,10 @@ export async function POST(req: Request) {
     const fbp = body.fbp as string | undefined;
     const fbc = body.fbc as string | undefined;
     const locale = body.locale === "en" ? "en" : "es";
+
+    // Where the buyer came from. URL-provided UTMs win over the `haris_link`
+    // cookie /go/[slug] sets; undefined when there's nothing to attribute.
+    const attribution = buildAttribution({ req, body });
 
     // No identity is collected here on purpose: the CTA goes straight to
     // MercadoPago. Whatever we need to reach this person is asked for after
@@ -138,6 +143,15 @@ export async function POST(req: Request) {
         fbc,
         ip: ipHeader,
         ua: req.headers.get("user-agent") || "",
+        // Attribution goes FLAT on the stash root, not nested under an
+        // `attribution` key the way sinergia-parrafo's checkout does it —
+        // the webhook reads `source`/`medium`/`campaign`/`linkSlug` off the
+        // root. Nesting them is silent: everything stays green and every
+        // ticket lands with a null link_slug.
+        ...(attribution?.source && { source: attribution.source }),
+        ...(attribution?.medium && { medium: attribution.medium }),
+        ...(attribution?.campaign && { campaign: attribution.campaign }),
+        ...(attribution?.linkSlug && { linkSlug: attribution.linkSlug }),
       });
       await redis.set(`brote:checkout:${preferenceId}`, stash, {
         EX: CONFIRM_TTL,

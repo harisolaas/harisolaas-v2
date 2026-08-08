@@ -362,6 +362,10 @@ export async function POST(req: Request) {
         attribution: attribution
           ? { ...attribution, capturedAt: attribution.capturedAt }
           : undefined,
+        // `referred_by_person_id` is written ONLY from bypassLinkSlug —
+        // passing attribution alone gives click credit with a null referrer,
+        // which is exactly the field a partner payout would be counted on.
+        bypassLinkSlug: attribution?.linkSlug,
         // Same metadata shape `applyBroteContactConfirmation` writes, so a
         // ticket born from a pre-confirmed contact is indistinguishable
         // from one corrected afterwards — the admin export and the confirm

@@ -62,6 +62,49 @@ export function buildAttribution(
   };
 }
 
+/**
+ * Browser-side half of `buildAttribution`: what a client form should put in
+ * its POST body so the server can attribute the signup.
+ *
+ * Pure on purpose — takes the query string and cookie header as strings
+ * rather than touching `window`/`document`, so it is testable in a repo with
+ * no DOM test environment. Callers pass `window.location.search` and
+ * `document.cookie`.
+ *
+ * Precedence matches `buildAttribution`: `utm_content` from the URL wins over
+ * the `haris_link` cookie.
+ */
+export function readBrowserAttribution(
+  search: string,
+  cookieHeader: string,
+): { utm: UtmBody; linkSlug?: string } {
+  const params = new URLSearchParams(search);
+  const utm: UtmBody = {};
+  const source = params.get("utm_source");
+  const medium = params.get("utm_medium");
+  const campaign = params.get("utm_campaign");
+  const content = params.get("utm_content");
+  if (source) utm.source = source;
+  if (medium) utm.medium = medium;
+  if (campaign) utm.campaign = campaign;
+  if (content) utm.content = content;
+
+  return { utm, linkSlug: content ?? readCookieHeader(cookieHeader) };
+}
+
+/** Cookie lookup over a raw `Cookie:`/`document.cookie` string. */
+function readCookieHeader(header: string): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === LINK_COOKIE_NAME) {
+      const value = rest.join("=");
+      return value ? decodeURIComponent(value) : undefined;
+    }
+  }
+  return undefined;
+}
+
 /** Read a cookie value from a Next.js Request without Next's cookies() helper. */
 export function readCookie(req: Request, name: string): string | undefined {
   const header = req.headers.get("cookie");
