@@ -163,4 +163,21 @@ necesitan decisión del owner y están en el handback.**
 
 ## Dispositions
 
-_(se completa en Landing)_
+Programa cerrado. Handback: [`tasks/HANDBACK.md`](HANDBACK.md).
+Veredicto del verificador de cierre: **SAFE TO STOP** — 16/16 claims HOLDS,
+5 confirmados por mutación.
+
+| Item que estuvo bloqueado o en espera | Disposición |
+|---|---|
+| U1 — helper del mail de entrada | **Done** — PR #53, CI verde, review adversarial + Copilot respondidos, threads resueltos |
+| U2 — confirmación de contacto post-pago | **Done** — PR #55, review (3 required) + Copilot (3) respondidos |
+| U3 — fricción pre-pago | **Done** — PR #56, review (2 required) + Copilot (3) respondidos |
+| BC1 lint/build/test | **Done** — verde local en las tres unidades; CI verde en #53. #55/#56 **Owner checklist**: CI corre recién cuando su base sea `main` |
+| BC2 grep de `/brote/checkout` | **Done** — encontró 2 leftovers reales (event_source_url de Meta, magic link dormant), los dos arreglados |
+| BC3 pago real en prod | **Owner checklist** — no es verificable desde acá; trigger: post-merge |
+| Si MP manda `external_reference` en el back_url | **Done por diseño** — el diseño dejó de depender de eso (localStorage primario). Ya no hace falta averiguarlo |
+| Si MP auto-redirige pagos pendientes | **Owner checklist** — trigger: primer pago en efectivo real |
+| Smoke test de UI | **Owner checklist** — sin infra de tests de componente; trigger: preview de #56 |
+| 9 hallazgos de la auditoría zero-context | 2 **Done** (los introdujo este programa, arreglados en U2); 7 **Backlogged** con severidad y trigger |
+| Conflicto con PR #54 | **Owner checklist** — toca 8 archivos compartidos, incluida una página que U3 borra; el orden de merge lo decide el owner |
+| Copilot no engancha por REST | **Done** — igual comenta a los pocos minutos; anotado en `lessons.md` |
