@@ -56,6 +56,41 @@ async function readCheckoutMeta(
   }
 }
 
+/**
+ * Participation metadata for a freshly paid ticket.
+ *
+ * Returns `undefined` rather than `{}` when there is nothing to record, so a
+ * ticket with no contact and no invitation keeps the column's default instead
+ * of writing an empty object over it.
+ */
+function buildParticipationMetadata(input: {
+  confirmedContact: PendingContact | null;
+  mpPayerEmail: string;
+  invite?: string;
+}): Record<string, unknown> | undefined {
+  const { confirmedContact, mpPayerEmail, invite } = input;
+  const metadata: Record<string, unknown> = {};
+
+  if (confirmedContact) {
+    metadata.contact = {
+      name: confirmedContact.name,
+      email: confirmedContact.email,
+      phone: confirmedContact.phone,
+      confirmedAt: confirmedContact.confirmedAt,
+    };
+    if (
+      mpPayerEmail &&
+      mpPayerEmail.toLowerCase() !== confirmedContact.email.toLowerCase()
+    ) {
+      metadata.mpPayer = { email: mpPayerEmail, source: "mercadopago" };
+    }
+  }
+
+  if (invite) metadata.invite = invite;
+
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
 /** Same stash, reached by `external_reference` when `preference_id` is absent. */
 async function readCheckoutMetaByToken(
   token: string,
@@ -395,21 +430,16 @@ export async function POST(req: Request) {
         // ticket born from a pre-confirmed contact is indistinguishable
         // from one corrected afterwards — the admin export and the confirm
         // endpoint both read one shape, not two.
-        metadata: confirmedContact
-          ? {
-              contact: {
-                name: confirmedContact.name,
-                email: confirmedContact.email,
-                phone: confirmedContact.phone,
-                confirmedAt: confirmedContact.confirmedAt,
-              },
-              ...(mpPayerEmail &&
-                mpPayerEmail.toLowerCase() !==
-                  confirmedContact.email.toLowerCase() && {
-                  mpPayer: { email: mpPayerEmail, source: "mercadopago" },
-                }),
-            }
-          : undefined,
+        metadata: buildParticipationMetadata({
+          confirmedContact,
+          mpPayerEmail,
+          // Which collaborator's invitation sold this ticket. Read straight
+          // off the payment (MP propagates preference metadata), so it
+          // survives even when the Redis stash is gone — and it is the belt
+          // to `link_slug`'s braces: if the `links` row is ever missing,
+          // `sanitizeAttribution` drops the slug and this is what remains.
+          invite: String(payment.metadata?.invite ?? "").trim() || undefined,
+        }),
       });
     } catch (err) {
       if (err instanceof CapacityReachedError) {
