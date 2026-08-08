@@ -80,7 +80,11 @@ export interface BroteSuccessContactDict {
   phoneHelper: string;
   submit: string;
   submitting: string;
+  /** Contact saved AND the ticket was resent to the new address. */
   doneApplied: string;
+  /** Contact saved, but nothing was resent — don't promise mail. */
+  doneSaved: string;
+  /** Contact parked; the ticket goes out when the payment clears. */
   donePending: string;
   errors: {
     nameRequired: string;

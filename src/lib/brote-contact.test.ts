@@ -349,6 +349,37 @@ describe("applyBroteContactConfirmation", () => {
     expect(other.name).toBe("Otra");
   });
 
+  it("keeps MercadoPago's address when a SECOND, different email is confirmed", async () => {
+    // The recovery path this feature exists for: typo in the email, ticket
+    // doesn't arrive, reload /success, fix it. On that second pass
+    // people.email is no longer MP's — it's the typo. Re-deriving mpPayer
+    // from it would stamp a user-typed address as MercadoPago-sourced and
+    // destroy the real one (the jsonb `||` merge replaces the whole key).
+    await seedTicket({});
+    const typo = `${PREFIX}typo@example.com`;
+
+    await applyBroteContactConfirmation({
+      participationId: TICKET,
+      eventId: EVENT,
+      ...confirm,
+      email: typo,
+    });
+    await applyBroteContactConfirmation({
+      participationId: TICKET,
+      eventId: EVENT,
+      ...confirm,
+    });
+
+    const row = await loadTicket();
+    expect(row.email).toBe(NEW_EMAIL);
+    const meta = row.metadata as Record<string, unknown>;
+    // Still MP's, not the typo.
+    expect(meta.mpPayer).toMatchObject({
+      email: MP_EMAIL,
+      source: "mercadopago",
+    });
+  });
+
   it("survives a resubmit without corrupting the MP-payer record", async () => {
     // Double submit is the realistic version of the concurrency hazard: on
     // the second pass the person already carries the confirmed email, so

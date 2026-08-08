@@ -26,14 +26,6 @@ export default async function BroteSuccessPage({
 
   // Build WhatsApp link with context from MP redirect query params
   const paymentId = typeof query.payment_id === "string" ? query.payment_id : "";
-  // Fallback only. The contact step reads the token from localStorage,
-  // where the checkout put it before leaving — whether MercadoPago echoes
-  // `external_reference` into the return URL is not something this repo has
-  // ever verified, so nothing depends on it.
-  const externalReference =
-    typeof query.external_reference === "string"
-      ? query.external_reference
-      : undefined;
   const whatsappText = encodeURIComponent(
     locale === "es"
       ? `Hola! Compré mi entrada para BROTE pero no me llegó el email con el QR.${paymentId ? ` Mi ID de pago es ${paymentId}.` : ""}`
@@ -55,10 +47,7 @@ export default async function BroteSuccessPage({
           <p className="text-sm leading-relaxed text-[#5C6B45]">{t.emailNote}</p>
         </div>
 
-        <BroteSuccessContact
-          dict={t.contact}
-          fallbackToken={externalReference}
-        />
+        <BroteSuccessContact dict={t.contact} />
 
         <div className="mt-6">
           <p className="text-sm text-[#78855E]">{t.noEmail}</p>

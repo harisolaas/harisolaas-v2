@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { count } from "drizzle-orm";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { count, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { BROTE_EVENT_ID } from "@/data/brote";
 import { getRedis } from "@/lib/redis";
 import {
   confirmTicketKey,
@@ -106,6 +107,87 @@ describe("POST /api/brote/confirm-contact", () => {
       codes.push((await post(valid, ip)).status);
     }
     expect(codes.filter((c) => c === 429).length).toBeGreaterThan(0);
+  });
+});
+
+// The route's resend sink only runs when `brote:confirm:{ct}` resolves to a
+// real participation. Without a case that seeds it, deleting the whole
+// `if (result.shouldResend)` block leaves the suite green — and that block
+// IS the feature. It needs the real BROTE event row, so this block creates
+// and removes it rather than borrowing a synthetic one.
+describe("POST with an existing ticket", () => {
+  const TICKET = "TEST-CONFIRM-ROUTE-1";
+  const MP_EMAIL = "confirm-route-mp@example.com";
+  const CONFIRMED = "confirm-route-new@example.com";
+  let createdEvent = false;
+
+  async function scrub() {
+    await db.execute(sql`DELETE FROM participations WHERE id = ${TICKET}`);
+    await db.execute(
+      sql`DELETE FROM people WHERE email IN (${MP_EMAIL}, ${CONFIRMED})`,
+    );
+  }
+
+  beforeAll(async () => {
+    await scrub();
+    const existing = await db
+      .select({ id: schema.events.id })
+      .from(schema.events)
+      .where(eq(schema.events.id, BROTE_EVENT_ID));
+    if (existing.length === 0) {
+      await db.insert(schema.events).values({
+        id: BROTE_EVENT_ID,
+        type: "brote",
+        name: "Test BROTE (confirm-contact)",
+        date: new Date("2027-01-01T00:00:00Z"),
+        status: "upcoming",
+      });
+      createdEvent = true;
+    }
+  });
+
+  afterAll(async () => {
+    await scrub();
+    if (createdEvent) {
+      await db.execute(sql`DELETE FROM events WHERE id = ${BROTE_EVENT_ID}`);
+    }
+  });
+
+  it("resends the ticket to the confirmed address when the email changes", async () => {
+    const [person] = await db
+      .insert(schema.people)
+      .values({ email: MP_EMAIL, name: "Asistente" })
+      .returning();
+    await db.insert(schema.participations).values({
+      id: TICKET,
+      personId: person.id,
+      eventId: BROTE_EVENT_ID,
+      role: "attendee",
+      status: "confirmed",
+      externalPaymentId: "MP-CONFIRM-ROUTE",
+      metadata: { emailSent: true },
+    });
+    const redis = await getRedis();
+    await redis.set(confirmTicketKey(VALID_TOKEN), TICKET);
+
+    const res = await post(
+      { ...valid, email: CONFIRMED, name: "Ana" },
+      "10.0.9.1",
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.outcome).toBe("applied");
+    expect(data.emailChanged).toBe(true);
+    expect(data.resent).toBe(true);
+
+    // The mock really intercepts, and the ticket went to the NEW address.
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+    expect(sendSpy.mock.calls[0][0]).toMatchObject({
+      ticketId: TICKET,
+      to: CONFIRMED,
+    });
+    expect(markSpy).toHaveBeenCalledWith(TICKET);
   });
 });
 

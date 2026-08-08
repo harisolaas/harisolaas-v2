@@ -555,6 +555,8 @@ const es: Dictionary = {
         submitting: "Confirmando\u2026",
         doneApplied:
           "Listo. Te reenviamos la entrada a ese mail \u2014 revis\u00e1 tambi\u00e9n el spam.",
+        doneSaved:
+          "Listo, guardamos tus datos. La entrada ya sali\u00f3 a ese mail: si no la ves, fijate en el spam o escribinos por WhatsApp.",
         donePending:
           "Listo, lo guardamos. Apenas se acredite el pago, la entrada sale a ese mail.",
         errors: {

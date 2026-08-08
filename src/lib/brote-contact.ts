@@ -176,9 +176,15 @@ export async function applyBroteContactConfirmation(
               phone,
               confirmedAt: new Date().toISOString(),
             },
-            ...(emailChanged && {
-              mpPayer: { email: mpEmail, source: "mercadopago" },
-            }),
+            // Record MP's address ONCE. On a second confirmation
+            // `people.email` already holds whatever was confirmed first, so
+            // re-deriving it here would stamp a user-typed address as
+            // MercadoPago-sourced and destroy the real one — the jsonb `||`
+            // merge is shallow, it replaces the whole `mpPayer` key.
+            ...(emailChanged &&
+              !meta.mpPayer && {
+                mpPayer: { email: mpEmail, source: "mercadopago" },
+              }),
             ...(shouldResend && { contactResendCount: resendCount + 1 }),
           })}::jsonb`,
           updatedAt: sql`NOW()`,

@@ -552,6 +552,8 @@ const en: Dictionary = {
         submitting: "Confirming…",
         doneApplied:
           "Done. We resent your ticket to that address — check spam too.",
+        doneSaved:
+          "Saved. Your ticket already went to that address: if you don't see it, check spam or message us on WhatsApp.",
         donePending:
           "Saved. As soon as the payment clears, your ticket goes to that address.",
         errors: {

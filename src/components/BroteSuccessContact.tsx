@@ -13,23 +13,35 @@ const ERROR = "#A0522D";
 const inputClasses =
   "w-full rounded-[2px] border border-[#3E5226]/25 bg-white px-4 py-3 text-[15px] text-[#3E5226] placeholder-[#5C6B45]/30 outline-none transition-colors focus:border-[#3E5226]/60";
 
-type Status = "idle" | "sending" | "applied" | "pending";
+function clearToken() {
+  try {
+    window.localStorage.removeItem(CONFIRM_TOKEN_STORAGE_KEY);
+  } catch {
+    // Nothing to do — worst case the token expires on its own in 7 days.
+  }
+}
+
+type Status = "idle" | "sending" | "applied" | "saved" | "pending";
 
 /**
  * Optional post-payment contact step.
  *
- * The `ct` token is read from localStorage, where the checkout stashed it
- * before leaving for MercadoPago — that round trip is same-origin, so it
- * survives. `external_reference` from MP's return URL is a fallback for
- * when storage was cleared. With neither, the block doesn't render at all
- * and the page stays exactly as it was.
+ * The `ct` token comes from localStorage only, where the checkout stashed
+ * it before leaving for MercadoPago — that round trip is same-origin, so it
+ * survives. It is deliberately NOT read from MP's `external_reference`
+ * return param: `capture_pageview` ships `$current_url` to PostHog, so a
+ * token in the URL is a capability token exported to a third party.
+ *
+ * The token is cleared as soon as it has been used or is known to be
+ * spent. `/brote/success` is a public URL, so a token left in storage means
+ * the next person on a shared browser can open it, read the previous
+ * buyer's name/email/phone off the prefill, and rewrite their delivery
+ * address.
  */
 export default function BroteSuccessContact({
   dict,
-  fallbackToken,
 }: {
   dict: BroteSuccessContactDict;
-  fallbackToken?: string;
 }) {
   const [token, setToken] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -45,22 +57,29 @@ export default function BroteSuccessContact({
     } catch {
       // Storage can throw in locked-down browsers — fall through.
     }
-    const resolved = stored || fallbackToken || null;
-    setToken(resolved);
-    if (!resolved) return;
+    setToken(stored);
+    if (!stored) return;
 
     // Prefill from the ticket if the webhook already landed. It usually
     // hasn't, in which case `found` is false and the form starts empty.
-    fetch(`/api/brote/confirm-contact?token=${encodeURIComponent(resolved)}`)
+    fetch(`/api/brote/confirm-contact?token=${encodeURIComponent(stored)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (!data?.found) return;
+        if (!data) return;
+        if (data.confirmed) {
+          // Already confirmed once. Drop the token instead of prefilling
+          // someone's details onto a public page.
+          clearToken();
+          setToken(null);
+          return;
+        }
+        if (!data.found) return;
         setName((v) => v || (data.name === "Asistente" ? "" : data.name || ""));
         setEmail((v) => v || data.email || "");
         setPhone((v) => v || data.phone || "");
       })
       .catch(() => {});
-  }, [fallbackToken]);
+  }, []);
 
   if (!token) return null;
 
@@ -92,21 +111,36 @@ export default function BroteSuccessContact({
         setStatus("idle");
         return;
       }
-      setStatus(data.outcome === "pending" ? "pending" : "applied");
+      // Only claim a resend when one actually happened. `applied` with
+      // `resent: false` is the common case — someone who came to leave
+      // their WhatsApp and confirmed the same address never triggers a
+      // send, and telling them "te reenviamos" sends them looking for mail
+      // that doesn't exist.
+      if (data.outcome === "pending") setStatus("pending");
+      else setStatus(data.resent ? "applied" : "saved");
+      // Spent. Don't leave a live capability token sitting in the storage
+      // of what may be a shared browser.
+      clearToken();
     } catch {
       setError(dict.errors.generic);
       setStatus("idle");
     }
   }
 
-  if (status === "applied" || status === "pending") {
+  if (status === "applied" || status === "saved" || status === "pending") {
+    const message =
+      status === "applied"
+        ? dict.doneApplied
+        : status === "saved"
+          ? dict.doneSaved
+          : dict.donePending;
     return (
       <div
         className="mt-8 rounded-[2px] border border-[#3E5226]/20 bg-[#3E5226]/[0.06] p-5 text-left"
         role="status"
       >
         <p className="m-0 text-[15px] leading-relaxed" style={{ color: BODY }}>
-          🌱 {status === "applied" ? dict.doneApplied : dict.donePending}
+          🌱 {message}
         </p>
       </div>
     );
