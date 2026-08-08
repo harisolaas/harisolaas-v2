@@ -318,7 +318,10 @@ export default function BroteLanding({ dict, locale }: Props) {
   const otherLocale = locale === "en" ? "es" : "en";
   const localeLabel = locale === "en" ? "ES" : "EN";
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<{
+    ctaId: string;
+    message: string;
+  } | null>(null);
   const [ctaHover, setCtaHover] = useState<string | null>(null);
   const [openLineup, setOpenLineup] = useState<number>(-1);
 
@@ -354,9 +357,10 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
   }, []);
 
-  const handleCheckout = useCallback(async () => {
+  const handleCheckout = useCallback(async (ctaId: string) => {
     if (checkoutLoading) return;
     setCheckoutLoading(true);
+    setCheckoutError(null);
     trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
 
     // Straight to MercadoPago — no identity step in the way. Whatever we
@@ -413,10 +417,10 @@ export default function BroteLanding({ dict, locale }: Props) {
         window.location.href = data.init_point;
         return;
       }
-      setCheckoutError(dict.checkoutError);
+      setCheckoutError({ ctaId, message: dict.checkoutError });
       setCheckoutLoading(false);
     } catch {
-      setCheckoutError(dict.checkoutError);
+      setCheckoutError({ ctaId, message: dict.checkoutError });
       setCheckoutLoading(false);
     }
   }, [checkoutLoading, locale, dict.checkoutError]);
@@ -446,10 +450,14 @@ export default function BroteLanding({ dict, locale }: Props) {
     String(broteConfig.expectedAttendees),
   );
 
+  // Wrapped in its own column: the hero's container is `flex justify-center`
+  // (a row), so returning a bare fragment would lay the error message out
+  // BESIDE the button and squeeze the CTA. One flex item, error underneath,
+  // correct in both call sites.
   const ctaButton = (label: string, id: string) => (
-    <>
+    <div className="flex flex-col items-center">
     <button
-      onClick={() => void handleCheckout()}
+      onClick={() => void handleCheckout(id)}
       onMouseEnter={() => setCtaHover(id)}
       onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
       disabled={checkoutLoading}
@@ -468,16 +476,19 @@ export default function BroteLanding({ dict, locale }: Props) {
     >
       {checkoutLoading ? "…" : label}
     </button>
-    {checkoutError && (
+    {/* Scoped to the CTA that was actually clicked — the landing renders
+        two, and a shared error would fire two identical `role="alert"`
+        announcements and show a failure next to a button nobody touched. */}
+    {checkoutError?.ctaId === id && (
       <p
         role="alert"
-        className="mt-3 text-[13px]"
+        className="mt-3 max-w-[32ch] text-center text-[13px] leading-relaxed"
         style={{ ...mono, color: "#A0522D" }}
       >
-        {checkoutError}
+        {checkoutError.message}
       </p>
     )}
-    </>
+    </div>
   );
 
   const texture = (alt: string, priority = false) => (
