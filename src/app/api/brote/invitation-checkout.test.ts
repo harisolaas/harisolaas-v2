@@ -221,7 +221,20 @@ describe("checkout — the server prices the invitation", () => {
 describe("checkout — invitation attribution", () => {
   it("T2.10 — attributes to the collaborator's tracked link by default", async () => {
     const { POST } = await import("./checkout/route");
-    await POST(checkoutRequest({ invite: "jose" }));
+    // The referer is load-bearing, not decoration. A same-origin fetch from
+    // the invitation page ALWAYS sends one, and `buildAttribution` returns a
+    // touch whenever any field is present — referer included. So in
+    // production `attribution` is never undefined here, and a guard written
+    // as `!attribution` instead of `!attribution?.linkSlug` would never fire:
+    // every invited sale would land with link_slug null, which is the count
+    // an artist's fee is paid from. Without this header the test passes on a
+    // path production never takes.
+    await POST(
+      checkoutRequest(
+        { invite: "jose" },
+        { referer: "https://www.harisolaas.com/es/brote/invitacion/jose" },
+      ),
+    );
 
     const stash = stashed();
     expect(stash.linkSlug).toBe("inv-jose");
@@ -245,6 +258,13 @@ describe("checkout — invitation attribution", () => {
     const stash = stashed();
     expect(stash.linkSlug).toBe("ig-story-abc");
     expect(stash.source).toBe("instagram");
+
+    // …and the collaborator is STILL recorded. This is the one case where
+    // `metadata.invite` is the only channel left: the tracked link took the
+    // attribution, so without this the sale stops being attributable to Jose
+    // by any route. Someone arriving with a 30-day-old `haris_link` cookie
+    // from an earlier campaign hits exactly this.
+    expect(preferenceMetadata().invite).toBe("jose");
   });
 });
 
