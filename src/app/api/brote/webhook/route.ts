@@ -20,6 +20,7 @@ import {
   type PendingContact,
 } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import { getInvitation } from "@/lib/brote-invitations";
 import { BROTE_EVENT_ID } from "@/data/brote";
 
 const mp = new MercadoPagoConfig({
@@ -438,7 +439,16 @@ export async function POST(req: Request) {
           // survives even when the Redis stash is gone — and it is the belt
           // to `link_slug`'s braces: if the `links` row is ever missing,
           // `sanitizeAttribution` drops the slug and this is what remains.
-          invite: String(payment.metadata?.invite ?? "").trim() || undefined,
+          //
+          // Resolved through the registry rather than coerced with String():
+          // whatever MP echoes back lands in `participations.metadata`, and a
+          // non-string would be persisted as "[object Object]". Only a real
+          // collaborator slug is worth recording.
+          invite: getInvitation(
+            typeof payment.metadata?.invite === "string"
+              ? payment.metadata.invite
+              : undefined,
+          )?.slug,
         }),
       });
     } catch (err) {

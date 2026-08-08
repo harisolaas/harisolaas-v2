@@ -299,4 +299,38 @@ describe("webhook — the collaborator survives to the participation", () => {
     // The link slug is the reporting spine; metadata.invite is the belt.
     expect(params.attribution?.linkSlug).toBe("inv-gian");
   });
+
+  it("T2.13 — records nothing for an invite that is not a real collaborator", async () => {
+    // Whatever MP echoes back lands in participations.metadata. A String()
+    // coercion would persist "[object Object]" as a collaborator name and
+    // quietly pollute the payout report.
+    for (const bogus of [{ a: 1 }, 42, "no-existe", ["jose"]]) {
+      vi.clearAllMocks();
+      paymentGet.mockResolvedValue({
+        status: "approved",
+        preference_id: "PREF-INV",
+        transaction_amount: 24750,
+        currency_id: "ARS",
+        metadata: { type: "ticket", invite: bogus },
+        payer: { email: "ana@example.com", first_name: "Ana" },
+      });
+      dbNext = [{ n: 3 }];
+
+      const { POST } = await import("./webhook/route");
+      await POST(
+        new Request("http://localhost/api/brote/webhook", {
+          method: "POST",
+          body: JSON.stringify({
+            type: "payment",
+            data: { id: `MP-BOGUS-${JSON.stringify(bogus)}` },
+          }),
+        }),
+      );
+
+      const params = recordParticipation.mock.calls[0][0] as {
+        metadata?: Record<string, unknown>;
+      };
+      expect(params.metadata?.invite, JSON.stringify(bogus)).toBeUndefined();
+    }
+  });
 });
