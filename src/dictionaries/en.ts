@@ -527,6 +527,8 @@ const en: Dictionary = {
       left: "Brote",
       right: "In partnership with Un \u00c1rbol",
     },
+    checkoutError:
+      "We couldn't open the payment. Try again in a moment, or message us on WhatsApp.",
     success: {
       title: "BROTE \u2014 You\u2019re in!",
       heading: "You\u2019re part of the forest now!",
@@ -535,6 +537,12 @@ const en: Dictionary = {
       noEmail: "Didn\u2019t get the email? Reach out and we\u2019ll sort it out.",
       whatsappCta: "Message me on WhatsApp",
       backLink: "Back to BROTE",
+      pending: {
+        heading: "Your payment is on its way",
+        body: "You chose a payment method that takes a while to clear. As soon as it's confirmed, your ticket with the QR arrives — that can take a couple of days if you paid in cash.",
+        emailNote:
+          "We'll send it to your MercadoPago account email. If you'd rather get it somewhere else, leave your details below and we'll send it there.",
+      },
       contact: {
         heading: "Where should we send your ticket?",
         intro:
@@ -571,64 +579,6 @@ const en: Dictionary = {
       heading: "Payment didn\u2019t go through",
       body: "Something went wrong with the payment or it was cancelled. You can try again from the BROTE page.",
       backLink: "Back to BROTE",
-    },
-  },
-  broteCheckout: {
-    meta: {
-      title: "BROTE — Your ticket",
-      description:
-        "Fill in your details, verify your email, and pay with MercadoPago.",
-    },
-    backLink: "← Back to BROTE",
-    eyebrow: "Your ticket",
-    heading: "Almost in the forest",
-    subheading:
-      "We verify your email before payment so your QR ticket lands in the right inbox.",
-    summary: {
-      dateValue: "Thursday, August 20",
-      timeValue: "7:00–10:30 PM",
-      placeValue: "Costa Rica 5644, Palermo",
-      earlyBirdTag: "Early bird — 25% OFF",
-      generalTag: "General ticket",
-      totalLabel: "Total",
-      treeNote: "Your ticket plants a native tree in Argentina.",
-    },
-    form: {
-      nameLabel: "Name",
-      emailLabel: "Email",
-      emailHelper: "That’s where we send your QR ticket.",
-      phoneLabel: "WhatsApp",
-      phonePlaceholder: "11 2345 6789",
-      phoneHelper: "So we can reach you with any event updates.",
-      sendCode: "Send code",
-      sending: "Sending…",
-      codeSentNote: "We sent a code to {email}. Check spam too.",
-      codeLabel: "Code",
-      verifyButton: "Verify code",
-      verifying: "Verifying…",
-      resend: "Resend code",
-      resendCountdown: "Resend code ({seconds}s)",
-      verified: "Email verified ✓",
-      verifyFirst: "Verify your email first.",
-      payButton: "Continue to payment",
-      processing: "Processing…",
-    },
-    errors: {
-      nameRequired: "Tell us your name.",
-      emailInvalid: "Check the email — it looks incomplete.",
-      phoneInvalid: "Check the WhatsApp number.",
-      invalidCode: "That code doesn’t match. Try again.",
-      expired: "The code expired. Request a new one.",
-      tooManyAttempts: "Too many attempts. Request a new code.",
-      notFound: "We couldn’t find a code for that email. Send a new one.",
-      resendTooSoon: "Wait a minute before requesting another code.",
-      hourlyLimit:
-        "You’ve reached the sending limit for now. Try again in an hour.",
-      verificationRequired:
-        "Your verification expired. Verify your email again.",
-      duplicateTicket:
-        "That address already has a ticket. Use the email of the person attending.",
-      generic: "Something went wrong. Try again.",
     },
   },
   broteUnArbol: {

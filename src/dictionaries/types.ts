@@ -149,6 +149,8 @@ export interface BroteDict {
     plantingCta: string;
   };
   footer: { left: string; right: string };
+  /** Shown under the CTA when creating the MercadoPago preference fails. */
+  checkoutError: string;
   success: {
     title: string;
     heading: string;
@@ -158,63 +160,14 @@ export interface BroteDict {
     whatsappCta: string;
     backLink: string;
     contact: BroteSuccessContactDict;
+    /** Cash / offline payments land on the success page in this state. */
+    pending: { heading: string; body: string; emailNote: string };
   };
   failure: {
     title: string;
     heading: string;
     body: string;
     backLink: string;
-  };
-}
-
-export interface BroteCheckoutDict {
-  meta: { title: string; description: string };
-  backLink: string;
-  eyebrow: string;
-  heading: string;
-  subheading: string;
-  summary: {
-    dateValue: string;
-    timeValue: string;
-    placeValue: string;
-    earlyBirdTag: string;
-    generalTag: string;
-    totalLabel: string;
-    treeNote: string;
-  };
-  form: {
-    nameLabel: string;
-    emailLabel: string;
-    emailHelper: string;
-    phoneLabel: string;
-    phonePlaceholder: string;
-    phoneHelper: string;
-    sendCode: string;
-    sending: string;
-    codeSentNote: string;
-    codeLabel: string;
-    verifyButton: string;
-    verifying: string;
-    resend: string;
-    resendCountdown: string;
-    verified: string;
-    verifyFirst: string;
-    payButton: string;
-    processing: string;
-  };
-  errors: {
-    nameRequired: string;
-    emailInvalid: string;
-    phoneInvalid: string;
-    invalidCode: string;
-    expired: string;
-    tooManyAttempts: string;
-    notFound: string;
-    resendTooSoon: string;
-    hourlyLimit: string;
-    verificationRequired: string;
-    duplicateTicket: string;
-    generic: string;
   };
 }
 
@@ -589,7 +542,6 @@ export interface Dictionary {
     buildLine: string;
   };
   brote: BroteDict;
-  broteCheckout: BroteCheckoutDict;
   broteUnArbol: BroteUnArbolDict;
   broteCima: BroteUnArbolDict;
   plant: PlantDict;

@@ -61,14 +61,21 @@ function joinName(
  *
  * Name precedence (each step short-circuits if it yields a non-empty name):
  *   1. Redis stash by `payment.preference_id`
- *   2. Redis stash by `payment.payer.email` (lowercased + trimmed)
- *   3. `payment.additional_info.payer.first_name + last_name`
- *   4. `payment.payer.first_name + last_name`
- *   5. `DEFAULT_BUYER_NAME`
+ *   2. `payment.additional_info.payer.first_name + last_name`
+ *   3. `payment.payer.first_name + last_name`
+ *   4. `DEFAULT_BUYER_NAME`
+ *
+ * `readStashByEmail` is OPTIONAL and, when omitted, step 2 is skipped
+ * entirely. BROTE's webhook stops passing it: keyed on the payer's MP
+ * *account* email, that stash can match a different checkout than the
+ * payment in hand (one account buying for a friend the next day), and
+ * since BROTE no longer collects identity before payment there is nothing
+ * of value in it anyway. `scripts/backfill-asistente-names.ts` still passes
+ * one — it reads the unrelated `sinergia-parrafo:checkout-by-email:*` key.
  *
  * Phone is only sourced from the stashes — MP's payer object doesn't carry
- * one. Stash readers are passed as callbacks so this helper is unit-testable
- * without Redis.
+ * one. Stash readers are callbacks so this helper is unit-testable without
+ * Redis.
  */
 export async function resolveBuyerInfo(
   payment: MpPaymentLike,
@@ -76,7 +83,7 @@ export async function resolveBuyerInfo(
     readStashByPreferenceId: (
       preferenceId: string,
     ) => Promise<CheckoutMetaLike | null>;
-    readStashByEmail: (email: string) => Promise<CheckoutMetaLike | null>;
+    readStashByEmail?: (email: string) => Promise<CheckoutMetaLike | null>;
   },
 ): Promise<ResolvedBuyerInfo> {
   const stashByPref = payment.preference_id
@@ -85,11 +92,11 @@ export async function resolveBuyerInfo(
 
   const stashByPrefName = stashByPref?.name?.trim() ?? "";
 
-  // A preference stash with an empty name must not short-circuit the
-  // email lookup — the email stash may still yield a real name.
+  // A preference stash with an empty name must not short-circuit the email
+  // lookup — the email stash may still yield a real name.
   const payerEmail = (payment.payer?.email ?? "").trim().toLowerCase();
   const stashByEmail =
-    !stashByPrefName && payerEmail
+    !stashByPrefName && payerEmail && readers.readStashByEmail
       ? await readers.readStashByEmail(payerEmail)
       : null;
 

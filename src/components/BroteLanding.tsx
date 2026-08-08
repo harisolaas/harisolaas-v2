@@ -13,6 +13,7 @@ import Image from "next/image";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { broteConfig } from "@/data/brote";
 import type { BroteDict } from "@/dictionaries/types";
+import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
 import {
   initPostHog,
   trackSectionView,
@@ -317,6 +318,7 @@ export default function BroteLanding({ dict, locale }: Props) {
   const otherLocale = locale === "en" ? "es" : "en";
   const localeLabel = locale === "en" ? "ES" : "EN";
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [ctaHover, setCtaHover] = useState<string | null>(null);
   const [openLineup, setOpenLineup] = useState<number>(-1);
 
@@ -352,14 +354,72 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
   }, []);
 
-  const handleCheckout = useCallback(() => {
+  const handleCheckout = useCallback(async () => {
     if (checkoutLoading) return;
     setCheckoutLoading(true);
-    trackCtaClick("ticket", `/${locale}/brote/checkout`, "brote_ticket");
-    // Identity capture + email verification + payment happen on the
-    // checkout page (the Meta Pixel InitiateCheckout fires there on mount).
-    window.location.href = `/${locale}/brote/checkout`;
-  }, [checkoutLoading, locale]);
+    trackCtaClick("ticket", "/api/brote/checkout", "brote_ticket");
+
+    // Straight to MercadoPago — no identity step in the way. Whatever we
+    // need to reach this person is asked for AFTER paying, on
+    // /brote/success, where it's optional.
+    const eventId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    // Priced at click time rather than from the `isEarlyBird` state below,
+    // so a tab left open across the deadline reports what the server will
+    // actually charge.
+    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
+    const value =
+      new Date() <= deadline
+        ? broteConfig.earlyBirdPriceRaw
+        : broteConfig.ticketPriceRaw;
+
+    window.fbq?.(
+      "track",
+      "InitiateCheckout",
+      { currency: "ARS", value },
+      { eventID: eventId },
+    );
+
+    const cookies = document.cookie.split("; ");
+    const fbp = cookies.find((c) => c.startsWith("_fbp="))?.split("=")[1];
+    const fbc = cookies.find((c) => c.startsWith("_fbc="))?.split("=")[1];
+
+    try {
+      const res = await fetch("/api/brote/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId, fbp, fbc, locale }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (data.init_point) {
+        // Stash the capability token before leaving. The round trip through
+        // MercadoPago is same-origin on return, so localStorage survives —
+        // and unlike a URL param it never reaches analytics.
+        if (data.confirmToken) {
+          try {
+            window.localStorage.setItem(
+              CONFIRM_TOKEN_STORAGE_KEY,
+              data.confirmToken,
+            );
+          } catch {
+            // Locked-down browser: the ticket still goes to the MP email,
+            // the success page just won't offer the contact step.
+          }
+        }
+        window.location.href = data.init_point;
+        return;
+      }
+      setCheckoutError(dict.checkoutError);
+      setCheckoutLoading(false);
+    } catch {
+      setCheckoutError(dict.checkoutError);
+      setCheckoutLoading(false);
+    }
+  }, [checkoutLoading, locale, dict.checkoutError]);
 
   // Early-bird check (Argentina UTC-3) — flips live when the deadline passes
   const [isEarlyBird, setIsEarlyBird] = useState(() => {
@@ -387,8 +447,9 @@ export default function BroteLanding({ dict, locale }: Props) {
   );
 
   const ctaButton = (label: string, id: string) => (
+    <>
     <button
-      onClick={() => handleCheckout()}
+      onClick={() => void handleCheckout()}
       onMouseEnter={() => setCtaHover(id)}
       onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
       disabled={checkoutLoading}
@@ -407,6 +468,16 @@ export default function BroteLanding({ dict, locale }: Props) {
     >
       {checkoutLoading ? "…" : label}
     </button>
+    {checkoutError && (
+      <p
+        role="alert"
+        className="mt-3 text-[13px]"
+        style={{ ...mono, color: "#A0522D" }}
+      >
+        {checkoutError}
+      </p>
+    )}
+    </>
   );
 
   const texture = (alt: string, priority = false) => (
