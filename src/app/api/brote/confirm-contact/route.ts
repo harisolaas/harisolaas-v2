@@ -132,7 +132,12 @@ export async function POST(req: Request) {
     if (!ticketId) {
       const pending: PendingContact = {
         name,
-        email,
+        // Normalized before parking: the webhook writes this straight into
+        // `people.email` via recordParticipation, which only trims. Keeping
+        // the stored form consistent with the applied path
+        // (`applyBroteContactConfirmation` lowercases) means the canonical
+        // address doesn't depend on which path got there first.
+        email: email.toLowerCase(),
         phone,
         confirmedAt: new Date().toISOString(),
       };

@@ -75,6 +75,17 @@ describe("POST /api/brote/confirm-contact", () => {
     });
   });
 
+  it("parks the email normalized, so the canonical address is path-independent", async () => {
+    // The webhook writes this straight into people.email via
+    // recordParticipation, which only trims. If the parked form isn't
+    // lowercased, the canonical address depends on whether the webhook or
+    // the user got there first.
+    await post({ ...valid, email: "  MiXeD@Example.COM " }, "10.0.5.1");
+    const redis = await getRedis();
+    const parked = JSON.parse((await redis.get(pendingContactKey(VALID_TOKEN)))!);
+    expect(parked.email).toBe("mixed@example.com");
+  });
+
   // The rate limiter is module-level state shared across the whole file, so
   // each case gets its own IP — otherwise a later test reads 429 where it
   // expected a validation code, and the assertion is about the wrong thing.

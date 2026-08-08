@@ -305,14 +305,24 @@ export async function POST(req: Request) {
       const pending = await readPendingContact(confirmToken);
       if (pending) {
         mpPayerEmail = buyerEmail;
-        buyerEmail = pending.email;
+        // Normalize here too, not just at the parking point: a contact
+        // parked by an older deploy may not be lowercased, and this value
+        // becomes the canonical `people.email` (recordParticipation only
+        // trims).
+        buyerEmail = pending.email.trim().toLowerCase();
         buyerName = pending.name || buyerName;
         buyerPhone = pending.phone || buyerPhone;
-        confirmedContact = pending;
+        confirmedContact = { ...pending, email: buyerEmail };
         console.log("brote: using contact confirmed on /success", {
           mpPaymentId,
-          confirmToken,
         });
+        // Consumed — drop it rather than sit on someone's phone number for
+        // the rest of the 7-day TTL.
+        try {
+          await redis.del(pendingContactKey(confirmToken));
+        } catch (err) {
+          console.error("brote: failed to clear pending contact:", err);
+        }
       }
     }
 
@@ -459,18 +469,23 @@ export async function POST(req: Request) {
         ],
       });
 
+      // Link the token BEFORE stamping idempotency. A crash between the
+      // two writes must not leave a ticket that the buyer can never
+      // re-address: the retry takes the `existingTicketId` fast path, which
+      // never fetches the payment and so never learns the token. In this
+      // order the worst case is a re-processed payment (already handled,
+      // it alerts the admin); in the other order it's a buyer permanently
+      // locked out of fixing their email.
+      await linkConfirmToken(ticketId);
       // Don't re-send the existing ticket's email off the back of a
       // duplicate payment. Stamp idempotency and exit.
       await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
-      // Still link the token: this buyer paid twice but does own a ticket,
-      // and must be able to fix its delivery address from /success.
-      await linkConfirmToken(ticketId);
       return NextResponse.json({ ok: true, ticketId, duplicate: true });
     }
 
+    await linkConfirmToken(ticketId);
     // Save MP → ticket idempotency mapping for webhook retries.
     await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
-    await linkConfirmToken(ticketId);
   }
 
   // Tree number for the email = ticket count for this event (display-only).
