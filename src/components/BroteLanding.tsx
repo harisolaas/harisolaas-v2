@@ -248,7 +248,13 @@ function InfoBar({
 /* ─── eyebrow (mono, tracked, forest-60)
    Rendered as <h2> so each section has a heading and the document doesn't
    jump h1 → h3 on the experience cards. ─── */
-function Eyebrow({ children }: { children: ReactNode }) {
+function Eyebrow({
+  children,
+  marginBottom = "16px",
+}: {
+  children: ReactNode;
+  marginBottom?: string;
+}) {
   return (
     <h2
       style={{
@@ -258,7 +264,7 @@ function Eyebrow({ children }: { children: ReactNode }) {
         letterSpacing: "0.4em",
         textTransform: "uppercase",
         color: FOREST_60,
-        margin: "0 0 16px",
+        margin: `0 0 ${marginBottom}`,
       }}
     >
       {children}
@@ -273,26 +279,32 @@ function BlockHeader({
   right,
   size = 12,
   marginBottom,
+  heading = false,
 }: {
   left: string;
   right?: string;
   size?: number;
   marginBottom: string;
+  /** Render `left` as the section's <h2>. Off for the 01/02/03 block
+      counters, which are labels rather than headings. */
+  heading?: boolean;
 }) {
+  const labelStyle: CSSProperties = {
+    ...mono,
+    fontSize: size,
+    fontWeight: 700,
+    letterSpacing: size >= 12 ? "0.4em" : "0.3em",
+    textTransform: "uppercase",
+    color: FOREST_60,
+    margin: 0,
+  };
   return (
     <div className="flex items-baseline gap-4" style={{ marginBottom }}>
-      <span
-        style={{
-          ...mono,
-          fontSize: size,
-          fontWeight: 700,
-          letterSpacing: size >= 12 ? "0.4em" : "0.3em",
-          textTransform: "uppercase",
-          color: FOREST_60,
-        }}
-      >
-        {left}
-      </span>
+      {heading ? (
+        <h2 style={labelStyle}>{left}</h2>
+      ) : (
+        <span style={labelStyle}>{left}</span>
+      )}
       <span
         className="flex-1"
         style={{
@@ -734,6 +746,7 @@ export default function BroteLanding({ dict, locale }: Props) {
             do not regularise this into a grid. */}
         <Section id="lineup" style={{ paddingBottom: "clamp(56px,8vw,104px)" }}>
           <BlockHeader
+            heading
             left={dict.eyebrows.lineup}
             right={dict.lineup.timeRange}
             marginBottom="clamp(24px,3.5vw,40px)"
@@ -938,19 +951,9 @@ export default function BroteLanding({ dict, locale }: Props) {
           className="text-center"
           style={{ paddingBottom: "clamp(48px,7vw,88px)" }}
         >
-          <div
-            style={{
-              ...mono,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.4em",
-              textTransform: "uppercase",
-              color: FOREST_60,
-              marginBottom: "clamp(20px,3vw,32px)",
-            }}
-          >
+          <Eyebrow marginBottom="clamp(20px,3vw,32px)">
             {dict.eyebrows.pricing}
-          </div>
+          </Eyebrow>
 
           <div
             className="inline-block"
@@ -964,13 +967,19 @@ export default function BroteLanding({ dict, locale }: Props) {
               boxShadow: isEarlyBird
                 ? "14px 14px 0 rgba(62,82,38,0.16)"
                 : undefined,
-              opacity: isEarlyBird ? 1 : 0.55,
             }}
           >
-            {/* label + discount badge */}
+            {/* label + discount badge.
+                The closed state dims the label and the price — but NOT the
+                container: a group opacity here also dims the buy button,
+                which drops it to ~2.5:1 against its own text. The CTA is the
+                one thing that must stay at full strength in both states. */}
             <div
               className="flex items-center justify-center gap-2.5"
-              style={{ marginBottom: "clamp(20px,2.8vw,30px)" }}
+              style={{
+                marginBottom: "clamp(20px,2.8vw,30px)",
+                opacity: isEarlyBird ? 1 : 0.55,
+              }}
             >
               <span
                 style={{
@@ -1007,7 +1016,10 @@ export default function BroteLanding({ dict, locale }: Props) {
                 left to anchor against, so the anchor goes away entirely. */}
             <div
               className="flex flex-wrap items-baseline justify-center"
-              style={{ gap: "clamp(14px,2.4vw,28px)" }}
+              style={{
+                gap: "clamp(14px,2.4vw,28px)",
+                opacity: isEarlyBird ? 1 : 0.55,
+              }}
             >
               {isEarlyBird && (
                 <s
@@ -1144,6 +1156,7 @@ export default function BroteLanding({ dict, locale }: Props) {
           }}
         >
           <BlockHeader
+            heading
             left={dict.includes.eyebrow}
             marginBottom="clamp(24px,3.5vw,40px)"
           />
