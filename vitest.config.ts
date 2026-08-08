@@ -14,6 +14,14 @@ export default defineConfig({
     // shared Neon dev branch.
     maxWorkers: 1,
     minWorkers: 1,
+    env: {
+      // `.env.local` (loaded above) points REDIS_URL at the PRODUCTION
+      // instance — it holds the live `brote:payment:*` idempotency keys and
+      // `brote:counter`. A test that writes there corrupts ticketing for a
+      // live event. Force the in-memory mock for the whole suite so that is
+      // structurally impossible rather than a thing each test remembers.
+      MOCK_REDIS: "1",
+    },
   },
   resolve: {
     alias: {
