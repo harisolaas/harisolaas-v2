@@ -61,12 +61,16 @@ function joinName(
  *
  * Name precedence (each step short-circuits if it yields a non-empty name):
  *   1. Redis stash by `payment.preference_id`
- *   2. `payment.additional_info.payer.first_name + last_name`
- *   3. `payment.payer.first_name + last_name`
- *   4. `DEFAULT_BUYER_NAME`
+ *   2. Redis stash by `payment.payer.email` — only when `readStashByEmail`
+ *      is supplied; skipped entirely otherwise
+ *   3. `payment.additional_info.payer.first_name + last_name`
+ *   4. `payment.payer.first_name + last_name`
+ *   5. `DEFAULT_BUYER_NAME`
  *
- * `readStashByEmail` is OPTIONAL and, when omitted, step 2 is skipped
- * entirely. BROTE's webhook stops passing it: keyed on the payer's MP
+ * `readStashByEmail` is OPTIONAL; when omitted, the email-stash lookup is
+ * skipped entirely and resolution falls straight through from the
+ * preference stash to MP's own payer fields. BROTE's webhook stops passing
+ * it: keyed on the payer's MP
  * *account* email, that stash can match a different checkout than the
  * payment in hand (one account buying for a friend the next day), and
  * since BROTE no longer collects identity before payment there is nothing

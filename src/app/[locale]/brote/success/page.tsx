@@ -30,11 +30,16 @@ export default async function BroteSuccessPage({
   // Cash / offline payments arrive via back_urls.pending. MP also reports
   // its own `status`, so either signal flips the copy — nothing here
   // depends on MP preserving our query param.
+  // MP reports the same state under two different param names depending on
+  // the flow, and uses two different words for it. Accept all of them —
+  // showing "your ticket is on its way" to someone whose cash payment
+  // hasn't cleared is the failure this variant exists to prevent.
+  const pendingValues = ["pending", "in_process"];
   const isPending =
     query.state === "pending" ||
-    query.status === "pending" ||
-    query.status === "in_process" ||
-    query.collection_status === "pending";
+    (typeof query.status === "string" && pendingValues.includes(query.status)) ||
+    (typeof query.collection_status === "string" &&
+      pendingValues.includes(query.collection_status));
   const view = isPending
     ? { heading: t.pending.heading, body: t.pending.body, note: t.pending.emailNote }
     : { heading: t.heading, body: t.body, note: t.emailNote };
