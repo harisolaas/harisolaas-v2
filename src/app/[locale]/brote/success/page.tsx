@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
+import BroteSuccessContact from "@/components/BroteSuccessContact";
 
 export async function generateMetadata({
   params,
@@ -45,6 +46,8 @@ export default async function BroteSuccessPage({
         <div className="mt-8 rounded-[2px] border border-[#3E5226]/20 bg-[#3E5226]/[0.06] p-5">
           <p className="text-sm leading-relaxed text-[#5C6B45]">{t.emailNote}</p>
         </div>
+
+        <BroteSuccessContact dict={t.contact} />
 
         <div className="mt-6">
           <p className="text-sm text-[#78855E]">{t.noEmail}</p>

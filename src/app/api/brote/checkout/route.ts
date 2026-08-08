@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Preference } from "mercadopago";
+import { nanoid } from "nanoid";
 import { db, schema } from "@/db";
 import { broteConfig, BROTE_EVENT_ID, currentTicketPrice } from "@/data/brote";
 import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
 import { consumeEmailVerification } from "@/lib/email-verification-server";
 import { getRedis } from "@/lib/redis";
+import { CONFIRM_TTL } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 let _mp: MercadoPagoConfig | null = null;
@@ -107,8 +109,17 @@ export async function POST(req: Request) {
     const title = `BROTE — Entrada${isEarlyBird ? " (Preventa)" : ""}`;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 
+    // Capability token for the post-payment contact step on /brote/success.
+    // Rides on `external_reference`, which MP echoes back on the Payment
+    // object — the same channel Sinergia already relies on. The client also
+    // stashes it in localStorage before leaving, which is what /success
+    // actually reads: whether MP appends it to the back_url query string is
+    // undocumented here and nothing should depend on it.
+    const confirmToken = nanoid(21);
+
     const preference = await new Preference(getMp()).create({
       body: {
+        external_reference: confirmToken,
         items: [
           {
             id: "brote-ticket",
@@ -159,16 +170,19 @@ export async function POST(req: Request) {
         phone,
         locale,
         eventId,
+        confirmToken,
         fbp,
         fbc,
         ip: ipHeader,
         ua: req.headers.get("user-agent") || "",
       });
       const emailKey = email.toLowerCase();
+      // 7 days, not 24h: a cash payment (Rapipago/Pago Fácil) can take
+      // days to clear, and the stash has to outlive it.
       await Promise.all([
-        redis.set(`brote:checkout:${preferenceId}`, stash, { EX: 86400 }),
+        redis.set(`brote:checkout:${preferenceId}`, stash, { EX: CONFIRM_TTL }),
         redis.set(`brote:checkout-by-email:${emailKey}`, stash, {
-          EX: 86400,
+          EX: CONFIRM_TTL,
         }),
       ]);
     } catch (err) {
@@ -195,7 +209,7 @@ export async function POST(req: Request) {
       ? preference.sandbox_init_point
       : preference.init_point;
 
-    return NextResponse.json({ init_point: url });
+    return NextResponse.json({ init_point: url, confirmToken });
   } catch (error) {
     console.error("Checkout error:", error);
     return NextResponse.json(

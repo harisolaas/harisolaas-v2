@@ -68,6 +68,34 @@ export interface BroteIncludesItem {
   body: string;
 }
 
+/** Optional post-payment contact step on /brote/success. */
+export interface BroteSuccessContactDict {
+  heading: string;
+  intro: string;
+  optionalNote: string;
+  nameLabel: string;
+  emailLabel: string;
+  emailHelper: string;
+  phoneLabel: string;
+  phonePlaceholder: string;
+  phoneHelper: string;
+  submit: string;
+  submitting: string;
+  /** Contact saved AND the ticket was resent to the new address. */
+  doneApplied: string;
+  /** Contact saved, but nothing was resent — don't promise mail. */
+  doneSaved: string;
+  /** Contact parked; the ticket goes out when the payment clears. */
+  donePending: string;
+  errors: {
+    nameRequired: string;
+    emailInvalid: string;
+    phoneInvalid: string;
+    emailTaken: string;
+    generic: string;
+  };
+}
+
 export interface BroteDict {
   meta: { title: string; description: string; ogDescription: string };
   topbar: { left: string; right: string };
@@ -143,6 +171,7 @@ export interface BroteDict {
     noEmail: string;
     whatsappCta: string;
     backLink: string;
+    contact: BroteSuccessContactDict;
   };
   failure: {
     title: string;

@@ -535,6 +535,36 @@ const en: Dictionary = {
       noEmail: "Didn\u2019t get the email? Reach out and we\u2019ll sort it out.",
       whatsappCta: "Message me on WhatsApp",
       backLink: "Back to BROTE",
+      contact: {
+        heading: "Where should we send your ticket?",
+        intro:
+          "We're sending it to your MercadoPago account email. If you'd rather get it somewhere else, confirm it here and we'll resend — same QR.",
+        optionalNote:
+          "This is optional. If your MercadoPago email works for you, you're done.",
+        nameLabel: "Your name",
+        emailLabel: "Email",
+        emailHelper: "This is where the ticket with the QR arrives.",
+        phoneLabel: "WhatsApp",
+        phonePlaceholder: "+54 9 11 2255 5110",
+        phoneHelper:
+          "Only so we can reach you on the day if something comes up — a time change, an emergency.",
+        submit: "Confirm",
+        submitting: "Confirming…",
+        doneApplied:
+          "Done. We resent your ticket to that address — check spam too.",
+        doneSaved:
+          "Saved. Your ticket already went to that address: if you don't see it, check spam or message us on WhatsApp.",
+        donePending:
+          "Saved. As soon as the payment clears, your ticket goes to that address.",
+        errors: {
+          nameRequired: "Add your name.",
+          emailInvalid: "Check the email.",
+          phoneInvalid: "Check the WhatsApp number.",
+          emailTaken:
+            "That email already has a BROTE ticket. Use another one, or message us on WhatsApp.",
+          generic: "We couldn't save it. Try again in a moment.",
+        },
+      },
     },
     failure: {
       title: "BROTE \u2014 Payment not completed",
