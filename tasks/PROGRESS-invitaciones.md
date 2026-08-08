@@ -19,7 +19,7 @@ Rama base: `main`. **El sitio está VIVO — no se pushea a main sin aprobación
 | # | Unidad | Estado |
 |---|---|---|
 | ~~U1~~ | ~~Capturar atribución en el camino de pago de BROTE~~ | ✅ **merged** (`3815043`) |
-| U2 | Registro de invitaciones + precio autoritativo del servidor | **en curso** — rama `u2-brote-invitations`. Replanificada: ver el bloque ⚠️ REPLANIFICADO en el spec. |
+| U2 | Registro de invitaciones + precio autoritativo del servidor | **PR [#60](https://github.com/harisolaas/harisolaas-v2/pull/60)** — revisión adversarial + Copilot respondidos, threads resueltos. Esperando CI verde y "mergealo". |
 | U3 | Filas de links rastreados + seeder de preview | pendiente |
 | U4 | Las cinco páginas de invitación | pendiente |
 | U5 | Retirar `/brote-unarbol` y `/brote-cima` | pendiente |
