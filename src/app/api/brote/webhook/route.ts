@@ -14,6 +14,7 @@ import {
 } from "@/lib/brote-ticket-email";
 import {
   CONFIRM_TTL,
+  checkoutByTokenKey,
   confirmTicketKey,
   pendingContactKey,
   type PendingContact,
@@ -51,6 +52,21 @@ async function readCheckoutMeta(
     return JSON.parse(raw) as CheckoutMeta;
   } catch (err) {
     console.error("brote: failed to read checkout meta:", err);
+    return null;
+  }
+}
+
+/** Same stash, reached by `external_reference` when `preference_id` is absent. */
+async function readCheckoutMetaByToken(
+  token: string,
+): Promise<CheckoutMeta | null> {
+  try {
+    const redis = await getRedis();
+    const raw = await redis.get(checkoutByTokenKey(token));
+    if (!raw) return null;
+    return JSON.parse(raw) as CheckoutMeta;
+  } catch (err) {
+    console.error("brote: failed to read checkout meta by token:", err);
     return null;
   }
 }
@@ -258,6 +274,15 @@ export async function POST(req: Request) {
     });
     checkoutMeta = stashHolder.value;
 
+    // `preference_id` is absent on some MP Payment objects, and the by-email
+    // stash that used to cover that is gone. `external_reference` carries the
+    // confirmToken on every payment, so it is the anchor that cannot go
+    // missing — without this fallback those payments lose their attribution
+    // silently while still issuing a perfectly good ticket.
+    if (!checkoutMeta && confirmToken) {
+      checkoutMeta = await readCheckoutMetaByToken(confirmToken);
+    }
+
     buyerEmail = buyerInfo.email;
     buyerName = buyerInfo.name;
     let buyerPhone = buyerInfo.phone;
@@ -362,6 +387,10 @@ export async function POST(req: Request) {
         attribution: attribution
           ? { ...attribution, capturedAt: attribution.capturedAt }
           : undefined,
+        // `referred_by_person_id` is written ONLY from bypassLinkSlug —
+        // passing attribution alone gives click credit with a null referrer,
+        // which is exactly the field a partner payout would be counted on.
+        bypassLinkSlug: attribution?.linkSlug,
         // Same metadata shape `applyBroteContactConfirmation` writes, so a
         // ticket born from a pre-confirmed contact is indistinguishable
         // from one corrected afterwards — the admin export and the confirm

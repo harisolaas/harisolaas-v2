@@ -29,6 +29,18 @@ export const confirmTicketKey = (token: string) => `brote:confirm:${token}`;
 export const pendingContactKey = (token: string) =>
   `brote:pending-contact:${token}`;
 
+/**
+ * `ct` → the checkout stash, mirroring `brote:checkout:{preferenceId}`.
+ *
+ * MP omits `preference_id` on some Payment objects (see `mp-buyer-info`),
+ * and since the by-email stash was retired this is the only anchor that
+ * cannot go missing: `external_reference` carries the token on every
+ * payment. A ticket is still issued without it — what silently vanishes is
+ * the attribution, which is what a partner payout is counted on.
+ */
+export const checkoutByTokenKey = (token: string) =>
+  `brote:checkout-ct:${token}`;
+
 export interface PendingContact {
   name: string;
   email: string;

@@ -62,12 +62,54 @@ export function buildAttribution(
   };
 }
 
-/** Read a cookie value from a Next.js Request without Next's cookies() helper. */
-export function readCookie(req: Request, name: string): string | undefined {
-  const header = req.headers.get("cookie");
+/**
+ * Browser-side half of `buildAttribution`: what a client form should put in
+ * its POST body so the server can attribute the signup.
+ *
+ * Pure on purpose — takes the query string and cookie header as strings
+ * rather than touching `window`/`document`, so it is testable in a repo with
+ * no DOM test environment. Callers pass `window.location.search` and
+ * `document.cookie`.
+ *
+ * Precedence matches `buildAttribution`: `utm_content` from the URL wins over
+ * the `haris_link` cookie.
+ */
+export function readBrowserAttribution(
+  search: string,
+  cookieHeader: string,
+): { utm: UtmBody; linkSlug?: string } {
+  const params = new URLSearchParams(search);
+  const utm: UtmBody = {};
+  // Same normalization `buildAttribution` applies server-side: a present-but-
+  // empty param (`?utm_content=`) is nothing, not a value. Without this the
+  // `??` below would let "" win over a perfectly good cookie and produce an
+  // empty slug.
+  const source = trimOrUndefined(params.get("utm_source"));
+  const medium = trimOrUndefined(params.get("utm_medium"));
+  const campaign = trimOrUndefined(params.get("utm_campaign"));
+  const content = trimOrUndefined(params.get("utm_content"));
+  if (source) utm.source = source;
+  if (medium) utm.medium = medium;
+  if (campaign) utm.campaign = campaign;
+  if (content) utm.content = content;
+
+  return {
+    utm,
+    linkSlug: content ?? readCookieHeader(cookieHeader, LINK_COOKIE_NAME),
+  };
+}
+
+/**
+ * Cookie lookup over a raw cookie string — a `Cookie:` header server-side,
+ * `document.cookie` in the browser. Both spellings are the same grammar, so
+ * they share one parser rather than drifting apart.
+ */
+function readCookieHeader(
+  header: string | null,
+  name: string,
+): string | undefined {
   if (!header) return undefined;
-  const parts = header.split(";");
-  for (const part of parts) {
+  for (const part of header.split(";")) {
     const [k, ...rest] = part.trim().split("=");
     if (k === name) {
       const value = rest.join("=");
@@ -75,6 +117,11 @@ export function readCookie(req: Request, name: string): string | undefined {
     }
   }
   return undefined;
+}
+
+/** Read a cookie value from a Next.js Request without Next's cookies() helper. */
+export function readCookie(req: Request, name: string): string | undefined {
+  return readCookieHeader(req.headers.get("cookie"), name);
 }
 
 function trimOrUndefined(v: string | null | undefined): string | undefined {
