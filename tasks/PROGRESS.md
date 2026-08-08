@@ -12,8 +12,34 @@ Spec: [`docs/plans/brote-checkout-directo.md`](../docs/plans/brote-checkout-dire
 
 ## En vuelo
 
-**U1** — rama `brote/u1-ticket-email-helper`. Implementado, verde local
-(lint 0 errores, build OK). Candidate table abajo.
+**U1** — PR [#53](https://github.com/harisolaas/harisolaas-v2/pull/53), rama
+`brote/u1-ticket-email-helper`. CI verde, review adversarial + Copilot
+respondidos (2 required changes aplicadas), threads resueltos. **Esperando
+"mergealo" del owner.**
+
+**U2** — rama `brote/u2-post-payment-contact`, stackeada sobre U1.
+
+### U2 — candidate table
+
+| Wrong implementation | Qué assertion lo mata | Re-run vs código final |
+|---|---|---|
+| M1 se cae el pre-check de colisión persona/evento | ninguna — **absorbido** por el catch 23505 (rollback, `email_taken` igual). El índice es la autoridad; el pre-check es UX | ✅ comportamiento correcto |
+| M2 `phone` sticky (`COALESCE`) en vez de pisar | `overwrites an existing phone rather than keeping the stored one` | ✅ muere (test agregado — los fixtures sembraban `phone: null` y no distinguían) |
+| M3 `metadata =` en vez del merge `\|\|` | `moves the canonical email to the confirmed one and flags MP's` | ✅ muere |
+| M4 off-by-one en el tope de reenvíos (`<=`) | `stops resending after the cap` | ✅ muere |
+| M5 no reenvía cuando el mail nunca salió | `sends when the ticket exists but was never emailed` | ✅ muere |
+| M6 `mpPayer` guarda el email confirmado en vez del de MP | `moves the canonical email ... and flags MP's` | ✅ muere |
+| M7 lookup con el email sin normalizar | `normalizes the confirmed email before looking anyone up` | ✅ muere (test agregado) |
+| M8 se cae el `FOR UPDATE` de la participación | ❌ ningún test — requiere interleaving real de dos transacciones | ⚠️ sin cobertura; cubierto parcialmente por `survives a resubmit` (la variante secuencial, que es la realista) |
+| M9 el endpoint emite entrada cuando no hay webhook todavía | `parks the contact and issues NO ticket when the webhook hasn't landed` | ✅ muere |
+
+**Hallazgo real del mutation testing (M1):** `isUniqueViolation` miraba
+`err.code`, pero drizzle **no** re-lanza el error de pg — lo envuelve en un
+`DrizzleQueryError` cuyo `code` propio es `undefined` y cuyo `cause` tiene el
+real. El safety net entero era código muerto y una carrera perdida habría
+dado 500 en vez de `email_taken`. Ahora camina la cadena de `cause` y hay un
+test que **provoca una violación real** para pinchar la forma (un upgrade del
+driver podría moverla otra vez).
 
 ### U1 — candidate table
 

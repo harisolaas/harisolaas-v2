@@ -538,6 +538,34 @@ const es: Dictionary = {
       noEmail: "\u00bfNo te lleg\u00f3 el email? Escribime y lo resolvemos.",
       whatsappCta: "Escribime por WhatsApp",
       backLink: "Volver a BROTE",
+      contact: {
+        heading: "\u00bfD\u00f3nde quer\u00e9s recibir la entrada?",
+        intro:
+          "Te la mandamos al mail de tu cuenta de MercadoPago. Si prefer\u00eds recibirla en otro, confirmalo ac\u00e1 y te la reenviamos \u2014 el QR es el mismo.",
+        optionalNote:
+          "Es opcional. Si te queda bien el mail de MercadoPago, ya est\u00e1: no hace falta que hagas nada.",
+        nameLabel: "Tu nombre",
+        emailLabel: "Email",
+        emailHelper: "Ac\u00e1 te llega la entrada con el QR.",
+        phoneLabel: "WhatsApp",
+        phonePlaceholder: "+54 9 11 2255 5110",
+        phoneHelper:
+          "Solo para escribirte el d\u00eda del evento si pasa algo \u2014 un cambio de horario, una urgencia.",
+        submit: "Confirmar",
+        submitting: "Confirmando\u2026",
+        doneApplied:
+          "Listo. Te reenviamos la entrada a ese mail \u2014 revis\u00e1 tambi\u00e9n el spam.",
+        donePending:
+          "Listo, lo guardamos. Apenas se acredite el pago, la entrada sale a ese mail.",
+        errors: {
+          nameRequired: "Pon\u00e9 tu nombre.",
+          emailInvalid: "Revis\u00e1 el email.",
+          phoneInvalid: "Revis\u00e1 el n\u00famero de WhatsApp.",
+          emailTaken:
+            "Ese email ya tiene una entrada para BROTE. Us\u00e1 otro o escribinos por WhatsApp.",
+          generic: "No pudimos guardarlo. Prob\u00e1 de nuevo en un momento.",
+        },
+      },
     },
     failure: {
       title: "BROTE \u2014 Pago no completado",

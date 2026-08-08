@@ -12,6 +12,12 @@ import {
   markBroteTicketEmailSent,
   sendBroteTicketEmail,
 } from "@/lib/brote-ticket-email";
+import {
+  CONFIRM_TTL,
+  confirmTicketKey,
+  pendingContactKey,
+  type PendingContact,
+} from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { BROTE_EVENT_ID } from "@/data/brote";
 
@@ -45,6 +51,20 @@ async function readCheckoutMeta(
     return JSON.parse(raw) as CheckoutMeta;
   } catch (err) {
     console.error("brote: failed to read checkout meta:", err);
+    return null;
+  }
+}
+
+async function readPendingContact(
+  token: string,
+): Promise<PendingContact | null> {
+  try {
+    const redis = await getRedis();
+    const raw = await redis.get(pendingContactKey(token));
+    if (!raw) return null;
+    return JSON.parse(raw) as PendingContact;
+  } catch (err) {
+    console.error("brote: failed to read pending contact:", err);
     return null;
   }
 }
@@ -144,8 +164,29 @@ export async function POST(req: Request) {
   let buyerEmail: string;
   let buyerName: string;
   let checkoutMeta: CheckoutMeta | null = null;
+  let confirmToken = "";
+  let confirmedContact: PendingContact | null = null;
+  /** MP's payer email, kept when a confirmed contact overrides it. */
+  let mpPayerEmail = "";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let payment: any = null;
+
+  /**
+   * Point the capability token at the ticket, on EVERY path that knows a
+   * ticket id — including the retry fast-path and the duplicate-payment
+   * exit. `/api/brote/confirm-contact` resolves the ticket through this
+   * key, so skipping a path leaves that buyer unable to fix their address.
+   */
+  const linkConfirmToken = async (ticket: string) => {
+    if (!confirmToken) return;
+    try {
+      await redis.set(confirmTicketKey(confirmToken), ticket, {
+        EX: CONFIRM_TTL,
+      });
+    } catch (err) {
+      console.error("brote: failed to link confirm token:", err);
+    }
+  };
 
   if (existingTicketId) {
     // Participation already exists. Load it to decide whether to retry email.
@@ -194,9 +235,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Payment not found" }, { status: 200 });
     }
 
+    // No ticket is ever issued for a payment that isn't approved — a cash
+    // payment sits `pending` for days and only becomes a ticket here.
     if (payment.status !== "approved") {
       return NextResponse.json({ ok: true, status: payment.status });
     }
+
+    confirmToken = String(payment.external_reference ?? "").trim();
 
     // The checkout page stashes the verified buyer identity (name, email,
     // phone) in Redis under both the preference id and the buyer email.
@@ -249,6 +294,26 @@ export async function POST(req: Request) {
       }
       buyerEmail = metaBuyerEmail;
       if (metaBuyerName) buyerName = metaBuyerName;
+    }
+
+    // A contact confirmed on /brote/success outranks everything above.
+    // The person read that address off their own screen and typed it;
+    // MP's payer object is whatever their account happens to carry. This
+    // is the normal ordering, not a rare one — the redirect is instant and
+    // this webhook is not, so most people confirm before the ticket exists.
+    if (confirmToken) {
+      const pending = await readPendingContact(confirmToken);
+      if (pending) {
+        mpPayerEmail = buyerEmail;
+        buyerEmail = pending.email;
+        buyerName = pending.name || buyerName;
+        buyerPhone = pending.phone || buyerPhone;
+        confirmedContact = pending;
+        console.log("brote: using contact confirmed on /success", {
+          mpPaymentId,
+          confirmToken,
+        });
+      }
     }
 
     if (buyerInfo.nameSource === "fallback" && !metaBuyerName) {
@@ -320,6 +385,25 @@ export async function POST(req: Request) {
         attribution: attribution
           ? { ...attribution, capturedAt: attribution.capturedAt }
           : undefined,
+        // Same metadata shape `applyBroteContactConfirmation` writes, so a
+        // ticket born from a pre-confirmed contact is indistinguishable
+        // from one corrected afterwards — the admin export and the confirm
+        // endpoint both read one shape, not two.
+        metadata: confirmedContact
+          ? {
+              contact: {
+                name: confirmedContact.name,
+                email: confirmedContact.email,
+                phone: confirmedContact.phone,
+                confirmedAt: confirmedContact.confirmedAt,
+              },
+              ...(mpPayerEmail &&
+                mpPayerEmail.toLowerCase() !==
+                  confirmedContact.email.toLowerCase() && {
+                  mpPayer: { email: mpPayerEmail, source: "mercadopago" },
+                }),
+            }
+          : undefined,
       });
     } catch (err) {
       if (err instanceof CapacityReachedError) {
@@ -378,11 +462,15 @@ export async function POST(req: Request) {
       // Don't re-send the existing ticket's email off the back of a
       // duplicate payment. Stamp idempotency and exit.
       await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
+      // Still link the token: this buyer paid twice but does own a ticket,
+      // and must be able to fix its delivery address from /success.
+      await linkConfirmToken(ticketId);
       return NextResponse.json({ ok: true, ticketId, duplicate: true });
     }
 
     // Save MP → ticket idempotency mapping for webhook retries.
     await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
+    await linkConfirmToken(ticketId);
   }
 
   // Tree number for the email = ticket count for this event (display-only).

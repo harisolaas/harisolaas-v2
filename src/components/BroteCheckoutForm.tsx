@@ -11,6 +11,7 @@ import Script from "next/script";
 import { motion, useReducedMotion } from "framer-motion";
 import type { BroteCheckoutDict } from "@/dictionaries/types";
 import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
+import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
 import { trackCtaClick } from "@/lib/analytics";
 
 declare global {
@@ -329,6 +330,20 @@ export default function BroteCheckoutForm({
         return;
       }
       if (data.init_point) {
+        // Stash the capability token before leaving. Coming back from MP is
+        // same-origin, so localStorage survives the round trip — this is
+        // what /brote/success reads to offer the contact step.
+        if (data.confirmToken) {
+          try {
+            window.localStorage.setItem(
+              CONFIRM_TOKEN_STORAGE_KEY,
+              data.confirmToken,
+            );
+          } catch {
+            // Locked-down browser: the success page falls back to the
+            // external_reference query param, or hides the step.
+          }
+        }
         window.location.href = data.init_point;
         return;
       }

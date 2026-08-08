@@ -67,6 +67,30 @@ export interface BroteInfoCell {
   value: string;
 }
 
+/** Optional post-payment contact step on /brote/success. */
+export interface BroteSuccessContactDict {
+  heading: string;
+  intro: string;
+  optionalNote: string;
+  nameLabel: string;
+  emailLabel: string;
+  emailHelper: string;
+  phoneLabel: string;
+  phonePlaceholder: string;
+  phoneHelper: string;
+  submit: string;
+  submitting: string;
+  doneApplied: string;
+  donePending: string;
+  errors: {
+    nameRequired: string;
+    emailInvalid: string;
+    phoneInvalid: string;
+    emailTaken: string;
+    generic: string;
+  };
+}
+
 export interface BroteDict {
   meta: { title: string; description: string; ogDescription: string };
   topbar: { left: string; right: string };
@@ -129,6 +153,7 @@ export interface BroteDict {
     noEmail: string;
     whatsappCta: string;
     backLink: string;
+    contact: BroteSuccessContactDict;
   };
   failure: {
     title: string;
