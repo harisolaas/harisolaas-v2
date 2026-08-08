@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600" role="img" aria-label="BROTE illustration">
+<defs>
+
+<filter id="wob2" x="-25%" y="-25%" width="150%" height="150%">
+<feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="4" result="n"></feTurbulence>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="2" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+</filter>
+</defs>
+<g filter="url(#wob2)" transform="translate(-7 7)" opacity="0.6">
+<path d="M120 32 C86 32 62 52 62 78 C40 86 36 118 58 130 C56 152 78 166 100 158 C110 172 134 172 144 157 C168 165 188 149 184 128 C204 114 198 84 176 78 C176 52 152 32 120 32 Z" fill="#9DAF7C"></path>
+<path d="M112 208 V128 h16 V208 Z" fill="#A9633C" opacity="0.85"></path>
+</g>
+<g filter="url(#wob2)" fill="none" stroke="#2E3D1C" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+<path d="M120 32 C86 32 62 52 62 78 C40 86 36 118 58 130 C56 152 78 166 100 158 C110 172 134 172 144 157 C168 165 188 149 184 128 C204 114 198 84 176 78 C176 52 152 32 120 32 Z"></path>
+<path d="M120 208 V128"></path>
+<path d="M120 152 L96 128 M120 138 L146 112"></path>
+<path d="M120 208 C108 208 96 210 88 214 M120 208 C132 208 144 210 152 214"></path>
+<path d="M92 74 C104 84 108 96 106 106 M150 70 C140 82 137 94 139 106"></path>
+</g>
+</svg>
