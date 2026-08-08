@@ -1,29 +1,23 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { count, eq, sql } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
-import { Resend } from "resend";
-import QRCode from "qrcode";
 import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
 import { db, schema } from "@/db";
 import { CapacityReachedError, recordParticipation } from "@/lib/community";
 import { resolveBuyerInfo, type CheckoutMetaLike } from "@/lib/mp-buyer-info";
 import { notifyAdminOfIncident } from "@/lib/admin-alert";
-import { buildTicketEmailHtml, qrDataUrlToBuffer } from "@/lib/brote-email";
+import {
+  markBroteTicketEmailSent,
+  sendBroteTicketEmail,
+} from "@/lib/brote-ticket-email";
 import { sendMetaEvent } from "@/lib/meta-capi";
-import type { BroteTicket } from "@/lib/brote-types";
 import { BROTE_EVENT_ID } from "@/data/brote";
 
 const mp = new MercadoPagoConfig({
   accessToken: process.env.MP_ACCESS_TOKEN!,
 });
-
-let _resend: Resend | null = null;
-function getResend() {
-  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY!);
-  return _resend;
-}
 
 // Shape of the checkout stash. Pre-verified-checkout stashes (in flight
 // across the deploy) only carry the Meta tracking fields — every identity
@@ -149,7 +143,6 @@ export async function POST(req: Request) {
   let ticketId: string;
   let buyerEmail: string;
   let buyerName: string;
-  let participationMetadata: Record<string, unknown> = {};
   let checkoutMeta: CheckoutMeta | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let payment: any = null;
@@ -192,7 +185,6 @@ export async function POST(req: Request) {
     ticketId = row.id;
     buyerEmail = row.email ?? "";
     buyerName = row.name ?? "Asistente";
-    participationMetadata = meta;
   } else {
     // New payment — fetch from MP and create participation.
     try {
@@ -400,54 +392,19 @@ export async function POST(req: Request) {
     .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
   const treeNumber = Number(treeCountRes[0]?.n ?? 1);
 
-  // Send email (runs for both new tickets and retries).
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
+  // Send email (runs for both new tickets and retries). The flag is only
+  // stamped after the send resolves, so a failure leaves `emailSent` falsy
+  // and the next MP retry tries again.
   if (buyerEmail) {
     try {
-      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticketId}`;
-      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-        width: 300,
-        margin: 2,
-        color: { dark: "#2D4A3E", light: "#FAF6F1" },
-      });
-
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-      // buildTicketEmailHtml expects a BroteTicket shape for its template.
-      const ticketForTemplate: BroteTicket = {
-        id: ticketId,
-        type: "ticket",
-        paymentId: mpPaymentId,
-        buyerEmail,
-        buyerName,
-        status: "valid",
-        createdAt: new Date().toISOString(),
-      };
-      await getResend().emails.send({
-        from: `BROTE <${fromEmail}>`,
+      await sendBroteTicketEmail({
+        ticketId,
         to: buyerEmail,
-        subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-        html: buildTicketEmailHtml(ticketForTemplate, treeNumber),
-        attachments: [
-          {
-            filename: "qr.png",
-            content: qrDataUrlToBuffer(qrDataUrl),
-            contentType: "image/png",
-            contentId: "qr",
-          },
-        ],
+        buyerName,
+        paymentId: mpPaymentId,
+        treeNumber,
       });
-
-      // Mark email as sent in participation metadata.
-      await db
-        .update(schema.participations)
-        .set({
-          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({
-            ...participationMetadata,
-            emailSent: true,
-          })}::jsonb`,
-          updatedAt: sql`NOW()`,
-        })
-        .where(eq(schema.participations.id, ticketId));
+      await markBroteTicketEmailSent(ticketId);
 
       console.log("Email sent:", { to: buyerEmail, ticketId });
     } catch (err) {

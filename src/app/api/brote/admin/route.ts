@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
 import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import QRCode from "qrcode";
 import { Resend } from "resend";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { recordParticipation } from "@/lib/community";
 import { plantConfig, broteConfig, BROTE_EVENT_ID } from "@/data/brote";
 import type { BroteTicket } from "@/lib/brote-types";
+import { buildReminderEmailHtml } from "@/lib/brote-email";
 import {
-  buildReminderEmailHtml,
-  buildTicketEmailHtml,
-  qrDataUrlToBuffer,
-} from "@/lib/brote-email";
+  markBroteTicketEmailSent,
+  sendBroteTicketEmail,
+} from "@/lib/brote-ticket-email";
 import {
   buildPlantConfirmationEmailHtml,
   buildPlantInvite1Html,
@@ -264,46 +263,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "No email on ticket" }, { status: 400 });
       }
 
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
       const treeNumber = await countBroteTickets();
-      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${ticket.id}`;
-      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-        width: 300,
-        margin: 2,
-        color: { dark: "#2D4A3E", light: "#FAF6F1" },
-      });
-
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-      const resend = new Resend(process.env.RESEND_API_KEY!);
-      const result = await resend.emails.send({
-        from: `BROTE <${fromEmail}>`,
+      const { resendId } = await sendBroteTicketEmail({
+        ticketId: ticket.id,
         to: sendTo,
-        subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-        html: buildTicketEmailHtml({ ...ticket, buyerEmail: sendTo }, treeNumber),
-        attachments: [
-          {
-            filename: "qr.png",
-            content: qrDataUrlToBuffer(qrDataUrl),
-            contentType: "image/png",
-            contentId: "qr",
-          },
-        ],
+        buyerName: ticket.buyerName,
+        paymentId: ticket.paymentId,
+        treeNumber,
       });
+      await markBroteTicketEmailSent(ticket.id);
 
-      // Mark email sent.
-      await db
-        .update(schema.participations)
-        .set({
-          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({ emailSent: true })}::jsonb`,
-          updatedAt: sql`NOW()`,
-        })
-        .where(eq(schema.participations.id, ticket.id));
-
-      return NextResponse.json({
-        ok: true,
-        to: sendTo,
-        resendId: result.data?.id,
-      });
+      return NextResponse.json({ ok: true, to: sendTo, resendId });
     }
 
     // ── plant-invite-campaign ──
@@ -638,57 +608,21 @@ export async function POST(req: Request) {
       });
 
       const treeNumber = await countBroteTickets();
-
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-      const qrUrl = `${baseUrl}/es/brote/gate?ticket=${newTicketId}`;
-      const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-        width: 300,
-        margin: 2,
-        color: { dark: "#2D4A3E", light: "#FAF6F1" },
-      });
-
-      const ticketForTemplate: BroteTicket = {
-        id: newTicketId,
-        type: "ticket",
-        paymentId: `GIFT-${newTicketId}`,
-        buyerEmail: toEmail,
-        buyerName: giftedName,
-        status: "valid",
-        createdAt: new Date().toISOString(),
-      };
-
-      const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-      const resend = new Resend(process.env.RESEND_API_KEY!);
-      const result = await resend.emails.send({
-        from: `BROTE <${fromEmail}>`,
+      const { resendId } = await sendBroteTicketEmail({
+        ticketId: newTicketId,
         to: toEmail,
-        subject: `Tu entrada para BROTE 🌱 Árbol #${treeNumber}`,
-        html: buildTicketEmailHtml(ticketForTemplate, treeNumber),
-        attachments: [
-          {
-            filename: "qr.png",
-            content: qrDataUrlToBuffer(qrDataUrl),
-            contentType: "image/png",
-            contentId: "qr",
-          },
-        ],
+        buyerName: giftedName,
+        paymentId: `GIFT-${newTicketId}`,
+        treeNumber,
       });
-
-      // Mark email sent on the participation.
-      await db
-        .update(schema.participations)
-        .set({
-          metadata: sql`${schema.participations.metadata} || ${JSON.stringify({ emailSent: true })}::jsonb`,
-          updatedAt: sql`NOW()`,
-        })
-        .where(eq(schema.participations.id, newTicketId));
+      await markBroteTicketEmailSent(newTicketId);
 
       return NextResponse.json({
         ok: true,
         ticketId: newTicketId,
         treeNumber,
         to: toEmail,
-        resendId: result.data?.id,
+        resendId,
       });
     }
 
