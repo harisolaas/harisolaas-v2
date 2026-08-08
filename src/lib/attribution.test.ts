@@ -136,6 +136,26 @@ describe("readBrowserAttribution", () => {
     expect(linkSlug).toBeUndefined();
   });
 
+  it("lets the cookie win over a present-but-empty utm_content", () => {
+    // `?utm_content=` is nothing, not a value. Without normalization the ??
+    // below returns "" and a perfectly good cookie slug is thrown away.
+    const { utm, linkSlug } = readBrowserAttribution(
+      "?utm_source=instagram&utm_content=",
+      "haris_link=cookie-slug",
+    );
+    expect(utm.content).toBeUndefined();
+    expect(linkSlug).toBe("cookie-slug");
+  });
+
+  it("treats a whitespace-only utm value as absent", () => {
+    const { utm, linkSlug } = readBrowserAttribution(
+      "?utm_source=%20%20&utm_content=%20",
+      "haris_link=cookie-slug",
+    );
+    expect(utm.source).toBeUndefined();
+    expect(linkSlug).toBe("cookie-slug");
+  });
+
   it("decodes a percent-encoded cookie value", () => {
     const { linkSlug } = readBrowserAttribution("", "haris_link=a%2Fb");
     expect(linkSlug).toBe("a/b");

@@ -80,10 +80,14 @@ export function readBrowserAttribution(
 ): { utm: UtmBody; linkSlug?: string } {
   const params = new URLSearchParams(search);
   const utm: UtmBody = {};
-  const source = params.get("utm_source");
-  const medium = params.get("utm_medium");
-  const campaign = params.get("utm_campaign");
-  const content = params.get("utm_content");
+  // Same normalization `buildAttribution` applies server-side: a present-but-
+  // empty param (`?utm_content=`) is nothing, not a value. Without this the
+  // `??` below would let "" win over a perfectly good cookie and produce an
+  // empty slug.
+  const source = trimOrUndefined(params.get("utm_source"));
+  const medium = trimOrUndefined(params.get("utm_medium"));
+  const campaign = trimOrUndefined(params.get("utm_campaign"));
+  const content = trimOrUndefined(params.get("utm_content"));
   if (source) utm.source = source;
   if (medium) utm.medium = medium;
   if (campaign) utm.campaign = campaign;
