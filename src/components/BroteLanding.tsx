@@ -11,7 +11,12 @@ import {
 import Script from "next/script";
 import Image from "next/image";
 import { motion, useInView, useReducedMotion } from "framer-motion";
-import { broteConfig } from "@/data/brote";
+import {
+  broteConfig,
+  currentTicketPrice,
+  fillTokens,
+  pricingTokens,
+} from "@/data/brote";
 import type { BroteDict } from "@/dictionaries/types";
 import {
   initPostHog,
@@ -48,6 +53,15 @@ const serif: CSSProperties = {
 const mono: CSSProperties = { fontFamily: "var(--font-brote-mono), monospace" };
 
 const CONTAINER = "mx-auto w-full max-w-[1160px] px-[clamp(20px,4vw,48px)]";
+
+/* Riso illustrations for "¿Qué incluye tu entrada?", in dict order.
+   SVG rather than PNG: transparent, ~2 KB each, and no baked-in background
+   green that would break if the palette ever moves. */
+const INCLUDE_ILLUSTRATIONS = [
+  "/brote/brote-arbol-riso.svg",
+  "/brote/brote-lata-riso.svg",
+  "/brote/brote-ticket-riso.svg",
+];
 
 /* ─── scroll-reveal wrapper (also fires the section-view analytics) ─── */
 function Section({
@@ -234,7 +248,13 @@ function InfoBar({
 /* ─── eyebrow (mono, tracked, forest-60)
    Rendered as <h2> so each section has a heading and the document doesn't
    jump h1 → h3 on the experience cards. ─── */
-function Eyebrow({ children }: { children: ReactNode }) {
+function Eyebrow({
+  children,
+  marginBottom = "16px",
+}: {
+  children: ReactNode;
+  marginBottom?: string;
+}) {
   return (
     <h2
       style={{
@@ -244,7 +264,7 @@ function Eyebrow({ children }: { children: ReactNode }) {
         letterSpacing: "0.4em",
         textTransform: "uppercase",
         color: FOREST_60,
-        margin: "0 0 16px",
+        margin: `0 0 ${marginBottom}`,
       }}
     >
       {children}
@@ -252,8 +272,149 @@ function Eyebrow({ children }: { children: ReactNode }) {
   );
 }
 
+/* ─── block header: kicker · dotted rule · right-hand detail ───
+   Repeats as the section head of Line up and of each numbered block. */
+function BlockHeader({
+  left,
+  right,
+  size = 12,
+  marginBottom,
+  heading = false,
+}: {
+  left: string;
+  right?: string;
+  size?: number;
+  marginBottom: string;
+  /** Render `left` as the section's <h2>. Off for the 01/02/03 block
+      counters, which are labels rather than headings. */
+  heading?: boolean;
+}) {
+  const labelStyle: CSSProperties = {
+    ...mono,
+    fontSize: size,
+    fontWeight: 700,
+    letterSpacing: size >= 12 ? "0.4em" : "0.3em",
+    textTransform: "uppercase",
+    color: FOREST_60,
+    margin: 0,
+  };
+  return (
+    <div className="flex items-baseline gap-4" style={{ marginBottom }}>
+      {heading ? (
+        <h2 style={labelStyle}>{left}</h2>
+      ) : (
+        <span style={labelStyle}>{left}</span>
+      )}
+      <span
+        className="flex-1"
+        style={{
+          borderBottom: `1px dotted ${FOREST_30}`,
+          transform: "translateY(-4px)",
+        }}
+      />
+      {right && (
+        <span
+          style={{
+            ...mono,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.3em",
+            textTransform: "uppercase",
+            color: FOREST_60,
+          }}
+        >
+          {right}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ─── Instagram glyph for the DJ tag ─── */
+function InstagramIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" />
+    </svg>
+  );
+}
+
+/* ─── Line up block 02 media ───
+   Isolated so swapping the photo for a looping <video autoPlay muted loop
+   playsInline> is a change inside this component only — the surrounding
+   layout never moves. Falls back to the dotted frame until the photo lands. */
+const LINEUP_PHOTO = "/brote/lineup-acustico.jpg";
+
+function LineupMedia({ alt }: { alt: string }) {
+  // The asset itself is the source of truth: try to render it, fall back to
+  // the frame if it 404s. Dropping the file in public/brote is all it takes —
+  // there is no flag to remember to flip.
+  const [photoMissing, setPhotoMissing] = useState(false);
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        maxWidth: 420,
+        aspectRatio: "3 / 4",
+        border: `1.5px solid ${FOREST}`,
+        background: FOREST_10,
+        overflow: "hidden",
+      }}
+    >
+      {/* The frame is always rendered underneath. If the photo exists it
+          covers it; if it 404s the frame is already on screen, so there is
+          no empty box and no flash — and nothing to remember to switch on. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 flex flex-col items-center justify-center"
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 10,
+            border: `1px dotted ${FOREST_30}`,
+          }}
+        />
+        <div
+          style={{
+            ...mono,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.35em",
+            textTransform: "uppercase",
+            color: FOREST_60,
+          }}
+        >
+          Foto 3:4
+        </div>
+      </div>
+      {!photoMissing && (
+        <Image
+          src={LINEUP_PHOTO}
+          alt={alt}
+          fill
+          className="object-cover"
+          sizes="(max-width: 640px) 100vw, 420px"
+          onError={() => setPhotoMissing(true)}
+        />
+      )}
+    </div>
+  );
+}
+
 /* ─── impact count-up — real value from /api/brote/counter ─── */
-function Counter({ goal }: { goal: number }) {
+function Counter() {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
@@ -293,15 +454,12 @@ function Counter({ goal }: { goal: number }) {
       ref={ref}
       style={{
         ...serif,
-        fontSize: "clamp(90px,15vw,190px)",
-        lineHeight: 0.95,
+        fontSize: "clamp(110px,18vw,230px)",
+        lineHeight: 0.9,
         color: FOREST,
       }}
     >
       {display}
-      <span style={{ fontSize: "0.35em", color: FOREST_60 }}>
-        &#8202;/&#8202;{goal}
-      </span>
     </div>
   );
 }
@@ -318,7 +476,6 @@ export default function BroteLanding({ dict, locale }: Props) {
   const localeLabel = locale === "en" ? "ES" : "EN";
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [ctaHover, setCtaHover] = useState<string | null>(null);
-  const [openLineup, setOpenLineup] = useState<number>(-1);
 
   useEffect(() => {
     initPostHog();
@@ -361,13 +518,11 @@ export default function BroteLanding({ dict, locale }: Props) {
     window.location.href = `/${locale}/brote/checkout`;
   }, [checkoutLoading, locale]);
 
-  // Early-bird check (Argentina UTC-3) — flips live when the deadline passes
-  const [isEarlyBird, setIsEarlyBird] = useState(() => {
-    const deadline = new Date(
-      broteConfig.earlyBirdDeadline + "T23:59:59-03:00",
-    );
-    return new Date() <= deadline;
-  });
+  // The price shown here and the price the checkout API charges come from the
+  // same helper, so they cannot drift. Held in state only so the block flips
+  // live if the deadline passes while the page is open.
+  const [ticket, setTicket] = useState(() => currentTicketPrice());
+  const isEarlyBird = ticket.isEarlyBird;
 
   useEffect(() => {
     const deadline = new Date(
@@ -377,37 +532,47 @@ export default function BroteLanding({ dict, locale }: Props) {
     if (remaining <= 0) return;
     const MAX_TIMEOUT = 2_147_483_647;
     if (remaining > MAX_TIMEOUT) return;
-    const timer = setTimeout(() => setIsEarlyBird(false), remaining);
+    const timer = setTimeout(
+      () => setTicket(currentTicketPrice()),
+      remaining,
+    );
     return () => clearTimeout(timer);
   }, []);
 
-  const attendeesText = dict.impact.attendees.replace(
-    /\{count\}/g,
-    String(broteConfig.expectedAttendees),
-  );
+  const tokens = pricingTokens();
 
-  const ctaButton = (label: string, id: string) => (
-    <button
-      onClick={() => handleCheckout()}
-      onMouseEnter={() => setCtaHover(id)}
-      onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
-      disabled={checkoutLoading}
-      className="inline-block cursor-pointer uppercase disabled:opacity-60"
-      style={{
-        ...mono,
-        background: ctaHover === id ? FOREST_HOVER : FOREST,
-        color: PAPER,
-        fontWeight: 700,
-        fontSize: 15,
-        letterSpacing: "0.25em",
-        padding: "18px 40px",
-        borderRadius: 2,
-        transition: "background 0.2s ease",
-      }}
-    >
-      {checkoutLoading ? "…" : label}
-    </button>
-  );
+  /** `invert` = cream on green, for the CTA sitting inside the green block. */
+  const ctaButton = (label: string, id: string, invert = false) => {
+    const hovered = ctaHover === id;
+    return (
+      <button
+        onClick={() => handleCheckout()}
+        onMouseEnter={() => setCtaHover(id)}
+        onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
+        disabled={checkoutLoading}
+        className="inline-block cursor-pointer uppercase disabled:opacity-60"
+        style={{
+          ...mono,
+          background: invert
+            ? hovered
+              ? "#FFFFFF"
+              : PAPER
+            : hovered
+              ? FOREST_HOVER
+              : FOREST,
+          color: invert ? (hovered ? FOREST_HOVER : FOREST) : PAPER,
+          fontWeight: 700,
+          fontSize: invert ? 14 : 15,
+          letterSpacing: "0.25em",
+          padding: invert ? "16px 34px" : "18px 40px",
+          borderRadius: 2,
+          transition: "background 0.2s ease, color 0.2s ease",
+        }}
+      >
+        {checkoutLoading ? "…" : label}
+      </button>
+    );
+  };
 
   const texture = (alt: string, priority = false) => (
     <Image
@@ -439,18 +604,26 @@ export default function BroteLanding({ dict, locale }: Props) {
           /* clear the fixed locale toggle so the top-bar "2026" isn't covered */
           .brote-scope .brote-topbar { padding-right: 42px; }
         }
-        /* Accordion row fill is declarative — hover via CSS, open state via the
-           aria-expanded attribute — so it can't desync from React state. */
-        .brote-scope .brote-lineup-row {
-          background: transparent;
-          transition: background 0.2s ease;
+        /* Instagram tag on the DJ block */
+        .brote-scope .brote-ig-tag {
+          transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
         }
-        .brote-scope .brote-lineup-row:hover,
-        .brote-scope .brote-lineup-row[aria-expanded="true"] {
+        .brote-scope .brote-ig-tag:hover {
+          color: ${FOREST};
+          border-color: ${FOREST};
           background: ${FOREST_10};
         }
+        /* Anchor link inside the price block — inherits the block's ink so it
+           stays legible in both the live and the closed state. */
+        .brote-scope .brote-includes-link {
+          transition: border-color 0.2s ease;
+        }
+        .brote-scope .brote-includes-link:hover {
+          border-bottom-color: currentColor;
+        }
         @media (prefers-reduced-motion: reduce) {
-          .brote-scope .brote-lineup-row { transition: none; }
+          .brote-scope .brote-ig-tag,
+          .brote-scope .brote-includes-link { transition: none; }
         }
       `}</style>
 
@@ -572,27 +745,454 @@ export default function BroteLanding({ dict, locale }: Props) {
           </div>
         </header>
 
-        {/* ───────── Experience ───────── */}
+        {/* ───────── Line up ─────────
+            Three blocks of deliberately unequal weight: 01 narrow-left,
+            02 full-width, 03 narrow-right. The asymmetry is the hierarchy —
+            do not regularise this into a grid. */}
+        <Section id="lineup" style={{ paddingBottom: "clamp(56px,8vw,104px)" }}>
+          <BlockHeader
+            heading
+            left={dict.eyebrows.lineup}
+            right={dict.lineup.timeRange}
+            marginBottom="clamp(24px,3.5vw,40px)"
+          />
+
+          {/* 01 — arrival & community */}
+          <div
+            style={{
+              width: "min(100%,720px)",
+              border: `1.5px solid ${FOREST}`,
+              background: FOREST_10,
+              padding: "clamp(24px,3.5vw,44px)",
+              marginBottom: "clamp(40px,6vw,80px)",
+            }}
+          >
+            <BlockHeader
+              left={dict.lineup.welcome.number}
+              right={dict.lineup.welcome.time}
+              marginBottom="clamp(14px,2vw,22px)"
+            />
+            <h3
+              style={{
+                ...serif,
+                fontSize: "clamp(32px,4.4vw,54px)",
+                lineHeight: 1.04,
+                margin: "0 0 6px",
+                textWrap: "pretty",
+              }}
+            >
+              {dict.lineup.welcome.title}
+            </h3>
+            <p
+              style={{
+                ...serif,
+                fontStyle: "italic",
+                fontSize: "clamp(20px,2.4vw,28px)",
+                lineHeight: 1.2,
+                margin: "0 0 clamp(16px,2.2vw,24px)",
+                color: FOREST_60,
+              }}
+            >
+              {dict.lineup.welcome.kicker}
+            </p>
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.85,
+                margin: "0 0 14px",
+                maxWidth: "52ch",
+              }}
+            >
+              {dict.lineup.welcome.body1}
+            </p>
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.85,
+                margin: 0,
+                maxWidth: "52ch",
+                color: BODY,
+              }}
+            >
+              {dict.lineup.welcome.body2}
+            </p>
+          </div>
+
+          {/* 02 — live acoustic set, the protagonist */}
+          <div style={{ marginBottom: "clamp(40px,6vw,80px)" }}>
+            <BlockHeader
+              left={dict.lineup.live.number}
+              right={dict.lineup.live.time}
+              marginBottom="clamp(14px,2vw,20px)"
+            />
+            <div
+              className="grid items-end"
+              style={{
+                gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))",
+                gap: "clamp(20px,3vw,44px)",
+              }}
+            >
+              <LineupMedia alt={dict.lineup.live.body} />
+              <div>
+                <h3
+                  style={{
+                    ...serif,
+                    fontSize: "clamp(40px,5.4vw,72px)",
+                    lineHeight: 0.98,
+                    margin: "0 0 clamp(14px,2vw,20px)",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {dict.lineup.live.title}
+                </h3>
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.85,
+                    margin: 0,
+                    maxWidth: "36ch",
+                  }}
+                >
+                  {dict.lineup.live.body}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 03 — DJ set */}
+          <div
+            style={{
+              width: "min(100%,600px)",
+              marginLeft: "auto",
+              borderTop: `1.5px solid ${FOREST}`,
+              paddingTop: "clamp(16px,2.4vw,24px)",
+            }}
+          >
+            <BlockHeader
+              left={dict.lineup.dj.number}
+              right={dict.lineup.dj.time}
+              marginBottom="clamp(10px,1.6vw,16px)"
+            />
+            <h3
+              style={{
+                ...serif,
+                fontSize: "clamp(30px,3.8vw,46px)",
+                lineHeight: 1.05,
+                margin: "0 0 12px",
+              }}
+            >
+              {dict.lineup.dj.title}
+            </h3>
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.85,
+                margin: "0 0 16px",
+                maxWidth: "44ch",
+              }}
+            >
+              {dict.lineup.dj.bodyBefore}
+              <a
+                href={dict.lineup.dj.link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  textDecoration: "none",
+                  borderBottom: `1px solid ${FOREST_60}`,
+                }}
+              >
+                {dict.lineup.dj.link.name}
+              </a>
+              {dict.lineup.dj.bodyAfter}
+            </p>
+            <a
+              href={dict.lineup.dj.link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="brote-ig-tag inline-flex items-center gap-2 uppercase"
+              style={{
+                ...mono,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.25em",
+                textDecoration: "none",
+                color: FOREST_60,
+                border: `1px solid ${FOREST_30}`,
+                padding: "8px 14px",
+              }}
+            >
+              <InstagramIcon />@{dict.lineup.dj.link.label}
+            </a>
+          </div>
+        </Section>
+
+        {/* ───────── Impact (counter) ───────── */}
         <Section
-          id="experiencia"
+          id="impacto"
+          className="text-center"
           style={{ paddingBottom: "clamp(48px,7vw,88px)" }}
         >
-          <Eyebrow>{dict.eyebrows.experience}</Eyebrow>
+          <Counter />
+          <div
+            style={{
+              ...mono,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: "0.4em",
+              textTransform: "uppercase",
+              marginTop: 14,
+            }}
+          >
+            {dict.impact.counterLabel}
+          </div>
+        </Section>
+
+        {/* ───────── Pricing ─────────
+            One block, not two columns: two equally-weighted prices made it
+            unclear which one you actually pay. Everything here is subordinate
+            to the single large number. */}
+        <Section
+          id="precio"
+          className="text-center"
+          style={{ paddingBottom: "clamp(48px,7vw,88px)" }}
+        >
+          <Eyebrow marginBottom="clamp(20px,3vw,32px)">
+            {dict.eyebrows.pricing}
+          </Eyebrow>
+
+          <div
+            className="inline-block"
+            style={{
+              maxWidth: "100%",
+              padding: "clamp(30px,4.5vw,60px) clamp(28px,5vw,76px)",
+              background: isEarlyBird ? FOREST : "transparent",
+              color: isEarlyBird ? PAPER : FOREST,
+              border: `1.5px solid ${FOREST}`,
+              // Solid offset shadow, no blur — the only shadow on the page.
+              boxShadow: isEarlyBird
+                ? "14px 14px 0 rgba(62,82,38,0.16)"
+                : undefined,
+            }}
+          >
+            {/* label + discount badge.
+                The closed state dims the label and the price — but NOT the
+                container: a group opacity here also dims the buy button,
+                which drops it to ~2.5:1 against its own text. The CTA is the
+                one thing that must stay at full strength in both states. */}
+            <div
+              className="flex items-center justify-center gap-2.5"
+              style={{
+                marginBottom: "clamp(20px,2.8vw,30px)",
+                opacity: isEarlyBird ? 1 : 0.55,
+              }}
+            >
+              <span
+                style={{
+                  ...mono,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.3em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {isEarlyBird
+                  ? dict.pricing.earlyBirdLabel
+                  : dict.pricing.earlyBirdExpired}
+              </span>
+              {isEarlyBird && (
+                <span
+                  style={{
+                    ...mono,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: PAPER,
+                    color: FOREST,
+                    padding: "3px 8px",
+                  }}
+                >
+                  {dict.pricing.earlyBirdBadge}
+                </span>
+              )}
+            </div>
+
+            {/* prices — the anchor is struck on a diagonal because at this
+                size a flat line-through reads as decoration, not as "this is
+                not what you pay". Once the preventa closes there is nothing
+                left to anchor against, so the anchor goes away entirely. */}
+            <div
+              className="flex flex-wrap items-baseline justify-center"
+              style={{
+                gap: "clamp(14px,2.4vw,28px)",
+                opacity: isEarlyBird ? 1 : 0.55,
+              }}
+            >
+              {isEarlyBird && (
+                <s
+                  style={{
+                    ...serif,
+                    position: "relative",
+                    fontSize: "clamp(32px,3.6vw,44px)",
+                    lineHeight: 1,
+                    opacity: 0.5,
+                    textDecoration: "none",
+                  }}
+                >
+                  {broteConfig.ticketPrice}
+                  <span
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      left: "-6%",
+                      right: "-6%",
+                      top: "50%",
+                      height: 2,
+                      background: "currentColor",
+                      transform: "rotate(-9deg)",
+                    }}
+                  />
+                </s>
+              )}
+              <div
+                style={{
+                  ...serif,
+                  fontSize: "clamp(60px,8vw,104px)",
+                  lineHeight: 0.9,
+                }}
+              >
+                {ticket.display}
+              </div>
+            </div>
+
+            {isEarlyBird && (
+              <div
+                className="text-center"
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  marginTop: 14,
+                  opacity: 0.85,
+                }}
+              >
+                {fillTokens(dict.pricing.savingsLine, tokens)}
+              </div>
+            )}
+
+            <div
+              className="flex flex-col items-center"
+              style={{ gap: 14, marginTop: "clamp(22px,3vw,32px)" }}
+            >
+              {ctaButton(dict.hero.cta, "pricing", isEarlyBird)}
+              <span
+                style={{
+                  ...mono,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  opacity: 0.75,
+                }}
+              >
+                {isEarlyBird
+                  ? dict.pricing.earlyBirdUntil
+                  : dict.pricing.earlyBirdClosed}
+              </span>
+            </div>
+
+            <div
+              className="flex flex-col items-center"
+              style={{
+                borderTop: `1px solid ${
+                  isEarlyBird ? "rgba(234,227,210,0.25)" : FOREST_30
+                }`,
+                marginTop: "clamp(22px,3vw,32px)",
+                paddingTop: "clamp(14px,2vw,18px)",
+                gap: 10,
+              }}
+            >
+              <a
+                href="#incluye"
+                className="brote-includes-link inline-flex items-center gap-2 uppercase"
+                style={{
+                  ...mono,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: "0.18em",
+                  textDecoration: "none",
+                  color: "inherit",
+                  borderBottom: `1px solid ${
+                    isEarlyBird ? "rgba(234,227,210,0.45)" : FOREST_30
+                  }`,
+                  paddingBottom: 3,
+                }}
+              >
+                {dict.pricing.includesLink}{" "}
+                <span aria-hidden style={{ fontSize: 14 }}>
+                  ↓
+                </span>
+              </a>
+              {isEarlyBird && (
+                <span
+                  className="text-center"
+                  style={{ fontSize: 12, lineHeight: 1.7, opacity: 0.6 }}
+                >
+                  {fillTokens(dict.pricing.generalNote, tokens)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <p
+            style={{
+              fontSize: 12,
+              color: FOREST_60,
+              marginTop: "clamp(16px,2.2vw,22px)",
+            }}
+          >
+            {dict.pricing.payment}
+          </p>
+        </Section>
+
+        {/* ───────── What your ticket includes ───────── */}
+        <Section
+          id="incluye"
+          style={{
+            paddingBottom: "clamp(48px,7vw,88px)",
+            scrollMarginTop: 24,
+          }}
+        >
+          <BlockHeader
+            heading
+            left={dict.includes.eyebrow}
+            marginBottom="clamp(24px,3.5vw,40px)"
+          />
           <div
             className="grid"
             style={{
-              gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
+              gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))",
               border: `1.5px solid ${FOREST}`,
             }}
           >
-            {dict.experience.map((item, i) => (
+            {dict.includes.items.map((item, i) => (
               <div
-                key={item.title}
+                key={item.number}
+                className="text-center"
                 style={{
-                  padding: "clamp(20px,3vw,32px)",
+                  padding: "clamp(22px,3vw,34px)",
                   border: `0.75px solid ${FOREST}`,
                 }}
               >
+                <Image
+                  src={INCLUDE_ILLUSTRATIONS[i]}
+                  alt=""
+                  width={150}
+                  height={150}
+                  className="mx-auto block"
+                  style={{
+                    width: "min(100%,150px)",
+                    height: "auto",
+                    marginBottom: "clamp(14px,2vw,20px)",
+                  }}
+                />
                 <div
                   style={{
                     ...mono,
@@ -600,17 +1200,17 @@ export default function BroteLanding({ dict, locale }: Props) {
                     fontWeight: 700,
                     letterSpacing: "0.3em",
                     color: FOREST_60,
-                    marginBottom: 14,
+                    marginBottom: 10,
                   }}
                 >
-                  {String(i + 1).padStart(2, "0")}
+                  {item.number}
                 </div>
                 <h3
                   style={{
                     ...serif,
-                    fontSize: "clamp(24px,2.6vw,30px)",
+                    fontSize: "clamp(22px,2.4vw,28px)",
                     lineHeight: 1.1,
-                    margin: "0 0 10px",
+                    margin: "0 0 8px",
                   }}
                 >
                   {item.title}
@@ -623,341 +1223,74 @@ export default function BroteLanding({ dict, locale }: Props) {
                     color: BODY,
                   }}
                 >
-                  {item.description}
+                  {item.body}
                 </p>
               </div>
             ))}
           </div>
-        </Section>
 
-        {/* ───────── Lineup (editorial accordion) ───────── */}
-        <Section id="lineup" style={{ paddingBottom: "clamp(48px,7vw,88px)" }}>
-          <Eyebrow>{dict.eyebrows.lineup}</Eyebrow>
-          <div style={{ borderTop: `1.5px solid ${FOREST}` }}>
-            {dict.lineup.items.map((act, i) => {
-              const open = openLineup === i;
-              return (
-                <div
-                  key={act.name}
-                  style={{ borderBottom: `1.5px solid ${FOREST}` }}
-                >
-                  <button
-                    onClick={() => setOpenLineup((o) => (o === i ? -1 : i))}
-                    aria-expanded={open}
-                    aria-controls={`brote-lineup-panel-${i}`}
-                    className="brote-lineup-row flex w-full cursor-pointer items-baseline gap-4 text-left"
-                    style={{
-                      ...mono,
-                      color: FOREST,
-                      padding: "clamp(16px,2.5vw,24px) 4px",
-                      border: "none",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        letterSpacing: "0.2em",
-                        color: FOREST_60,
-                      }}
-                    >
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      style={{
-                        ...serif,
-                        fontSize: "clamp(26px,3.4vw,40px)",
-                        lineHeight: 1,
-                        flex: 1,
-                      }}
-                    >
-                      {act.name}
-                    </span>
-                    <span
-                      className="hidden sm:inline"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: "0.25em",
-                        textTransform: "uppercase",
-                        color: FOREST_60,
-                      }}
-                    >
-                      {act.tag}
-                    </span>
-                    <span style={{ fontSize: 18 }}>{open ? "−" : "+"}</span>
-                  </button>
-                  {/* `inert` keeps the collapsed panel out of the tab order and
-                      the a11y tree — max-height alone leaves the link focusable. */}
-                  <div
-                    id={`brote-lineup-panel-${i}`}
-                    inert={!open}
-                    style={{
-                      overflow: "hidden",
-                      transition: "max-height 0.4s ease",
-                      maxHeight: open ? 240 : 0,
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 13,
-                        lineHeight: 1.7,
-                        margin: "0 4px 20px",
-                        maxWidth: "60ch",
-                        color: BODY,
-                      }}
-                    >
-                      {act.detail}
-                      {act.link && (
-                        <>
-                          {" "}
-                          <a
-                            href={act.link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            @{act.link.label}
-                          </a>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-
-        {/* ───────── Impact (counter) ───────── */}
-        <Section
-          id="impacto"
-          className="text-center"
-          style={{ paddingBottom: "clamp(48px,7vw,88px)" }}
-        >
-          <Counter goal={broteConfig.expectedAttendees} />
+          {/* 04 breaks the pattern on purpose — it's the best thing on the
+              list and it didn't exist before. */}
           <div
+            className="grid items-center"
             style={{
-              ...mono,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.4em",
-              textTransform: "uppercase",
-              marginTop: 12,
-            }}
-          >
-            {dict.impact.counterLabel}
-          </div>
-          <h2
-            className="mx-auto"
-            style={{
-              ...serif,
-              fontSize: "clamp(34px,5vw,56px)",
-              lineHeight: 1.05,
-              margin: "clamp(36px,5vw,56px) auto 20px",
-              maxWidth: "18ch",
-            }}
-          >
-            {dict.impact.heading}
-          </h2>
-          <p
-            className="mx-auto"
-            style={{
-              fontSize: 14,
-              lineHeight: 1.8,
-              maxWidth: "62ch",
-              margin: "0 auto 14px",
-              textAlign: "left",
-            }}
-          >
-            {dict.impact.partner.intro}
-            <a
-              href="https://unarbol.org/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {dict.impact.partner.name}
-            </a>
-            {dict.impact.partner.rest}
-          </p>
-          <p
-            className="mx-auto"
-            style={{
-              fontSize: 14,
-              lineHeight: 1.8,
-              maxWidth: "62ch",
-              margin: "0 auto",
-              textAlign: "left",
-            }}
-          >
-            {dict.impact.body} {attendeesText}
-          </p>
-        </Section>
-
-        {/* ───────── Pricing ───────── */}
-        <Section id="precio" style={{ paddingBottom: "clamp(48px,7vw,88px)" }}>
-          <Eyebrow>{dict.eyebrows.pricing}</Eyebrow>
-          <div
-            className="grid"
-            style={{
-              gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
+              gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+              gap: "clamp(20px,3vw,44px)",
               border: `1.5px solid ${FOREST}`,
+              borderTop: 0,
+              background: FOREST,
+              color: PAPER,
+              padding: "clamp(24px,3.5vw,44px)",
             }}
           >
-            {/* Preventa (highlighted / expired) */}
-            <div
-              style={{
-                padding: "clamp(24px,3.5vw,40px)",
-                background: isEarlyBird ? FOREST : "transparent",
-                color: isEarlyBird ? PAPER : FOREST,
-                border: isEarlyBird ? undefined : `0.75px solid ${FOREST}`,
-                opacity: isEarlyBird ? 1 : 0.55,
-              }}
-            >
+            <div className="flex justify-center">
+              <Image
+                src="/brote/brote-arbol-riso-reverse.svg"
+                alt=""
+                width={220}
+                height={220}
+                style={{ width: "min(100%,220px)", height: "auto" }}
+              />
+            </div>
+            <div>
               <div
                 style={{
                   ...mono,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: 700,
                   letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  marginBottom: 18,
-                }}
-              >
-                {isEarlyBird
-                  ? dict.pricing.earlyBirdLabel
-                  : dict.pricing.earlyBirdExpired}
-              </div>
-              <div
-                style={{
-                  ...serif,
-                  fontSize: "clamp(44px,5vw,60px)",
-                  lineHeight: 1,
-                }}
-              >
-                {broteConfig.earlyBirdPrice}
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  marginTop: 10,
-                  textDecoration: "line-through",
+                  marginBottom: 10,
                   opacity: 0.7,
                 }}
               >
-                {broteConfig.ticketPrice}
+                {dict.includes.featured.number}
               </div>
-              {isEarlyBird && (
-                <div
-                  style={{
-                    ...mono,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: "0.2em",
-                    textTransform: "uppercase",
-                    marginTop: 18,
-                  }}
-                >
-                  {dict.pricing.earlyBirdUntil}
-                </div>
-              )}
-            </div>
-
-            {/* General */}
-            <div
-              style={{
-                padding: "clamp(24px,3.5vw,40px)",
-                border: `0.75px solid ${FOREST}`,
-              }}
-            >
-              <div
-                style={{
-                  ...mono,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  color: FOREST_60,
-                  marginBottom: 18,
-                }}
-              >
-                {dict.pricing.generalLabel}
-              </div>
-              <div
+              <h3
                 style={{
                   ...serif,
-                  fontSize: "clamp(44px,5vw,60px)",
-                  lineHeight: 1,
+                  fontSize: "clamp(30px,4.2vw,52px)",
+                  lineHeight: 1.04,
+                  margin: "0 0 12px",
+                  textWrap: "pretty",
                 }}
               >
-                {broteConfig.ticketPrice}
-              </div>
-              <div style={{ fontSize: 13, marginTop: 10, color: FOREST_60 }}>
-                {dict.pricing.generalFrom}
-              </div>
-              <div
+                {dict.includes.featured.title}
+              </h3>
+              <p
                 style={{
-                  ...mono,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  marginTop: 18,
-                  color: FOREST_60,
-                }}
-              >
-                {dict.pricing.generalUntil}
-              </div>
-            </div>
-
-            {/* Includes */}
-            <div
-              style={{
-                padding: "clamp(24px,3.5vw,40px)",
-                border: `0.75px solid ${FOREST}`,
-              }}
-            >
-              <div
-                style={{
-                  ...mono,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.3em",
-                  textTransform: "uppercase",
-                  color: FOREST_60,
-                  marginBottom: 18,
-                }}
-              >
-                {dict.pricing.includesLabel}
-              </div>
-              <ul
-                style={{
-                  listStyle: "none",
+                  fontSize: 14,
+                  lineHeight: 1.85,
                   margin: 0,
-                  padding: 0,
-                  fontSize: 13,
-                  lineHeight: 2.1,
+                  maxWidth: "44ch",
+                  opacity: 0.9,
                 }}
               >
-                {dict.pricing.includesItems.map((it, i) => (
-                  <li
-                    key={it}
-                    style={{
-                      borderBottom:
-                        i < dict.pricing.includesItems.length - 1
-                          ? `1px dotted ${FOREST_30}`
-                          : undefined,
-                    }}
-                  >
-                    {it}
-                  </li>
-                ))}
-              </ul>
+                {dict.includes.featured.body}
+              </p>
             </div>
           </div>
-          <p style={{ fontSize: 12, color: FOREST_60, marginTop: 14 }}>
-            {dict.pricing.payment}
-          </p>
         </Section>
+
 
         {/* ───────── Community ───────── */}
         <Section

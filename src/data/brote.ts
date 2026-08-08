@@ -38,6 +38,87 @@ export const broteConfig = {
   expectedAttendees: 100,
 };
 
+/* ─── pricing helpers ───────────────────────────────────────────────────────
+ * The landing renders a price and the checkout API charges one. When those
+ * were two inline expressions they could drift; deriving both from here means
+ * they cannot. Every consumer takes `now` so the boundary is testable.
+ * ------------------------------------------------------------------------ */
+
+/** End of the early-bird window: last second of the deadline day, UTC-3. */
+const earlyBirdEndsAt = () =>
+  new Date(`${broteConfig.earlyBirdDeadline}T23:59:59-03:00`);
+
+/**
+ * Is the preventa still open? The explicit -03:00 matters: without it the
+ * deadline is read as UTC midnight and the discount dies ~3h early.
+ */
+export function isEarlyBird(now: Date = new Date()): boolean {
+  return now <= earlyBirdEndsAt();
+}
+
+/** Argentine peso formatting — dots for thousands, never commas. */
+export function formatArs(amount: number): string {
+  return `$${amount.toLocaleString("es-AR")}`;
+}
+
+/**
+ * The one price that is both shown and charged. `display` is what the buyer
+ * reads, `raw` is what MercadoPago bills; they are derived together so they
+ * cannot disagree.
+ */
+export function currentTicketPrice(now: Date = new Date()): {
+  raw: number;
+  display: string;
+  isEarlyBird: boolean;
+} {
+  return isEarlyBird(now)
+    ? {
+        raw: broteConfig.earlyBirdPriceRaw,
+        display: broteConfig.earlyBirdPrice,
+        isEarlyBird: true,
+      }
+    : {
+        raw: broteConfig.ticketPriceRaw,
+        display: broteConfig.ticketPrice,
+        isEarlyBird: false,
+      };
+}
+
+/**
+ * What the preventa saves you, derived rather than written into the copy.
+ * Takes the two prices as arguments so a test can prove the subtraction is
+ * real — with no arguments, any hardcoded string matching today's config
+ * would pass.
+ */
+export function earlyBirdSavings(
+  ticketRaw: number = broteConfig.ticketPriceRaw,
+  earlyRaw: number = broteConfig.earlyBirdPriceRaw,
+): string {
+  return formatArs(ticketRaw - earlyRaw);
+}
+
+/**
+ * Fill `{token}` placeholders. Unknown tokens are left visible on purpose —
+ * a stray `{savings}` on screen is a bug we want a test to catch, not one to
+ * paper over by silently deleting it.
+ */
+export function fillTokens(
+  template: string,
+  values: Record<string, string>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
+    key in values ? values[key] : match,
+  );
+}
+
+/** The token set the pricing copy is allowed to reference. */
+export function pricingTokens(): Record<string, string> {
+  return {
+    savings: earlyBirdSavings(),
+    price: broteConfig.ticketPrice,
+  };
+}
+
 export const plantConfig = {
   eventDate: "2026-04-19",
   eventDateDisplay: "Domingo 19 de abril",

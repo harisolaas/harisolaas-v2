@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { db, schema } from "@/db";
-import { broteConfig, BROTE_EVENT_ID } from "@/data/brote";
+import { broteConfig, BROTE_EVENT_ID, currentTicketPrice } from "@/data/brote";
 import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
 import { consumeEmailVerification } from "@/lib/email-verification-server";
 import { getRedis } from "@/lib/redis";
@@ -101,11 +101,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Early bird: check if we're before the deadline (end of day Argentina time, UTC-3)
-    const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
-    const isEarlyBird = new Date() <= deadline;
-
-    const price = isEarlyBird ? broteConfig.earlyBirdPriceRaw : broteConfig.ticketPriceRaw;
+    // Same helper the landing renders from, so the price shown and the price
+    // charged cannot drift apart.
+    const { raw: price, isEarlyBird } = currentTicketPrice();
     const title = `BROTE — Entrada${isEarlyBird ? " (Preventa)" : ""}`;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 

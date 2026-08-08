@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Instrument_Serif, Space_Mono } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
-import { broteConfig } from "@/data/brote";
+import { currentTicketPrice } from "@/data/brote";
 import BroteCheckoutForm from "@/components/BroteCheckoutForm";
 
 // Same BROTE-scoped fonts as the landing (the rest of the site keeps
@@ -60,11 +60,10 @@ export default async function BroteCheckoutPage({
   const sp = await searchParams;
   const dict = await getDictionary(locale as Locale);
 
-  // Early-bird resolved the same way as the landing / checkout API
-  // (end of deadline day, Argentina time). Display-only — the checkout
-  // route recomputes the authoritative price.
-  const deadline = new Date(broteConfig.earlyBirdDeadline + "T23:59:59-03:00");
-  const isEarlyBird = new Date() <= deadline;
+  // Same helper the landing and the checkout API use — one definition of
+  // "what does a ticket cost right now", so these three can never disagree.
+  const { isEarlyBird, display: priceDisplay, raw: priceRaw } =
+    currentTicketPrice();
 
   return (
     <div
@@ -74,12 +73,8 @@ export default async function BroteCheckoutPage({
         dict={dict.broteCheckout}
         locale={locale}
         isEarlyBird={isEarlyBird}
-        priceDisplay={
-          isEarlyBird ? broteConfig.earlyBirdPrice : broteConfig.ticketPrice
-        }
-        priceRaw={
-          isEarlyBird ? broteConfig.earlyBirdPriceRaw : broteConfig.ticketPriceRaw
-        }
+        priceDisplay={priceDisplay}
+        priceRaw={priceRaw}
         initialName={firstParam(sp.verifName)}
         initialEmail={firstParam(sp.verifEmail)}
         initialCode={firstParam(sp.verifCode)}

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600" role="img" aria-label="BROTE illustration">
+<defs>
+
+<filter id="wob2" x="-25%" y="-25%" width="150%" height="150%">
+<feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="4" result="n"></feTurbulence>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="2" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+</filter>
+</defs>
+<g filter="url(#wob2)" transform="translate(-6 6)" opacity="0.6">
+<path d="M78 56 C76 100 76 158 79 192 C80 202 100 208 120 208 C140 208 160 202 161 192 C164 158 164 100 162 56 Z" fill="#9DAF7C"></path>
+<rect x="76" y="92" width="88" height="80" fill="#A9633C" opacity="0.8"></rect>
+</g>
+<g filter="url(#wob2)" fill="none" stroke="#2E3D1C" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+<path d="M78 56 C76 100 76 158 79 192 C80 202 100 208 120 208 C140 208 160 202 161 192 C164 158 164 100 162 56"></path>
+<ellipse cx="120" cy="54" rx="42" ry="12"></ellipse>
+<path d="M104 50 C110 44 130 44 136 50"></path>
+<path d="M78 92 C100 97 140 97 162 92"></path>
+<path d="M79 172 C100 177 140 177 161 172"></path>
+<path d="M120 104 v-9 M120 122 v9 M111 113 h-9 M129 113 h9 M114 107 l-6 -6 M126 107 l6 -6 M114 119 l-6 6 M126 119 l6 6"></path>
+<circle cx="120" cy="113" r="5"></circle>
+</g>
+<text x="120" y="146" text-anchor="middle" font-family="&#39;Space Mono&#39;, ui-monospace, monospace" font-weight="700" font-size="15" letter-spacing="1.5" fill="#2E3D1C">MATELAB</text>
+<text x="120" y="163" text-anchor="middle" font-family="&#39;Space Mono&#39;, ui-monospace, monospace" font-weight="700" font-size="8.5" letter-spacing="3" fill="#2E3D1C">YERBA MATE</text>
+</svg>

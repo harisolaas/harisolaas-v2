@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="600" height="600" role="img" aria-label="BROTE illustration">
+<defs>
+
+<filter id="wob2" x="-25%" y="-25%" width="150%" height="150%">
+<feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="4" result="n"></feTurbulence>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="2" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+</filter>
+</defs>
+<g transform="rotate(-4 120 120)">
+<g filter="url(#wob2)" transform="translate(-6 6)" opacity="0.6">
+<rect x="28" y="70" width="124" height="100" fill="#9DAF7C"></rect>
+<rect x="152" y="70" width="60" height="100" fill="#A9633C" opacity="0.85"></rect>
+</g>
+<g filter="url(#wob2)" fill="none" stroke="#2E3D1C" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+<path d="M28 70 H152 M28 70 V170 M28 170 H152 M212 70 H152 M212 70 V170 M212 170 H152"></path>
+<path d="M152 70 a9 9 0 0 1 0 12 M152 158 a9 9 0 0 0 0 12"></path>
+</g>
+<g filter="url(#wob2)" stroke="#2E3D1C" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 9"><path d="M152 84 V156"></path></g>
+<text x="42" y="94" font-family="&#39;Space Mono&#39;, ui-monospace, monospace" font-weight="700" font-size="9.5" letter-spacing="3.4" fill="#2E3D1C">BROTE 2026</text>
+<g filter="url(#wob2)" stroke="#2E3D1C" stroke-width="2.2"><path d="M42 102 H138"></path></g>
+<text x="42" y="126" font-family="&#39;Space Mono&#39;, ui-monospace, monospace" font-weight="700" font-size="14" fill="#2E3D1C">JOSÉ</text>
+<text x="42" y="140" font-family="&#39;Space Mono&#39;, ui-monospace, monospace" font-weight="700" font-size="14" fill="#2E3D1C">DEZANZO</text>
+<text x="42" y="158" font-family="&#39;Space Mono&#39;, ui-monospace, monospace" font-weight="700" font-size="14" fill="#2E3D1C">GIAN B.</text>
+<g filter="url(#wob2)" fill="none" stroke="#2E3D1C" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">
+<path d="M182 148 V112"></path>
+<path d="M182 124 C170 124 164 116 164 106 C176 106 182 114 182 124 Z"></path>
+<path d="M182 118 C194 118 200 110 200 100 C188 100 182 108 182 118 Z"></path>
+</g>
+</g>
+</svg>
