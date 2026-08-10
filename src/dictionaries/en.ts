@@ -581,6 +581,85 @@ const en: Dictionary = {
       backLink: "Back to BROTE",
     },
   },
+  broteInvitacion: {
+    meta: {
+      title: "BROTE — You're invited",
+      description:
+        "A reforestation party in Palermo. Every ticket plants a real tree in Argentina, in your name.",
+    },
+    rule: { left: "Invitation", right: "Brote 2026" },
+    kicker: "Invited by",
+    about: {
+      wordmark: "Brote",
+      paragraphs: [
+        "A reforestation party in Palermo. Every ticket plants a real tree in Argentina, in your name.",
+        "Live music, good people and soil under your hands. A night that keeps growing afterwards.",
+      ],
+      facts: [
+        { label: "Thursday", value: "AUG 20" },
+        { label: "From", value: "19:00" },
+        { label: "Palermo", value: "CABA" },
+      ],
+    },
+    price: {
+      invitedLabel: "Your guest price",
+      ticketLabel: "Your ticket",
+      discountBadge: "-35%",
+      earlyBirdBadge: "Early bird",
+      noteDiscount: "This is the price for people who arrive invited. It isn't on the site.",
+      noteEarlyBird: "Early-bird price, until August 13th.",
+      noteRegular: "Every ticket plants a real tree in Argentina, in your name.",
+      cta: "I want my ticket",
+      paymentMethods: "MercadoPago, card or bank transfer",
+      loading: "One moment…",
+      error: "We couldn't open the payment. Please try again in a moment.",
+    },
+    includes: {
+      eyebrow: "Your ticket includes",
+      items: [
+        {
+          title: "A tree in your name",
+          description: "Planted in Argentina alongside Un Árbol.",
+        },
+        {
+          title: "A MateLab drink",
+          description: "Cold, waiting for you the moment you arrive.",
+        },
+        {
+          title: "The show",
+          description: "Live acoustic music and a DJ set, start to finish.",
+        },
+        {
+          title: "A seedling to take home",
+          description: "We sow it together that night. You plant it where you live.",
+        },
+      ],
+    },
+    closing: { heading: "Coming?" },
+    footer: { left: "Brote", right: "With Un Árbol" },
+    collaborators: {
+      pulso: {
+        roleLine: "A wellness club. They're with us on this night.",
+        closingLine: "Pulso saved you a spot. See you on the 20th.",
+      },
+      matelab: {
+        roleLine: "The drink in your hand all night long is theirs.",
+        closingLine: "MateLab saved you a spot. See you on the 20th.",
+      },
+      unarbol: {
+        roleLine: "They're the ones planting every BROTE tree, one per ticket.",
+        closingLine: "Un Árbol saved you a spot. See you on the 20th.",
+      },
+      jose: {
+        roleLine: "He plays live that night: guitar and voice, nothing in between.",
+        closingLine: "Jose saved you a spot. And he's playing for you that night.",
+      },
+      gian: {
+        roleLine: "He closes the night with his DJ set. Playing live that night.",
+        closingLine: "Gian saved you a spot. And he closes the night for you.",
+      },
+    },
+  },
   broteUnArbol: {
     headline: "A party. A tree. Your afternoon.",
     message: [
