@@ -22,6 +22,10 @@ import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local" });
 
 import { sql } from "drizzle-orm";
+import {
+  INVITATION_SLUGS,
+  getInvitation,
+} from "../src/lib/brote-invitations";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -322,6 +326,23 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     invite: "jose",
   },
   {
+    // Alguien que ya vino a BROTE 1 y vuelve por la página de comunidad:
+    // mismo 35% que una marca, pero sin colaborador a quien pagarle.
+    id: "PREVIEW-B2-INV-004",
+    personEmail: "preview-ana@example.com",
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2145000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-INV-004",
+    linkSlug: "inv-comunidad",
+    attributionSource: "partner",
+    attributionMedium: "referral",
+    attributionCampaign: "brote-invitacion",
+    invite: "comunidad",
+  },
+  {
     id: "PREVIEW-B2-INV-003",
     personEmail: "preview-vale@example.com",
     eventId: "preview-brote2",
@@ -468,29 +489,32 @@ const LINKS: LinkFixture[] = [
   // checkout resolves these exact strings from `src/lib/brote-invitations.ts`
   // when a buyer arrives through the pretty URL, so a renamed preview copy
   // would exercise a code path that does not exist.
-  ...(
-    [
-      ["inv-pulso", "pulso", "Pulso", null],
-      ["inv-matelab", "matelab", "MateLab", null],
-      ["inv-unarbol", "unarbol", "Un Árbol", null],
-      // The two artists carry a referrer, which is what stamps
-      // `referred_by_person_id` on their sales — the field their per-ticket
-      // fee would be counted from.
-      ["inv-jose", "jose", "Jose Dezanzo", "preview-jose@example.com"],
-      ["inv-gian", "gian", "Gian Bejarano", "preview-gian@example.com"],
-    ] as const
-  ).map(([slug, pageSlug, name, referrerEmail]) => ({
-    slug,
-    destination: `/es/brote/invitacion/${pageSlug}`,
-    label: `Invitación · ${name}`,
+  //
+  // Derived from the registry rather than listed by hand: a seventh
+  // invitation would otherwise render a page with no link row behind it, and
+  // the only symptom is a signup that silently loses its `link_slug`.
+  ...INVITATION_SLUGS.map((slug) => {
+    const invitation = getInvitation(slug)!;
+    return {
+    slug: invitation.linkSlug,
+    destination: `/es/brote/invitacion/${invitation.slug}`,
+    label: `Invitación · ${invitation.name}`,
     channel: "partner",
     source: "partner",
     medium: "referral",
     campaign: "brote-invitacion",
     createdDate: "2026-08-08",
     bypassCapacity: false,
-    referrerEmail,
-  })),
+    // Only the artists carry a referrer — that is what stamps
+    // `referred_by_person_id` on their sales, the field a per-ticket fee
+    // would be counted from. Brands and the returning community discount but
+    // are not paid, so they have nobody to point at.
+    referrerEmail:
+      invitation.kind === "artist"
+        ? `preview-${invitation.slug}@example.com`
+        : null,
+    };
+  }),
 ];
 
 async function main() {

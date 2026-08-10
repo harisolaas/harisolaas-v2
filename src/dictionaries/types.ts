@@ -133,7 +133,15 @@ export interface BroteInvitacionDict {
   };
   closing: { heading: string };
   footer: { left: string; right: string };
-  collaborators: Record<string, { roleLine: string; closingLine: string }>;
+  collaborators: Record<
+    string,
+    {
+      roleLine: string;
+      closingLine: string;
+      /** Overrides the shared "Te invita" when nobody is doing the inviting. */
+      kicker?: string;
+    }
+  >;
 }
 
 export interface BroteDict {

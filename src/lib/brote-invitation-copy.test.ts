@@ -61,7 +61,22 @@ describe("es — Argentine conventions", () => {
   });
 
   it("avoids gendered forms", () => {
-    for (const gendered of ["bienvenido", "bienvenida", "anotado", "invitados"]) {
+    // `invitado` singular shipped live on all five pages before this list
+    // included it — the plural was checked, the singular was not, and
+    // "Tu precio de invitado" reads as masculine to every woman who opens
+    // the page. Keep singular and plural both listed.
+    for (const gendered of [
+      "bienvenido",
+      "bienvenida",
+      "anotado",
+      "anotada",
+      "invitado",
+      "invitada",
+      "invitados",
+      "invitadas",
+      "todos los",
+      "solo o ",
+    ]) {
       expect(strings.toLowerCase(), `gendered: ${gendered}`).not.toContain(
         gendered,
       );

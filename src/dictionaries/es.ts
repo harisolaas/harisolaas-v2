@@ -605,7 +605,7 @@ const es: Dictionary = {
       ],
     },
     price: {
-      invitedLabel: "Tu precio de invitado",
+      invitedLabel: "Tu precio por invitación",
       ticketLabel: "Tu entrada",
       discountBadge: "-35%",
       earlyBirdBadge: "Preventa",
@@ -661,6 +661,14 @@ const es: Dictionary = {
       gian: {
         roleLine: "Cierra la noche con su DJ set. Toca en vivo esa noche.",
         closingLine: "Gian te guardó lugar. Y cierra la noche para vos.",
+      },
+      comunidad: {
+        // Nadie invita acá: la persona ya estuvo. El kicker compartido
+        // ("Te invita") no aplica.
+        kicker: "Sos parte de",
+        roleLine:
+          "Estuviste en la primera, o metiste las manos en la tierra. Esta es para vos.",
+        closingLine: "Volvé. El bosque que empezaste sigue creciendo.",
       },
     },
   },

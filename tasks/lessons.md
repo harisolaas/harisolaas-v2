@@ -52,24 +52,6 @@ programme-specific notes; those live in each programme's PROGRESS.md.
   tier, a countdown, an "open/closed" state. `export const dynamic =
   "force-dynamic"` fixes it, and the build's route table is the proof: `ƒ` is
   dynamic, `○` is static.
-- **A hand-built `Request` omits headers the browser always sends, and that can
-  make a test pass on a path production never takes.** `buildAttribution`
-  returns a touch when *any* field is present — `referer` included — and a
-  same-origin `fetch()` always sends one. So a route test whose `Request` has
-  no `referer` exercises the "no attribution at all" branch, while production
-  only ever takes the "attribution present but no linkSlug" one. A guard
-  written `!attribution` instead of `!attribution?.linkSlug` passed the whole
-  suite and would have left every invited BROTE sale with `link_slug` null —
-  the exact count a partner fee is paid from, silently zero. **When a test
-  drives a route with a synthetic Request, ask which headers the real caller
-  sends** (`referer`, `cookie`, `user-agent`) and put them in, or the test
-  pins the wrong branch.
-- **Feed one component's real output into the next, not a hand-written
-  fixture.** The BROTE checkout writes a Redis stash the webhook reads. A test
-  that hands the webhook a fixture cannot catch the shape drifting (flat vs.
-  nested under `attribution:`) — the failure both halves are most likely to
-  have. Making the webhook test consume the string the checkout actually wrote
-  is what killed that mutation.
 
 ## Environment
 

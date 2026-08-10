@@ -20,18 +20,31 @@ export const INVITATION_SLUGS = [
   "unarbol",
   "jose",
   "gian",
+  "comunidad",
 ] as const;
 
 export type InvitationSlug = (typeof INVITATION_SLUGS)[number];
 
 export interface BroteInvitation {
   slug: InvitationSlug;
-  /** Rendered as-is; never translated. */
+  /**
+   * The identity block, set in Instrument Serif at ~84px. For a collaborator
+   * it is their name; for the returning-community page it is a phrase, since
+   * there is nobody to name.
+   */
   name: string;
-  /** With the `@`. The Instagram URL is derived from it. */
-  handle: string;
-  /** Brands discount; artists sell at the public price and earn a fee. */
-  kind: "brand" | "artist";
+  /**
+   * With the `@`. Optional: `community` has no account to link to, and the
+   * chip is simply not rendered — the same way a missing role line closes up
+   * rather than leaving a hole.
+   */
+  handle?: string;
+  /**
+   * `brand` and `community` discount; `artist` sells at the public price and
+   * earns a per-ticket fee. Only `artist` is ever paid out — the others are
+   * reported so the sales are visible, not because money is owed.
+   */
+  kind: "brand" | "artist" | "community";
   /** Off the REGULAR price, not the preventa. 0 for artists. */
   discountPct: number;
   /** Row in `links` — what stamps `participations.link_slug`. */
@@ -78,6 +91,17 @@ const INVITATIONS: Record<InvitationSlug, BroteInvitation> = {
     kind: "artist",
     discountPct: 0,
     linkSlug: "inv-gian",
+  },
+  // Everyone who already came — BROTE 1 (brote-2026-03-28) or the planting
+  // day (plant-2026-04). Not a collaborator: nobody is inviting anybody and
+  // nobody gets paid, so there is no handle and the page overrides the
+  // "Te invita" kicker. Same 35% as the brands.
+  comunidad: {
+    slug: "comunidad",
+    name: "Comunidad BROTE",
+    kind: "community",
+    discountPct: 35,
+    linkSlug: "inv-comunidad",
   },
 };
 
@@ -147,7 +171,8 @@ export function resolveInvitationPrice(
   };
 }
 
-/** `https://instagram.com/<handle sin @>` */
-export function instagramUrl(invitation: BroteInvitation): string {
+/** `https://instagram.com/<handle sin @>`, or null when there is no account. */
+export function instagramUrl(invitation: BroteInvitation): string | null {
+  if (!invitation.handle) return null;
   return `https://instagram.com/${invitation.handle.replace(/^@/, "")}`;
 }
