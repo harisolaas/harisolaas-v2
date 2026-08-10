@@ -19,6 +19,11 @@ export const broteConfig = {
   eventDate: "2026-08-20", // YYYY-MM-DD, Argentina time
   eventDateDisplay: "Jueves 20 de agosto",
   eventTime: "19:00 a 22:30",
+  // The same two hours as `eventTime`, machine-readable. Structured data needs
+  // real timestamps, and parsing them back out of the display string would
+  // break the first time the copy reads "de 19 a 22:30".
+  eventStartTime: "19:00",
+  eventEndTime: "22:30",
 
   // Prices
   ticketPrice: "$33.000",
@@ -64,6 +69,35 @@ export const artOfLivingInstagram = "https://www.instagram.com/elartedevivir.ar/
 /** End of the early-bird window: last second of the deadline day, UTC-3. */
 const earlyBirdEndsAt = () =>
   new Date(`${broteConfig.earlyBirdDeadline}T23:59:59-03:00`);
+
+/**
+ * ISO 8601 timestamps for the event itself, offset included.
+ *
+ * Returned as strings rather than `Date`s because their only consumer is
+ * schema.org markup, which wants the local wall-clock time *with* its offset —
+ * `toISOString()` would normalise to UTC and publish a 22:00 start.
+ *
+ * The explicit `-03:00` matters for the same reason it does in
+ * `earlyBirdEndsAt()`: without it these are read as UTC and every calendar
+ * that ingests the markup puts the party three hours early.
+ */
+export const eventStartsAt = () =>
+  `${broteConfig.eventDate}T${broteConfig.eventStartTime}:00-03:00`;
+
+export const eventEndsAt = () =>
+  `${broteConfig.eventDate}T${broteConfig.eventEndTime}:00-03:00`;
+
+/** Last instant of the preventa, as a schema.org `priceValidUntil`. */
+export const earlyBirdValidUntil = () =>
+  `${broteConfig.earlyBirdDeadline}T23:59:59-03:00`;
+
+/** Midnight after the deadline — when the regular price takes over. */
+export function regularPriceValidFrom(): string {
+  const dayAfter = new Date(`${broteConfig.earlyBirdDeadline}T12:00:00-03:00`);
+  dayAfter.setDate(dayAfter.getDate() + 1);
+  const [date] = dayAfter.toISOString().split("T");
+  return `${date}T00:00:00-03:00`;
+}
 
 /**
  * Is the preventa still open? The explicit -03:00 matters: without it the
