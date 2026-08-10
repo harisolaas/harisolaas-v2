@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import es from "./es";
 import en from "./en";
 import { fillTokens, pricingTokens } from "../data/brote";
+import { getInvitation, instagramUrl } from "../lib/brote-invitations";
 
 // Pure dictionary checks — no DB, no server imports. Guards the bug classes
 // typecheck can't see: a locale dict linking into the other locale's routes,
@@ -74,11 +75,22 @@ describe.each(dicts)("$locale dictionary — brote landing", ({ dict }) => {
   });
 
   it("points the DJ link at a real Instagram profile", () => {
-    const url = new URL(brote.lineup.dj.link.url);
+    // The URL no longer lives in the dictionary — it is derived from the
+    // invitation registry via the slug, which is what stopped the landing and
+    // the registry from drifting apart. The assertion follows it there.
+    const gian = getInvitation(brote.lineup.dj.mention.slug);
+    expect(gian).not.toBeNull();
+
+    // Asserted rather than asserted-away with `!`: if the registry ever drops
+    // his handle, this reports "expected null not to be null" instead of
+    // throwing inside the URL constructor.
+    const handleUrl = instagramUrl(gian!);
+    expect(handleUrl).not.toBeNull();
+
+    const url = new URL(handleUrl!);
     expect(url.protocol).toBe("https:");
     expect(url.hostname).toMatch(/(^|\.)instagram\.com$/);
     expect(url.pathname.replace(/\//g, "")).not.toBe("");
-    expect(brote.lineup.dj.link.label.trim()).not.toBe("");
   });
 
   it("lists exactly three ticket inclusions plus the featured one", () => {
@@ -86,7 +98,15 @@ describe.each(dicts)("$locale dictionary — brote landing", ({ dict }) => {
     brote.includes.items.forEach((item, i) => {
       expect(item.number).toBe(String(i + 1).padStart(2, "0"));
       expect(item.title.trim()).not.toBe("");
-      expect(item.body.trim()).not.toBe("");
+
+      // An item carries either plain copy or a collaborator mention, never
+      // neither — the two that name Un Árbol and MateLab use `mention` so the
+      // brand inside the sentence can be a link.
+      const copy = item.mention
+        ? `${item.mention.bodyBefore}${item.mention.bodyAfter}`
+        : item.body;
+      expect(copy?.trim()).not.toBe("");
+      expect(copy).toBeDefined();
     });
     expect(brote.includes.featured.number).toBe("04");
     expect(brote.includes.featured.title.trim()).not.toBe("");
@@ -136,7 +156,11 @@ describe.each(dicts)("$locale dictionary — brote landing", ({ dict }) => {
 // on a 12h one, matching each locale's infoBar.
 const UNTRANSLATED_BY_DESIGN = [
   /\.number$/,
-  /^lineup\.dj\.link\./,
+  // A collaborator's slug is a lookup key into the invitation registry, not
+  // copy — identical in both locales by definition. It replaced
+  // `lineup.dj.link.*`, which was the same exemption for the same reason back
+  // when the dictionary carried the handle and URL itself.
+  /\.slug$/,
   /^lineup\.dj\.title$/,
   /^pricing\.earlyBirdBadge$/,
 ];

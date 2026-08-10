@@ -46,7 +46,7 @@ describe("summarizePayout", () => {
     expect(jose.tickets).toBe(2);
     expect(jose.revenueCents).toBe(4950000);
     expect(jose.revenueDisplay).toBe("$49.500");
-    expect(jose.name).toBe("Jose Dezanzo");
+    expect(jose.name).toBe("José Dezanzo");
     expect(jose.kind).toBe("artist");
 
     expect(s.totals.tickets).toBe(3);

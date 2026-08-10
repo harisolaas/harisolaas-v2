@@ -217,7 +217,7 @@ const PEOPLE: PersonFixture[] = [
   // The two BROTE line-up artists, as the referrers on their invitation
   // links. They need to exist as people for `referred_by_person_id` to
   // resolve to anything.
-  { email: "preview-jose@example.com", name: "Jose Dezanzo" },
+  { email: "preview-jose@example.com", name: "José Dezanzo" },
   { email: "preview-gian@example.com", name: "Gian Bejarano" },
   // Exercises the 'Asistente' placeholder self-heal path in `upsertPerson`
   // / `recordParticipation` and the backfill script's filter
