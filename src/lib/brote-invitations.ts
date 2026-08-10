@@ -86,7 +86,10 @@ const INVITATIONS: Record<InvitationSlug, BroteInvitation> = {
   },
   jose: {
     slug: "jose",
-    name: "Jose Dezanzo",
+    // Accented: the registry is now the only source of this name, and it
+    // renders on a Spanish landing page. Before the line-up read from here,
+    // `es.ts` spelled it "José" and only the invitation page said "Jose".
+    name: "José Dezanzo",
     handle: "@josedezanzo",
     kind: "artist",
     discountPct: 0,
