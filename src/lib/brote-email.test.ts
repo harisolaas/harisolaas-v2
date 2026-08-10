@@ -40,6 +40,35 @@ describe("buildTicketEmailHtml", () => {
     expect(html).not.toContain("cid:qr1");
   });
 
+  it("pairs each printed ticket id with the cid IN ITS OWN block", () => {
+    // The HTML and the attachment list are built by two independent maps
+    // over the same array. The attachment side is pinned in
+    // brote-ticket-email.test.ts; without this, the template side is not —
+    // verified, a permutation (`qrContentId(tickets.length - 1 - i)`)
+    // passes the entire suite while the block that reads "ENTRADA 2 DE 3 ·
+    // Árbol #42" carries a different ticket's QR. Same class of failure as
+    // reusing one cid, one level up.
+    const tickets = [
+      { ticketId: "BROTE2-AAA", treeNumber: 41 },
+      { ticketId: "BROTE2-BBB", treeNumber: 42 },
+      { ticketId: "BROTE2-CCC", treeNumber: 43 },
+    ];
+    const html = buildTicketEmailHtml(tickets, "Ana");
+
+    // Walk the document in order, pulling (cid, ticketId) out of each block.
+    const pairs = [
+      ...html.matchAll(
+        /src="cid:(qr\d*)"[\s\S]*?letter-spacing:1\.5px">([^<]+)</g,
+      ),
+    ].map(([, cid, id]) => [cid, id]);
+
+    expect(pairs).toEqual([
+      ["qr", "BROTE2-AAA"],
+      ["qr2", "BROTE2-BBB"],
+      ["qr3", "BROTE2-CCC"],
+    ]);
+  });
+
   it("renders one QR block per ticket, each with its own id and tree number", () => {
     const html = buildTicketEmailHtml(
       [

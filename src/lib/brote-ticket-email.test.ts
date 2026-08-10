@@ -256,18 +256,22 @@ describe("markBroteTicketEmailSent", () => {
     // One email now covers N tickets, so the flag has to land on all of
     // them. Missing the tail leaves those rows looking unsent, and the
     // webhook's retry path re-sends the whole batch on the next MP delivery.
+    // One person per row, deliberately. Several rows for the SAME person
+    // and event only became legal with migration 0006 (the partial unique
+    // index), which lives on another branch — this file must not silently
+    // depend on it having been applied to whatever database the suite is
+    // pointed at. Batching is orthogonal to who owns the tickets.
     const ids = [`${TEST_TICKET}-B1`, `${TEST_TICKET}-B2`, `${TEST_TICKET}-B3`];
-    const [person] = await db
-      .select({ id: schema.people.id })
-      .from(schema.people)
-      .where(sql`${schema.people.email} = ${TEST_EMAIL}`);
-
-    for (const id of ids) {
+    for (const [i, id] of ids.entries()) {
+      const [person] = await db
+        .insert(schema.people)
+        .values({ email: `test-ticket-email-b${i}@example.com`, name: "Ana" })
+        .returning();
       await db.insert(schema.participations).values({
         id,
         personId: person.id,
         eventId: TEST_EVENT,
-        role: "companion",
+        role: "attendee",
         status: "confirmed",
       });
     }
@@ -299,14 +303,14 @@ describe("markBroteTicketEmailSent", () => {
     // bystander row that must stay unflagged.
     const control = `${TEST_TICKET}-CONTROL`;
     const [person] = await db
-      .select({ id: schema.people.id })
-      .from(schema.people)
-      .where(sql`${schema.people.email} = ${TEST_EMAIL}`);
+      .insert(schema.people)
+      .values({ email: "test-ticket-email-ctl@example.com", name: "Ana" })
+      .returning();
     await db.insert(schema.participations).values({
       id: control,
       personId: person.id,
       eventId: TEST_EVENT,
-      role: "companion",
+      role: "attendee",
       status: "confirmed",
     });
 
@@ -325,5 +329,9 @@ async function cleanup() {
     sql`DELETE FROM participations WHERE event_id = ${TEST_EVENT}`,
   );
   await db.execute(sql`DELETE FROM events WHERE id = ${TEST_EVENT}`);
-  await db.execute(sql`DELETE FROM people WHERE email = ${TEST_EMAIL}`);
+  // LIKE, not `=`: the batch cases create one person per ticket so they do
+  // not depend on the partial unique index from another branch.
+  await db.execute(
+    sql`DELETE FROM people WHERE email LIKE 'test-ticket-email-%@example.com'`,
+  );
 }
