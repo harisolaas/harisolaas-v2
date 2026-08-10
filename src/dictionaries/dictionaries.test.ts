@@ -81,7 +81,13 @@ describe.each(dicts)("$locale dictionary — brote landing", ({ dict }) => {
     const gian = getInvitation(brote.lineup.dj.mention.slug);
     expect(gian).not.toBeNull();
 
-    const url = new URL(instagramUrl(gian!)!);
+    // Asserted rather than asserted-away with `!`: if the registry ever drops
+    // his handle, this reports "expected null not to be null" instead of
+    // throwing inside the URL constructor.
+    const handleUrl = instagramUrl(gian!);
+    expect(handleUrl).not.toBeNull();
+
+    const url = new URL(handleUrl!);
     expect(url.protocol).toBe("https:");
     expect(url.hostname).toMatch(/(^|\.)instagram\.com$/);
     expect(url.pathname.replace(/\//g, "")).not.toBe("");

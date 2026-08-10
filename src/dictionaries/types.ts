@@ -79,14 +79,22 @@ export interface BroteCollaboratorMention {
   bodyAfter: string;
 }
 
-export interface BroteIncludesItem {
+/**
+ * An item carries EITHER plain copy or a collaborator mention — never both,
+ * and never neither.
+ *
+ * Modelled as a union rather than two optional fields so the compiler rejects
+ * the invalid states. "Neither" is the one that matters: the renderer falls
+ * back to `item.body`, and an item with no copy at all renders `undefined`
+ * silently instead of throwing.
+ */
+export type BroteIncludesItem = {
   number: string;
   title: string;
-  /** Plain copy, when the item names nobody. Mutually exclusive with `mention`. */
-  body?: string;
-  /** Used instead of `body` when the item names a collaborator. */
-  mention?: BroteCollaboratorMention;
-}
+} & (
+  | { body: string; mention?: never }
+  | { mention: BroteCollaboratorMention; body?: never }
+);
 
 /** Optional post-payment contact step on /brote/success. */
 export interface BroteSuccessContactDict {
