@@ -363,7 +363,7 @@ Never hardcode a price. `currentTicketPrice(now)` is what both the landing rende
 |---|---|---|
 | `checkout/` | POST | Creates MP Preference for regular/early-bird ticket. Rate limited (5/IP/60s) |
 | `webhook/` | POST | Receives MP payment notifications. HMAC verification, idempotent (Redis `brote:payment:{id}` → ticketId), `emailSent` flag for crash recovery email retry |
-| `counter/` | GET | Returns ticket count from Redis |
+| `counter/` | GET | Ticket count — `COUNT(*)` over `participations` (status `confirmed`/`used`) for the current `BROTE_EVENT_ID`. Postgres, not Redis |
 | `validate/` | POST | Actions: `check` (is ticket valid?) and `use` (mark used at door) |
 | `admin/` | GET/POST | System status, ticket lookup, email resend, payment lookup. Auth: `Bearer $BROTE_ADMIN_SECRET` |
 | `attendees/` | GET | Export attendee list. Auth required |
