@@ -60,14 +60,22 @@ export async function generateMetadata({
     // Not indexed and not in the sitemap: these links are handed out by the
     // collaborators, not found in search.
     robots: { index: false, follow: false },
+    // Declared in full. A child `openGraph` replaces the parent's outright
+    // rather than merging into it, so a partial block silently drops
+    // siteName/locale/type — and these are precisely the pages collaborators
+    // are sharing from their own accounts, where the card is the whole pitch.
     openGraph: {
       title: `${invitation.name} × BROTE`,
       description: meta.description,
+      siteName: "BROTE",
+      locale: locale === "es" ? "es_AR" : "en_US",
+      type: "website",
       images: [
         {
           url: `/${BROTE_OG_IMAGE}`,
           width: 1200,
           height: 630,
+          alt: dict.brote.meta.ogImageAlt,
         },
       ],
     },

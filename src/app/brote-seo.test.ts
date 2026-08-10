@@ -21,7 +21,15 @@ vi.mock("next/font/google", () => {
 });
 
 const CANONICAL_HOST = "https://www.harisolaas.com";
-const OG_FILE = "og-brote-v2.png";
+
+/**
+ * Imported rather than restated, so bumping the share card is one edit and
+ * not seven. The name itself is checked as a *property* below — asserting the
+ * literal here would fail on every legitimate version bump while still not
+ * catching the mutation that matters (pointing the constant at a different
+ * card that happens to exist).
+ */
+const { BROTE_OG_IMAGE: OG_FILE } = await import("@/data/brote");
 
 const locales = ["es", "en"] as const;
 
@@ -100,6 +108,15 @@ describe("BROTE landing metadata", () => {
 });
 
 describe("the OG asset itself", () => {
+  it("names a BROTE card, not some other image that happens to exist", () => {
+    // Without this, repointing the constant at `og-image.jpg` — the personal
+    // site's card, which is a real file — passes every other assertion here:
+    // the file exists and all four pages still agree with each other, while
+    // BROTE shares render the wrong artwork. Asserted as a shape rather than
+    // a literal so a v2→v3 bump stays a one-line change.
+    expect(OG_FILE).toMatch(/^og-brote[\w.-]*\.(png|jpe?g)$/);
+  });
+
   it("exists in public/ and is not empty", async () => {
     const { BROTE_OG_IMAGE } = await import("@/data/brote");
     const file = resolve(process.cwd(), "public", BROTE_OG_IMAGE);
@@ -182,6 +199,25 @@ describe("invitation pages", () => {
     const twitter = md.twitter?.images as string[];
     expect(twitter?.[0]).toContain(OG_FILE);
     expect(twitter?.[0]?.startsWith("/")).toBe(true);
+  });
+
+  it("carries a complete openGraph block", async () => {
+    const { generateMetadata } = await import(
+      "@/app/[locale]/brote/invitacion/[colaborador]/page"
+    );
+    const md = await generateMetadata({
+      params: Promise.resolve({ locale: "es", colaborador: "matelab" }),
+    });
+
+    // Same rule as success/failure, and it matters most here: these are the
+    // pages the five collaborators share from their own accounts, so a card
+    // degraded to the personal-site defaults is the costliest place to have it.
+    expect(md.openGraph?.siteName).toBeTruthy();
+    expect(md.openGraph?.type).toBeTruthy();
+    expect(md.openGraph?.locale).toBeTruthy();
+
+    const images = md.openGraph?.images as Array<{ alt?: string }>;
+    expect(images?.[0]?.alt).toBeTruthy();
   });
 });
 
