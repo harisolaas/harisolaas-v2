@@ -73,6 +73,63 @@ function DottedDivider({ style }: { style?: CSSProperties }) {
   );
 }
 
+/**
+ * The @handle pill under the name.
+ *
+ * Renders nothing without an account — the returning-community page has
+ * nobody to link to, and an empty bordered pill would read as a bug. Same
+ * behaviour as an absent role line: the block closes up instead of leaving a
+ * hole.
+ */
+function InstagramChip({
+  url,
+  handle,
+}: {
+  url: string | null;
+  handle?: string;
+}) {
+  if (!url) return null;
+  return (
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="brote-inv-chip"
+        style={{
+          ...mono,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 8,
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.22em",
+          textTransform: "uppercase",
+          textDecoration: "none",
+          color: FOREST_60,
+          border: `1px solid ${FOREST_30}`,
+          padding: "9px 15px",
+        }}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          aria-hidden
+        >
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.5" cy="6.5" r="1" />
+        </svg>
+        {handle}
+      </a>
+    </div>
+  );
+}
+
 const ILLUSTRATIONS = [
   "/brote/ilustraciones/brote-arbol-riso.png",
   "/brote/ilustraciones/brote-lata-riso.png",
@@ -198,47 +255,7 @@ export default function BroteInvitacion({ dict, locale, invitation }: Props) {
             {invitation.name}
           </h1>
 
-          {/* No account, no chip. The returning-community page has nobody to
-              link to, and an empty bordered pill would read as a bug. */}
-          {igUrl && (
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <a
-              href={igUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="brote-inv-chip"
-              style={{
-                ...mono,
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.22em",
-                textTransform: "uppercase",
-                textDecoration: "none",
-                color: FOREST_60,
-                border: `1px solid ${FOREST_30}`,
-                padding: "9px 15px",
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden
-              >
-                <rect x="3" y="3" width="18" height="18" rx="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.5" cy="6.5" r="1" />
-              </svg>
-              {invitation.handle}
-            </a>
-          </div>
-          )}
+          <InstagramChip url={igUrl} handle={invitation.handle} />
 
           {copy?.roleLine ? (
             <p
