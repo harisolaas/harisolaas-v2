@@ -43,9 +43,17 @@ function dbHost(): string {
 }
 
 async function main() {
-  if (feePesos && !Number.isFinite(Number(feePesos))) {
-    console.error(`--fee must be a number of pesos, got "${feePesos}"`);
-    process.exit(1);
+  // Rejected rather than clamped: this report decides payments, and a
+  // negative fee would print a plausible-looking table with the sign quietly
+  // inverted.
+  if (feePesos !== undefined) {
+    const parsed = Number(feePesos);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      console.error(
+        `--fee must be a non-negative number of pesos, got "${feePesos}"`,
+      );
+      process.exit(1);
+    }
   }
   if (!process.env.DATABASE_URL) {
     console.error(
