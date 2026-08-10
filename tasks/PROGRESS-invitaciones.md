@@ -14,24 +14,27 @@ Rama base: `main`. **El sitio está VIVO — no se pushea a main sin aprobación
 |---|---|---|---|
 | **U1** | [#57](https://github.com/harisolaas/harisolaas-v2/pull/57) → `3815043` | Atribución en el camino de pago: `readBrowserAttribution` (puro), la landing manda `utm`+`linkSlug`, el checkout escribe los 4 campos planos en el stash bajo **dos** anclajes (`preferenceId` y `confirmToken`), el webhook pasa `bypassLinkSlug`. Sin schema. | **Revisor adversarial:** dos mutaciones pasaban 6/6 porque nada miraba el stash by-email ni un payment sin `preference_id`; y borrar el hunk entero del cliente dejaba la suite verde → se extrajo el helper puro. **Copilot:** `?utm_content=` vacío le ganaba a la cookie y devolvía un slug vacío (bug real). **Causa raíz de CI roto para todo el repo:** `resetTestData` no barría `links`, así que una fila `test-bypass-link-*` de una corrida abortada rompía todas las siguientes. |
 
+| **U2** | [#60](https://github.com/harisolaas/harisolaas-v2/pull/60) → `d1cb4b5` | Registro de los 5 colaboradores + precio decidido por el servidor. 35% sobre el REGULAR (fijo, no se mueve el 14/8); artistas al precio público vía `currentTicketPrice()`. `metadata.invite` en la Preference. | **Revisor adversarial:** T2.10 pasaba por un camino que producción no toma — un `fetch()` same-origin siempre manda `Referer`, así que `attribution` nunca es `undefined` ahí y un guard `!attribution` habría dejado toda venta invitada con `link_slug` null. **Self-review:** `getInvitation("constructor")` devolvía `Object.prototype.constructor`. **Copilot:** `String(metadata.invite)` grababa `"[object Object]"`. |
+| **U3** | [#61](https://github.com/harisolaas/harisolaas-v2/pull/61) → `4c21489` | 5 filas en `links` con slugs estables + el seeder de preview, que no escribía `link_slug`/`attribution`/`referred_by_person_id` y por eso todo link mostraba 0 signups. | **Copilot:** `ON CONFLICT DO NOTHING` hacía inútil `--referrer-*` en la segunda corrida, que es el flujo esperado. **Propio:** un `personEmail` fuera de `PEOPLE` hacía que el INSERT escribiera cero filas en silencio — me pasó, y ahora hay validación de fixtures. |
+| **U4** | [#62](https://github.com/harisolaas/harisolaas-v2/pull/62) → `54d43ab` | Las cinco páginas. Server component + un island para el CTA. `force-dynamic` verificado en la tabla de rutas del build (`ƒ`). | El copy del handoff traía la fecha de la edición 1 ("nos vemos el 28", "28 MAR") — corregido, con test que falla si vuelve. **Copilot:** `follow: false` faltante en el fallback y `"marzo"` case-sensitive. |
+| **U6** | [#63](https://github.com/harisolaas/harisolaas-v2/pull/63) → `a64fd8f` | Reporte de liquidación. **Unidad nueva**, no estaba en el spec: sale de la auditoría de midpoint. | Ver abajo. |
+
 ## Queue
 
 | # | Unidad | Estado |
 |---|---|---|
-| ~~U1~~ | ~~Capturar atribución en el camino de pago de BROTE~~ | ✅ **merged** (`3815043`) |
-| U2 | Registro de invitaciones + precio autoritativo del servidor | **PR [#60](https://github.com/harisolaas/harisolaas-v2/pull/60)** — revisión adversarial + Copilot respondidos, threads resueltos. Esperando CI verde y "mergealo". |
-| U3 | Filas de links rastreados + seeder de preview | pendiente |
-| U4 | Las cinco páginas de invitación | pendiente |
-| U5 | Retirar `/brote-unarbol` y `/brote-cima` | pendiente |
+| ~~U1~~ | ~~Atribución en el camino de pago~~ | ✅ merged `3815043` |
+| ~~U2~~ | ~~Registro + precio autoritativo~~ | ✅ merged `d1cb4b5` |
+| ~~U3~~ | ~~Filas de links + seeder~~ | ✅ merged `4c21489` |
+| ~~U4~~ | ~~Las cinco páginas~~ | ✅ merged `54d43ab` |
+| ~~U6~~ | ~~Reporte de liquidación~~ | ✅ merged `a64fd8f` |
+| U5 | Retirar `/brote-unarbol` y `/brote-cima` | PR [#65](https://github.com/harisolaas/harisolaas-v2/pull/65) — última |
 
-Auditoría zero-context de midpoint: después de U3.
+Auditoría zero-context de midpoint: corrida después de U3. Triage más abajo.
 
 ## Blocked
 
-| Ítem | Espera | Pedido a / cuándo |
-|---|---|---|
-| Check punta-a-punta de U3 (`--execute` contra preview) | `vercel env pull .env.local --environment=preview` en **este worktree** | owner, aún no pedido — se pide al llegar a U3 |
-| Punto 3 del downgrade de U1 (MP propaga metadata de Preference→Payment) | primera compra real en prod | owner, va a la checklist final |
+_(vacío — ver Dispositions)_
 
 ---
 
@@ -107,4 +110,18 @@ Crece durante la ejecución por diseño.
 
 ## Dispositions
 
-*(se completa en la fase de Landing)*
+Estado terminal de todo lo que alguna vez estuvo bloqueado o esperando. Nada queda "pendiente".
+
+| Ítem | Disposición | Evidencia / trigger |
+|---|---|---|
+| Check punta-a-punta de U3 (`--execute` contra preview) | **Checklist del owner** | Nunca se desbloqueó: hace falta `vercel env pull` en el worktree. El script tiene dry-run verificado; la corrida real va contra prod **antes de repartir los links**. |
+| Punto 3 del downgrade de U1 (MP propaga metadata Preference→Payment) | **Checklist del owner** | Sin sandbox de MP, no verificable acá. Se cierra inspeccionando a mano la primera compra real. |
+| Colisión con `checkout-directo` | **Done** | U1 reescrita sobre el main nuevo; U2 replanificada; el spec lleva el bloque ⚠️ REPLANIFICADO. |
+| CI roto para todo el repo (basura de fixtures en la branch dev) | **Done** | Causa raíz encontrada y arreglada en U1: `resetTestData` no barría `links`. El fixture se autocura. |
+| Precios STALE de la edición 1 en `broteUnArbol`/`broteCima` | **Done** | Borrados en U5. |
+| Auditoría #1+#3 (el conteo del fee era falsificable e invisible) | **Done** | U6: la liquidación lee `metadata.invite`, que sólo escribe el webhook con pago confirmado. |
+| Auditoría #2 (`bypassLinkSlug` da capacidad desde input del cliente) | **Backlog** | Preexistente en Sinergia; inerte en BROTE (capacity NULL). Trigger: si BROTE alguna vez tiene cupo, o antes de la próxima Sinergia con lista de espera. |
+| Auditoría #4 (el backfill colapsaría a los 5 en un slug) | **Backlog** | Sólo afecta participaciones que ya perdieron el `link_slug`. Trigger: antes de correr `backfill-link-attribution.ts`. |
+| Auditoría #6/#7/#8 (sin truncar, 500 en vez de 400, docstring mentiroso) | **Backlog** | Severidad baja. Trigger: endurecimiento general de la capa de atribución. |
+| Los dos HIGH del otro programa (puerta sin auth, webhook fail-open) | **Owner — decidido fuera de este programa** | El owner decidió que los maneja `checkout-directo`; están en su handback con trigger "antes del 20/8". |
+| Verificación visual de las 5 páginas a 390/1440px | **Checklist del owner** | No la puedo firmar yo. Las páginas están vivas y son unlisted, así que se puede hacer antes de repartir los links. |
