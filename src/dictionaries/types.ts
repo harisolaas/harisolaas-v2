@@ -307,20 +307,6 @@ export interface PlantDict {
   };
 }
 
-export interface BroteUnArbolDict {
-  headline: string;
-  message: string[];
-  includes: string[];
-  pricingTitle: string;
-  pricing: { label: string; price: string; highlight?: boolean }[];
-  codePlaceholder: string;
-  codeButton: string;
-  codeInvalid: string;
-  codeUsed: string;
-  cta: string;
-  loading: string;
-  backLink: string;
-}
 
 export interface SinergiaDict {
   meta: { title: string; description: string; ogDescription: string };
@@ -597,8 +583,6 @@ export interface Dictionary {
   };
   brote: BroteDict;
   broteInvitacion: BroteInvitacionDict;
-  broteUnArbol: BroteUnArbolDict;
-  broteCima: BroteUnArbolDict;
   plant: PlantDict;
   sinergia: SinergiaDict;
   sinergiaParrafo: SinergiaParrafoDict;

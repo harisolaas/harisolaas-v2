@@ -17,12 +17,6 @@ export const broteConfig = {
   earlyBirdPriceRaw: 24750,
   earlyBirdDeadline: "2026-08-13", // YYYY-MM-DD, inclusive (Argentina time)
   earlyBirdDeadlineDisplay: "13 de agosto", // must match earlyBirdDeadline
-  // STALE — precio ed. 1, actualizar antes de reactivar el flujo Un Árbol.
-  unArbolPrice: "$17.477",
-  unArbolPriceRaw: 17477,
-  // STALE — precio ed. 1, actualizar antes de reactivar el flujo CIMA.
-  cimaPrice: "$17.477",
-  cimaPriceRaw: 17477,
   currency: "ARS",
 
   // Contact link for tree planting / donations
