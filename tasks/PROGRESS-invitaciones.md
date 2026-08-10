@@ -70,6 +70,27 @@ Una línea cada uno. Violarlos cuesta un ciclo de PR completo.
 - `new MercadoPagoConfig({accessToken: undefined})` no tira, y `Resend` es lazy — por eso las rutas se pueden importar bajo mocks sin env.
 - `src/dictionaries/dictionaries.test.ts` **no** cubre paridad es/en genérica: hardcodea `mentoria` y `now`.
 
+## Auditoría zero-context (midpoint, tras U3)
+
+Agente sin contexto del programa, encargo de una sola frase: *"auditá cómo se atribuyen las ventas de entradas de BROTE a quien las refirió"*. Nueve hallazgos. Triage según **"arreglamos lo que rompimos, documentamos lo que encontramos"**:
+
+### 🔴 Rompe el objetivo del programa — necesita decisión del owner
+
+**El número con el que se liquida el fee es falsificable y, en el caso común, invisible.** Son dos hallazgos que se combinan:
+
+1. `link_slug` sale de `body.linkSlug` **sin validar** (`src/lib/attribution.ts:46`), y la query de signups del admin (`api/admin/links/[slug]/route.ts:104-116`) **no filtra por evento ni por pago**. O sea que un POST a `/api/brote/register` —el formulario **gratis** de plantación— con `linkSlug: "inv-jose"` suma +1 al contador de Jose por cada email distinto. Techo: la capacidad del evento plant (40).
+2. Un `haris_link` de hasta 30 días **le gana** a la invitación (es la precedencia que fijé a propósito en T2.11), así que quien clickeó cualquier link de `/go/` en el último mes y compra desde la página de Jose queda atribuido al link viejo. El cinturón que declaré en el PR de U2 —`metadata.invite`— **no está abrochado: nada lo lee.** Ni `admin/tickets`, ni `links/[slug]`, ni `attendees`.
+
+Neto: el conteo se puede inflar gratis y, en el caso más frecuente, ni siquiera registra al colaborador donde alguien lo vea. **Propuesta al owner: un U6 chico** — un script de lectura que cuente entradas **pagas** del evento BROTE agrupadas por `metadata.invite`. Inmune a las dos cosas: los endpoints gratuitos no escriben `metadata.invite` (sólo lo hace el webhook desde la metadata del pago), y no depende de `link_slug`.
+
+### 🟡 Preexistente, no lo introdujo este programa — backlog
+
+- **`bypassLinkSlug` es capacidad concedida por input del cliente.** `/api/sinergia/rsvp` acepta `linkSlug` del body y con eso entra a una cena llena de 15. `/api/sinergia/next-session?link=` es un oráculo sin auth que dice si un slug es de bypass, y los slugs son `{prefijo}-{fecha}-{nano3}` sobre 32 chars → 32.768 candidatos por prefijo/día. **Para BROTE es inerte** (capacity NULL, verificado), pero U1 sumó el mismo patrón al webhook: si BROTE alguna vez tiene cupo, se activa. Severidad alta para Sinergia, latente para BROTE.
+- `scripts/backfill-link-attribution.ts` agrupa por `(source, medium, campaign)` y los cinco colaboradores comparten `partner/referral/brote-invitacion`, así que correrlo colapsaría a los cinco en un slug sintético. Sólo afecta participaciones que ya perdieron su `link_slug`.
+- `trimOrUndefined` no trunca: un `linkSlug` de 300 chars entra entero al jsonb. `/go/[slug]` inserta un click por request sin rate limit.
+- Un `linkSlug` no-string tira 500 en vez de 400 (`v.trim is not a function`).
+- El docstring de `sanitizeAttribution` promete limpiar `content` y sólo limpia `linkSlug`.
+
 ## Carry-forward / backlog
 
 Crece durante la ejecución por diseño.
