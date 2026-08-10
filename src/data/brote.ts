@@ -4,6 +4,16 @@
 export const BROTE_EVENT_ID = "brote-2026-08-20"; // current edition (BROTE 2)
 export const BROTE_1_EVENT_ID = "brote-2026-03-28"; // historical (BROTE 1)
 
+/**
+ * The share card, named once so the four pages that reference it cannot drift.
+ *
+ * Bump the filename — never overwrite in place — when the card changes:
+ * Facebook, WhatsApp and X cache OG images by URL, so a same-path replacement
+ * keeps serving the old artwork from their caches for weeks. `-v2` replaced an
+ * edition-1 card still advertising "Sábado 28 de marzo".
+ */
+export const BROTE_OG_IMAGE = "og-brote-v2.png";
+
 export const broteConfig = {
   // Event date/time — single source of truth (mirrors plantConfig naming).
   eventDate: "2026-08-20", // YYYY-MM-DD, Argentina time

@@ -420,6 +420,8 @@ const es: Dictionary = {
         "M\u00fasica en vivo, catering y una noche con sentido. Cada entrada planta un \u00e1rbol real en Argentina. Jueves 20 de agosto.",
       ogDescription:
         "M\u00fasica en vivo, catering y una noche con sentido. Cada entrada planta un \u00e1rbol real en Argentina.",
+      ogImageAlt:
+        "BROTE \u2014 una entrada, un \u00e1rbol. Jueves 20 de agosto, 19:00 a 22:30, Palermo, CABA.",
     },
     topbar: { left: "Fiesta", right: "2026" },
     hero: {

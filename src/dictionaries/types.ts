@@ -145,7 +145,13 @@ export interface BroteInvitacionDict {
 }
 
 export interface BroteDict {
-  meta: { title: string; description: string; ogDescription: string };
+  meta: {
+    title: string;
+    description: string;
+    ogDescription: string;
+    /** Alt text for the share card, for screen readers and image search. */
+    ogImageAlt: string;
+  };
   topbar: { left: string; right: string };
   hero: {
     cta: string;
