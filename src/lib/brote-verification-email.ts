@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import type { Locale } from "@/i18n/config";
+import { artOfLivingInstagram } from "@/data/brote";
 
 // Lazy Resend instantiation (same pattern as the BROTE webhook) so importing
 // this module never crashes a build where RESEND_API_KEY is absent.
@@ -111,7 +112,7 @@ export function renderBroteVerificationEmail(input: BroteVerificationEmailInput)
 
 <!-- Footer -->
 <tr><td style="padding:20px 24px 28px;text-align:center;border-top:1px solid #f0f0f0">
-  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE · El Arte de Vivir</p>
+  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE · <a href="${artOfLivingInstagram}" style="color:#aaa;text-decoration:underline">El Arte de Vivir</a></p>
   <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
 </td></tr>
 
