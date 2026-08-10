@@ -61,12 +61,61 @@ programme-specific notes; those live in each programme's PROGRESS.md.
   evaluates it at module scope during page-data collection. A throwaway
   `postgresql://build:build@127.0.0.1:5432/build` satisfies it without connecting
   to anything.
+- **A Vercel preview can fail on a Google-Fonts 404 that has nothing to do with
+  your diff.** `fonts.gstatic.com` returned 404 for Lora's `.woff2` files
+  mid-build and Turbopack then reported 14× `Can't resolve
+  '@vercel/turbopack-next/internal/font/google/font'` — which reads like a
+  dependency problem and is not. GitHub Actions' `npm run build` passed on the
+  same commit, and neighbouring PRs deployed minutes later. Redeploy rather
+  than debugging the diff; the Vercel CLI here is scoped to a different team
+  (`Error: Deployment belongs to a different team`), so re-trigger with a push.
 - **Don't touch `.next` while a dev server runs** — it corrupts Turbopack and
   wedges the port. `lsof -i :3000` first; use a non-default port for throwaway
   servers so you can't collide with the owner's.
 
 ## Framework behaviour
 
+- **`generateMetadata` returns the RAW object; `metadataBase` is applied later**,
+  inside Next's `mergeMetadata` (`resolve-metadata.js`), which a unit test cannot
+  reach. So `expect(url).toContain("og-card.png")` passes for both `/og-card.png`
+  and `https://host/og-card.png` — it cannot kill the "hardcoded absolute host"
+  mutation it looks like it kills. Assert the page's URL **starts with `/`** and
+  the layout's `metadataBase` separately.
+- **A child `openGraph` REPLACES the parent's — it does not merge**
+  (`resolve-metadata.js:180-182` assigns straight through). Any page declaring
+  `openGraph` must re-declare `title`/`description`/`siteName`/`locale`/`type`/
+  `images` in full, or it silently inherits nothing and falls back to the
+  site-wide card. Same for `twitter`.
+- **`Metadata["robots"]` is `null | string | Robots`.** A guard written
+  `robots?.index !== false` is blind to the string form `"noindex, nofollow"`,
+  which has no `.index`. And a page's own metadata cannot see a `robots` set by
+  an ancestor `layout.tsx`, so "is this page indexable?" needs a structural
+  check too.
+- **Never pair a robots.txt `Disallow` with a meta `noindex` on the same path.**
+  A disallowed path is never fetched, so its `noindex` is never read, and the
+  URL can still be indexed on the strength of inbound links. Pick `noindex`
+  when the page has real inbound links (e.g. `/brote/gate`, linked from every
+  ticket email).
+
+## Testing the sink
+
+- **Test where the code is *called*, not just what it returns.** Twice in one
+  programme a unit's entire effect could be deleted with the suite green: the
+  landing's five `<CollaboratorMention>` call sites, and the
+  `<script type="application/ld+json">` block in `page.tsx`. Helper tests prove
+  the values are right; they say nothing about whether anything uses them.
+  - Client components: `renderToStaticMarkup(createElement(C, props))` —
+    works in the node environment, no jsdom, no testing-library.
+  - Async server pages: `await Page({ params: Promise.resolve({...}) })` and
+    walk the returned element tree.
+- **`vitest.config.ts` includes `src/**/*.test.ts` — NOT `.tsx`.** A `.test.tsx`
+  file runs when you name it explicitly and is silently skipped by CI. Write
+  these tests without JSX so they can be `.ts`.
+- **`next/font/google` is a 0-byte stub in `node_modules`** (the real loader is
+  a build-time SWC transform), so importing any page/layout under vitest throws
+  `TypeError: Archivo is not a function`. `vi.mock("next/font/google", …)` must
+  live **in the test file itself** — a setup module outside `src/` does not
+  apply.
 - **`next/image` auto-unoptimizes `.svg`** on the default loader
   (`next/dist/shared/lib/get-img-props.js`, Next 16). Neither an `unoptimized`
   prop nor `dangerouslyAllowSVG` in `next.config.ts` is needed — the file is

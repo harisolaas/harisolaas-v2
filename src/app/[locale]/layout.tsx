@@ -49,7 +49,7 @@ export async function generateMetadata({
     openGraph: {
       title: dict.metadata.ogTitle,
       description: dict.metadata.ogDescription,
-      url: `https://harisolaas.com/${locale}`,
+      url: `https://www.harisolaas.com/${locale}`,
       siteName: "Harald Solaas",
       locale: locale === "es" ? "es_AR" : "en_US",
       type: "website",
@@ -61,7 +61,9 @@ export async function generateMetadata({
       description: dict.metadata.twitterDescription,
       images: ["/og-image.jpg"],
     },
-    metadataBase: new URL("https://harisolaas.com"),
+    // www, not the apex: Vercel 307-redirects the apex, so every canonical and
+    // every `metadataBase`-resolved OG URL built on it costs a redirect hop.
+    metadataBase: new URL("https://www.harisolaas.com"),
     alternates: {
       canonical: `/${locale}`,
       languages: {
@@ -92,7 +94,7 @@ export default async function LocaleLayout({
     name: "Harald Solaas",
     alternateName: "Hari Solaas",
     jobTitle: "Senior Software Engineer & Technology Consultant",
-    url: `https://harisolaas.com/${locale}`,
+    url: `https://www.harisolaas.com/${locale}`,
     description: dict.metadata.description,
     sameAs,
     knowsAbout: [

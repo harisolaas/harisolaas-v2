@@ -4,11 +4,26 @@
 export const BROTE_EVENT_ID = "brote-2026-08-20"; // current edition (BROTE 2)
 export const BROTE_1_EVENT_ID = "brote-2026-03-28"; // historical (BROTE 1)
 
+/**
+ * The share card, named once so the four pages that reference it cannot drift.
+ *
+ * Bump the filename — never overwrite in place — when the card changes:
+ * Facebook, WhatsApp and X cache OG images by URL, so a same-path replacement
+ * keeps serving the old artwork from their caches for weeks. `-v2` replaced an
+ * edition-1 card still advertising "Sábado 28 de marzo".
+ */
+export const BROTE_OG_IMAGE = "og-brote-v2.png";
+
 export const broteConfig = {
   // Event date/time — single source of truth (mirrors plantConfig naming).
   eventDate: "2026-08-20", // YYYY-MM-DD, Argentina time
   eventDateDisplay: "Jueves 20 de agosto",
   eventTime: "19:00 a 22:30",
+  // The same two hours as `eventTime`, machine-readable. Structured data needs
+  // real timestamps, and parsing them back out of the display string would
+  // break the first time the copy reads "de 19 a 22:30".
+  eventStartTime: "19:00",
+  eventEndTime: "22:30",
 
   // Prices
   ticketPrice: "$33.000",
@@ -32,6 +47,19 @@ export const broteConfig = {
   expectedAttendees: 100,
 };
 
+/**
+ * El Arte de Vivir — the community the party comes out of.
+ *
+ * Not in `brote-invitations.ts`: that registry is collaborators who invite
+ * people and, in the artists' case, get paid per ticket. This is the
+ * organiser. The landing links the name to the site; the ticket emails link
+ * the footer to Instagram, so both surfaces are used.
+ *
+ * The trailing slash is required — `artofliving.org/ar-es` without it 404s.
+ */
+export const artOfLivingUrl = "https://www.artofliving.org/ar-es/";
+export const artOfLivingInstagram = "https://www.instagram.com/elartedevivir.ar/";
+
 /* ─── pricing helpers ───────────────────────────────────────────────────────
  * The landing renders a price and the checkout API charges one. When those
  * were two inline expressions they could drift; deriving both from here means
@@ -41,6 +69,35 @@ export const broteConfig = {
 /** End of the early-bird window: last second of the deadline day, UTC-3. */
 const earlyBirdEndsAt = () =>
   new Date(`${broteConfig.earlyBirdDeadline}T23:59:59-03:00`);
+
+/**
+ * ISO 8601 timestamps for the event itself, offset included.
+ *
+ * Returned as strings rather than `Date`s because their only consumer is
+ * schema.org markup, which wants the local wall-clock time *with* its offset —
+ * `toISOString()` would normalise to UTC and publish a 22:00 start.
+ *
+ * The explicit `-03:00` matters for the same reason it does in
+ * `earlyBirdEndsAt()`: without it these are read as UTC and every calendar
+ * that ingests the markup puts the party three hours early.
+ */
+export const eventStartsAt = () =>
+  `${broteConfig.eventDate}T${broteConfig.eventStartTime}:00-03:00`;
+
+export const eventEndsAt = () =>
+  `${broteConfig.eventDate}T${broteConfig.eventEndTime}:00-03:00`;
+
+/** Last instant of the preventa, as a schema.org `priceValidUntil`. */
+export const earlyBirdValidUntil = () =>
+  `${broteConfig.earlyBirdDeadline}T23:59:59-03:00`;
+
+/** Midnight after the deadline — when the regular price takes over. */
+export function regularPriceValidFrom(): string {
+  const dayAfter = new Date(`${broteConfig.earlyBirdDeadline}T12:00:00-03:00`);
+  dayAfter.setDate(dayAfter.getDate() + 1);
+  const [date] = dayAfter.toISOString().split("T");
+  return `${date}T00:00:00-03:00`;
+}
 
 /**
  * Is the preventa still open? The explicit -03:00 matters: without it the

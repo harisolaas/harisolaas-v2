@@ -12,12 +12,19 @@ import Script from "next/script";
 import Image from "next/image";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import {
+  artOfLivingUrl,
   broteConfig,
   currentTicketPrice,
   fillTokens,
   pricingTokens,
 } from "@/data/brote";
-import type { BroteDict } from "@/dictionaries/types";
+import {
+  brandInvitations,
+  collaboratorNameUrl,
+  getInvitation,
+  instagramUrl,
+} from "@/lib/brote-invitations";
+import type { BroteCollaboratorMention, BroteDict } from "@/dictionaries/types";
 import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
 import { readBrowserAttribution } from "@/lib/attribution";
 import {
@@ -329,6 +336,78 @@ function BlockHeader({
         </span>
       )}
     </div>
+  );
+}
+
+/* ─── Collaborator mentions ───
+   Every place the landing names a musician, a brand or the NGO. Identity —
+   name, handle, URLs — comes from the invitation registry via the slug, never
+   from the dictionary: the DJ block used to carry its own copy of an
+   Instagram URL and it had gone stale against the registry, shipping a dead
+   link on a live page.
+
+   The name links to the collaborator's own site when they have one and to
+   Instagram otherwise; the chip beside it always goes to Instagram, so a
+   brand gets both surfaces. With neither, the name renders as plain text. */
+export function CollaboratorName({ slug }: { slug: string }) {
+  const invitation = getInvitation(slug);
+  if (!invitation) return null;
+
+  const href = collaboratorNameUrl(invitation);
+  if (!href) return <>{invitation.name}</>;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ textDecoration: "none", borderBottom: `1px solid ${FOREST_60}` }}
+    >
+      {invitation.name}
+    </a>
+  );
+}
+
+function CollaboratorMention({
+  mention,
+}: {
+  mention: BroteCollaboratorMention;
+}) {
+  return (
+    <>
+      {mention.bodyBefore}
+      <CollaboratorName slug={mention.slug} />
+      {mention.bodyAfter}
+    </>
+  );
+}
+
+/** The bordered `@handle` chip. Renders nothing without an account. */
+export function InstagramChip({ slug }: { slug: string }) {
+  const invitation = getInvitation(slug);
+  const href = invitation ? instagramUrl(invitation) : null;
+  if (!invitation || !href) return null;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="brote-ig-tag inline-flex items-center gap-2 uppercase"
+      style={{
+        ...mono,
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: "0.25em",
+        textDecoration: "none",
+        color: FOREST_60,
+        border: `1px solid ${FOREST_30}`,
+        padding: "8px 14px",
+      }}
+    >
+      <InstagramIcon />
+      {invitation.handle}
+    </a>
   );
 }
 
@@ -925,7 +1004,7 @@ export default function BroteLanding({ dict, locale }: Props) {
                 gap: "clamp(20px,3vw,44px)",
               }}
             >
-              <LineupMedia alt={dict.lineup.live.body} />
+              <LineupMedia alt={dict.lineup.live.photoAlt} />
               <div>
                 <h3
                   style={{
@@ -942,12 +1021,13 @@ export default function BroteLanding({ dict, locale }: Props) {
                   style={{
                     fontSize: 14,
                     lineHeight: 1.85,
-                    margin: 0,
+                    margin: "0 0 16px",
                     maxWidth: "36ch",
                   }}
                 >
-                  {dict.lineup.live.body}
+                  <CollaboratorMention mention={dict.lineup.live.mention} />
                 </p>
+                <InstagramChip slug={dict.lineup.live.mention.slug} />
               </div>
             </div>
           </div>
@@ -984,38 +1064,9 @@ export default function BroteLanding({ dict, locale }: Props) {
                 maxWidth: "44ch",
               }}
             >
-              {dict.lineup.dj.bodyBefore}
-              <a
-                href={dict.lineup.dj.link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  textDecoration: "none",
-                  borderBottom: `1px solid ${FOREST_60}`,
-                }}
-              >
-                {dict.lineup.dj.link.name}
-              </a>
-              {dict.lineup.dj.bodyAfter}
+              <CollaboratorMention mention={dict.lineup.dj.mention} />
             </p>
-            <a
-              href={dict.lineup.dj.link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="brote-ig-tag inline-flex items-center gap-2 uppercase"
-              style={{
-                ...mono,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.25em",
-                textDecoration: "none",
-                color: FOREST_60,
-                border: `1px solid ${FOREST_30}`,
-                padding: "8px 14px",
-              }}
-            >
-              <InstagramIcon />@{dict.lineup.dj.link.label}
-            </a>
+            <InstagramChip slug={dict.lineup.dj.mention.slug} />
           </div>
         </Section>
 
@@ -1316,7 +1367,11 @@ export default function BroteLanding({ dict, locale }: Props) {
                     color: BODY,
                   }}
                 >
-                  {item.body}
+                  {item.mention ? (
+                    <CollaboratorMention mention={item.mention} />
+                  ) : (
+                    item.body
+                  )}
                 </p>
               </div>
             ))}
@@ -1378,7 +1433,11 @@ export default function BroteLanding({ dict, locale }: Props) {
                   opacity: 0.9,
                 }}
               >
-                {dict.includes.featured.body}
+                {dict.includes.featured.mention ? (
+                  <CollaboratorMention mention={dict.includes.featured.mention} />
+                ) : (
+                  dict.includes.featured.body
+                )}
               </p>
             </div>
           </div>
@@ -1396,9 +1455,57 @@ export default function BroteLanding({ dict, locale }: Props) {
             style={{ fontSize: 14, lineHeight: 1.9, maxWidth: "58ch" }}
           >
             {dict.community.intro.before}
-            <strong>{dict.community.intro.sponsors}</strong>
+            <a
+              href={artOfLivingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontWeight: 700,
+                textDecoration: "none",
+                borderBottom: `1px solid ${FOREST_60}`,
+              }}
+            >
+              {dict.community.intro.sponsors}
+            </a>
             {dict.community.intro.after} {dict.community.body}
           </p>
+
+          {/* The brands that back the party. Block 01 promises "las marcas con
+              propósito que nos acompañan" and nothing followed through — Pulso
+              had no public surface on the landing at all. Built from the
+              registry so it cannot fall out of sync with who is collaborating. */}
+          <div style={{ marginTop: "clamp(32px,5vw,52px)" }}>
+            <p
+              style={{
+                ...mono,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.3em",
+                textTransform: "uppercase",
+                color: FOREST_60,
+                margin: "0 0 18px",
+              }}
+            >
+              {dict.community.sponsorsRow.eyebrow}
+            </p>
+            <div
+              className="flex flex-wrap items-center justify-center"
+              style={{ gap: "clamp(14px,2.4vw,28px)" }}
+            >
+              {brandInvitations().map((brand) => (
+                <div
+                  key={brand.slug}
+                  className="flex flex-col items-center"
+                  style={{ gap: 8 }}
+                >
+                  <span style={{ ...serif, fontSize: "clamp(20px,2.2vw,26px)" }}>
+                    <CollaboratorName slug={brand.slug} />
+                  </span>
+                  <InstagramChip slug={brand.slug} />
+                </div>
+              ))}
+            </div>
+          </div>
           <p
             style={{
               ...mono,
@@ -1474,7 +1581,9 @@ export default function BroteLanding({ dict, locale }: Props) {
               transform: "translateY(-3px)",
             }}
           />
-          <span>{dict.footer.right}</span>
+          <span>
+            <CollaboratorMention mention={dict.footer.right} />
+          </span>
         </footer>
       </div>
 

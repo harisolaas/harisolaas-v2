@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
+import { BROTE_OG_IMAGE } from "@/data/brote";
 import BroteSuccessContact from "@/components/BroteSuccessContact";
 
 export async function generateMetadata({
@@ -10,7 +11,29 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const dict = await getDictionary(locale as Locale);
-  return { title: dict.brote.success.title };
+  const { meta, success } = dict.brote;
+
+  return {
+    title: success.title,
+    description: meta.ogDescription,
+    // A post-payment confirmation has nothing to offer a searcher, and its
+    // MercadoPago query string should never reach an index. Mirrors
+    // `sinergia/success/page.tsx`, which has had this from the start.
+    robots: { index: false, follow: false },
+    // Declared in full: a child `openGraph` replaces the parent's outright
+    // rather than merging into it, so a partial block here would silently drop
+    // siteName/type/images and fall back to the personal-site card.
+    openGraph: {
+      title: success.title,
+      description: meta.ogDescription,
+      siteName: "BROTE",
+      locale: locale === "es" ? "es_AR" : "en_US",
+      type: "website",
+      images: [
+        { url: `/${BROTE_OG_IMAGE}`, width: 1200, height: 630, alt: meta.ogImageAlt },
+      ],
+    },
+  };
 }
 
 export default async function BroteSuccessPage({
