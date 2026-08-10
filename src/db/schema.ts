@@ -306,10 +306,13 @@ export const participations = pgTable(
     // Everything else — Sinergia RSVPs, plant signups, the buyer's own
     // `attendee` row — keeps full one-per-person-per-event uniqueness.
     //
-    // Note this index was ALSO the de-facto guard against two concurrent
-    // MercadoPago webhook deliveries double-issuing a ticket. It no longer
-    // covers companions, so that job moved to deterministic ticket ids plus
-    // `ON CONFLICT (id) DO NOTHING` in `addCompanionTickets`.
+    // Note that companion rows get NO uniqueness from the database. The
+    // mechanism that keeps two concurrent MercadoPago webhook deliveries from
+    // double-issuing is `ON CONFLICT (id) DO NOTHING` in
+    // `addCompanionTickets` — which only works if the caller derives the ids
+    // deterministically from the payment. Fresh ids per invocation defeat it.
+    // Nothing writes this role yet; the webhook becomes that caller, and owns
+    // the id derivation.
     uniqueIndex("participations_person_event_unique")
       .on(t.personId, t.eventId)
       .where(sql`${t.role} <> 'companion'`),

@@ -650,13 +650,14 @@ async function companionRows(email: string, eventId: string) {
   const res = await db.execute<{
     id: string;
     role: string;
+    status: string;
     buyer_person_id: number | null;
     price_cents: number | null;
     external_payment_id: string | null;
     link_slug: string | null;
     metadata: Record<string, unknown>;
   }>(sql`
-    SELECT p.id, p.role, p.buyer_person_id, p.price_cents,
+    SELECT p.id, p.role, p.status, p.buyer_person_id, p.price_cents,
            p.external_payment_id, p.link_slug, p.metadata
     FROM participations p
     JOIN people pe ON pe.id = p.person_id
@@ -718,6 +719,13 @@ describe("addCompanionTickets", () => {
     const rows = await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED);
     const companion = rows.find((r) => r.id === "TEST-COMP-A")!;
     expect(companion.role).toBe("companion");
+    // `status` is load-bearing and nothing else in the suite would notice it
+    // changing: a companion written as 'pending' still exists, still gets paid
+    // out, still opens the door — but `/api/brote/counter` filters
+    // `status IN ('confirmed','used')`, so the public tree count would silently
+    // lose N-1 trees per multi-ticket purchase. That is the programme's whole
+    // premise (one ticket = one tree) breaking with nothing to show for it.
+    expect(companion.status).toBe("confirmed");
     expect(Number(companion.buyer_person_id)).toBe(first.personId);
     // Per ticket, never the basket total — revenue reporting sums this.
     expect(companion.price_cents).toBe(2_475_000);

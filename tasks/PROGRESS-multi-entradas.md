@@ -32,7 +32,7 @@ Auditoría zero-context de midpoint: después de U3.
 
 | Ítem | Espera | Pedido a / cuándo |
 |---|---|---|
-| Migración del índice parcial contra la branch de **prod** de Neon | decisión + ventana del owner; va **antes** del deploy de U1 | owner, al mergear U1 |
+| Migración del índice parcial contra la branch de **prod** de Neon. **NO aplicar el `.sql` generado tal cual**: el driver HTTP corre una sentencia por request, así que `DROP` + `CREATE` deja una ventana sin unicidad con la preventa vendiendo. Usar el orden CREATE-new → DROP-old → RENAME del spec. | decisión + ventana del owner; va **antes** del deploy de U1 | owner, al mergear U1 |
 | Compra real de 2+ en prod (confirma que MP propaga `metadata.qty` de Preference a Payment) | primera compra real post-deploy | owner, checklist final |
 
 ---

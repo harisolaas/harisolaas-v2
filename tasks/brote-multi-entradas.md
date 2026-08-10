@@ -143,11 +143,43 @@ Consecuencia sobre el helper: `addCompanionTickets` devuelve
 éxito, no faltante — si no, un reintento concurrente dispararía la alerta de
 "creadas < pagadas" para siempre.
 
-**Migración manual en prod.** `DROP INDEX` + `CREATE UNIQUE INDEX ... WHERE` en
-una transacción, sin tocar datos, tabla chica. Aplicar **antes** del deploy
-(orden expand). Vía driver HTTP `neon()` + backfill de
-`drizzle.__drizzle_migrations`. **CI sí corre `npm run db:migrate` contra la
-branch dev** (`ci.yml:43-52`), así que ahí se auto-aplica.
+**Migración manual en prod — NO aplicar el `.sql` generado tal cual.**
+
+El archivo que emite drizzle es `DROP INDEX` → `--> statement-breakpoint` →
+`CREATE UNIQUE INDEX`, y el procedimiento de la casa es splitear por ese
+breakpoint y mandar sentencia por sentencia con el driver HTTP `neon()`. Pero
+**ese driver corre una sentencia por request, y cada request es su propia
+transacción**: envolverlo en `BEGIN/COMMIT` no hace nada. Aplicado así queda una
+ventana en prod **sin ningún unique sobre `(person_id, event_id)`**, con la
+preventa vendiendo. En esa ventana:
+
+- `applyBroteContactConfirmation` pierde su red — depende explícitamente del
+  23505 (`brote-contact.ts:140`) para resolver `email_taken`;
+- y si entra una duplicada, el `CREATE UNIQUE INDEX` **falla**, dejando prod sin
+  unicidad, en silencio, con el deploy nuevo encima.
+
+**Orden sin ventana, sentencia por sentencia** (en todo instante hay un unique
+cubriendo las filas no-companion, y la definición final es idéntica a la del
+archivo):
+
+```sql
+CREATE UNIQUE INDEX "participations_person_event_unique_new"
+  ON "participations" USING btree ("person_id","event_id")
+  WHERE "participations"."role" <> 'companion';
+
+DROP INDEX "participations_person_event_unique";
+
+ALTER INDEX "participations_person_event_unique_new"
+  RENAME TO "participations_person_event_unique";
+```
+
+Después, backfill de `drizzle.__drizzle_migrations` para que `0006` figure como
+aplicada. (La alternativa de una sola llamada —
+`sql.transaction([drop, create])`, que sí es una transacción real en un request—
+también sirve; se prefiere la de arriba por no depender del transporte.)
+
+Aplicar **antes** del deploy (orden expand). **CI sí corre `npm run db:migrate`
+contra la branch dev** (`ci.yml:43-52`), así que ahí se auto-aplica.
 
 ---
 
@@ -181,8 +213,16 @@ falso y el revisor lo tumbó:
 **Boundary.** Único cambio de schema y único con paso manual en prod.
 
 **Archivos.** `src/db/schema.ts` · `src/db/migrations/0006_*.sql` (generado) ·
-`src/lib/community.ts` · `src/lib/brote-ticket-ids.ts` (nuevo) ·
-`src/lib/community.test.ts` · **[R5]** `docs/specs/01-data-model.md`
+`src/lib/community.ts` · `src/lib/community.test.ts` ·
+**[R5]** `docs/specs/01-data-model.md`
+
+**Cortado de U1 con razón: `src/lib/brote-ticket-ids.ts` se mueve a U3.**
+El helper de ids deterministas no tiene llamadores en U1 — U1 es inerte, y sus
+tests fijan ids literales, así que acá sería código muerto sin cobertura. Vive
+donde se usa: el webhook. **Consecuencia a no perder de vista: hasta U3, las
+filas companion no tienen ninguna protección contra doble inserción**, ni del
+índice (las exime) ni de ids deterministas (no existen). Es inofensivo
+únicamente porque nada las escribe todavía. U3 no puede mergear sin el helper.
 
 **[R5] U1 SÍ toca `recordParticipation`.** La sonda de fila existente
 (`community.ts:207-218`) no tiene `ORDER BY`:
@@ -317,7 +357,8 @@ N=1 pluralizado igual · `markBroteTicketEmailSent` que marca sólo el primero.
 **Boundary.** Camino del dinero. **[R7]** Inerte sólo porque preserva la rama de
 recompra de hoy; el camino qty>1 es inalcanzable hasta U4.
 
-**Archivos.** `src/app/api/brote/webhook/route.ts` · su test
+**Archivos.** `src/app/api/brote/webhook/route.ts` · su test ·
+`src/lib/brote-ticket-ids.ts` (nuevo, movido desde U1) · su test
 
 **Cambio.**
 
