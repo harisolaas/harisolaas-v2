@@ -15,16 +15,23 @@ Worktree: `.claude/worktrees/iridescent-popping-cupcake`
 
 | Unit | PR | What shipped | Notable catches |
 |---|---|---|---|
-| U1 | [#70](https://github.com/harisolaas/harisolaas-v2/pull/70) | `og-brote-v2.png` (edition-1 card said "28 de marzo"); self-canonical + hreflang on `/brote`; `/brote` into the sitemap; www host everywhere; noindex on success/failure/gate/flyer | **Plan review:** robots.txt `Disallow` + meta `noindex` on the same path cancel each other, and the gate is linked from every buyer's email. A child `openGraph` *replaces* the parent's, so partial blocks drop inherited fields silently. **PR review:** four wrong implementations passed 15/15 green — `robots` as a *string* (no `.index`, so the guard was blind), an ancestor `[locale]/brote/layout.tsx`, the OG constant bumped without committing the asset, and the invitation page's `twitter.images` left on the deleted file. All four now red. |
+| U1 | [#70](https://github.com/harisolaas/harisolaas-v2/pull/70) | `og-brote-v2.png` (edition-1 card said "28 de marzo"); self-canonical + hreflang on `/brote`; `/brote` into the sitemap; www host everywhere; noindex on success/failure/gate/flyer | **Plan review:** robots.txt `Disallow` + meta `noindex` on the same path cancel each other, and the gate is linked from every buyer's email. A child `openGraph` *replaces* the parent's, so partial blocks drop inherited fields silently. **PR review:** four wrong implementations passed 15/15 green — `robots` as a *string* (no `.index`, so the guard was blind), an ancestor `[locale]/brote/layout.tsx`, the OG constant bumped without committing the asset, and the invitation page's `twitter.images` left on the deleted file. **Copilot:** the five invitation pages — the ones collaborators actually share — got a degraded card. |
+| U3 | [#71](https://github.com/harisolaas/harisolaas-v2/pull/71) | Every collaborator linked (website on the name, Instagram on the chip); identity sourced from the registry, killing Gian's dead link at the cause; sponsors row gives Pulso its first public surface | **PR review:** no test rendered `BroteLanding`, so reverting all five call sites stayed 58/58 green; and unifying identity silently dropped the accent from "José" on the Spanish landing. **Copilot:** `BroteIncludesItem` allowed "neither `body` nor `mention`", which renders `undefined` silently. |
+| U2 | [#74](https://github.com/harisolaas/harisolaas-v2/pull/74) | `Event` + `Place` + `Person[]` + two `Offer`s, from `broteConfig` | **PR review:** deleting the `<script>` from `page.tsx` left 56/56 green — the unit's entire effect, untested. Venue was hardcoded past `broteConfig.locationAddress`. `eventTime` and `eventStartTime`/`eventEndTime` were untied. **Copilot:** `PerformingGroup` is wrong for solo artists. |
+| U4 | [#73](https://github.com/harisolaas/harisolaas-v2/pull/73) | Performers + Un Árbol + El Arte de Vivir linked in the ticket emails | **PR review:** swapping the two performers between run-of-show rows passed 6/6 green — the mail would have told every buyer Gian plays guitar. Verification-email footer was untested. |
+| U5 | [#72](https://github.com/harisolaas/harisolaas-v2/pull/72) | `CLAUDE.md` corrected to edition 2; removed system deleted in `bcf68d1` | **Copilot:** `counter/` reads Postgres, not Redis — staleness missed by the PR whose whole job was removing staleness; and the doc described helpers that only exist after #70/#71, so it must merge last. |
 
 ## Queue
 
-| # | Unit | Branch | Base | State |
+Empty — every unit has an open PR, reviewed and addressed. Merge order below.
+
+| # | Unit | PR | Base | Merge after |
 |---|---|---|---|---|
-| U2 | `Event` JSON-LD | `brote-jsonld` | U1 (stacked) | queued |
-| U3 | Collaborator links on the landing | `brote-colaboradores` | `origin/main` | queued |
-| U4 | Collaborator links in emails | `brote-email-links` | `origin/main` | queued |
-| U5 | Correct `CLAUDE.md` | `brote-docs` | `origin/main` | queued |
+| U1 | OG card + canonical + indexing | [#70](https://github.com/harisolaas/harisolaas-v2/pull/70) | `main` | — |
+| U3 | Collaborator links on the landing | [#71](https://github.com/harisolaas/harisolaas-v2/pull/71) | `main` | — |
+| U2 | `Event` JSON-LD | [#74](https://github.com/harisolaas/harisolaas-v2/pull/74) | #70 | U1 |
+| U4 | Collaborator links in emails | [#73](https://github.com/harisolaas/harisolaas-v2/pull/73) | #71 | U3 |
+| U5 | Correct `CLAUDE.md` | [#72](https://github.com/harisolaas/harisolaas-v2/pull/72) | #71 | U1 **and** U3 — it documents `BROTE_OG_IMAGE` (U1) and the registry helpers (U3) |
 
 ## Blocked
 
@@ -77,6 +84,21 @@ One line each. Violating these costs a full PR cycle.
 - **`/[locale]/*` are static prerenders.** `BroteLanding.tsx:601-614` escapes this
   for price via `useEffect`; server-emitted JSON-LD cannot.
 - **CI does not run on stacked PRs** (`pull_request: branches: [main]`).
+- **`vitest.config.ts` includes `src/**/*.test.ts` — NOT `.tsx`.** A test named
+  `.test.tsx` runs when named explicitly and is silently skipped by CI. Write
+  component/page tests without JSX so they can be `.ts`.
+- **Test the sink, not just the builder.** Twice in this programme a unit's
+  whole effect could be deleted with the suite green: the landing's five
+  `<CollaboratorMention>` call sites (U3) and the `<script type="application/
+  ld+json">` block (U2). `renderToStaticMarkup` for client components, and
+  awaiting the async page + walking its element tree for server ones — both
+  work in the node environment with no jsdom.
+- **A Vercel preview can fail on a Google-Fonts 404 that has nothing to do with
+  the diff.** `fonts.gstatic.com` returned 404 for Lora's woff2 files mid-build
+  and Turbopack then couldn't resolve `@vercel/turbopack-next/internal/font/
+  google/font`. GitHub Actions' `npm run build` passed on the same commit, as
+  did neighbouring PRs minutes later. Redeploy; don't debug the diff. The
+  Vercel CLI in this repo is scoped to a different team, so re-trigger by push.
 - **Copilot may not attach** — check `/pulls/{n}/comments` before giving up. On
   #70 both `reviewers[]=copilot-pull-request-reviewer[bot]` and
   `reviewers[]=Copilot` returned 200 with `requested_reviewers: []`, and
@@ -92,6 +114,24 @@ One line each. Violating these costs a full PR cycle.
   too. Stage the finished unit first, then mutate and revert freely.
 
 ## Carry-forward / backlog
+
+### From the midpoint zero-context audit (all PRE-EXISTING — none introduced here)
+
+Discovery does not become scope: these are documented, not fixed. The top three
+are on the owner checklist because the event is 10 days out.
+
+| Item | Severity | Size | Trigger |
+|---|---|---|---|
+| **`/api/brote/validate` is unauthenticated, and the ticket QR encodes the gate URL** — `brote-ticket-email.ts:53` encodes `/es/brote/gate?ticket=…`, so any camera pointed at any ticket gets a one-tap "Marcar como usado". Anyone can void an entry or burn its drink; `check` also returns `buyerName` for any ID | **HIGH** | M | **Before the door opens on 20/8** |
+| **`/api/brote/confirm-contact` can overwrite `people.phone` for arbitrary emails** — `brote-contact.ts:106-163` picks the row by attacker-supplied email and re-points the participation; the `ct` token is never marked spent. WhatsApp is the day-of channel | **HIGH** | M | Before the day-of WhatsApp send |
+| **The 35% collaborator discount is a guessable, uncapped string** — `{"invite":"pulso"}` to `/api/brote/checkout` pays 21.450. Six ordinary words, no referral proof, no expiry. Replaced the retired single-use Redis code system | MED-HIGH | M | Before the next collaborator push |
+| Webhook's `if (paymentType && paymentType !== "ticket")` lets an *untagged* MP payment mint a real ticket; `transaction_amount` never checked against expected price | MED | S | Next webhook change |
+| `MP_WEBHOOK_SECRET` missing ⇒ signature check returns `true` (fails open); `ts` freshness unchecked (replay); non-constant-time compare | MED | S | Next webhook change |
+| `ct` capability token redacted for PostHog but shipped unredacted to `<Analytics />` (`layout.tsx:137`, no `beforeSend`) | LOW-MED | S | With the confirm-contact fix |
+| `Bearer ${undefined}` authenticates admin routes when the env var is unset | LOW | S | Next admin change |
+| Rate limiting is a per-instance `Map` — resets on cold start, never evicts; `validate` has none | LOW | M | If abuse appears |
+
+### Discovered in flight
 
 | Item | Severity | Size | Trigger |
 |---|---|---|---|
