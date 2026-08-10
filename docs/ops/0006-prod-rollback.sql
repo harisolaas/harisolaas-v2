@@ -23,3 +23,8 @@ DROP INDEX "participations_person_event_unique";
 
 CREATE UNIQUE INDEX "participations_person_event_unique"
   ON "participations" USING btree ("person_id", "event_id");
+
+-- Sacar 0006 del ledger también, o la próxima corrida la da por aplicada y el
+-- índice nunca vuelve a la forma parcial.
+DELETE FROM drizzle."__drizzle_migrations"
+WHERE hash = 'e42511b497f7e93cb182294818ca38d140e78e2e27c88548f03b9d0c6483c1fd';

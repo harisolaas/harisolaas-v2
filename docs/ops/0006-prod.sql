@@ -30,3 +30,19 @@ DROP INDEX "participations_person_event_unique";
 CREATE UNIQUE INDEX "participations_person_event_unique"
   ON "participations" USING btree ("person_id", "event_id")
   WHERE "participations"."role" <> 'companion';
+
+-- El ledger va en LA MISMA transacción que el DDL, a propósito: si quedaran
+-- separados se puede aplicar el índice y no registrarlo, y la próxima
+-- migración vuelve a intentar 0006 (el DROP fallaría y quedaría a medias).
+--
+-- Idempotente por hash: correrlo dos veces no duplica la fila.
+-- hash = shasum -a 256 src/db/migrations/0006_magenta_ogun.sql
+-- created_at = el `when` de 0006 en meta/_journal.json
+INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)
+SELECT
+  'e42511b497f7e93cb182294818ca38d140e78e2e27c88548f03b9d0c6483c1fd',
+  1786380427385
+WHERE NOT EXISTS (
+  SELECT 1 FROM drizzle."__drizzle_migrations"
+  WHERE hash = 'e42511b497f7e93cb182294818ca38d140e78e2e27c88548f03b9d0c6483c1fd'
+);
