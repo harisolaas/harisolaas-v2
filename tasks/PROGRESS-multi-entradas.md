@@ -32,7 +32,7 @@ Auditoría zero-context de midpoint: después de U3.
 
 | Ítem | Espera | Pedido a / cuándo |
 |---|---|---|
-| Migración del índice parcial contra la branch de **prod** de Neon. **NO aplicar el `.sql` generado tal cual**: el driver HTTP corre una sentencia por request, así que `DROP` + `CREATE` deja una ventana sin unicidad con la preventa vendiendo. Usar el orden CREATE-new → DROP-old → RENAME del spec. | decisión + ventana del owner; va **antes** del deploy de U1 | owner, al mergear U1 |
+| ~~Migración del índice parcial contra prod~~ | — | ✅ **APLICADA 10/8 17:0x** — ver Dispositions |
 | Compra real de 2+ en prod (confirma que MP propaga `metadata.qty` de Preference a Payment) | primera compra real post-deploy | owner, checklist final |
 
 ---
@@ -125,4 +125,17 @@ Crece durante la ejecución por diseño.
 
 ## Dispositions
 
-*(se completa en la fase de Landing)*
+| Ítem | Estado | Evidencia |
+|---|---|---|
+| Migración 0006 contra prod | **Done — aplicada 10/8** | Pre-flight limpio (índice incondicional, 255 filas, 0 companions, 0 duplicadas, ledger sin huérfano posterior a 0006). Aplicada con `psql --single-transaction -f docs/ops/0006-prod.sql` en **2s**, exit 0. Post: índice parcial vivo, 0006 en el ledger una sola vez, roles intactos (rsvp 118 / attendee 101 / planter 36), 16 entradas BROTE2 antes y después. Humo en vivo: `GET /api/brote/counter` → 200 `{"count":16}`. Ensayado antes punta a punta en preview (apply → PASS → rollback → re-apply) y probado que **la suite de `main` (320/320) pasa contra el índice nuevo** — orden expand verificado, no asumido. |
+
+### Estado del rollback (importante)
+
+El rollback del índice **sigue abierto**: no existe ninguna fila `companion` en
+prod todavía, y no puede existir hasta que deploye el código de recompra.
+`docs/ops/0006-prod-rollback.sql` es válido hasta ese momento.
+
+**Cuando exista la primera companion, esa puerta se cierra**: a partir de ahí el
+rollback correcto es revertir el código que las emite, nunca el índice — y
+**nunca el código de U1**, porque sin su `ORDER BY` la sonda de
+`recordParticipation` devuelve una fila arbitraria de la persona.
