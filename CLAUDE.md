@@ -344,7 +344,7 @@ BROTE is a reforestation party (fiesta de reforestación). Each ticket plants a 
 3. User is redirected to MercadoPago to pay (credit, debit, cash, MP wallet)
 4. After payment → user lands on `/[locale]/brote/success` or `/brote/failure`
 5. MP sends async webhook POST to `/api/brote/webhook`
-6. Webhook: verifies HMAC signature → fetches payment from MP API → generates `BROTE-XXXXXXXX` ticket (nanoid) → **writes it to Postgres (`people` + `participations`)** → sends email with QR code via Resend. Redis holds idempotency keys and short-lived stashes only — nothing durable
+6. Webhook: verifies HMAC signature → fetches payment from MP API → generates `BROTE-XXXXXXXX` ticket (nanoid) → **writes it to Postgres (`people` + `participations`)** → sends one email via Resend carrying a QR per ticket bought. Redis holds idempotency keys and short-lived stashes only — nothing durable
 7. At the door: `/brote/gate` scans/validates ticket IDs via `/api/brote/validate`
 
 ### Pricing (in `src/data/brote.ts`)
@@ -404,7 +404,7 @@ Edition 1's Un Árbol / CIMA single-use discount-code system was removed in `bcf
 | `src/components/TreeCounter.tsx` | Animated SVG forest visualization (tickets vs goal). Dev buttons gated behind `NODE_ENV` |
 | `src/data/brote.ts` | Config: prices, currency, venue, early bird deadline, expected attendees |
 | `src/lib/brote-types.ts` | `BroteTicket` interface (id, paymentId, buyerEmail, buyerName, status, emailSent) |
-| `src/lib/brote-email.ts` | HTML email template with inline QR code (CID attachment) |
+| `src/lib/brote-email.ts` | Ticket + day-of reminder templates. One mail carries one QR per ticket (CID attachments, `qrContentId()`), pinned byte-for-byte by a golden fixture. The reminder's run of show is derived from `es.brote.lineup`, so it cannot drift from the landing |
 | `src/lib/redis.ts` | Redis client singleton (node-redis v4, camelCase methods: `sMembers`, `sAdd`) |
 | `src/lib/meta-capi.ts` | Meta Conversions API helper — `sendMetaEvent()`, fails silently |
 | `src/app/brote/flyer/page.tsx` | Flyer generator with format/theme/variant toggles, html-to-image export |
