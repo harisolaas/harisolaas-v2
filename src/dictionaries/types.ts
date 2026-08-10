@@ -249,6 +249,26 @@ export interface BroteDict {
   footer: { left: string; right: BroteCollaboratorMention };
   /** Shown under the CTA when creating the MercadoPago preference fails. */
   checkoutError: string;
+  /**
+   * Quantity picker. Opens on the CTA instead of going straight to
+   * MercadoPago, so someone can bring friends without paying N times.
+   */
+  quantity: {
+    heading: string;
+    intro: string;
+    /** Accessible label for the stepper's minus/plus buttons. */
+    decrease: string;
+    increase: string;
+    /** `{n}` tickets — singular and plural forms. */
+    one: string;
+    many: string;
+    /** Primary button. `{total}` is the formatted price. */
+    submit: string;
+    submitting: string;
+    close: string;
+    /** Shown when the buyer hits the per-purchase ceiling. */
+    maxNote: string;
+  };
   success: {
     title: string;
     heading: string;

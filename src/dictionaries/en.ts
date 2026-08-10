@@ -548,6 +548,19 @@ const en: Dictionary = {
     },
     checkoutError:
       "We couldn't open the payment. Try again in a moment, or message us on WhatsApp.",
+    quantity: {
+      heading: "How many tickets?",
+      intro:
+        "Coming with someone? Get them all at once — we'll email you one QR per ticket.",
+      decrease: "One fewer",
+      increase: "One more",
+      one: "1 ticket",
+      many: "{n} tickets",
+      submit: "Go to payment · {total}",
+      submitting: "Opening payment…",
+      close: "Close",
+      maxNote: "Up to 10 per purchase. Need more? Message us on WhatsApp.",
+    },
     success: {
       title: "BROTE \u2014 You\u2019re in!",
       heading: "You\u2019re part of the forest now!",

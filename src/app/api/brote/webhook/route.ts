@@ -549,9 +549,15 @@ export async function POST(req: Request) {
 
     // ── The extra tickets ─────────────────────────────────────────────
     //
-    // The primary row above covers one. Everything beyond it is a
-    // `companion` row on the same person, which is exactly what the partial
-    // unique index exempts.
+    // Everything beyond the buyer's own `attendee` row is a `companion` row
+    // on the same person, which is exactly what the partial unique index
+    // exempts.
+    //
+    // `primaryIsNew` is false when this person ALREADY had a ticket — a
+    // repeat purchase. That used to mean "alert, issue nothing", i.e. money
+    // taken and no ticket delivered; now every one of those `qty` tickets is
+    // a new companion row, and the earlier purchase is left untouched (it
+    // belongs to a different payment and was emailed long ago).
     //
     // The ids are DERIVED FROM THE PAYMENT, never minted fresh: companion
     // rows get no uniqueness from the database, and the webhook's own
@@ -559,8 +565,11 @@ export async function POST(req: Request) {
     // (id) DO NOTHING` inside the helper is what stops two concurrent MP
     // deliveries double-issuing, and it can only do that if both compute
     // the same ids.
-    if (qty > 1 && (result.created || result.promoted)) {
-      const companionIds = companionTicketIds(mpPaymentId, qty - 1);
+    const primaryIsNew = result.created || result.promoted;
+    const companionCount = primaryIsNew ? qty - 1 : qty;
+
+    if (companionCount > 0) {
+      const companionIds = companionTicketIds(mpPaymentId, companionCount);
       const companions = await addCompanionTickets({
         personId: result.personId,
         eventId: BROTE_EVENT_ID,
@@ -588,7 +597,10 @@ export async function POST(req: Request) {
       // A row that already existed with the same id is a concurrent
       // delivery, not a shortfall — counting it as missing would alert on
       // every retry forever.
-      const issued = 1 + companions.createdIds.length + companions.existingIds.length;
+      const issued =
+        (primaryIsNew ? 1 : 0) +
+        companions.createdIds.length +
+        companions.existingIds.length;
       if (issued < qty) {
         console.error("brote: issued fewer tickets than paid for", {
           mpPaymentId,
@@ -606,13 +618,25 @@ export async function POST(req: Request) {
         });
       }
 
-      extraTicketIds = companionIds;
+      if (primaryIsNew) {
+        extraTicketIds = companionIds;
+      } else {
+        // Repeat purchase: `result.participationId` is the row from the
+        // EARLIER payment. Anchoring on it would point `brote:payment:*` and
+        // `brote:confirm:{ct}` at the wrong purchase — the retry would resend
+        // the old ticket set, and the guest names typed on /success would land
+        // on the previous purchase's rows. This payment's tickets are the
+        // companions, so the first of them is its primary.
+        ticketId = companionIds[0];
+        extraTicketIds = companionIds.slice(1);
+      }
     }
 
-    if (!result.created && !result.promoted) {
-      // Money received but no new ticket was created — the buyer already
-      // had one (double payment, or the checkout pre-check raced). Needs a
-      // human decision (refund vs. keep), so alert the admin.
+    if (!primaryIsNew && companionCount === 0) {
+      // Money received and nothing to issue. Reachable only when `qty`
+      // resolved to 0, which the clamp forbids — kept as a real alert rather
+      // than an assertion because the alternative is silently swallowing a
+      // payment.
       console.error("brote: payment with no new ticket", {
         mpPaymentId,
         buyerEmail,

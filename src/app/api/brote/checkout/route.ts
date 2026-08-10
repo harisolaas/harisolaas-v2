@@ -12,6 +12,10 @@ import {
 } from "@/lib/brote-invitations";
 import { getRedis } from "@/lib/redis";
 import { CONFIRM_TTL, checkoutByTokenKey } from "@/lib/brote-confirm-token";
+// The SAME clamp the webhook uses, deliberately: two different notions of
+// "how many is allowed" is how a checkout charges for 12 and a webhook
+// issues 10.
+import { parseTicketQuantity } from "@/lib/brote-ticket-ids";
 import { sendMetaEvent } from "@/lib/meta-capi";
 import { buildAttribution } from "@/lib/attribution";
 
@@ -96,6 +100,13 @@ export async function POST(req: Request) {
     // price shown and the price charged cannot drift apart. For an invited
     // buyer this is the ONLY authority — the client never sends a number.
     const { priceRaw: price, badge } = resolveInvitationPrice(invitation);
+
+    // How many tickets. The client picks it in the modal, so it is clamped
+    // with the SAME helper the webhook uses — whole number, 1..10, anything
+    // else falls to 1. It is a count, never a price: `unit_price` below stays
+    // server-decided, so the worst a tampered value can do is ask MercadoPago
+    // to charge MORE, and the webhook issues against what was actually paid.
+    const quantity = parseTicketQuantity(body.quantity);
     const title = invitation
       ? `BROTE — Entrada (Invitación ${invitation.name})`
       : `BROTE — Entrada${badge === "earlybird" ? " (Preventa)" : ""}`;
@@ -116,7 +127,10 @@ export async function POST(req: Request) {
           {
             id: "brote-ticket",
             title,
-            quantity: 1,
+            // MercadoPago multiplies. Multiplying `unit_price` instead would
+            // charge the same total while showing "1 × $74.250" at checkout
+            // and telling the webhook nothing about how many tickets to issue.
+            quantity,
             unit_price: price,
             currency_id: broteConfig.currency,
           },
@@ -140,6 +154,11 @@ export async function POST(req: Request) {
         // identity to stamp any more.
         metadata: {
           type: "ticket",
+          // Same durable channel as `invite`: MP propagates preference
+          // metadata onto the Payment, so the webhook learns the count even
+          // when the Redis stash is gone. It cross-checks against the amount
+          // regardless.
+          qty: quantity,
           // Durable channel: MP propagates preference metadata onto the
           // Payment, so the webhook still knows which collaborator sold this
           // even if the Redis stash is gone.
@@ -173,6 +192,13 @@ export async function POST(req: Request) {
         fbc,
         ip: ipHeader,
         ua: req.headers.get("user-agent") || "",
+        // The webhook needs both to decide how many tickets to issue: `qty`
+        // as a fallback when MP doesn't echo the preference metadata, and
+        // `unitPriceCents` as the yardstick it checks the amount against.
+        // Without the unit price there is nothing to compare, and a quantity
+        // would have to be taken on trust.
+        qty: quantity,
+        unitPriceCents: price * 100,
         // Attribution goes FLAT on the stash root, not nested under an
         // `attribution` key the way sinergia-parrafo's checkout does it —
         // the webhook reads `source`/`medium`/`campaign`/`linkSlug` off the
@@ -212,7 +238,11 @@ export async function POST(req: Request) {
           fbp: fbp || undefined,
           fbc: fbc || undefined,
         },
-        custom_data: { currency: "ARS", value: price },
+        // The value is the BASKET, not the unit price. The browser-side
+        // `fbq('track','InitiateCheckout')` fires under the same event_id for
+        // deduplication, so it multiplies too — a deduped pair reporting two
+        // different values is worse than either alone.
+        custom_data: { currency: "ARS", value: price * quantity },
       }).catch(() => {}); // fire and forget
     }
 

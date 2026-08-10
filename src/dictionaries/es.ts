@@ -551,6 +551,20 @@ const es: Dictionary = {
     },
     checkoutError:
       "No pudimos abrir el pago. Prob\u00e1 de nuevo en un momento, o escribinos por WhatsApp.",
+    quantity: {
+      heading: "\u00bfCu\u00e1ntas entradas?",
+      intro:
+        "Si ven\u00eds con alguien m\u00e1s, llevalas todas juntas. Te mandamos un mail con un QR por entrada.",
+      decrease: "Una menos",
+      increase: "Una m\u00e1s",
+      one: "1 entrada",
+      many: "{n} entradas",
+      submit: "Ir a pagar \u00b7 {total}",
+      submitting: "Abriendo el pago\u2026",
+      close: "Cerrar",
+      maxNote:
+        "Hasta 10 por compra. Si necesit\u00e1s m\u00e1s, escribinos por WhatsApp.",
+    },
     success: {
       title: "BROTE \u2014 \u00a1Listo!",
       heading: "\u00a1Ya sos parte del bosque!",

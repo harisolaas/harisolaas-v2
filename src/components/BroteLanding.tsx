@@ -26,6 +26,7 @@ import {
 } from "@/lib/brote-invitations";
 import type { BroteCollaboratorMention, BroteDict } from "@/dictionaries/types";
 import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
+import BroteQuantityModal from "./BroteQuantityModal";
 import { readBrowserAttribution } from "@/lib/attribution";
 import {
   initPostHog,
@@ -561,6 +562,8 @@ export default function BroteLanding({ dict, locale }: Props) {
     message: string;
   } | null>(null);
   const [ctaHover, setCtaHover] = useState<string | null>(null);
+  /** Which CTA opened the quantity modal, or null when it is closed. */
+  const [quantityFor, setQuantityFor] = useState<string | null>(null);
 
   useEffect(() => {
     initPostHog();
@@ -594,7 +597,16 @@ export default function BroteLanding({ dict, locale }: Props) {
     };
   }, []);
 
-  const handleCheckout = useCallback(async (ctaId: string) => {
+  // The CTA opens the quantity modal; the modal is what starts the payment.
+  // One extra tap, and it is what lets someone bring friends without paying
+  // separately N times.
+  const openQuantity = useCallback((ctaId: string) => {
+    if (checkoutLoading) return;
+    setCheckoutError(null);
+    setQuantityFor(ctaId);
+  }, [checkoutLoading]);
+
+  const handleCheckout = useCallback(async (ctaId: string, quantity: number) => {
     if (checkoutLoading) return;
     setCheckoutLoading(true);
     setCheckoutError(null);
@@ -617,10 +629,13 @@ export default function BroteLanding({ dict, locale }: Props) {
         ? broteConfig.earlyBirdPriceRaw
         : broteConfig.ticketPriceRaw;
 
+    // The BASKET value, not the unit price. The server fires its CAPI twin
+    // under this same eventID for deduplication, and it multiplies too — a
+    // deduped pair reporting two different values is worse than either alone.
     window.fbq?.(
       "track",
       "InitiateCheckout",
-      { currency: "ARS", value },
+      { currency: "ARS", value: value * quantity, num_items: quantity },
       { eventID: eventId },
     );
 
@@ -640,6 +655,9 @@ export default function BroteLanding({ dict, locale }: Props) {
           fbp,
           fbc,
           locale,
+          // A count, not a price. The server clamps it with the same helper
+          // the webhook uses and decides the unit price itself.
+          quantity,
           ...readBrowserAttribution(window.location.search, document.cookie),
         }),
       });
@@ -703,7 +721,7 @@ export default function BroteLanding({ dict, locale }: Props) {
       // button and squeeze the CTA. One flex item, error underneath.
       <div className="flex flex-col items-center">
         <button
-          onClick={() => void handleCheckout(id)}
+          onClick={() => openQuantity(id)}
           onMouseEnter={() => setCtaHover(id)}
           onMouseLeave={() => setCtaHover((c) => (c === id ? null : c))}
           disabled={checkoutLoading}
@@ -1610,6 +1628,19 @@ fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID}');`}
             }}
           />
         </>
+      )}
+
+      {/* Quantity picker. One instance for all three CTAs — `quantityFor`
+          remembers which opened it so an error message lands on the right
+          button, and the modal resets to 1 on every open. */}
+      {quantityFor !== null && (
+      <BroteQuantityModal
+        onClose={() => setQuantityFor(null)}
+        onConfirm={(quantity) => handleCheckout(quantityFor!, quantity)}
+        unitPrice={currentTicketPrice().raw}
+        loading={checkoutLoading}
+        dict={dict.quantity}
+      />
       )}
     </div>
   );
