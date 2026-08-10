@@ -25,6 +25,8 @@ Skip the review cycle only if the requester explicitly says so ("don't review" /
 
 **Prod-migration note:** Vercel does NOT auto-run `drizzle-kit migrate`. Any PR that changes `src/db/schema.ts` needs a manual migration step against the prod Neon branch — apply the generated SQL from `src/db/migrations/` after merge, before the new code serves traffic.
 
+**DB-backed tests:** several suites hit a real, shared Neon branch. Cleanup goes in `beforeAll`/`afterAll` — never only at the end of the test body, or one failure poisons the branch for every PR in the repo until someone deletes the row by hand. Before blaming a red `Build + lint + test` on your diff, check whether the failures are all DB suites and whether a concurrent run is in flight. See [`docs/ops/test-database.md`](docs/ops/test-database.md).
+
 ---
 
 ## COPY & LANGUAGE CONVENTIONS
