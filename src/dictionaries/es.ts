@@ -664,65 +664,6 @@ const es: Dictionary = {
       },
     },
   },
-  broteUnArbol: {
-    headline: "Una fiesta. Un \u00e1rbol. Tu tarde.",
-    message: [
-      "Donar es lindo. Todav\u00eda m\u00e1s lindo es compartir un espacio de festejo con una comunidad que aporta todos los meses al medio ambiente.",
-      "Para la comunidad de Un \u00c1rbol: $17.477 ARS \u2014 25% OFF sobre el precio final.",
-      "Cada entrada planta un \u00e1rbol nativo en el AMBA.",
-    ],
-    includes: [
-      "Caf\u00e9 de especialidad y pasteler\u00eda (Nueza)",
-      "M\u00fasica en vivo (Ximena) + DJ set (Gaspar Insfr\u00e1n desde Paraguay)",
-      "Charla de reforestaci\u00f3n + siembra colectiva \u2014 te llev\u00e1s tu planta a casa",
-      "Siembra de intenci\u00f3n (meditaci\u00f3n colectiva)",
-    ],
-    pricingTitle: "Precios",
-    pricing: [
-      {
-        label: "Comunidad Un \u00c1rbol (25% OFF)",
-        price: "$17.477",
-        highlight: true,
-      },
-      { label: "Preventa general", price: "$18.650" },
-      { label: "En puerta", price: "$23.303" },
-    ],
-    codePlaceholder: "Ingres\u00e1 tu c\u00f3digo",
-    codeButton: "Validar",
-    codeInvalid:
-      "C\u00f3digo inv\u00e1lido. Revis\u00e1 que est\u00e9 bien escrito.",
-    codeUsed: "Este c\u00f3digo ya fue utilizado.",
-    cta: "Quiero mi entrada",
-    loading: "Procesando...",
-    backLink: "Volver a BROTE",
-  },
-  broteCima: {
-    headline: "Corré con CIMA. Plantá con BROTE.",
-    message: [
-      "La comunidad de CIMA sabe lo que es moverse con propósito. Esta vez, cada paso planta un árbol.",
-      "Para la comunidad de CIMA: $17.477 ARS — 25% OFF sobre el precio final.",
-      "Cada entrada planta un árbol nativo en el AMBA.",
-    ],
-    includes: [
-      "Café de especialidad y pastelería (Nueza)",
-      "Música en vivo (Ximena) + DJ set (Gaspar Insfrán desde Paraguay)",
-      "Charla de reforestación + siembra colectiva — te llevás tu planta a casa",
-      "Siembra de intención (meditación colectiva)",
-    ],
-    pricingTitle: "Precios",
-    pricing: [
-      { label: "Comunidad CIMA (25% OFF)", price: "$17.477", highlight: true },
-      { label: "Preventa general", price: "$18.650" },
-      { label: "En puerta", price: "$23.303" },
-    ],
-    codePlaceholder: "Ingresá tu código",
-    codeButton: "Validar",
-    codeInvalid: "Código inválido. Revisá que esté bien escrito.",
-    codeUsed: "Este código ya fue utilizado.",
-    cta: "Quiero mi entrada",
-    loading: "Procesando...",
-    backLink: "Volver a BROTE",
-  },
   plant: {
     meta: {
       title: "BROTE — El segundo movimiento",
