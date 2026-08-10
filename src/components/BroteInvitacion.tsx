@@ -89,6 +89,10 @@ interface Props {
 export default function BroteInvitacion({ dict, locale, invitation }: Props) {
   const copy = dict.collaborators[invitation.slug];
   const price = resolveInvitationPrice(invitation);
+  const igUrl = instagramUrl(invitation);
+  // "Te invita" reads wrong when nobody is inviting you — the returning
+  // community page overrides it with its own line.
+  const kicker = copy?.kicker ?? dict.kicker;
 
   const priceLabel =
     price.badge === "discount" ? dict.price.invitedLabel : dict.price.ticketLabel;
@@ -178,7 +182,7 @@ export default function BroteInvitacion({ dict, locale, invitation }: Props) {
               margin: "clamp(28px,8cqw,44px) 0 0",
             }}
           >
-            {dict.kicker}
+            {kicker}
           </p>
 
           <h1
@@ -194,9 +198,12 @@ export default function BroteInvitacion({ dict, locale, invitation }: Props) {
             {invitation.name}
           </h1>
 
+          {/* No account, no chip. The returning-community page has nobody to
+              link to, and an empty bordered pill would read as a bug. */}
+          {igUrl && (
           <div style={{ display: "flex", justifyContent: "center" }}>
             <a
-              href={instagramUrl(invitation)}
+              href={igUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="brote-inv-chip"
@@ -231,6 +238,7 @@ export default function BroteInvitacion({ dict, locale, invitation }: Props) {
               {invitation.handle}
             </a>
           </div>
+          )}
 
           {copy?.roleLine ? (
             <p

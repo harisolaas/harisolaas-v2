@@ -658,6 +658,12 @@ const en: Dictionary = {
         roleLine: "He closes the night with his DJ set. Playing live that night.",
         closingLine: "Gian saved you a spot. And he closes the night for you.",
       },
+      comunidad: {
+        kicker: "You're part of",
+        roleLine:
+          "You were at the first one, or you had your hands in the soil. This one's yours.",
+        closingLine: "Come back. The forest you started is still growing.",
+      },
     },
   },
   plant: {

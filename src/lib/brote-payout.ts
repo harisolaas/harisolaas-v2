@@ -26,7 +26,11 @@
  */
 
 import { formatArs } from "@/data/brote";
-import { getInvitation, type InvitationSlug } from "./brote-invitations";
+import {
+  getInvitation,
+  type BroteInvitation,
+  type InvitationSlug,
+} from "./brote-invitations";
 
 /** One paid participation, as read from the database. */
 export interface PayoutRow {
@@ -39,7 +43,7 @@ export interface PayoutRow {
 export interface CollaboratorPayout {
   slug: InvitationSlug;
   name: string;
-  kind: "brand" | "artist";
+  kind: BroteInvitation["kind"];
   tickets: number;
   revenueCents: number;
   revenueDisplay: string;
