@@ -1433,7 +1433,11 @@ export default function BroteLanding({ dict, locale }: Props) {
                   opacity: 0.9,
                 }}
               >
-                {dict.includes.featured.body}
+                {dict.includes.featured.mention ? (
+                  <CollaboratorMention mention={dict.includes.featured.mention} />
+                ) : (
+                  dict.includes.featured.body
+                )}
               </p>
             </div>
           </div>
