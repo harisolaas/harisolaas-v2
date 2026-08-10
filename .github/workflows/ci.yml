@@ -6,6 +6,25 @@ on:
   push:
     branches: [main]
 
+# Every run of this workflow shares ONE Neon dev branch, and the DB-backed
+# suites seed fixtures under fixed ids (`test-evt-*`, `test-community-*@…`).
+# Two runs overlapping therefore delete each other's rows mid-test, and the
+# failures look like real regressions: `23503 … is still referenced from
+# table "participations"`, `CapacityReachedError`, a promoteWaitlist that
+# reports `promoted: false` because someone else's beforeEach removed the
+# waitlist row first.
+#
+# `vitest.config.ts` sets maxWorkers:1, which serialises *within* a run and
+# can do nothing about this. With ~9 open PRs the collisions were constant
+# and had already cost three separate programmes a debugging cycle each.
+#
+# So: one run at a time, repo-wide. `cancel-in-progress: false` because
+# queueing is the point — cancelling would just move the flake to
+# "my PR never got a verdict".
+concurrency:
+  group: ci-shared-neon-branch
+  cancel-in-progress: false
+
 jobs:
   check:
     name: Build + lint + test

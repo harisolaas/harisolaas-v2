@@ -1,0 +1,2 @@
+DROP INDEX "participations_person_event_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "participations_person_event_unique" ON "participations" USING btree ("person_id","event_id") WHERE "participations"."role" <> 'companion';
