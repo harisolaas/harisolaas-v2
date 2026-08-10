@@ -139,12 +139,17 @@ export function summarizePayout(
       tickets: entry.tickets,
       revenueCents: entry.revenueCents,
       revenueDisplay: formatArs(Math.round(entry.revenueCents / 100)),
-      ...(feePerTicketCents !== undefined && {
-        feeCents: entry.tickets * feePerTicketCents,
-        feeDisplay: formatArs(
-          Math.round((entry.tickets * feePerTicketCents) / 100),
-        ),
-      }),
+      // ONLY artists earn a fee. Brands and the returning community discount
+      // their own audience; they are in this report so their sales are
+      // visible, not because money is owed. Applying the rate to them would
+      // print a perfectly plausible table overstating what has to be paid.
+      ...(feePerTicketCents !== undefined &&
+        invitation.kind === "artist" && {
+          feeCents: entry.tickets * feePerTicketCents,
+          feeDisplay: formatArs(
+            Math.round((entry.tickets * feePerTicketCents) / 100),
+          ),
+        }),
     });
   }
 
@@ -153,6 +158,9 @@ export function summarizePayout(
 
   const totalTickets = collaborators.reduce((n, c) => n + c.tickets, 0);
   const totalRevenue = collaborators.reduce((n, c) => n + c.revenueCents, 0);
+  // Summed from the per-collaborator figures rather than recomputed from
+  // `totalTickets`, so the total cannot disagree with the column above it.
+  const totalFee = collaborators.reduce((n, c) => n + (c.feeCents ?? 0), 0);
 
   return {
     collaborators,
@@ -161,10 +169,8 @@ export function summarizePayout(
       revenueCents: totalRevenue,
       revenueDisplay: formatArs(Math.round(totalRevenue / 100)),
       ...(feePerTicketCents !== undefined && {
-        feeCents: totalTickets * feePerTicketCents,
-        feeDisplay: formatArs(
-          Math.round((totalTickets * feePerTicketCents) / 100),
-        ),
+        feeCents: totalFee,
+        feeDisplay: formatArs(Math.round(totalFee / 100)),
       }),
     },
     unknownInvites: [...unknown.entries()].map(([invite, tickets]) => ({

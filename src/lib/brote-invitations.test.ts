@@ -116,7 +116,7 @@ describe("the returning-community invitation", () => {
       const inv = getInvitation(slug)!;
       if (!inv.handle) continue;
       expect(instagramUrl(inv)).toBe(
-        `https://instagram.com/${inv.handle.replace("@", "")}`,
+        `https://instagram.com/${inv.handle.replace(/^@/, "")}`,
       );
     }
   });
