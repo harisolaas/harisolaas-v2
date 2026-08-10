@@ -265,13 +265,12 @@ export async function POST(req: Request) {
 
       const treeNumber = await countBroteTickets();
       const { resendId } = await sendBroteTicketEmail({
-        ticketId: ticket.id,
+        tickets: [{ ticketId: ticket.id, treeNumber }],
         to: sendTo,
         buyerName: ticket.buyerName,
         paymentId: ticket.paymentId,
-        treeNumber,
       });
-      await markBroteTicketEmailSent(ticket.id);
+      await markBroteTicketEmailSent([ticket.id]);
 
       return NextResponse.json({ ok: true, to: sendTo, resendId });
     }
@@ -609,13 +608,12 @@ export async function POST(req: Request) {
 
       const treeNumber = await countBroteTickets();
       const { resendId } = await sendBroteTicketEmail({
-        ticketId: newTicketId,
+        tickets: [{ ticketId: newTicketId, treeNumber }],
         to: toEmail,
         buyerName: giftedName,
         paymentId: `GIFT-${newTicketId}`,
-        treeNumber,
       });
-      await markBroteTicketEmailSent(newTicketId);
+      await markBroteTicketEmailSent([newTicketId]);
 
       return NextResponse.json({
         ok: true,

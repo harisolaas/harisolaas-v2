@@ -1,4 +1,3 @@
-import type { BroteTicket } from "./brote-types";
 import { broteConfig } from "@/data/brote";
 
 // Start hour derived from eventTime ("19:00 a 22:30" → "19") for day-of copy.
@@ -80,10 +79,80 @@ export function qrDataUrlToBuffer(dataUrl: string): Buffer {
   return Buffer.from(base64, "base64");
 }
 
+/** One ticket as the email renders it. `guestName` is optional (U5). */
+export interface TicketForEmail {
+  ticketId: string;
+  treeNumber: number;
+  guestName?: string;
+}
+
+/**
+ * Escape anything user-supplied before it reaches the HTML.
+ *
+ * The buyer name arrives from MercadoPago's payer object and from the
+ * /brote/success contact step; guest names are typed by the buyer outright.
+ * `tasks/lessons.md` records that these builders interpolate unescaped —
+ * this closes it for the ticket mail, which is the one that now carries two
+ * uncontrolled strings per ticket.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * `cid` for the Nth attachment. The FIRST stays `qr` rather than becoming
+ * `qr1`: hundreds of one-ticket emails already went out referencing `cid:qr`,
+ * and renaming it would change the single-ticket HTML for no benefit. Pinned
+ * by the golden fixture in `brote-email.test.ts`.
+ */
+export function qrContentId(index: number): string {
+  return index === 0 ? "qr" : `qr${index + 1}`;
+}
+
 export function buildTicketEmailHtml(
-  ticket: BroteTicket,
-  treeNumber: number,
+  tickets: TicketForEmail[],
+  buyerName: string,
 ): string {
+  const many = tickets.length > 1;
+
+  // Heading over the tree illustration. Singular keeps the exact copy that
+  // shipped; plural names the count so three QRs below don't read as a bug.
+  const treeHeading = many
+    ? `${tickets.length} &aacute;rboles`
+    : `&Aacute;rbol #${tickets[0].treeNumber}`;
+
+  const treeBlurb = many
+    ? `Cada entrada planta un &aacute;rbol real. Ya tienen n&uacute;mero (#${tickets[0].treeNumber} a #${tickets[tickets.length - 1].treeNumber}) y van a crecer mucho despu&eacute;s de que termine la m&uacute;sica.`
+    : `Cada entrada planta un &aacute;rbol real. El tuyo ya tiene n&uacute;mero y va a crecer mucho despu&eacute;s de que termine la m&uacute;sica.`;
+
+  // One QR block per ticket. For a single ticket this has to render exactly
+  // as it did before — the golden fixture asserts byte equality.
+  const qrBlocks = tickets
+    .map((ticket, i) => {
+      const label = many
+        ? `\n    <p style="margin:0 0 10px;color:#888;font-size:12px;letter-spacing:1px">ENTRADA ${i + 1} DE ${tickets.length}${ticket.guestName ? ` &middot; ${escapeHtml(ticket.guestName)}` : ""} &middot; &Aacute;rbol #${ticket.treeNumber}</p>`
+        : ticket.guestName
+          ? `\n    <p style="margin:0 0 10px;color:#888;font-size:12px;letter-spacing:1px">${escapeHtml(ticket.guestName)}</p>`
+          : "";
+      return `  <div style="text-align:center;padding:24px;background:#FAF6F1;border-radius:12px;margin-bottom:20px">${label}
+    <img src="cid:${qrContentId(i)}" alt="QR Code" width="200" height="200" style="display:block;margin:0 auto"/>
+    <p style="margin:12px 0 0;color:#2D4A3E;font-size:13px;font-weight:700;letter-spacing:1.5px">${ticket.ticketId}</p>
+  </div>`;
+    })
+    .join("\n\n");
+
+  const forwardNote = many
+    ? `
+  <div style="margin:0 0 20px;padding:14px 16px;background:#FAF6F1;border-radius:8px;text-align:center">
+    <p style="margin:0;color:#2D4A3E;font-size:13px">Reenvi&aacute; una a cada persona, o mostralas todas desde tu tel&eacute;fono en la puerta.</p>
+  </div>`
+    : "";
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -101,9 +170,9 @@ export function buildTicketEmailHtml(
 <!-- Tree highlight -->
 <tr><td style="padding:32px 24px 0;text-align:center">
   <div style="display:inline-block;background:#2D4A3E;border-radius:50%;width:80px;height:80px;line-height:80px;font-size:40px;text-align:center">🌱</div>
-  <h2 style="margin:16px 0 4px;color:#2D4A3E;font-size:26px;font-weight:700">&Aacute;rbol #${treeNumber}</h2>
-  <p style="margin:0;color:#C4704B;font-size:15px;font-weight:600">va a echar ra&iacute;ces en Argentina gracias a vos</p>
-  <p style="margin:12px 0 0;color:#888;font-size:13px;line-height:1.5">Cada entrada planta un &aacute;rbol real. El tuyo ya tiene n&uacute;mero y va a crecer mucho despu&eacute;s de que termine la m&uacute;sica.</p>
+  <h2 style="margin:16px 0 4px;color:#2D4A3E;font-size:26px;font-weight:700">${treeHeading}</h2>
+  <p style="margin:0;color:#C4704B;font-size:15px;font-weight:600">${many ? "van" : "va"} a echar ra&iacute;ces en Argentina gracias a vos</p>
+  <p style="margin:12px 0 0;color:#888;font-size:13px;line-height:1.5">${treeBlurb}</p>
 </td></tr>
 
 <!-- Divider -->
@@ -111,18 +180,15 @@ export function buildTicketEmailHtml(
 
 <!-- Ticket info -->
 <tr><td style="padding:24px">
-  <h3 style="margin:0 0 16px;color:#2D4A3E;font-size:18px">Tu entrada</h3>
-
+  <h3 style="margin:0 0 16px;color:#2D4A3E;font-size:18px">${many ? `Tus ${tickets.length} entradas` : "Tu entrada"}</h3>
+${forwardNote}
   <!-- QR Code -->
-  <div style="text-align:center;padding:24px;background:#FAF6F1;border-radius:12px;margin-bottom:20px">
-    <img src="cid:qr" alt="QR Code" width="200" height="200" style="display:block;margin:0 auto"/>
-    <p style="margin:12px 0 0;color:#2D4A3E;font-size:13px;font-weight:700;letter-spacing:1.5px">${ticket.id}</p>
-  </div>
+${qrBlocks}
 
   <!-- Details -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#444">
     <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><strong style="color:#2D4A3E">Nombre</strong></td>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">${ticket.buyerName}</td></tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">${escapeHtml(buyerName)}</td></tr>
     <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><strong style="color:#2D4A3E">Fecha</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;text-align:right">${broteConfig.eventDateDisplay}, ${broteConfig.eventTime}</td></tr>
     <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0"><strong style="color:#2D4A3E">Lugar</strong></td>

@@ -194,11 +194,14 @@ describe("POST with an existing ticket", () => {
 
     // The mock really intercepts, and the ticket went to the NEW address.
     expect(sendSpy).toHaveBeenCalledTimes(1);
-    expect(sendSpy.mock.calls[0][0]).toMatchObject({
-      ticketId: TICKET,
-      to: CONFIRMED,
-    });
-    expect(markSpy).toHaveBeenCalledWith(TICKET);
+    // The email now carries a LIST of tickets (one buyer can hold several).
+    // Still exactly one send, still exactly this ticket, still to the newly
+    // confirmed address — the shape changed, the guarantee did not.
+    expect(sendSpy.mock.calls[0][0]).toMatchObject({ to: CONFIRMED });
+    expect(sendSpy.mock.calls[0][0].tickets.map((t: { ticketId: string }) => t.ticketId)).toEqual([
+      TICKET,
+    ]);
+    expect(markSpy).toHaveBeenCalledWith([TICKET]);
   });
 });
 
