@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
+import { existsSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * `next/font/google` ships a 0-byte stub in `node_modules` — the real loader is
@@ -25,6 +27,16 @@ const locales = ["es", "en"] as const;
 
 /** The pages take `params` as a promise, the way Next 16 hands them over. */
 const params = (locale: string) => ({ params: Promise.resolve({ locale }) });
+
+/**
+ * `Metadata["robots"]` is `null | string | Robots`. Both spellings de-index,
+ * so a check that only understands the object form is blind to half of them.
+ */
+function isIndexable(robots: unknown): boolean {
+  if (robots == null) return true;
+  if (typeof robots === "string") return !robots.includes("noindex");
+  return (robots as { index?: boolean }).index !== false;
+}
 
 describe("BROTE landing metadata", () => {
   it.each(locales)("declares itself canonical in %s", async (locale) => {
@@ -64,8 +76,45 @@ describe("BROTE landing metadata", () => {
     // Over-restriction is the likelier harm here: a robots rule meant for the
     // gate/success pages that also swallows the landing would silently
     // de-index the event ten days before it happens.
-    const robots = md.robots as { index?: boolean } | undefined;
-    expect(robots?.index).not.toBe(false);
+    //
+    // Checking `robots.index !== false` is NOT enough — `Metadata["robots"]`
+    // also accepts a string, and `"noindex, nofollow"` has no `.index` at all,
+    // so the naive assertion passes while the landing is de-indexed.
+    expect(isIndexable(md.robots)).toBe(true);
+  });
+
+  it("has no ancestor layout that de-indexes the whole subtree", async () => {
+    // The other half of the same trap, and the likelier shortcut: one
+    // `[locale]/brote/layout.tsx` carrying `robots: { index: false }` to cover
+    // gate+success+failure in a single file would also swallow the landing.
+    // The page returns no `robots` of its own, so nothing above can be seen
+    // from its metadata object — it has to be asserted structurally.
+    expect(
+      existsSync(resolve(process.cwd(), "src/app/[locale]/brote/layout.tsx")),
+    ).toBe(false);
+
+    const { generateMetadata } = await import("@/app/[locale]/layout");
+    const layoutMd = await generateMetadata(params("es"));
+    expect(isIndexable(layoutMd.robots)).toBe(true);
+  });
+});
+
+describe("the OG asset itself", () => {
+  it("exists in public/ and is not empty", async () => {
+    const { BROTE_OG_IMAGE } = await import("@/data/brote");
+    const file = resolve(process.cwd(), "public", BROTE_OG_IMAGE);
+
+    // Every other assertion in this file only proves the pages agree on a
+    // *name*. Nothing tied that name to a file on disk — so bumping the
+    // constant to `-v3` without committing the asset, or renaming the asset
+    // without touching the constant, left the whole suite green while the
+    // card 404'd and shares rendered with no image at all. Which is the one
+    // visible outcome this change exists to produce.
+    //
+    // The doc comment on BROTE_OG_IMAGE tells the next person to bump the
+    // filename on every artwork change, so this trap re-arms on every edit.
+    expect(existsSync(file)).toBe(true);
+    expect(statSync(file).size).toBeGreaterThan(0);
   });
 });
 
@@ -124,6 +173,15 @@ describe("invitation pages", () => {
     expect(md.robots).toMatchObject({ index: false, follow: false });
     const images = md.openGraph?.images as Array<{ url: string }>;
     expect(images?.[0]?.url).toContain(OG_FILE);
+    expect(images?.[0]?.url.startsWith("/")).toBe(true);
+
+    // Asserted symmetrically with openGraph: checking only one of the two let
+    // `twitter.images` keep pointing at the `og-brote.jpg` this change
+    // deletes — a hard 404 on X, across the five pages the collaborators are
+    // handing out right now.
+    const twitter = md.twitter?.images as string[];
+    expect(twitter?.[0]).toContain(OG_FILE);
+    expect(twitter?.[0]?.startsWith("/")).toBe(true);
   });
 });
 
