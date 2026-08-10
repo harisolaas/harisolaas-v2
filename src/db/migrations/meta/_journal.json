@@ -43,6 +43,13 @@
       "when": 1784907750051,
       "tag": "0005_pink_flatman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786380427385,
+      "tag": "0006_magenta_ogun",
+      "breakpoints": true
     }
   ]
 }

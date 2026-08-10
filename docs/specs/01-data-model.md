@@ -420,7 +420,9 @@ CREATE TABLE participations (
   created_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   updated_at              TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
 
-  UNIQUE (person_id, event_id)
+  -- Partial: extra tickets bought for friends carry role='companion' and are
+  -- exempt. Everything else stays one-per-person-per-event.
+  UNIQUE (person_id, event_id) WHERE role <> 'companion'
 );
 
 CREATE INDEX participations_event_id_idx          ON participations (event_id);
@@ -482,7 +484,7 @@ Role seed list (open TEXT column, no CHECK): `attendee`, `planter`, `rsvp`, `vol
 3. **Email is stored as `CITEXT`.** Case-insensitive uniqueness and comparisons enforced by Postgres — no app-level lowercasing discipline needed.
 4. **`people.first_seen` and `people.first_touch` are set once on `INSERT` and never updated.**
 5. **`participations.attribution` is set at write time and never updated.**
-6. **`UNIQUE(person_id, event_id)`.** A person has at most one participation per event. Waitlist → confirmed is an UPDATE on the existing row.
+6. **`UNIQUE(person_id, event_id) WHERE role <> 'companion'`.** A person has at most one *non-companion* participation per event. Waitlist → confirmed is an UPDATE on the existing row. Companion rows are the exception: one buyer can hold several tickets for one event (bought for friends), each its own row with its own QR and its own `used` state, with `buyer_person_id` recording who paid. Anything reading "one row per person per event" as total — including a `LIMIT 1` lookup — needs an explicit `ORDER BY` to be deterministic.
 7. **`role` vocabulary is open.** No CHECK constraint. New roles don't require migrations.
 8. **`status` vocabulary is closed.** CHECK constraint enforces: `pending | confirmed | waitlist | cancelled | no_show | used`.
 9. **Atomicity via transactions.** Every `recordParticipation` call wraps the person upsert + participation insert/update in a single transaction. Either both land or neither does.

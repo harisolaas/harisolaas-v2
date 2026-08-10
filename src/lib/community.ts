@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type {
   Event,
@@ -206,6 +206,13 @@ export async function recordParticipation(
     // 3. Upsert participation.
     //    Primary conflict target: id (idempotent retries of the same
     //    participationId). Secondary: (person_id, event_id) uniqueness.
+    //    The ORDER BY is load-bearing, not cosmetic. Since companion rows
+    //    exist, a buyer can have several rows for one event and an unordered
+    //    `limit(1)` returns whichever the planner reaches first — verified:
+    //    after the attendee tuple is rewritten by any UPDATE, a seq scan
+    //    hands back a companion. That row's `status` drives the waitlist
+    //    promotion branch below, and its id becomes every downstream Redis
+    //    anchor. Non-companion first, then oldest, so this is total.
     const existing = await tx
       .select()
       .from(schema.participations)
@@ -214,6 +221,11 @@ export async function recordParticipation(
           eq(schema.participations.personId, personId),
           eq(schema.participations.eventId, params.eventId),
         ),
+      )
+      .orderBy(
+        sql`(${schema.participations.role} = 'companion')`,
+        schema.participations.createdAt,
+        schema.participations.id,
       )
       .limit(1);
 
@@ -282,6 +294,109 @@ export async function recordParticipation(
       created,
       promoted: false,
       personCreated: personCreated && created,
+    };
+  });
+}
+
+export interface AddCompanionTicketsParams {
+  personId: number;
+  eventId: string;
+  /**
+   * One id per extra ticket, in the order they should be numbered.
+   *
+   * The caller is expected to derive these deterministically from the
+   * payment, not to mint fresh ones: `(person_id, event_id)` no longer
+   * constrains companion rows, so `ON CONFLICT (id) DO NOTHING` below is the
+   * ONLY thing standing between two concurrent webhook deliveries of one
+   * payment and a double issuance. Random ids per invocation defeat it.
+   */
+  ticketIds: string[];
+  externalPaymentId: string;
+  /** Per ticket, never the basket total — revenue reporting sums this column. */
+  priceCents: number;
+  currency: string;
+  attribution?: AttributionTouch;
+  /** Merged onto every row. Carries `invite`, which the payout report reads. */
+  metadata?: Record<string, unknown>;
+}
+
+export interface AddCompanionTicketsResult {
+  /** Inserted by THIS call, in the order requested. */
+  createdIds: string[];
+  /**
+   * Already present with the same id — a concurrent delivery got there
+   * first. Success, not shortfall: the caller alerts when it issued fewer
+   * tickets than were paid for, and a retry must not trip that.
+   */
+  existingIds: string[];
+}
+
+/**
+ * Extra tickets for a buyer who already holds one for this event.
+ *
+ * Companion rows exist because a person can buy for friends: they carry
+ * `role = 'companion'`, which is exactly what the partial unique index on
+ * `(person_id, event_id)` excludes. `buyer_person_id` records who paid.
+ *
+ * Deliberately separate from `recordParticipation`: that function is the
+ * shared entry point for Sinergia, plant signups and the admin, and it
+ * short-circuits on an existing person/event row by design. Widening it for
+ * this case would put every one of those flows on the same revert boundary.
+ */
+export async function addCompanionTickets(
+  params: AddCompanionTicketsParams,
+): Promise<AddCompanionTicketsResult> {
+  if (params.ticketIds.length === 0) {
+    return { createdIds: [], existingIds: [] };
+  }
+
+  return db.transaction(async (tx) => {
+    // Same reason as recordParticipation (:110): a cookie can name a link
+    // that was deleted since. `participations.link_slug` is a foreign key, so
+    // an unsanitized slug raises 23503 — and here that would happen AFTER
+    // MercadoPago has taken the money.
+    const attribution = await sanitizeAttribution(tx, params.attribution);
+
+    const rows = params.ticketIds.map((id) => ({
+      id,
+      personId: params.personId,
+      eventId: params.eventId,
+      buyerPersonId: params.personId,
+      role: "companion",
+      status: "confirmed",
+      attribution: attribution ?? null,
+      linkSlug: attribution?.linkSlug ?? null,
+      externalPaymentId: params.externalPaymentId,
+      priceCents: params.priceCents,
+      currency: params.currency,
+      metadata: params.metadata ?? {},
+    })) satisfies NewParticipation[];
+
+    const inserted = await tx
+      .insert(schema.participations)
+      .values(rows)
+      .onConflictDoNothing({ target: schema.participations.id })
+      .returning({ id: schema.participations.id });
+
+    const createdSet = new Set(inserted.map((r) => r.id));
+    // Preserve the requested order: the caller pairs these with tree numbers.
+    const createdIds = params.ticketIds.filter((id) => createdSet.has(id));
+    const notCreated = params.ticketIds.filter((id) => !createdSet.has(id));
+
+    if (notCreated.length === 0) return { createdIds, existingIds: [] };
+
+    // Confirm the rest are genuinely present rather than assuming the
+    // conflict was on `id`. Reporting a row as "existing" that isn't there
+    // would silence the caller's shortfall alert on a real lost insert.
+    const present = await tx
+      .select({ id: schema.participations.id })
+      .from(schema.participations)
+      .where(inArray(schema.participations.id, notCreated));
+    const presentSet = new Set(present.map((r) => r.id));
+
+    return {
+      createdIds,
+      existingIds: notCreated.filter((id) => presentSet.has(id)),
     };
   });
 }
