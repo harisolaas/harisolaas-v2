@@ -89,6 +89,18 @@ interface ParticipationFixture {
   // "Aportes recaudados" panel won't render in preview.
   priceCents?: number;
   currency?: string;
+  // Attribution. Without these the admin's Enlaces tab shows 0 signups on
+  // every link and "Personas atribuidas" is always empty, so the whole
+  // reporting surface a collaborator's fee is counted from is untestable in
+  // preview. `referrerEmail` additionally stamps `referred_by_person_id`,
+  // which is what `bypassLinkSlug` does in prod.
+  linkSlug?: string;
+  attributionSource?: string;
+  attributionMedium?: string;
+  attributionCampaign?: string;
+  referrerEmail?: string;
+  /** Collaborator slug, mirroring what the BROTE webhook writes. */
+  invite?: string;
   paymentId?: string;
   donation?: boolean;
 }
@@ -197,6 +209,12 @@ const PEOPLE: PersonFixture[] = [
   { email: "preview-tomi@example.com", name: "Tomás Ibáñez" },
   { email: "preview-vale@example.com", name: "Valeria Cruz" },
   { email: "preview-host@example.com", name: "Host de Sinergia" },
+  { email: "preview-sofi@example.com", name: "Sofía Aguirre" },
+  // The two BROTE line-up artists, as the referrers on their invitation
+  // links. They need to exist as people for `referred_by_person_id` to
+  // resolve to anything.
+  { email: "preview-jose@example.com", name: "Jose Dezanzo" },
+  { email: "preview-gian@example.com", name: "Gian Bejarano" },
   // Exercises the 'Asistente' placeholder self-heal path in `upsertPerson`
   // / `recordParticipation` and the backfill script's filter
   // (`name='Asistente' AND external_payment_id IS NOT NULL`).
@@ -263,6 +281,60 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       paymentId: `PREVIEW-MP-B2-${String(i + 1).padStart(3, "0")}`,
     }),
   })),
+  // Sales through the collaborator invitations. Three states on purpose, so
+  // the admin renders all of them instead of one happy row:
+  //   · a brand sale at the discounted price, attributed by link only;
+  //   · an artist sale at the public price, attributed AND carrying a
+  //     referrer — the pair a per-ticket fee is counted from;
+  //   · a sale that arrived through a real /go/ link, where the tracked link
+  //     takes the attribution and `metadata.invite` is the only record of
+  //     which collaborator sent them.
+  // The eight rows above stay unattributed, which is the empty state.
+  {
+    id: "PREVIEW-B2-INV-001",
+    personEmail: "preview-sofi@example.com",
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2145000, // $21.450 — 35% off the regular price
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-INV-001",
+    linkSlug: "inv-pulso",
+    attributionSource: "partner",
+    attributionMedium: "referral",
+    attributionCampaign: "brote-invitacion",
+    invite: "pulso",
+  },
+  {
+    id: "PREVIEW-B2-INV-002",
+    personEmail: "preview-tomi@example.com",
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2475000, // artists sell at the public preventa price
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-INV-002",
+    linkSlug: "inv-jose",
+    attributionSource: "partner",
+    attributionMedium: "referral",
+    attributionCampaign: "brote-invitacion",
+    referrerEmail: "preview-jose@example.com",
+    invite: "jose",
+  },
+  {
+    id: "PREVIEW-B2-INV-003",
+    personEmail: "preview-vale@example.com",
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2475000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-INV-003",
+    linkSlug: "preview-instagram-story-20260420",
+    attributionSource: "instagram",
+    attributionMedium: "story",
+    invite: "gian",
+  },
   // Plant (upcoming) — confirmed + a couple waitlist.
   ...[
     "ana",
@@ -392,6 +464,33 @@ const LINKS: LinkFixture[] = [
     bypassCapacity: true,
     referrerEmail: "preview-host@example.com",
   },
+  // BROTE collaborator invitations. Real slugs, not `preview-` prefixed: the
+  // checkout resolves these exact strings from `src/lib/brote-invitations.ts`
+  // when a buyer arrives through the pretty URL, so a renamed preview copy
+  // would exercise a code path that does not exist.
+  ...(
+    [
+      ["inv-pulso", "pulso", "Pulso", null],
+      ["inv-matelab", "matelab", "MateLab", null],
+      ["inv-unarbol", "unarbol", "Un Árbol", null],
+      // The two artists carry a referrer, which is what stamps
+      // `referred_by_person_id` on their sales — the field their per-ticket
+      // fee would be counted from.
+      ["inv-jose", "jose", "Jose Dezanzo", "preview-jose@example.com"],
+      ["inv-gian", "gian", "Gian Bejarano", "preview-gian@example.com"],
+    ] as const
+  ).map(([slug, pageSlug, name, referrerEmail]) => ({
+    slug,
+    destination: `/es/brote/invitacion/${pageSlug}`,
+    label: `Invitación · ${name}`,
+    channel: "partner",
+    source: "partner",
+    medium: "referral",
+    campaign: "brote-invitacion",
+    createdDate: "2026-08-08",
+    bypassCapacity: false,
+    referrerEmail,
+  })),
 ];
 
 async function main() {
@@ -401,6 +500,40 @@ async function main() {
   console.log(
     `(eyeball the host above — make sure it's your preview/dev branch)`,
   );
+
+  // Fixture consistency, checked before anything is written and before the
+  // dry-run guard so it runs on every invocation.
+  //
+  // A participation resolves its person with `SELECT ... FROM people WHERE
+  // email = $1`. When the email is not in PEOPLE that SELECT returns nothing
+  // and the INSERT quietly writes zero rows — no error, and the row just
+  // isn't there when you go looking for it in the admin. Same for a
+  // `link_slug` with no LINKS entry, except that one fails on the foreign
+  // key with a message that doesn't name the fixture.
+  const knownEmails = new Set(PEOPLE.map((p) => p.email));
+  const knownSlugs = new Set(LINKS.map((l) => l.slug));
+  const problems: string[] = [];
+  for (const p of PARTICIPATIONS) {
+    if (!knownEmails.has(p.personEmail)) {
+      problems.push(`${p.id}: personEmail ${p.personEmail} is not in PEOPLE`);
+    }
+    if (p.referrerEmail && !knownEmails.has(p.referrerEmail)) {
+      problems.push(`${p.id}: referrerEmail ${p.referrerEmail} is not in PEOPLE`);
+    }
+    if (p.linkSlug && !knownSlugs.has(p.linkSlug)) {
+      problems.push(`${p.id}: linkSlug ${p.linkSlug} is not in LINKS`);
+    }
+  }
+  for (const l of LINKS) {
+    if (l.referrerEmail && !knownEmails.has(l.referrerEmail)) {
+      problems.push(`${l.slug}: referrerEmail ${l.referrerEmail} is not in PEOPLE`);
+    }
+  }
+  if (problems.length > 0) {
+    console.error("\n✗ Fixture references that would not resolve:");
+    for (const p of problems) console.error(`  ${p}`);
+    process.exit(1);
+  }
 
   console.log(`\nPlan:`);
   console.log(`  ${EVENTS.length} events`);
@@ -439,47 +572,11 @@ async function main() {
   }
   console.log(`✓ people`);
 
-  // Participations. Look up person_id by email inside the INSERT.
-  for (const p of PARTICIPATIONS) {
-    const usedAtSql =
-      p.status === "used" ? sql`NOW() - INTERVAL '2 days'` : sql`NULL`;
-    // Build metadata: dinner flag + (for Sinergia donations) the same
-    // `donation` shape that recordSinergiaDonation writes in prod.
-    const meta: Record<string, unknown> = {};
-    if (p.staysForDinner !== undefined) meta.staysForDinner = p.staysForDinner;
-    if (p.donation && p.priceCents) {
-      meta.donation = {
-        amountCents: p.priceCents,
-        currency: p.currency ?? "ARS",
-        paymentId: p.paymentId,
-        receiptSent: true,
-      };
-    }
-    const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
-    await db.execute(sql`
-      INSERT INTO participations (
-        id, person_id, event_id, role, status, metadata, used_at,
-        external_payment_id, price_cents, currency
-      )
-      SELECT
-        ${p.id},
-        people.id,
-        ${p.eventId},
-        ${p.role},
-        ${p.status},
-        ${metadataSql},
-        ${usedAtSql},
-        ${p.paymentId ?? null},
-        ${p.priceCents ?? null},
-        ${p.currency ?? null}
-      FROM people WHERE email = ${p.personEmail}
-      ON CONFLICT DO NOTHING
-    `);
-  }
-  console.log(`✓ participations`);
-
-
   // Links, with optional referrer lookup.
+  //
+  // BEFORE participations, not after: participations now carry `link_slug`,
+  // which is a foreign key onto this table. Seeding them the other way round
+  // fails the constraint.
   for (const l of LINKS) {
     await db.execute(sql`
       INSERT INTO links (
@@ -496,6 +593,66 @@ async function main() {
     `);
   }
   console.log(`✓ links`);
+
+  // Participations. Look up person_id by email inside the INSERT.
+  for (const p of PARTICIPATIONS) {
+    const usedAtSql =
+      p.status === "used" ? sql`NOW() - INTERVAL '2 days'` : sql`NULL`;
+    // Build metadata: dinner flag + (for Sinergia donations) the same
+    // `donation` shape that recordSinergiaDonation writes in prod.
+    const meta: Record<string, unknown> = {};
+    if (p.staysForDinner !== undefined) meta.staysForDinner = p.staysForDinner;
+    if (p.donation && p.priceCents) {
+      meta.donation = {
+        amountCents: p.priceCents,
+        currency: p.currency ?? "ARS",
+        paymentId: p.paymentId,
+        receiptSent: true,
+      };
+    }
+    if (p.invite) meta.invite = p.invite;
+    const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
+
+    // `attribution` is the typed touch the admin reads; `link_slug` is the
+    // denormalized column the rollup queries join on. `recordParticipation`
+    // writes both in prod, so the fixture has to as well or the two views
+    // disagree in preview.
+    const attributionSql = p.linkSlug
+      ? sql`${JSON.stringify({
+          linkSlug: p.linkSlug,
+          ...(p.attributionSource && { source: p.attributionSource }),
+          ...(p.attributionMedium && { medium: p.attributionMedium }),
+          ...(p.attributionCampaign && { campaign: p.attributionCampaign }),
+          capturedAt: new Date().toISOString(),
+        })}::jsonb`
+      : sql`NULL`;
+
+    await db.execute(sql`
+      INSERT INTO participations (
+        id, person_id, event_id, role, status, metadata, used_at,
+        external_payment_id, price_cents, currency,
+        link_slug, attribution, referred_by_person_id
+      )
+      SELECT
+        ${p.id},
+        people.id,
+        ${p.eventId},
+        ${p.role},
+        ${p.status},
+        ${metadataSql},
+        ${usedAtSql},
+        ${p.paymentId ?? null},
+        ${p.priceCents ?? null},
+        ${p.currency ?? null},
+        ${p.linkSlug ?? null},
+        ${attributionSql},
+        ${p.referrerEmail ? sql`(SELECT id FROM people ref WHERE ref.email = ${p.referrerEmail})` : sql`NULL`}
+      FROM people WHERE email = ${p.personEmail}
+      ON CONFLICT DO NOTHING
+    `);
+  }
+  console.log(`✓ participations`);
+
 
   if (ADMIN_EMAIL) {
     await db.execute(sql`
