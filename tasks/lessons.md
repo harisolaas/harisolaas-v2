@@ -15,6 +15,12 @@ programme-specific notes; those live in each programme's PROGRESS.md.
   a red `Build + lint + test` as a regression, check whether the failures are all
   DB suites and whether the diff can even reach them. `vitest.config.ts` already
   serialises within a run; it cannot serialise *across* runs.
+- **A fixture deleted only in the test body poisons the branch permanently.**
+  The delete never runs when the test fails first, and the next run dies on the
+  duplicate key *before* reaching its own cleanup — so no re-run can ever clear
+  it, for any PR in the repo. Cleanup goes in `beforeAll`/`afterAll`, and matches
+  on a column you control rather than a server-generated id.
+  Full runbook: [`docs/ops/test-database.md`](../docs/ops/test-database.md).
 - **`tsconfig.json` excludes `**/*.test.ts`**, so `npx tsc --noEmit` does not
   typecheck test files. Type errors there only surface under vitest.
 - **A worktree has no `node_modules`** — `npm ci` before anything.
