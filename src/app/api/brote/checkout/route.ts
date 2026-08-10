@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Preference } from "mercadopago";
 import { nanoid } from "nanoid";
-// `currentTicketPrice()` comes from the landing redesign (#54): the landing
-// and this route price from one helper, so what's shown and what's charged
-// cannot drift. The identity imports are gone — no name/email/phone is
-// collected before payment any more.
-import { broteConfig, currentTicketPrice } from "@/data/brote";
+// `resolveInvitationPrice()` wraps `currentTicketPrice()` from the landing
+// redesign (#54): the landing, the invitation pages and this route all price
+// from one helper, so what's shown and what's charged cannot drift. The
+// identity imports are gone — no name/email/phone is collected before payment.
+import { broteConfig } from "@/data/brote";
+import {
+  getInvitation,
+  resolveInvitationPrice,
+} from "@/lib/brote-invitations";
 import { getRedis } from "@/lib/redis";
 import { CONFIRM_TTL, checkoutByTokenKey } from "@/lib/brote-confirm-token";
 import { sendMetaEvent } from "@/lib/meta-capi";
@@ -56,9 +60,28 @@ export async function POST(req: Request) {
     const fbc = body.fbc as string | undefined;
     const locale = body.locale === "en" ? "en" : "es";
 
+    // The collaborator whose invitation this buyer arrived through. Looked up
+    // server-side: the body carries a slug, never a price. An unknown slug is
+    // not an error — it just prices like any other visitor.
+    const invitation = getInvitation(body.invite as string | undefined);
+
     // Where the buyer came from. URL-provided UTMs win over the `haris_link`
     // cookie /go/[slug] sets; undefined when there's nothing to attribute.
-    const attribution = buildAttribution({ req, body });
+    let attribution = buildAttribution({ req, body });
+
+    // An invited buyer with no tracked link of their own is attributed to the
+    // collaborator's link. A real /go/ link wins — it is the more specific
+    // fact, and overwriting it would throw away which story sold the ticket.
+    if (invitation && !attribution?.linkSlug) {
+      attribution = {
+        ...attribution,
+        linkSlug: invitation.linkSlug,
+        source: attribution?.source ?? "partner",
+        medium: attribution?.medium ?? "referral",
+        campaign: attribution?.campaign ?? "brote-invitacion",
+        capturedAt: attribution?.capturedAt ?? new Date().toISOString(),
+      };
+    }
 
     // No identity is collected here on purpose: the CTA goes straight to
     // MercadoPago. Whatever we need to reach this person is asked for after
@@ -69,10 +92,13 @@ export async function POST(req: Request) {
     // to check. The webhook still catches it after the fact: a payment that
     // produces no new participation alerts the admin for a refund decision.
 
-    // Same helper the landing renders from, so the price shown and the price
-    // charged cannot drift apart.
-    const { raw: price, isEarlyBird } = currentTicketPrice();
-    const title = `BROTE — Entrada${isEarlyBird ? " (Preventa)" : ""}`;
+    // Same helper the landing and the invitation pages render from, so the
+    // price shown and the price charged cannot drift apart. For an invited
+    // buyer this is the ONLY authority — the client never sends a number.
+    const { priceRaw: price, badge } = resolveInvitationPrice(invitation);
+    const title = invitation
+      ? `BROTE — Entrada (Invitación ${invitation.name})`
+      : `BROTE — Entrada${badge === "earlybird" ? " (Preventa)" : ""}`;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
 
     // Capability token for the post-payment contact step on /brote/success.
@@ -114,6 +140,10 @@ export async function POST(req: Request) {
         // identity to stamp any more.
         metadata: {
           type: "ticket",
+          // Durable channel: MP propagates preference metadata onto the
+          // Payment, so the webhook still knows which collaborator sold this
+          // even if the Redis stash is gone.
+          ...(invitation && { invite: invitation.slug }),
         },
       },
     });

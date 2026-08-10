@@ -12,14 +12,14 @@ Rama base: `main`. **El sitio está VIVO — no se pushea a main sin aprobación
 
 | Unidad | PR | Qué shippeó | Catches notables |
 |---|---|---|---|
-| — | — | — | — |
+| **U1** | [#57](https://github.com/harisolaas/harisolaas-v2/pull/57) → `3815043` | Atribución en el camino de pago: `readBrowserAttribution` (puro), la landing manda `utm`+`linkSlug`, el checkout escribe los 4 campos planos en el stash bajo **dos** anclajes (`preferenceId` y `confirmToken`), el webhook pasa `bypassLinkSlug`. Sin schema. | **Revisor adversarial:** dos mutaciones pasaban 6/6 porque nada miraba el stash by-email ni un payment sin `preference_id`; y borrar el hunk entero del cliente dejaba la suite verde → se extrajo el helper puro. **Copilot:** `?utm_content=` vacío le ganaba a la cookie y devolvía un slug vacío (bug real). **Causa raíz de CI roto para todo el repo:** `resetTestData` no barría `links`, así que una fila `test-bypass-link-*` de una corrida abortada rompía todas las siguientes. |
 
 ## Queue
 
 | # | Unidad | Estado |
 |---|---|---|
-| U1 | Capturar atribución en el camino de pago de BROTE | **PR [#57](https://github.com/harisolaas/harisolaas-v2/pull/57) — review adversarial + Copilot respondidos. Esperando "mergealo" del owner y limpieza de la DB dev (CI rojo por infra, no por el diff).** |
-| U2 | Registro de invitaciones + precio autoritativo del servidor | pendiente |
+| ~~U1~~ | ~~Capturar atribución en el camino de pago de BROTE~~ | ✅ **merged** (`3815043`) |
+| U2 | Registro de invitaciones + precio autoritativo del servidor | **PR [#60](https://github.com/harisolaas/harisolaas-v2/pull/60)** — revisión adversarial + Copilot respondidos, threads resueltos. Esperando CI verde y "mergealo". |
 | U3 | Filas de links rastreados + seeder de preview | pendiente |
 | U4 | Las cinco páginas de invitación | pendiente |
 | U5 | Retirar `/brote-unarbol` y `/brote-cima` | pendiente |
