@@ -45,6 +45,12 @@ export interface BroteInvitation {
    * reported so the sales are visible, not because money is owed.
    */
   kind: "brand" | "artist" | "community";
+  /**
+   * Their own site, when they have one. The landing links the *name* here and
+   * the @handle chip at Instagram, so a brand gets both surfaces; a musician
+   * with no site falls back to Instagram for both.
+   */
+  website?: string;
   /** Off the REGULAR price, not the preventa. 0 for artists. */
   discountPct: number;
   /** Row in `links` — what stamps `participations.link_slug`. */
@@ -64,6 +70,7 @@ const INVITATIONS: Record<InvitationSlug, BroteInvitation> = {
     slug: "matelab",
     name: "MateLab",
     handle: "@matelab.co",
+    website: "https://matelabco.com/",
     kind: "brand",
     discountPct: 35,
     linkSlug: "inv-matelab",
@@ -72,6 +79,7 @@ const INVITATIONS: Record<InvitationSlug, BroteInvitation> = {
     slug: "unarbol",
     name: "Un Árbol",
     handle: "@unarbol_ong",
+    website: "https://unarbol.org/",
     kind: "brand",
     discountPct: 35,
     linkSlug: "inv-unarbol",
@@ -175,4 +183,31 @@ export function resolveInvitationPrice(
 export function instagramUrl(invitation: BroteInvitation): string | null {
   if (!invitation.handle) return null;
   return `https://instagram.com/${invitation.handle.replace(/^@/, "")}`;
+}
+
+/**
+ * Where a collaborator's *name* should link on the landing.
+ *
+ * Their own domain when they have one — a real site is a stronger outbound
+ * signal than a profile, and the @handle chip beside it still carries the
+ * Instagram surface, so linking the website costs nothing. Null when there is
+ * neither (the returning-community page): callers render plain text.
+ */
+export function collaboratorNameUrl(
+  invitation: BroteInvitation,
+): string | null {
+  return invitation.website ?? instagramUrl(invitation);
+}
+
+/**
+ * The brands that back the party, in registry order.
+ *
+ * Selected on `kind`, not on `discountPct > 0` — those are the same set today
+ * and would diverge the moment a brand goes to 0%, or immediately for
+ * `comunidad`, which discounts 35% and is not a sponsor at all.
+ */
+export function brandInvitations(): BroteInvitation[] {
+  return INVITATION_SLUGS.map((slug) => INVITATIONS[slug]).filter(
+    (invitation) => invitation.kind === "brand",
+  );
 }

@@ -42,6 +42,19 @@ export const broteConfig = {
   expectedAttendees: 100,
 };
 
+/**
+ * El Arte de Vivir — the community the party comes out of.
+ *
+ * Not in `brote-invitations.ts`: that registry is collaborators who invite
+ * people and, in the artists' case, get paid per ticket. This is the
+ * organiser. The landing links the name to the site; the ticket emails link
+ * the footer to Instagram, so both surfaces are used.
+ *
+ * The trailing slash is required — `artofliving.org/ar-es` without it 404s.
+ */
+export const artOfLivingUrl = "https://www.artofliving.org/ar-es/";
+export const artOfLivingInstagram = "https://www.instagram.com/elartedevivir.ar/";
+
 /* ─── pricing helpers ───────────────────────────────────────────────────────
  * The landing renders a price and the checkout API charges one. When those
  * were two inline expressions they could drift; deriving both from here means
