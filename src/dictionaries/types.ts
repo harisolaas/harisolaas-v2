@@ -133,11 +133,25 @@ export interface BroteInvitacionDict {
   };
   closing: { heading: string };
   footer: { left: string; right: string };
-  collaborators: Record<string, { roleLine: string; closingLine: string }>;
+  collaborators: Record<
+    string,
+    {
+      roleLine: string;
+      closingLine: string;
+      /** Overrides the shared "Te invita" when nobody is doing the inviting. */
+      kicker?: string;
+    }
+  >;
 }
 
 export interface BroteDict {
-  meta: { title: string; description: string; ogDescription: string };
+  meta: {
+    title: string;
+    description: string;
+    ogDescription: string;
+    /** Alt text for the share card, for screen readers and image search. */
+    ogImageAlt: string;
+  };
   topbar: { left: string; right: string };
   hero: {
     cta: string;

@@ -106,6 +106,40 @@ describe("summarizePayout", () => {
     expect(s.collaborators.find((c) => c.slug === "gian")!.tickets).toBe(1);
   });
 
+  it("charges a fee for artists only, never brands or the community", () => {
+    // Brands and the returning-community page discount their own audience;
+    // nobody owes them anything. Applying the rate to them prints a
+    // plausible table that overstates what has to be paid.
+    const s = summarizePayout(
+      [
+        row({ invite: "jose" }),
+        row({ invite: "pulso", priceCents: 2145000 }),
+        row({ invite: "comunidad", priceCents: 2145000 }),
+      ],
+      300000, // $3.000 per ticket
+    );
+
+    const by = (slug: string) => s.collaborators.find((c) => c.slug === slug)!;
+    expect(by("jose").feeCents).toBe(300000);
+    expect(by("pulso").feeCents).toBeUndefined();
+    expect(by("comunidad").feeCents).toBeUndefined();
+
+    // …and the total is the artists' fees only, not 3 × the rate.
+    expect(s.totals.feeCents).toBe(300000);
+    expect(s.totals.feeDisplay).toBe("$3.000");
+
+    // Sales of every kind still count toward tickets and revenue — this is
+    // a sales report as well as a payout one.
+    expect(s.totals.tickets).toBe(3);
+  });
+
+  it("reports the returning-community page like any other seller", () => {
+    const s = summarizePayout([row({ invite: "comunidad", priceCents: 2145000 })]);
+    const comunidad = s.collaborators.find((c) => c.slug === "comunidad")!;
+    expect(comunidad.kind).toBe("community");
+    expect(comunidad.revenueDisplay).toBe("$21.450");
+  });
+
   it("applies a fee per ticket only when one is given", () => {
     const rows = [row({ invite: "jose" }), row({ invite: "jose" })];
 

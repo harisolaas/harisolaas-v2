@@ -4,6 +4,7 @@ import { Archivo, Instrument_Serif, Space_Mono } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import { getInvitation } from "@/lib/brote-invitations";
+import { BROTE_OG_IMAGE } from "@/data/brote";
 import BroteInvitacion from "@/components/BroteInvitacion";
 
 /**
@@ -59,14 +60,22 @@ export async function generateMetadata({
     // Not indexed and not in the sitemap: these links are handed out by the
     // collaborators, not found in search.
     robots: { index: false, follow: false },
+    // Declared in full. A child `openGraph` replaces the parent's outright
+    // rather than merging into it, so a partial block silently drops
+    // siteName/locale/type — and these are precisely the pages collaborators
+    // are sharing from their own accounts, where the card is the whole pitch.
     openGraph: {
       title: `${invitation.name} × BROTE`,
       description: meta.description,
+      siteName: "BROTE",
+      locale: locale === "es" ? "es_AR" : "en_US",
+      type: "website",
       images: [
         {
-          url: "https://www.harisolaas.com/og-brote.jpg",
+          url: `/${BROTE_OG_IMAGE}`,
           width: 1200,
           height: 630,
+          alt: dict.brote.meta.ogImageAlt,
         },
       ],
     },
@@ -74,7 +83,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: `${invitation.name} × BROTE`,
       description: meta.description,
-      images: ["https://www.harisolaas.com/og-brote.jpg"],
+      images: [`/${BROTE_OG_IMAGE}`],
     },
     icons: {
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>",

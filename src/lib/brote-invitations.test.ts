@@ -3,6 +3,7 @@ import { broteConfig } from "@/data/brote";
 import {
   INVITATION_SLUGS,
   getInvitation,
+  instagramUrl,
   resolveInvitationPrice,
 } from "./brote-invitations";
 
@@ -86,6 +87,42 @@ describe("resolveInvitationPrice — brands", () => {
         resolveInvitationPrice(getInvitation(slug)!, DURING_EARLY_BIRD).priceRaw,
       ).toBe(21450);
     }
+  });
+});
+
+describe("the returning-community invitation", () => {
+  const comunidad = getInvitation("comunidad")!;
+
+  it("discounts like a brand", () => {
+    // It is not a collaborator, but the offer is identical: 35% off the
+    // regular price, fixed across the early-bird deadline.
+    const before = resolveInvitationPrice(comunidad, DURING_EARLY_BIRD);
+    const after = resolveInvitationPrice(comunidad, AFTER_EARLY_BIRD);
+    expect(before.priceRaw).toBe(21450);
+    expect(after.priceRaw).toBe(21450);
+    expect(before.badge).toBe("discount");
+  });
+
+  it("has no Instagram account to link to", () => {
+    // Nobody is inviting anybody, so there is no handle and the chip is not
+    // rendered. `instagramUrl` has to say so rather than build
+    // "https://instagram.com/undefined".
+    expect(comunidad.handle).toBeUndefined();
+    expect(instagramUrl(comunidad)).toBeNull();
+  });
+
+  it("still resolves a handle for everyone who has one", () => {
+    for (const slug of INVITATION_SLUGS) {
+      const inv = getInvitation(slug)!;
+      if (!inv.handle) continue;
+      expect(instagramUrl(inv)).toBe(
+        `https://instagram.com/${inv.handle.replace(/^@/, "")}`,
+      );
+    }
+  });
+
+  it("is not an artist, so it is never owed a fee", () => {
+    expect(comunidad.kind).toBe("community");
   });
 });
 

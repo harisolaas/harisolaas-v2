@@ -100,8 +100,15 @@ async function cleanup() {
   await db.execute(sql`
     DELETE FROM people WHERE email LIKE ${EMAIL_PREFIX + "%"}
   `);
+  // Seeded links match LINK_PREFIX, but the ones the POST tests create get a
+  // server-generated slug that does not. Those are deleted inline at the end
+  // of each test — which is skipped whenever the test fails first, leaving a
+  // row that no later run cleans up. Matching on destination catches them
+  // regardless of the slug format the API happens to produce.
   await db.execute(sql`
-    DELETE FROM links WHERE slug LIKE ${LINK_PREFIX + "%"}
+    DELETE FROM links
+    WHERE slug LIKE ${LINK_PREFIX + "%"}
+       OR destination IN (${LANDING_A}, ${LANDING_B})
   `);
 }
 
