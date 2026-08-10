@@ -3,6 +3,7 @@ import { Archivo, Instrument_Serif, Space_Mono } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import { BROTE_OG_IMAGE } from "@/data/brote";
+import { buildBroteEventJsonLd } from "@/lib/brote-jsonld";
 import BroteLanding from "@/components/BroteLanding";
 
 // Fonts scoped to the BROTE landing only (the rest of the site keeps
@@ -89,6 +90,15 @@ export default async function BrotePage({
     <div
       className={`${archivo.variable} ${instrumentSerif.variable} ${spaceMono.variable}`}
     >
+      {/* Event structured data — what makes the landing eligible for Google's
+          event rich results (date, venue and price in the result itself).
+          The locale layout emits a Person node; this adds the event. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(buildBroteEventJsonLd(locale)),
+        }}
+      />
       <BroteLanding dict={dict.brote} locale={locale} />
     </div>
   );
