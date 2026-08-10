@@ -1,10 +1,14 @@
-import { eq, sql } from "drizzle-orm";
+import { inArray, sql } from "drizzle-orm";
 import QRCode from "qrcode";
 import { Resend } from "resend";
 import type { CreateEmailOptions, CreateEmailResponse } from "resend";
 import { db, schema } from "@/db";
-import { buildTicketEmailHtml, qrDataUrlToBuffer } from "./brote-email";
-import type { BroteTicket } from "./brote-types";
+import {
+  buildTicketEmailHtml,
+  qrContentId,
+  qrDataUrlToBuffer,
+  type TicketForEmail,
+} from "./brote-email";
 
 // Minimal shape so tests can pass a fake. A real `Resend` instance satisfies
 // it. Same idiom as `bulk-email.ts`.
@@ -19,13 +23,15 @@ function defaultSender(): TicketEmailSender {
 }
 
 export interface SendBroteTicketEmailParams {
-  /** Participation id — also what the QR encodes and the gate validates. */
-  ticketId: string;
+  /**
+   * Every ticket this email delivers, in the order they should be shown.
+   * One buyer can hold several (bought for friends), and they arrive in a
+   * single message rather than N messages.
+   */
+  tickets: TicketForEmail[];
   to: string;
   buyerName: string;
   paymentId: string;
-  /** Display-only "Árbol #N" for the subject and body. */
-  treeNumber: number;
 }
 
 /**
@@ -48,37 +54,48 @@ export async function sendBroteTicketEmail(
   params: SendBroteTicketEmailParams,
   sender: TicketEmailSender = defaultSender(),
 ): Promise<{ resendId: string }> {
+  if (params.tickets.length === 0) {
+    throw new Error("sendBroteTicketEmail called with no tickets");
+  }
+
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL || "https://www.harisolaas.com";
-  const qrDataUrl = await QRCode.toDataURL(
-    `${baseUrl}/es/brote/gate?ticket=${params.ticketId}`,
-    { width: 300, margin: 2, color: { dark: "#2D4A3E", light: "#FAF6F1" } },
+
+  // One QR per ticket, each encoding ITS OWN gate URL. Generating one and
+  // attaching it N times is the silent failure this loop exists to avoid:
+  // the email looks right and two of three people are turned away.
+  const attachments = await Promise.all(
+    params.tickets.map(async (ticket, i) => {
+      const qrDataUrl = await QRCode.toDataURL(
+        `${baseUrl}/es/brote/gate?ticket=${ticket.ticketId}`,
+        { width: 300, margin: 2, color: { dark: "#2D4A3E", light: "#FAF6F1" } },
+      );
+      const cid = qrContentId(i);
+      return {
+        filename: `${cid}.png`,
+        content: qrDataUrlToBuffer(qrDataUrl),
+        contentType: "image/png",
+        contentId: cid,
+      };
+    }),
   );
 
   const fromEmail = process.env.RESEND_FROM_EMAIL || "brote@harisolaas.com";
-  const ticketForTemplate: BroteTicket = {
-    id: params.ticketId,
-    type: "ticket",
-    paymentId: params.paymentId,
-    buyerEmail: params.to,
-    buyerName: params.buyerName,
-    status: "valid",
-    createdAt: new Date().toISOString(),
-  };
+  // Every id in the failure message: with a batch, knowing only the first
+  // leaves an operator guessing which tickets did not go out.
+  const ticketList = params.tickets.map((t) => t.ticketId).join(", ");
+  const count = params.tickets.length;
+  const subject =
+    count > 1
+      ? `Tus ${count} entradas para BROTE 🌱`
+      : `Tu entrada para BROTE 🌱 Árbol #${params.tickets[0].treeNumber}`;
 
   const result = await sender.emails.send({
     from: `BROTE <${fromEmail}>`,
     to: params.to,
-    subject: `Tu entrada para BROTE 🌱 Árbol #${params.treeNumber}`,
-    html: buildTicketEmailHtml(ticketForTemplate, params.treeNumber),
-    attachments: [
-      {
-        filename: "qr.png",
-        content: qrDataUrlToBuffer(qrDataUrl),
-        contentType: "image/png",
-        contentId: "qr",
-      },
-    ],
+    subject,
+    html: buildTicketEmailHtml(params.tickets, params.buyerName),
+    attachments,
   });
 
   if (result.error) {
@@ -95,7 +112,7 @@ export async function sendBroteTicketEmail(
       .filter(Boolean)
       .join(" — ");
     throw new Error(
-      `Resend rejected the BROTE ticket email for ${params.ticketId}: ${detail}`,
+      `Resend rejected the BROTE ticket email for ${ticketList}: ${detail}`,
     );
   }
 
@@ -106,7 +123,7 @@ export async function sendBroteTicketEmail(
   // `bulk-email.ts`.
   if (!result.data?.id) {
     throw new Error(
-      `Resend returned neither data nor error for the BROTE ticket email for ${params.ticketId}`,
+      `Resend returned neither data nor error for the BROTE ticket email for ${ticketList}`,
     );
   }
 
@@ -117,7 +134,14 @@ export async function sendBroteTicketEmail(
  * Stamp `emailSent` on the participation. Separate from the send so the
  * flag is only ever written after a send that actually succeeded.
  */
-export async function markBroteTicketEmailSent(ticketId: string): Promise<void> {
+export async function markBroteTicketEmailSent(
+  ticketIds: string[],
+): Promise<void> {
+  // `WHERE id IN ()` is a syntax error, and "handling" it by dropping the
+  // predicate would stamp emailSent on EVERY ticket in the table and kill
+  // MercadoPago's retry for all of them. Return before building the query.
+  if (ticketIds.length === 0) return;
+
   await db
     .update(schema.participations)
     .set({
@@ -126,5 +150,5 @@ export async function markBroteTicketEmailSent(ticketId: string): Promise<void> 
       })}::jsonb`,
       updatedAt: sql`NOW()`,
     })
-    .where(eq(schema.participations.id, ticketId));
+    .where(inArray(schema.participations.id, ticketIds));
 }

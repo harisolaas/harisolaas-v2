@@ -537,13 +537,12 @@ export async function POST(req: Request) {
   if (buyerEmail) {
     try {
       await sendBroteTicketEmail({
-        ticketId,
+        tickets: [{ ticketId, treeNumber }],
         to: buyerEmail,
         buyerName,
         paymentId: mpPaymentId,
-        treeNumber,
       });
-      await markBroteTicketEmailSent(ticketId);
+      await markBroteTicketEmailSent([ticketId]);
 
       console.log("Email sent:", { to: buyerEmail, ticketId });
     } catch (err) {

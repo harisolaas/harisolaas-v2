@@ -179,13 +179,14 @@ export async function POST(req: Request) {
           .from(schema.participations)
           .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
         await sendBroteTicketEmail({
-          ticketId,
+          tickets: [
+            { ticketId, treeNumber: Number(treeCountRes[0]?.n ?? 1) },
+          ],
           to: result.to,
           buyerName: result.buyerName,
           paymentId: result.paymentId,
-          treeNumber: Number(treeCountRes[0]?.n ?? 1),
         });
-        await markBroteTicketEmailSent(ticketId);
+        await markBroteTicketEmailSent([ticketId]);
         resent = true;
       } catch (err) {
         // The contact change is already committed and is the thing that
