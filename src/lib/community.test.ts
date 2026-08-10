@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import {
+  addCompanionTickets,
   CapacityReachedError,
   getPersonByEmail,
   markSinergiaDonationReceiptSent,
@@ -628,5 +629,279 @@ describe("recordParticipation — stale 'Asistente' self-heal", () => {
     const drill = await getPersonByEmail("test-community-stale@example.com");
     expect(drill!.person.name).toBe("Slava Pankov");
     expect(drill!.participations).toHaveLength(2);
+  });
+});
+
+// ============================================================
+// U1 — companion tickets (multi-entrada)
+// ============================================================
+//
+// The `(person_id, event_id)` unique index becomes partial
+// (`WHERE role <> 'companion'`) so one buyer can hold several tickets for one
+// event. That index is ALSO what stops two concurrent MercadoPago webhook
+// deliveries from double-issuing today, so these tests pin the replacement
+// guard (caller-supplied deterministic ids + ON CONFLICT DO NOTHING) as
+// carefully as they pin the feature itself.
+
+const COMP_EMAIL = "test-community-companion@example.com";
+const COMP_PAYMENT = "MP-COMPANION-1";
+
+async function companionRows(email: string, eventId: string) {
+  const res = await db.execute<{
+    id: string;
+    role: string;
+    buyer_person_id: number | null;
+    price_cents: number | null;
+    external_payment_id: string | null;
+    link_slug: string | null;
+    metadata: Record<string, unknown>;
+  }>(sql`
+    SELECT p.id, p.role, p.buyer_person_id, p.price_cents,
+           p.external_payment_id, p.link_slug, p.metadata
+    FROM participations p
+    JOIN people pe ON pe.id = p.person_id
+    WHERE pe.email = ${email} AND p.event_id = ${eventId}
+    ORDER BY p.created_at, p.id
+  `);
+  return res.rows ?? [];
+}
+
+async function seedBuyer() {
+  return recordParticipation({
+    email: COMP_EMAIL,
+    name: "Ana",
+    eventId: TEST_EVENT_UNLIMITED,
+    participationId: "TEST-COMP-PRIMARY",
+    role: "attendee",
+    externalPaymentId: COMP_PAYMENT,
+    priceCents: 2_475_000,
+    currency: "ARS",
+  });
+}
+
+describe("addCompanionTickets", () => {
+  it("T1.1 — lets one person hold several tickets for one event, in the order asked", async () => {
+    const first = await seedBuyer();
+
+    const ids = ["TEST-COMP-A", "TEST-COMP-B", "TEST-COMP-C"];
+    const res = await addCompanionTickets({
+      personId: first.personId,
+      eventId: TEST_EVENT_UNLIMITED,
+      ticketIds: ids,
+      externalPaymentId: COMP_PAYMENT,
+      priceCents: 2_475_000,
+      currency: "ARS",
+    });
+
+    // Order matters: the caller pairs these ids with tree numbers, so a
+    // reordered return renumbers everyone's QR.
+    expect(res.createdIds).toEqual(ids);
+    expect(res.existingIds).toEqual([]);
+    expect(await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED)).toHaveLength(4);
+  });
+
+  it("T1.5 — companion rows carry role, buyer, unit price, payment id and metadata", async () => {
+    const first = await seedBuyer();
+
+    await addCompanionTickets({
+      personId: first.personId,
+      eventId: TEST_EVENT_UNLIMITED,
+      ticketIds: ["TEST-COMP-A"],
+      externalPaymentId: COMP_PAYMENT,
+      priceCents: 2_475_000,
+      currency: "ARS",
+      // brote-collaborator-payout.ts selects on metadata->>'invite'. Without
+      // this passthrough a 3-pack pays the collaborator for one ticket.
+      metadata: { invite: "pulso" },
+    });
+
+    const rows = await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED);
+    const companion = rows.find((r) => r.id === "TEST-COMP-A")!;
+    expect(companion.role).toBe("companion");
+    expect(Number(companion.buyer_person_id)).toBe(first.personId);
+    // Per ticket, never the basket total — revenue reporting sums this.
+    expect(companion.price_cents).toBe(2_475_000);
+    expect(companion.external_payment_id).toBe(COMP_PAYMENT);
+    expect(companion.metadata.invite).toBe("pulso");
+  });
+
+  it("T1.3 — two concurrent calls with the same ids issue each ticket once", async () => {
+    const first = await seedBuyer();
+
+    const ids = ["TEST-COMP-A", "TEST-COMP-B"];
+    const call = () =>
+      addCompanionTickets({
+        personId: first.personId,
+        eventId: TEST_EVENT_UNLIMITED,
+        ticketIds: ids,
+        externalPaymentId: COMP_PAYMENT,
+        priceCents: 2_475_000,
+        currency: "ARS",
+      });
+
+    // Real interleaving, not sequential: this is two MP webhook deliveries
+    // for one payment arriving at once. The partial index no longer stops
+    // them, so ON CONFLICT (id) has to.
+    const [a, b] = await Promise.all([call(), call()]);
+
+    expect(await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED)).toHaveLength(3);
+
+    // Each id is created by exactly one call, and a row that already existed
+    // is reported as existing rather than missing — the webhook alerts on
+    // "issued fewer than paid for", and a concurrent retry must not trip it.
+    expect([...a.createdIds, ...b.createdIds].sort()).toEqual(ids);
+    expect([...a.createdIds, ...a.existingIds].sort()).toEqual(ids);
+    expect([...b.createdIds, ...b.existingIds].sort()).toEqual(ids);
+  });
+
+  it("T1.6 — a stale link slug drops to NULL instead of raising after payment", async () => {
+    const first = await seedBuyer();
+
+    // A cookie can name a link that has since been deleted.
+    // recordParticipation sanitizes inside its transaction for exactly this
+    // reason; the companion path must too, or a 23503 lands AFTER the money
+    // is taken.
+    const res = await addCompanionTickets({
+      personId: first.personId,
+      eventId: TEST_EVENT_UNLIMITED,
+      ticketIds: ["TEST-COMP-A"],
+      externalPaymentId: COMP_PAYMENT,
+      priceCents: 2_475_000,
+      currency: "ARS",
+      attribution: {
+        source: "instagram",
+        linkSlug: "test-bypass-link-that-does-not-exist",
+        capturedAt: new Date().toISOString(),
+      },
+    });
+
+    expect(res.createdIds).toEqual(["TEST-COMP-A"]);
+    const rows = await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED);
+    expect(rows.find((r) => r.id === "TEST-COMP-A")!.link_slug).toBeNull();
+  });
+});
+
+describe("recordParticipation — with companions present", () => {
+  it("T1.7 — returns the attendee row, not an arbitrary one", async () => {
+    const first = await seedBuyer();
+
+    await addCompanionTickets({
+      personId: first.personId,
+      eventId: TEST_EVENT_UNLIMITED,
+      ticketIds: ["TEST-COMP-A", "TEST-COMP-B"],
+      externalPaymentId: COMP_PAYMENT,
+      priceCents: 2_475_000,
+      currency: "ARS",
+    });
+
+    // The existing-row probe has no ORDER BY today. Which row comes back is
+    // the planner's choice — and it drives the waitlist-promotion branch and
+    // every downstream Redis anchor.
+    //
+    // Left alone the attendee row happens to be physically first, so an
+    // unordered scan returns it and this test passes against unfixed code.
+    // Touch it: under MVCC an UPDATE writes a new tuple at the end of the
+    // heap, so now a seq scan reaches the companions first. That is what
+    // makes this assertion capable of failing — without it the test is
+    // vacuous, not passing.
+    await db.execute(
+      sql`UPDATE participations SET updated_at = NOW() WHERE id = 'TEST-COMP-PRIMARY'`,
+    );
+
+    // And backdate the companions so they are OLDER than the attendee.
+    // Ordering by created_at alone would then pick a companion, and that
+    // state is reachable: U5's contact confirmation re-points a whole group
+    // onto an existing person and demotes our attendee row to companion, so
+    // the surviving attendee can easily be the newer row. Without this the
+    // `role = 'companion'` term in the ORDER BY is untested — verified: the
+    // mutation that drops it passes the whole suite.
+    await db.execute(sql`
+      UPDATE participations SET created_at = NOW() - interval '2 days'
+      WHERE id IN ('TEST-COMP-A', 'TEST-COMP-B')
+    `);
+
+    for (let i = 0; i < 4; i++) {
+      const again = await recordParticipation({
+        email: COMP_EMAIL,
+        name: "Ana",
+        eventId: TEST_EVENT_UNLIMITED,
+        participationId: "TEST-COMP-IGNORED",
+        role: "attendee",
+      });
+      expect(again.created).toBe(false);
+      expect(again.participationId).toBe("TEST-COMP-PRIMARY");
+    }
+  });
+
+  it("T1.2 — a repeat attendee signup still returns the existing row (non-regression pin)", async () => {
+    const first = await seedBuyer();
+    const again = await recordParticipation({
+      email: COMP_EMAIL,
+      name: "Ana",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-COMP-SECOND",
+      role: "attendee",
+    });
+
+    expect(again.created).toBe(false);
+    expect(again.participationId).toBe(first.participationId);
+    expect(await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED)).toHaveLength(1);
+  });
+
+  it("T1.8 — concurrent duplicate signups still collapse to one row (non-regression pin)", async () => {
+    // What this pins, precisely — established by mutation testing, because
+    // the obvious reading is wrong:
+    //
+    // It is NOT the unique index. Replacing that index with a non-unique one
+    // leaves this test green. Three concurrent transactions with no
+    // constraint at all still produce one row, because they all upsert the
+    // same person first and `ON CONFLICT (email) DO UPDATE` holds a row lock
+    // on `people` until commit — so same-person signups serialize there, and
+    // the later ones then short-circuit on the existing-row SELECT.
+    //
+    // So this pins the serialization itself: that concurrent duplicate
+    // signups for one person/event collapse to one participation, however
+    // that is achieved. It would go red if the person upsert stopped locking
+    // or the transaction were restructured — which is worth knowing, since
+    // `addCompanionTickets` deliberately does NOT touch the people row and
+    // therefore gets no such protection (see T1.3).
+    const attempt = () =>
+      recordParticipation({
+        email: COMP_EMAIL,
+        name: "Ana",
+        eventId: TEST_EVENT_UNLIMITED,
+        participationId: `TEST-COMP-RACE-${Math.random().toString(36).slice(2, 8)}`,
+        role: "attendee",
+      });
+
+    // One of the two may lose the race and surface the 23505 rather than the
+    // existing row — today's callers treat that as a failed signup. Either
+    // outcome is acceptable here; a SECOND ROW is not.
+    await Promise.allSettled([attempt(), attempt(), attempt()]);
+
+    expect(await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED)).toHaveLength(1);
+  });
+
+  it("T1.4 — a repeated Sinergia RSVP still deduplicates (non-regression pin)", async () => {
+    // The index goes partial. Everything that is not a companion must keep
+    // the uniqueness it has today — Sinergia RSVPs, plant signups, admin.
+    await recordParticipation({
+      email: COMP_EMAIL,
+      name: "Ana",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-COMP-RSVP-1",
+      role: "rsvp",
+    });
+    const again = await recordParticipation({
+      email: COMP_EMAIL,
+      name: "Ana",
+      eventId: TEST_EVENT_UNLIMITED,
+      participationId: "TEST-COMP-RSVP-2",
+      role: "rsvp",
+    });
+
+    expect(again.created).toBe(false);
+    expect(again.participationId).toBe("TEST-COMP-RSVP-1");
+    expect(await companionRows(COMP_EMAIL, TEST_EVENT_UNLIMITED)).toHaveLength(1);
   });
 });

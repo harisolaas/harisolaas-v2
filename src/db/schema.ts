@@ -301,7 +301,18 @@ export const participations = pgTable(
       "participations_status_check",
       sql`${t.status} IN ('pending','confirmed','waitlist','cancelled','no_show','used')`,
     ),
-    uniqueIndex("participations_person_event_unique").on(t.personId, t.eventId),
+    // Partial on purpose. One person can hold several tickets for one event
+    // (buying for friends), and those extra rows carry `role = 'companion'`.
+    // Everything else — Sinergia RSVPs, plant signups, the buyer's own
+    // `attendee` row — keeps full one-per-person-per-event uniqueness.
+    //
+    // Note this index was ALSO the de-facto guard against two concurrent
+    // MercadoPago webhook deliveries double-issuing a ticket. It no longer
+    // covers companions, so that job moved to deterministic ticket ids plus
+    // `ON CONFLICT (id) DO NOTHING` in `addCompanionTickets`.
+    uniqueIndex("participations_person_event_unique")
+      .on(t.personId, t.eventId)
+      .where(sql`${t.role} <> 'companion'`),
     index("participations_event_id_idx").on(t.eventId),
     index("participations_person_id_idx").on(t.personId),
     index("participations_buyer_idx")
