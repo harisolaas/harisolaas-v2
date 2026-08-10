@@ -418,6 +418,8 @@ const en: Dictionary = {
         "Live music, catering, and a night with purpose. Every ticket plants a real tree in Argentina. Thursday August 20.",
       ogDescription:
         "Live music, catering, and a night with purpose. Every ticket plants a real tree in Argentina.",
+      ogImageAlt:
+        "BROTE — one ticket, one tree. Thursday August 20, 7:00 to 10:30 PM, Palermo, Buenos Aires.",
     },
     topbar: { left: "Party", right: "2026" },
     hero: {

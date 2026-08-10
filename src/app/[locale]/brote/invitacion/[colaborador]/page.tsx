@@ -4,6 +4,7 @@ import { Archivo, Instrument_Serif, Space_Mono } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
 import type { Locale } from "@/i18n/config";
 import { getInvitation } from "@/lib/brote-invitations";
+import { BROTE_OG_IMAGE } from "@/data/brote";
 import BroteInvitacion from "@/components/BroteInvitacion";
 
 /**
@@ -64,7 +65,7 @@ export async function generateMetadata({
       description: meta.description,
       images: [
         {
-          url: "https://www.harisolaas.com/og-brote.jpg",
+          url: `/${BROTE_OG_IMAGE}`,
           width: 1200,
           height: 630,
         },
@@ -74,7 +75,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: `${invitation.name} × BROTE`,
       description: meta.description,
-      images: ["https://www.harisolaas.com/og-brote.jpg"],
+      images: [`/${BROTE_OG_IMAGE}`],
     },
     icons: {
       icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>",
