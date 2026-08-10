@@ -144,4 +144,15 @@ are on the owner checklist because the event is 10 days out.
 
 ## Dispositions
 
-_(Landing phase — every row that ever appeared in Blocked gets a terminal state here.)_
+Every row that ever appeared in **Blocked**, with its terminal state. Nothing
+in this programme remains "waiting".
+
+| Item | Disposition | Evidence / trigger |
+|---|---|---|
+| U4 day-of lineup times (mail 19:45/21:30 vs landing 20:00/21:15) | **Owner checklist** | The spec's stated fallback was taken: links shipped, times untouched, TODO narrowed to name the discrepancy and greppable at `brote-email.ts:37`. Trigger: before the day-of reminder goes out on 20/8. A one-line change once the running order is confirmed. |
+| DoD #3 — Facebook Sharing Debugger re-scrape | **Owner checklist** | Post-deploy and owner-only; no API available to this session. Trigger: immediately after #70 reaches production. |
+| Google Rich Results Test for the `Event` node | **Owner checklist** | Same: needs the live URL. Trigger: after #74 reaches production. Verified locally that the emitted JSON-LD carries every field Google requires. |
+| All merges | **Owner checklist** | `CLAUDE.md` requires an explicit "ship"/"mergealo" and the site is live. Five PRs green and mergeable; order stated above. |
+| Copilot not attaching via the API | **Done** | Resolved itself — Copilot reviewed all five PRs and left 8 comments, every one addressed. The API's empty `requested_reviewers` was a false negative, now recorded in Hard-won constraints. |
+| U1 Vercel deployment failure | **Done** | External: `fonts.gstatic.com` 404s on Lora's woff2 files. Re-triggered by push, green. Landed in `tasks/lessons.md`. |
+| `organizer.url` absent from the `Event` node (U2 cut) | **Backlogged** | `artOfLivingUrl` ships in U3, U2 branches off U1. One line once both are on `main`. Severity low — `organizer.url` is recommended, not required. |
