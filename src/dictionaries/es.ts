@@ -584,6 +584,86 @@ const es: Dictionary = {
       backLink: "Volver a BROTE",
     },
   },
+  broteInvitacion: {
+    meta: {
+      title: "BROTE — Invitación",
+      description:
+        "Una fiesta de reforestación en Palermo. Cada entrada planta un árbol real en Argentina, a tu nombre.",
+    },
+    rule: { left: "Invitación", right: "Brote 2026" },
+    kicker: "Te invita",
+    about: {
+      wordmark: "Brote",
+      paragraphs: [
+        "Una fiesta de reforestación en Palermo. Cada entrada planta un árbol real en Argentina, a tu nombre.",
+        "Música en vivo, gente linda y tierra bajo las manos. Una noche que sigue creciendo después.",
+      ],
+      facts: [
+        { label: "Jueves", value: "20 AGO" },
+        { label: "Desde", value: "19:00" },
+        { label: "Palermo", value: "CABA" },
+      ],
+    },
+    price: {
+      invitedLabel: "Tu precio de invitado",
+      ticketLabel: "Tu entrada",
+      discountBadge: "-35%",
+      earlyBirdBadge: "Preventa",
+      noteDiscount: "Es el precio para quien llega por invitación. No está en la web.",
+      noteEarlyBird: "Es el precio de preventa, hasta el 13 de agosto.",
+      noteRegular: "Cada entrada planta un árbol real en Argentina, a tu nombre.",
+      cta: "Quiero mi entrada",
+      paymentMethods: "Con MercadoPago, tarjeta o transferencia",
+      loading: "Un segundo…",
+      error: "No pudimos abrir el pago. Probá de nuevo en un momento.",
+    },
+    includes: {
+      eyebrow: "Tu entrada incluye",
+      items: [
+        {
+          title: "Un árbol a tu nombre",
+          description: "Plantado en Argentina junto a Un Árbol.",
+        },
+        {
+          title: "Una bebida MateLab",
+          description: "Fría, esperándote apenas llegás.",
+        },
+        {
+          title: "El show",
+          description: "Música acústica en vivo y DJ set, de punta a punta.",
+        },
+        {
+          title: "Un brote para llevarte",
+          description: "Lo sembramos juntos esa noche. Lo plantás donde vivas.",
+        },
+      ],
+    },
+    closing: { heading: "¿Venís?" },
+    footer: { left: "Brote", right: "Con Un Árbol" },
+    collaborators: {
+      pulso: {
+        roleLine: "Club de wellness. Nos acompañan en esta noche.",
+        closingLine: "Pulso te guardó lugar. Nos vemos el 20.",
+      },
+      matelab: {
+        roleLine:
+          "La bebida que vas a tener en la mano toda la noche es de ellos.",
+        closingLine: "MateLab te guardó lugar. Nos vemos el 20.",
+      },
+      unarbol: {
+        roleLine: "Son quienes plantan cada árbol de BROTE, uno por entrada.",
+        closingLine: "Un Árbol te guardó lugar. Nos vemos el 20.",
+      },
+      jose: {
+        roleLine: "Toca en vivo esa noche: guitarra y voz, sin nada en el medio.",
+        closingLine: "Jose te guardó lugar. Y toca para vos esa noche.",
+      },
+      gian: {
+        roleLine: "Cierra la noche con su DJ set. Toca en vivo esa noche.",
+        closingLine: "Gian te guardó lugar. Y cierra la noche para vos.",
+      },
+    },
+  },
   broteUnArbol: {
     headline: "Una fiesta. Un \u00e1rbol. Tu tarde.",
     message: [

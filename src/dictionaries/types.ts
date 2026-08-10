@@ -96,6 +96,46 @@ export interface BroteSuccessContactDict {
   };
 }
 
+/**
+ * Per-collaborator invitation landing. Everything here is identical across
+ * the five versions except `collaborators`, which carries the two lines that
+ * say why *this* person is the one inviting you.
+ *
+ * Names and Instagram handles deliberately live in
+ * `src/lib/brote-invitations.ts`, not here: they are identity, not copy, and
+ * translating them would be wrong.
+ */
+export interface BroteInvitacionDict {
+  meta: { title: string; description: string };
+  rule: { left: string; right: string };
+  kicker: string;
+  about: {
+    wordmark: string;
+    paragraphs: [string, string];
+    facts: { label: string; value: string }[];
+  };
+  price: {
+    invitedLabel: string;
+    ticketLabel: string;
+    discountBadge: string;
+    earlyBirdBadge: string;
+    noteDiscount: string;
+    noteEarlyBird: string;
+    noteRegular: string;
+    cta: string;
+    paymentMethods: string;
+    loading: string;
+    error: string;
+  };
+  includes: {
+    eyebrow: string;
+    items: { title: string; description: string }[];
+  };
+  closing: { heading: string };
+  footer: { left: string; right: string };
+  collaborators: Record<string, { roleLine: string; closingLine: string }>;
+}
+
 export interface BroteDict {
   meta: { title: string; description: string; ogDescription: string };
   topbar: { left: string; right: string };
@@ -556,6 +596,7 @@ export interface Dictionary {
     buildLine: string;
   };
   brote: BroteDict;
+  broteInvitacion: BroteInvitacionDict;
   broteUnArbol: BroteUnArbolDict;
   broteCima: BroteUnArbolDict;
   plant: PlantDict;
