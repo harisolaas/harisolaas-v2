@@ -453,19 +453,24 @@ const es: Dictionary = {
         number: "02",
         time: "20:00 \u00b7 En vivo",
         title: "M\u00fasica ac\u00fastica\nen vivo",
-        body: "Jos\u00e9 Dezanzo, solo y con guitarra. No hay mucho m\u00e1s para explicar: se escucha.",
+        photoAlt:
+          "Set ac\u00fastico en vivo en una edici\u00f3n anterior de BROTE",
+        mention: {
+          bodyBefore: "Toca ",
+          slug: "jose",
+          bodyAfter:
+            ", guitarra y voz, sin nada en el medio. No hay mucho m\u00e1s para explicar: se escucha.",
+        },
       },
       dj: {
         number: "03",
         time: "21:15 \u00b7 Cierre",
         title: "DJ set",
-        bodyBefore: "Recibimos a ",
-        bodyAfter:
-          " para una intervenci\u00f3n de baile performativo que marca el pulso hasta el cierre.",
-        link: {
-          url: "https://www.instagram.com/gianbejarano/",
-          name: "Gian Bejarano",
-          label: "gianbejarano",
+        mention: {
+          bodyBefore: "Recibimos a ",
+          slug: "gian",
+          bodyAfter:
+            " para una intervenci\u00f3n de baile performativo que marca el pulso hasta el cierre.",
         },
       },
     },
@@ -489,12 +494,20 @@ const es: Dictionary = {
         {
           number: "01",
           title: "Un \u00e1rbol a tu nombre",
-          body: "Plantado en Argentina junto a Un \u00c1rbol. Real, en un lugar real.",
+          mention: {
+            bodyBefore: "Plantado en Argentina junto a ",
+            slug: "unarbol",
+            bodyAfter: ". Real, en un lugar real.",
+          },
         },
         {
           number: "02",
-          title: "Una bebida Matelab",
-          body: "Fr\u00eda, esper\u00e1ndote apenas lleg\u00e1s.",
+          title: "Una bebida MateLab",
+          mention: {
+            bodyBefore: "Nos la trae ",
+            slug: "matelab",
+            bodyAfter: ". Fr\u00eda, esper\u00e1ndote apenas lleg\u00e1s.",
+          },
         },
         {
           number: "03",
@@ -517,6 +530,7 @@ const es: Dictionary = {
       },
       body: "No organizamos eventos: creamos experiencias donde lo que hac\u00e9s por afuera refleja lo que cultiv\u00e1s por dentro.",
       tagline: "Esta fiesta es para todo el mundo \u00b7 Ven\u00ed como sos",
+      sponsorsRow: { eyebrow: "Nos acompa\u00f1an" },
     },
     final: {
       heading: "\u00bfVen\u00eds?",
@@ -529,7 +543,11 @@ const es: Dictionary = {
     },
     footer: {
       left: "Brote",
-      right: "En alianza con Un \u00c1rbol",
+      right: {
+        bodyBefore: "En alianza con ",
+        slug: "unarbol",
+        bodyAfter: "",
+      },
     },
     checkoutError:
       "No pudimos abrir el pago. Prob\u00e1 de nuevo en un momento, o escribinos por WhatsApp.",

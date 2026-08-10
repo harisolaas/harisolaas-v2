@@ -62,11 +62,39 @@ interface BroteLineupBlock {
   title: string;
 }
 
-export interface BroteIncludesItem {
+/**
+ * A sentence that names a collaborator: copy, the linked name, more copy.
+ *
+ * Only the *copy* lives here. The name, the @handle and the URLs come from
+ * `src/lib/brote-invitations.ts` via `slug` — identity, not copy, and
+ * translating it would be wrong. This is the same rule `BroteInvitacionDict`
+ * states below; the line-up used to break it by carrying its own copy of an
+ * Instagram URL, which went stale against the registry and shipped a dead
+ * link on a live page.
+ */
+export interface BroteCollaboratorMention {
+  bodyBefore: string;
+  /** A slug in `INVITATION_SLUGS`; a test proves every one resolves. */
+  slug: string;
+  bodyAfter: string;
+}
+
+/**
+ * An item carries EITHER plain copy or a collaborator mention — never both,
+ * and never neither.
+ *
+ * Modelled as a union rather than two optional fields so the compiler rejects
+ * the invalid states. "Neither" is the one that matters: the renderer falls
+ * back to `item.body`, and an item with no copy at all renders `undefined`
+ * silently instead of throwing.
+ */
+export type BroteIncludesItem = {
   number: string;
   title: string;
-  body: string;
-}
+} & (
+  | { body: string; mention?: never }
+  | { mention: BroteCollaboratorMention; body?: never }
+);
 
 /** Optional post-payment contact step on /brote/success. */
 export interface BroteSuccessContactDict {
@@ -173,13 +201,12 @@ export interface BroteDict {
   lineup: {
     timeRange: string;
     welcome: BroteLineupBlock & { kicker: string; body1: string; body2: string };
-    live: BroteLineupBlock & { body: string };
-    dj: BroteLineupBlock & {
-      bodyBefore: string;
-      bodyAfter: string;
-      /** `name` is the inline link text, `label` the @handle on the tag. */
-      link: { url: string; name: string; label: string };
+    live: BroteLineupBlock & {
+      mention: BroteCollaboratorMention;
+      /** The set photo's alt text — it used to reuse `body`, a whole sentence. */
+      photoAlt: string;
     };
+    dj: BroteLineupBlock & { mention: BroteCollaboratorMention };
   };
   impact: {
     counterLabel: string;
@@ -203,9 +230,12 @@ export interface BroteDict {
     featured: BroteIncludesItem;
   };
   community: {
+    /** `sponsors` is El Arte de Vivir — the organiser, linked to its own site. */
     intro: { before: string; sponsors: string; after: string };
     body: string;
     tagline: string;
+    /** Heading over the row of backing brands, built from the registry. */
+    sponsorsRow: { eyebrow: string };
   };
   final: {
     heading: string;
@@ -216,7 +246,7 @@ export interface BroteDict {
     plantingPrompt: string;
     plantingCta: string;
   };
-  footer: { left: string; right: string };
+  footer: { left: string; right: BroteCollaboratorMention };
   /** Shown under the CTA when creating the MercadoPago preference fails. */
   checkoutError: string;
   success: {
