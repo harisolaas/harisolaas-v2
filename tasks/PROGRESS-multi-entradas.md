@@ -13,13 +13,13 @@ Rama: `brote/multi-entradas`, base `main` (`cb08f9f`).
 
 | Unidad | PR | Qué shippeó | Catches notables |
 |---|---|---|---|
-| — | — | — | — |
+| **U1** | [#69](https://github.com/harisolaas/harisolaas-v2/pull/69) — abierto | Índice único parcial (`WHERE role <> 'companion'`), `addCompanionTickets`, `ORDER BY` en la sonda de `recordParticipation`, corrección de `docs/specs/01-data-model.md` | **Revisor del plan:** 9 enmiendas vinculantes; 5 eran defectos que se embarcaban (guard de concurrencia removido, payout de colaboradores subcontando 3×, anclajes de la recompra sobre la compra anterior, `sanitizeAttribution` salteado, argumento de inercia falso). **Tabla de candidatos:** M8 sobrevivía — T1.7 pasaba contra el código sin arreglar por suerte del planner. **M2 sobrevive declarada**: el índice NO es lo que deduplica `recordParticipation`; es el row lock de `people` del upsert. |
 
 ## Queue
 
 | # | Unidad | Estado |
 |---|---|---|
-| U1 | Índice único parcial + `addCompanionTickets` | plan en revisión |
+| ~~U1~~ | ~~Índice único parcial + `addCompanionTickets`~~ | **PR [#69](https://github.com/harisolaas/harisolaas-v2/pull/69)** — esperando CI + revisión adversarial. **No mergear sin "mergealo" Y sin la migración manual aplicada en prod primero.** |
 | U2 | El mail lleva N QR | pendiente |
 | U3 | El webhook emite N entradas | pendiente |
 | U4 | Modal de cantidad + checkout por N (**el interruptor**) | pendiente |
@@ -91,6 +91,26 @@ costaron su ciclo — no re-descubrirlos.
 - **El merge jsonb `||` es shallow** — reemplaza la clave de primer nivel entera.
 - **El SDK de Resend no tira ante errores de API** — devuelve `{data, error}`.
   Éxito = sin `error` **y** con id en `data`.
+- **`recordParticipation` NO deduplica por el índice único: deduplica por el row
+  lock de `people`.** Su upsert `ON CONFLICT (email) DO UPDATE` sostiene el lock
+  hasta el commit, así que dos signups concurrentes de la misma persona se
+  serializan ahí y el segundo cortocircuita en el SELECT. Verificado con DDL
+  real: tres transacciones concurrentes **sin constraint alguna** producen una
+  fila. Corolario que gobierna U3: `addCompanionTickets` **no toca `people`**,
+  así que no hereda esa serialización — los ids deterministas son su única
+  protección contra doble emisión.
+- **Mutar `schema.ts` NO prueba nada sobre índices.** Drizzle no valida
+  definiciones de índice en runtime y los tests pegan contra una base real. Para
+  mutar un índice hay que correr DDL de verdad
+  (`scratchpad/idx.mjs`, con `trap` de restauración — la branch dev es
+  compartida con el CI de todos los PRs).
+- **`vitest -t` acepta UN patrón**; varios `-t` no se acumulan, gana el último.
+- **`tsx` no lee `.env.local`** (vitest sí) y los alias `@/` no resuelven desde
+  fuera del worktree. Para scripts sueltos: `node` + `@neondatabase/serverless`
+  por ruta absoluta, y `sql.query(...)` — `sql` es tagged-template-only.
+- **`.next` de este worktree es propio** (no el del owner). `lsof -i :3000`
+  antes igual, pero borrarlo acá es seguro y es lo único que arregla los
+  `TS2307` de `.next/types/validator.ts` sobre rutas borradas en #65.
 
 ## Carry-forward / backlog
 
