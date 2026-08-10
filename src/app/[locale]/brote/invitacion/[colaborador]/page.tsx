@@ -48,7 +48,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, colaborador } = await params;
   const invitation = getInvitation(colaborador);
-  if (!invitation) return { title: "BROTE", robots: { index: false } };
+  if (!invitation) return { title: "BROTE", robots: { index: false, follow: false } };
 
   const dict = await getDictionary(locale as Locale);
   const { meta } = dict.broteInvitacion;

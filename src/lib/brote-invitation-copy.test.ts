@@ -73,6 +73,6 @@ describe("es — Argentine conventions", () => {
     // lines said "nos vemos el 28". This event is 20 August.
     expect(strings).not.toContain("28 MAR");
     expect(strings.toLowerCase()).not.toContain("el 28");
-    expect(strings).not.toContain("marzo");
+    expect(strings.toLowerCase()).not.toContain("marzo");
   });
 });
