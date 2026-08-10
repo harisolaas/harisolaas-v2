@@ -11,7 +11,12 @@ import type { Locale } from "@/i18n/config";
 
 const ORIGIN = "https://www.harisolaas.com";
 
-/** The two line-up acts, credited from the collaborator registry. */
+/**
+ * The two line-up acts, credited from the collaborator registry.
+ *
+ * Emitted as `Person`, not `PerformingGroup`: both are `kind: "artist"` in the
+ * registry — individuals, not bands.
+ */
 const PERFORMER_SLUGS = ["jose", "gian"] as const;
 
 export interface BroteOffer {
@@ -47,7 +52,7 @@ export interface BroteEventJsonLd {
     };
   };
   organizer: { "@type": "Organization"; name: string };
-  performer: Array<{ "@type": "PerformingGroup"; name: string; sameAs?: string }>;
+  performer: Array<{ "@type": "Person"; name: string; sameAs?: string }>;
   offers: BroteOffer[];
 }
 
@@ -71,8 +76,9 @@ const COPY = {
  * **Both price tiers are always published.** `/[locale]/brote` is a static
  * prerender, so anything time-dependent a *server* component emits freezes at
  * build time. `BroteLanding` escapes that for the visible price with a
- * `useEffect` that re-reads `currentTicketPrice()` after hydration; markup in
- * `<head>` gets no such correction. A single offer derived from the current
+ * `useEffect` that re-reads `currentTicketPrice()` after hydration; markup
+ * rendered on the server gets no such correction, wherever in the document it
+ * sits. A single offer derived from the current
  * price would therefore keep advertising the preventa after 13/8 — the exact
  * "the page says one number and the checkout charges another" failure the
  * pricing helpers exist to prevent.
@@ -90,13 +96,19 @@ export function buildBroteEventJsonLd(
   const copy = locale === "en" ? COPY.en : COPY.es;
   const url = `${ORIGIN}/${locale === "en" ? "en" : "es"}/brote`;
 
+  // "Costa Rica 5644, Palermo Hollywood, CABA" → street / locality.
+  const [streetAddress, ...rest] = broteConfig.locationAddress
+    .split(",")
+    .map((part) => part.trim());
+  const addressLocality = rest.join(", ");
+
   const performer = PERFORMER_SLUGS.flatMap((slug) => {
     const invitation = getInvitation(slug);
     if (!invitation) return [];
     const sameAs = instagramUrl(invitation);
     return [
       {
-        "@type": "PerformingGroup" as const,
+        "@type": "Person" as const,
         name: invitation.name,
         ...(sameAs ? { sameAs } : {}),
       },
@@ -117,11 +129,14 @@ export function buildBroteEventJsonLd(
     image: [`${ORIGIN}/${BROTE_OG_IMAGE}`],
     location: {
       "@type": "Place",
-      name: "Costa Rica 5644",
+      // Derived from the config, not retyped: the venue also renders on the
+      // landing, the flyer and the ticket email, and a hardcoded copy here
+      // would keep publishing the old address to Google after a move.
+      name: streetAddress,
       address: {
         "@type": "PostalAddress",
-        streetAddress: "Costa Rica 5644",
-        addressLocality: "Palermo Hollywood, CABA",
+        streetAddress,
+        addressLocality,
         addressRegion: "Ciudad Autónoma de Buenos Aires",
         addressCountry: "AR",
       },

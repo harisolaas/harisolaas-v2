@@ -28,6 +28,16 @@ describe("event timestamps", () => {
     expect(eventEndsAt()).toContain(broteConfig.eventEndTime);
   });
 
+  it("agrees with the human-readable eventTime", () => {
+    // `eventTime` ("19:00 a 22:30") is a second representation of the same
+    // fact, and it is the one the flyer, the ticket email and the day-of
+    // reminder render. Editing one and not the other publishes 19:00 to
+    // Google while the mail says 20:00 — the same class of drift the U4 unit
+    // is blocked on. Nothing tied them together, so this does.
+    expect(broteConfig.eventTime).toContain(broteConfig.eventStartTime);
+    expect(broteConfig.eventTime).toContain(broteConfig.eventEndTime);
+  });
+
   it("ends after it starts", () => {
     expect(new Date(eventEndsAt()).getTime()).toBeGreaterThan(
       new Date(eventStartsAt()).getTime(),
@@ -58,9 +68,19 @@ describe("the Event node", () => {
     expect(jsonLd.url).toBe("https://www.harisolaas.com/es/brote");
   });
 
-  it("locates the party at the real venue", () => {
+  it("locates the party at the venue the config names", () => {
+    // Derivational, not a repeated literal: asserting "Costa Rica 5644" here
+    // and hardcoding it in the builder means both move together only by
+    // coincidence, and a venue change would publish the old address to Google
+    // while every other surface showed the new one.
     expect(jsonLd.location["@type"]).toBe("Place");
-    expect(jsonLd.location.address.streetAddress).toContain("Costa Rica 5644");
+    expect(broteConfig.locationAddress).toContain(
+      jsonLd.location.address.streetAddress,
+    );
+    expect(broteConfig.locationAddress).toContain(
+      jsonLd.location.address.addressLocality,
+    );
+    expect(jsonLd.location.name).toBe(jsonLd.location.address.streetAddress);
     expect(jsonLd.location.address.addressCountry).toBe("AR");
   });
 
