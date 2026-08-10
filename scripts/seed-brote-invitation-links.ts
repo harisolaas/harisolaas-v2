@@ -114,7 +114,22 @@ async function main() {
         ${new Date().toISOString().slice(0, 10)},
         'seed-brote-invitation-links', 'active', false,
         ${l.referrerEmail ? sql`(SELECT id FROM people WHERE email = ${l.referrerEmail})` : sql`NULL`}
-      ON CONFLICT (slug) DO NOTHING
+      ${
+        // Plain DO NOTHING would make --referrer-* useless on a second run,
+        // and a second run is the expected shape: you seed the links now and
+        // the artists only exist as `people` once they've bought or been
+        // added. So when a referrer is supplied, backfill it — COALESCE keeps
+        // an existing one if the lookup found nobody, and no other column is
+        // touched, so a label edited in the admin survives.
+        l.referrerEmail
+          ? sql`ON CONFLICT (slug) DO UPDATE SET
+                  referred_by_person_id = COALESCE(
+                    EXCLUDED.referred_by_person_id,
+                    links.referred_by_person_id
+                  ),
+                  updated_at = NOW()`
+          : sql`ON CONFLICT (slug) DO NOTHING`
+      }
     `);
 
     if (l.referrerEmail) {
@@ -126,10 +141,13 @@ async function main() {
         | undefined;
       if (!row?.referred_by_person_id) {
         // Loud, because a silent null here means the artist's sales are
-        // counted but never attributed to them as a person.
+        // counted but never attributed to them as a person. Re-running the
+        // script once the person exists now repairs it (see the upsert above).
         console.warn(
-          `  ⚠ ${l.slug}: no people row for ${l.referrerEmail} — link created without a referrer`,
+          `  ⚠ ${l.slug}: no people row for ${l.referrerEmail} — link has no referrer. Create the person and re-run.`,
         );
+      } else {
+        console.log(`  ✓ ${l.slug}: referrer set`);
       }
     }
   }
