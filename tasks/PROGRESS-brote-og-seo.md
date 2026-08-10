@@ -37,7 +37,7 @@ Empty — every unit has an open PR, reviewed and addressed. Merge order below.
 
 | Item | Waiting on | Asked |
 |---|---|---|
-| U4 day-of lineup times (19:45/21:30 vs landing's 20:00/21:15) | Owner confirmation of the final running order | not yet — raise before U4 |
+| ~~U4 day-of lineup times~~ | ~~Owner confirmation of the final running order~~ | **Cleared.** Owner said go; the mail now derives its times from the landing. See Dispositions. |
 | DoD #3: FB Sharing Debugger re-scrape | Owner, post-deploy | owner checklist |
 | All merges | Explicit "ship"/"mergealo" — site is live | per PR |
 
@@ -149,7 +149,7 @@ in this programme remains "waiting".
 
 | Item | Disposition | Evidence / trigger |
 |---|---|---|
-| U4 day-of lineup times (mail 19:45/21:30 vs landing 20:00/21:15) | **Owner checklist** | The spec's stated fallback was taken: links shipped, times untouched, TODO narrowed to name the discrepancy and greppable at `brote-email.ts:37`. Trigger: before the day-of reminder goes out on 20/8. A one-line change once the running order is confirmed. |
+| U4 day-of lineup times (mail 19:45/21:30 vs landing 20:00/21:15) | **Done** | Unblocked by the owner and resolved: the mail's run of show is now derived from `es.brote.lineup`, so it announces the landing's 20:00 and 21:15. Changing the real order is one dictionary edit and both surfaces move together; four assertions tie them, and the TODO is gone. Residual: if the *landing itself* is wrong about the running order, both are wrong together — that is a content question for the owner, not a code defect. |
 | DoD #3 — Facebook Sharing Debugger re-scrape | **Owner checklist** | Post-deploy and owner-only; no API available to this session. Trigger: immediately after #70 reaches production. |
 | Google Rich Results Test for the `Event` node | **Owner checklist** | Same: needs the live URL. Trigger: after #74 reaches production. Verified locally that the emitted JSON-LD carries every field Google requires. |
 | All merges | **Owner checklist** | `CLAUDE.md` requires an explicit "ship"/"mergealo" and the site is live. Five PRs green and mergeable; order stated above. |

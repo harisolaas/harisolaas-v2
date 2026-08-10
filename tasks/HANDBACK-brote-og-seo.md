@@ -17,7 +17,7 @@ Lecciones: [`tasks/lessons.md`](lessons.md)
 | U1 | [#70](https://github.com/harisolaas/harisolaas-v2/pull/70) | Compartir la landing por WhatsApp/Instagram ahora muestra la tarjeta del **20 de agosto**, no la del 28 de marzo. Y `/es/brote` deja de decirle a Google que su URL canónica es el home |
 | U3 | [#71](https://github.com/harisolaas/harisolaas-v2/pull/71) | Cada colaborador tiene link: el **nombre al sitio propio**, el **@handle a Instagram**. El link de Gian estaba muerto. Pulso aparece por primera vez en la landing |
 | U2 | [#74](https://github.com/harisolaas/harisolaas-v2/pull/74) | Google puede mostrar fecha, lugar y precio en el resultado de búsqueda |
-| U4 | [#73](https://github.com/harisolaas/harisolaas-v2/pull/73) | El mail del día del evento nombra y linkea a quién toca; los tres pies de mail linkean a El Arte de Vivir |
+| U4 | [#73](https://github.com/harisolaas/harisolaas-v2/pull/73) | El mail del día del evento nombra y linkea a quién toca, **y deja de contradecir la landing en los horarios**; los tres pies de mail linkean a El Arte de Vivir |
 | U5 | [#72](https://github.com/harisolaas/harisolaas-v2/pull/72) | `CLAUDE.md` describe el código que existe, no el de la edición 1 |
 
 **Orden de merge:** `#70 → #71 → #74 → #73 → #72`.
@@ -99,7 +99,7 @@ JSON-LD emitidos por un build real.
 | **Decidir los merges** (orden arriba) | Cuando quieras |
 | **Re-escanear `/es/brote` en el Facebook Sharing Debugger** — fuerza el refetch de la tarjeta en WhatsApp y Facebook | Apenas #70 esté en producción |
 | **Pasar `/es/brote` por el Rich Results Test de Google** | Apenas #74 esté en producción |
-| **Confirmarme los horarios definitivos del line-up** — el mail dice 19:45/21:30, la landing 20:00/21:15 | Antes del envío del día del evento |
+| ~~Confirmarme los horarios del line-up~~ — **resuelto**: el mail deriva sus horarios de la landing (20:00 y 21:15). Si el orden real es otro, se cambia en `es.ts` y se mueven las dos superficies juntas | — |
 | **Decidir sobre el gate** (ver abajo) | Antes de que abran las puertas el 20 |
 
 ---
