@@ -9,13 +9,18 @@ Worktree: `.claude/worktrees/iridescent-popping-cupcake`
 
 | Unit | PR | What shipped | Notable catches |
 |---|---|---|---|
-| — | — | nothing yet | — |
+| — | — | nothing merged yet — site is live, awaiting owner's "mergealo" | — |
+
+## Complete, awaiting merge decision
+
+| Unit | PR | What shipped | Notable catches |
+|---|---|---|---|
+| U1 | [#70](https://github.com/harisolaas/harisolaas-v2/pull/70) | `og-brote-v2.png` (edition-1 card said "28 de marzo"); self-canonical + hreflang on `/brote`; `/brote` into the sitemap; www host everywhere; noindex on success/failure/gate/flyer | **Plan review:** robots.txt `Disallow` + meta `noindex` on the same path cancel each other, and the gate is linked from every buyer's email. A child `openGraph` *replaces* the parent's, so partial blocks drop inherited fields silently. **PR review:** four wrong implementations passed 15/15 green — `robots` as a *string* (no `.index`, so the guard was blind), an ancestor `[locale]/brote/layout.tsx`, the OG constant bumped without committing the asset, and the invitation page's `twitter.images` left on the deleted file. All four now red. |
 
 ## Queue
 
 | # | Unit | Branch | Base | State |
 |---|---|---|---|---|
-| U1 | OG card + canonical host + indexing | `brote-og-seo` | `origin/main` | in progress |
 | U2 | `Event` JSON-LD | `brote-jsonld` | U1 (stacked) | queued |
 | U3 | Collaborator links on the landing | `brote-colaboradores` | `origin/main` | queued |
 | U4 | Collaborator links in emails | `brote-email-links` | `origin/main` | queued |
@@ -72,7 +77,19 @@ One line each. Violating these costs a full PR cycle.
 - **`/[locale]/*` are static prerenders.** `BroteLanding.tsx:601-614` escapes this
   for price via `useEffect`; server-emitted JSON-LD cannot.
 - **CI does not run on stacked PRs** (`pull_request: branches: [main]`).
-- **Copilot may not attach** — check `/pulls/{n}/comments` before giving up.
+- **Copilot may not attach** — check `/pulls/{n}/comments` before giving up. On
+  #70 both `reviewers[]=copilot-pull-request-reviewer[bot]` and
+  `reviewers[]=Copilot` returned 200 with `requested_reviewers: []`, and
+  `gh pr edit --add-reviewer Copilot` fails outright with
+  `Could not resolve user with login 'copilot'`.
+- **A test asserting `robots.index !== false` is blind to half the de-index
+  spellings.** `Metadata["robots"]` is `null | string | Robots`; the string
+  form `"noindex, nofollow"` has no `.index`. Normalise both, and remember an
+  ancestor layout's `robots` is invisible from a page's own metadata object —
+  it has to be asserted structurally.
+- **`git checkout -- <file>` restores from the INDEX, not HEAD.** Running
+  mutation candidates against unstaged work reverts the real implementation
+  too. Stage the finished unit first, then mutate and revert freely.
 
 ## Carry-forward / backlog
 
