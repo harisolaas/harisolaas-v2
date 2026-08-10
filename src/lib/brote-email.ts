@@ -1,7 +1,49 @@
-import { broteConfig } from "@/data/brote";
+import { artOfLivingInstagram, broteConfig } from "@/data/brote";
+import { collaboratorNameUrl, getInvitation } from "@/lib/brote-invitations";
+import es from "@/dictionaries/es";
 
 // Start hour derived from eventTime ("19:00 a 22:30" → "19") for day-of copy.
 const startHour = broteConfig.eventTime.split(":")[0];
+
+/**
+ * The run of show, taken from the landing rather than retyped.
+ *
+ * The line-up blocks carry their time as `"20:00 · En vivo"`; only the clock
+ * part is wanted here. This mail used to hardcode 19:45 and 21:30 against the
+ * landing's 20:00 and 21:15 — so on the morning of the event every buyer would
+ * have been told the music starts fifteen minutes before the page they bought
+ * from says it does. Deriving both from `es.brote.lineup` means changing the
+ * running order is one edit, and the two surfaces cannot disagree again.
+ *
+ * The tree moment has no line-up block of its own (it is a short beat before
+ * the closing set), so it is the one time still written here.
+ */
+const clock = (blockTime: string) => blockTime.split("·")[0].trim();
+
+const RUN_OF_SHOW = {
+  doors: clock(es.brote.lineup.welcome.time),
+  live: clock(es.brote.lineup.live.time),
+  trees: "21:00",
+  dj: clock(es.brote.lineup.dj.time),
+};
+
+/**
+ * A collaborator's name as a link, for the email templates.
+ *
+ * Same registry the landing reads, so a handle corrected in one place is
+ * corrected in the mail too. Everything interpolated is a repo constant —
+ * these builders have no `escapeHtml` (see `tasks/lessons.md`), so nothing
+ * user-supplied may be routed through here.
+ */
+function collaboratorLink(slug: string, color = "#2D4A3E"): string {
+  const invitation = getInvitation(slug);
+  if (!invitation) return "";
+
+  const href = collaboratorNameUrl(invitation);
+  if (!href) return invitation.name;
+
+  return `<a href="${href}" style="color:${color};text-decoration:underline">${invitation.name}</a>`;
+}
 
 export function buildReminderEmailHtml(treesRemaining: number): string {
   const buyUrl = "https://www.harisolaas.com/es/brote";
@@ -33,16 +75,20 @@ export function buildReminderEmailHtml(treesRemaining: number): string {
 <!-- Lineup -->
 <tr><td style="padding:24px">
   <h3 style="margin:0 0 16px;color:#2D4A3E;font-size:18px;text-align:center">Lineup de la noche</h3>
-  <!-- TODO: confirmar lineup definitivo antes del envío del día del evento (20/8) -->
+  <!-- Los horarios salen de la landing (RUN_OF_SHOW), que es lo que la persona
+       vio cuando compró. Antes decían 19:45 y 21:30 contra los 20:00 y 21:15 de
+       la landing, o sea que este mail contradecía la página de venta el día
+       mismo del evento. Si el orden real cambia, se cambia en el diccionario y
+       las dos superficies se mueven juntas. -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:#444">
-    <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;width:60px;vertical-align:top"><strong style="color:#C4704B">19:00</strong></td>
+    <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;width:60px;vertical-align:top"><strong style="color:#C4704B">${RUN_OF_SHOW.doors}</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">&#127869; Apertura y catering</td></tr>
-    <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top"><strong style="color:#C4704B">19:45</strong></td>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">&#127925; Ac&uacute;stico en vivo</td></tr>
-    <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top"><strong style="color:#C4704B">21:00</strong></td>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">&#127795; Momento Un &Aacute;rbol</td></tr>
-    <tr><td style="padding:10px 0;vertical-align:top"><strong style="color:#C4704B">21:30</strong></td>
-        <td style="padding:10px 0">&#128131; Experiencia de baile</td></tr>
+    <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top"><strong style="color:#C4704B">${RUN_OF_SHOW.live}</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">&#127925; Ac&uacute;stico en vivo &mdash; ${collaboratorLink("jose")}</td></tr>
+    <tr><td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top"><strong style="color:#C4704B">${RUN_OF_SHOW.trees}</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0">&#127795; Momento ${collaboratorLink("unarbol")}</td></tr>
+    <tr><td style="padding:10px 0;vertical-align:top"><strong style="color:#C4704B">${RUN_OF_SHOW.dj}</strong></td>
+        <td style="padding:10px 0">&#128131; Experiencia de baile &mdash; ${collaboratorLink("gian")}</td></tr>
   </table>
 </td></tr>
 
@@ -62,7 +108,7 @@ export function buildReminderEmailHtml(treesRemaining: number): string {
 
 <!-- Footer -->
 <tr><td style="padding:20px 24px 28px;text-align:center;border-top:1px solid #f0f0f0">
-  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE &middot; El Arte de Vivir</p>
+  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE &middot; <a href="${artOfLivingInstagram}" style="color:#aaa;text-decoration:underline">El Arte de Vivir</a></p>
   <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
 </td></tr>
 
@@ -202,7 +248,7 @@ ${qrBlocks}
 
 <!-- Footer -->
 <tr><td style="padding:20px 24px 28px;text-align:center;border-top:1px solid #f0f0f0">
-  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE · El Arte de Vivir</p>
+  <p style="margin:0 0 4px;color:#aaa;font-size:12px">BROTE · <a href="${artOfLivingInstagram}" style="color:#aaa;text-decoration:underline">El Arte de Vivir</a></p>
   <p style="margin:0;color:#ccc;font-size:11px">harisolaas.com/brote</p>
 </td></tr>
 
