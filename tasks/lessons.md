@@ -18,6 +18,34 @@ programme-specific notes; those live in each programme's PROGRESS.md.
 - **`tsconfig.json` excludes `**/*.test.ts`**, so `npx tsc --noEmit` does not
   typecheck test files. Type errors there only surface under vitest.
 - **A worktree has no `node_modules`** — `npm ci` before anything.
+- **Never chain `gh pr merge` with `git push --delete` in one command.** If the
+  merge doesn't complete, the delete still runs, GitHub closes the PR as
+  *closed* rather than *merged*, and the work is only recoverable from the
+  local branch. Merge, verify `main` moved, then delete.
+- **A hand-built `Request` omits headers the browser always sends, and that can
+  make a test pass on a path production never takes.** `buildAttribution`
+  returns a touch when *any* field is present — `referer` included — and a
+  same-origin `fetch()` always sends one. So a route test whose `Request` has
+  no `referer` exercises the "no attribution at all" branch, while production
+  only ever takes the "attribution present but no linkSlug" one. A guard
+  written `!attribution` instead of `!attribution?.linkSlug` passed the whole
+  suite and would have left every invited BROTE sale with `link_slug` null.
+  **When a test drives a route with a synthetic Request, ask which headers the
+  real caller sends** (`referer`, `cookie`, `user-agent`) and put them in.
+- **Feed one component's real output into the next, not a hand-written
+  fixture.** The BROTE checkout writes a Redis stash the webhook reads. A test
+  that hands the webhook a fixture cannot catch the shape drifting (flat vs.
+  nested under `attribution:`) — the failure both halves are most likely to
+  have. Making the webhook test consume the string the checkout actually wrote
+  is what killed that mutation.
+- **A `Record<K, V>` indexed with an untrusted string answers `constructor`,
+  `toString` and `__proto__` with something truthy off `Object.prototype`.**
+  Use `Object.hasOwn` when the key comes off a request.
+- **A Next page with no dynamic API is prerendered at build and cached with no
+  revalidate**, which freezes anything time-dependent it renders — a price
+  tier, a countdown, an "open/closed" state. `export const dynamic =
+  "force-dynamic"` fixes it, and the build's route table is the proof: `ƒ` is
+  dynamic, `○` is static.
 - **A hand-built `Request` omits headers the browser always sends, and that can
   make a test pass on a path production never takes.** `buildAttribution`
   returns a touch when *any* field is present — `referer` included — and a
