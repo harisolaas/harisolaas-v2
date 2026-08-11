@@ -33,7 +33,7 @@ Auditoría zero-context de midpoint: después de U3.
 | Ítem | Espera | Pedido a / cuándo |
 |---|---|---|
 | ~~Migración del índice parcial contra prod~~ | — | ✅ **APLICADA 10/8 17:0x** — ver Dispositions |
-| Compra real de 2+ en prod (confirma que MP propaga `metadata.qty` de Preference a Payment) | primera compra real post-deploy | owner, checklist final |
+| ~~Compra real de 2+ en prod~~ | — | **Checklist del owner** — sigue sin verificarse con un pago real; es el único claim del programa que no se puede cerrar desde acá |
 
 ---
 
@@ -124,6 +124,8 @@ Crece durante la ejecución por diseño.
 | **Los 5 tests de webhook existentes sólo pasan por el fail-open.** CI no setea `MP_WEBHOOK_SECRET`, así que mandan requests sin firmar y el webhook los deja entrar. Arreglar el fail-open los rompe a los cinco: hay que firmarlos primero (o setear la env en CI). Descubierto acá, al ver 5 rojos locales que en CI son verdes. | Media | S | Va **junto** con el fix del fail-open — quien lo tome arregla los dos |
 
 ## Dispositions
+
+**Programa cerrado el 11/8/2026.** Handback: [`HANDBACK-multi-entradas.md`](./HANDBACK-multi-entradas.md)
 
 | Ítem | Estado | Evidencia |
 |---|---|---|
