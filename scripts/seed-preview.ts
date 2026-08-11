@@ -107,6 +107,22 @@ interface ParticipationFixture {
   invite?: string;
   paymentId?: string;
   donation?: boolean;
+  /**
+   * Name written on THIS ticket, for a buyer who bought several. Mirrors
+   * `metadata.guestName`, which the door prefers over the payer's name.
+   */
+  guestName?: string;
+  /** Who paid, when that isn't the attendee. Mirrors `buyer_person_id`. */
+  buyerEmail?: string;
+  /**
+   * Position within the purchase, 0-based, on companion rows. Mirrors
+   * `metadata.seq`, which `addCompanionTickets` stamps in prod and which is
+   * THE canonical order every reader of a group sorts by — the form on
+   * /success, the door and the resend all number tickets from it. Without
+   * it the preview data sorts by id and the fixtures stop resembling what
+   * production actually produces.
+   */
+  seq?: number;
 }
 
 interface LinkFixture {
@@ -202,6 +218,10 @@ const PEOPLE: PersonFixture[] = [
   { email: "preview-ine@example.com", name: "Inés Morales" },
   { email: "preview-javi@example.com", name: "Javi Romero" },
   { email: "preview-kari@example.com", name: "Karina Díaz" },
+  // Multi-ticket buyers: Tina holds four tickets across TWO payments (a
+  // 3-pack and a later repurchase), Ulises bought two from an invitation.
+  { email: "preview-tina@example.com", name: "Tina Ferrari" },
+  { email: "preview-ulises@example.com", name: "Ulises Prado" },
   { email: "preview-leo@example.com", name: "Leo Fernández" },
   { email: "preview-mica@example.com", name: "Micaela Ríos" },
   { email: "preview-nico@example.com", name: "Nico Álvarez" },
@@ -285,6 +305,107 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       paymentId: `PREVIEW-MP-B2-${String(i + 1).padStart(3, "0")}`,
     }),
   })),
+  // ── Multi-ticket purchases (one payment, several tickets) ───────────
+  //
+  // The buyer's own row is `attendee`; the extras are `companion`, which is
+  // exactly what the partial unique index exempts. They share one
+  // `external_payment_id` — the anchor the webhook retry, the /success
+  // resend and the guest-name writer all resolve the group by — and each
+  // carries the UNIT price, never the basket total.
+  //
+  // Three tickets on one payment: one named, one not. Both states matter —
+  // the door shows the guest name when there is one and the buyer's name
+  // when there isn't, and the /success form has to render a filled field
+  // next to an empty one.
+  {
+    id: "PREVIEW-B2-MULTI-001",
+    personEmail: "preview-tina@example.com",
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2475000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-MULTI-1",
+    guestName: "Tina Ferrari",
+  },
+  {
+    id: "PREVIEW-B2-MULTI-002",
+    personEmail: "preview-tina@example.com",
+    eventId: "preview-brote2",
+    role: "companion",
+    status: "confirmed",
+    priceCents: 2475000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-MULTI-1",
+    buyerEmail: "preview-tina@example.com",
+    guestName: "Marce Quiroga",
+    seq: 0,
+  },
+  {
+    // Deliberately unnamed: the empty state of the guest-name field, and
+    // the door falling back to the buyer's name.
+    id: "PREVIEW-B2-MULTI-003",
+    personEmail: "preview-tina@example.com",
+    eventId: "preview-brote2",
+    role: "companion",
+    status: "confirmed",
+    priceCents: 2475000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-MULTI-1",
+    buyerEmail: "preview-tina@example.com",
+    seq: 1,
+  },
+  {
+    // A SECOND, separate purchase by the same person — the repurchase that
+    // used to produce an admin alert and no ticket. Different payment id on
+    // purpose: it must not be pulled into the group above.
+    id: "PREVIEW-B2-MULTI-004",
+    personEmail: "preview-tina@example.com",
+    eventId: "preview-brote2",
+    role: "companion",
+    status: "confirmed",
+    priceCents: 3300000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-MULTI-2",
+    buyerEmail: "preview-tina@example.com",
+    guestName: "Vale Iribarne",
+    seq: 0,
+  },
+  {
+    // Two tickets bought from a collaborator page. BOTH carry
+    // `metadata.invite`: the payout report selects on it, so a fixture that
+    // marks only the first would make the report look right while paying
+    // half of what it should.
+    id: "PREVIEW-B2-INV-MULTI-1",
+    personEmail: "preview-ulises@example.com",
+    eventId: "preview-brote2",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2145000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-INV-MULTI",
+    invite: "pulso",
+    linkSlug: "inv-pulso",
+    attributionSource: "instagram",
+    attributionMedium: "bio",
+  },
+  {
+    id: "PREVIEW-B2-INV-MULTI-2",
+    personEmail: "preview-ulises@example.com",
+    eventId: "preview-brote2",
+    role: "companion",
+    status: "confirmed",
+    priceCents: 2145000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-B2-INV-MULTI",
+    buyerEmail: "preview-ulises@example.com",
+    invite: "pulso",
+    seq: 0,
+    linkSlug: "inv-pulso",
+    attributionSource: "instagram",
+    attributionMedium: "bio",
+    guestName: "Flor Medina",
+  },
   // Sales through the collaborator invitations. Three states on purpose, so
   // the admin renders all of them instead of one happy row:
   //   · a brand sale at the discounted price, attributed by link only;
@@ -635,6 +756,8 @@ async function main() {
       };
     }
     if (p.invite) meta.invite = p.invite;
+    if (p.guestName) meta.guestName = p.guestName;
+    if (p.seq !== undefined) meta.seq = p.seq;
     const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
 
     // `attribution` is the typed touch the admin reads; `link_slug` is the
@@ -655,7 +778,7 @@ async function main() {
       INSERT INTO participations (
         id, person_id, event_id, role, status, metadata, used_at,
         external_payment_id, price_cents, currency,
-        link_slug, attribution, referred_by_person_id
+        link_slug, attribution, referred_by_person_id, buyer_person_id
       )
       SELECT
         ${p.id},
@@ -670,7 +793,8 @@ async function main() {
         ${p.currency ?? null},
         ${p.linkSlug ?? null},
         ${attributionSql},
-        ${p.referrerEmail ? sql`(SELECT id FROM people ref WHERE ref.email = ${p.referrerEmail})` : sql`NULL`}
+        ${p.referrerEmail ? sql`(SELECT id FROM people ref WHERE ref.email = ${p.referrerEmail})` : sql`NULL`},
+        ${p.buyerEmail ? sql`(SELECT id FROM people buyer WHERE buyer.email = ${p.buyerEmail})` : sql`NULL`}
       FROM people WHERE email = ${p.personEmail}
       ON CONFLICT DO NOTHING
     `);
