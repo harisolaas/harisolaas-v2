@@ -1,10 +1,12 @@
 import {
   BROTE_OG_IMAGE,
+  artOfLivingUrl,
   broteConfig,
   earlyBirdValidUntil,
   eventEndsAt,
   eventStartsAt,
   regularPriceValidFrom,
+  salesOpenedAt,
 } from "@/data/brote";
 import { getInvitation, instagramUrl } from "@/lib/brote-invitations";
 import type { Locale } from "@/i18n/config";
@@ -51,7 +53,7 @@ export interface BroteEventJsonLd {
       addressCountry: "AR";
     };
   };
-  organizer: { "@type": "Organization"; name: string };
+  organizer: { "@type": "Organization"; name: string; url: string };
   performer: Array<{ "@type": "Person"; name: string; sameAs?: string }>;
   offers: BroteOffer[];
 }
@@ -141,8 +143,17 @@ export function buildBroteEventJsonLd(
         addressCountry: "AR",
       },
     },
-    organizer: { "@type": "Organization", name: "El Arte de Vivir" },
+    // `url` was left out when this shipped because `artOfLivingUrl` arrived in
+    // a sibling PR; both are on main now, so the carry-forward is closed.
+    organizer: {
+      "@type": "Organization",
+      name: "El Arte de Vivir",
+      url: artOfLivingUrl,
+    },
     performer,
+    // Each tier carries BOTH bounds of its window. Declaring only one end left
+    // Google reporting a missing `validFrom`, and more importantly left the
+    // regular tier looking open-ended — it stops when the party does.
     offers: [
       {
         "@type": "Offer",
@@ -150,6 +161,7 @@ export function buildBroteEventJsonLd(
         priceCurrency: broteConfig.currency,
         availability: "https://schema.org/InStock",
         url,
+        validFrom: salesOpenedAt(),
         priceValidUntil: earlyBirdValidUntil(),
       },
       {
@@ -159,6 +171,7 @@ export function buildBroteEventJsonLd(
         availability: "https://schema.org/InStock",
         url,
         validFrom: regularPriceValidFrom(),
+        priceValidUntil: eventEndsAt(),
       },
     ],
   };

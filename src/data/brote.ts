@@ -91,6 +91,17 @@ export const eventEndsAt = () =>
 export const earlyBirdValidUntil = () =>
   `${broteConfig.earlyBirdDeadline}T23:59:59-03:00`;
 
+/**
+ * When BROTE 2 tickets went on sale — the `validFrom` of the early-bird offer.
+ *
+ * Not a guess: `771a17b` ("BROTE 2 — segunda edición … ticketing reactivado",
+ * #44) is the commit that set `earlyBirdPriceRaw: 24750` and reopened
+ * checkout. Structured data is a public claim about when a price was
+ * available, so it gets a date that actually happened rather than one chosen
+ * to satisfy a validator.
+ */
+export const salesOpenedAt = () => "2026-07-18T00:00:00-03:00";
+
 /** Midnight after the deadline — when the regular price takes over. */
 export function regularPriceValidFrom(): string {
   const dayAfter = new Date(`${broteConfig.earlyBirdDeadline}T12:00:00-03:00`);

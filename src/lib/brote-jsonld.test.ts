@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { buildBroteEventJsonLd } from "./brote-jsonld";
 import {
   BROTE_OG_IMAGE,
+  artOfLivingUrl,
   broteConfig,
   eventEndsAt,
   eventStartsAt,
@@ -66,6 +67,12 @@ describe("the Event node", () => {
       `https://www.harisolaas.com/${BROTE_OG_IMAGE}`,
     );
     expect(jsonLd.url).toBe("https://www.harisolaas.com/es/brote");
+  });
+
+  it("links the organiser to its own site", () => {
+    // Reported by the Rich Results Test as a missing optional field, and left
+    // out originally only because `artOfLivingUrl` shipped in a sibling PR.
+    expect(jsonLd.organizer.url).toBe(artOfLivingUrl);
   });
 
   it("locates the party at the venue the config names", () => {
@@ -136,6 +143,42 @@ describe("offers", () => {
       expect(offer.availability).toBe("https://schema.org/InStock");
       expect(offer.url).toBe(jsonLd.url);
     }
+  });
+
+  it("bounds every tier at both ends", () => {
+    // Google's Rich Results Test reported a missing `validFrom`, and the
+    // regular tier read as open-ended — it stops when the party does. Each
+    // offer now says when it starts and when it stops.
+    for (const offer of jsonLd.offers) {
+      expect(offer.validFrom, `${offer.price} has no validFrom`).toBeTruthy();
+      expect(
+        offer.priceValidUntil,
+        `${offer.price} has no priceValidUntil`,
+      ).toBeTruthy();
+      expect(
+        new Date(offer.priceValidUntil!).getTime(),
+      ).toBeGreaterThan(new Date(offer.validFrom!).getTime());
+    }
+  });
+
+  it("hands the early bird over to the regular tier without a gap", () => {
+    // Selected by price, not by position: array order is not part of what
+    // this asserts, and destructuring would red on a harmless reorder.
+    const early = jsonLd.offers.find(
+      (o) => o.price === broteConfig.earlyBirdPriceRaw,
+    )!;
+    const regular = jsonLd.offers.find(
+      (o) => o.price === broteConfig.ticketPriceRaw,
+    )!;
+    // 23:59:59 on the 13th → 00:00:00 on the 14th. A gap would leave a moment
+    // with no advertised price; an overlap would advertise two at once.
+    expect(new Date(regular.validFrom!).getTime()).toBeGreaterThan(
+      new Date(early.priceValidUntil!).getTime(),
+    );
+    expect(
+      new Date(regular.validFrom!).getTime() -
+        new Date(early.priceValidUntil!).getTime(),
+    ).toBe(1000);
   });
 
   it("does not move when the clock crosses the deadline", () => {
