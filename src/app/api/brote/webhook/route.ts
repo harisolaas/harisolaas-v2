@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { count, eq, sql } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
