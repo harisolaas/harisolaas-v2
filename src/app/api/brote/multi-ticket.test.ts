@@ -34,10 +34,15 @@ vi.mock("@/lib/redis", () => ({
 
 // ── MercadoPago ──────────────────────────────────────────────────────
 const paymentGet = vi.fn();
+const preferenceCreate = vi.fn(async () => ({
+  id: "PREF-1",
+  init_point: "https://mp.test/pay",
+  sandbox_init_point: "https://mp.test/sandbox",
+}));
 vi.mock("mercadopago", () => ({
   MercadoPagoConfig: class {},
   Preference: class {
-    create = vi.fn();
+    create = preferenceCreate;
   },
   Payment: class {
     get = paymentGet;
@@ -82,7 +87,10 @@ vi.mock("@/lib/brote-ticket-email", () => ({
 
 const notifyAdminOfIncident = vi.fn(async () => {});
 vi.mock("@/lib/admin-alert", () => ({ notifyAdminOfIncident }));
-vi.mock("@/lib/meta-capi", () => ({ sendMetaEvent: vi.fn(async () => {}) }));
+const sendMetaEvent = vi.fn(async () => {});
+vi.mock("@/lib/meta-capi", () => ({
+  sendMetaEvent: (...a: unknown[]) => sendMetaEvent(...(a as [])),
+}));
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function signedWebhook(paymentId: string) {
@@ -275,23 +283,58 @@ describe("BROTE webhook — N tickets per payment", () => {
     expect(sent.tickets).toHaveLength(1);
   });
 
-  it("T3.8 — a repeat single-ticket purchase still alerts and issues nothing (pin)", async () => {
-    // U3 deliberately does NOT turn repurchase on. That is an observable
-    // production change and it belongs with the switch in U4, on one revert
-    // boundary. Until then this branch behaves exactly as it does today.
+  it("T4.6 — a repeat purchase now issues a NEW ticket instead of alerting", async () => {
+    // This replaces U3's inertness pin, deliberately: turning repurchase on
+    // IS the observable change U4 ships. Until this commit, someone who
+    // already had a ticket and paid again got an admin alert and no
+    // ticket — money taken, nothing delivered.
     stash();
     recordParticipation.mockResolvedValue({
       personId: 7,
-      participationId: "BROTE2-EXISTING",
+      participationId: "BROTE2-FROM-EARLIER-PURCHASE",
       created: false,
       promoted: false,
       personCreated: false,
     });
     await post("MP-1", payment());
 
-    expect(addCompanionTickets).not.toHaveBeenCalled();
-    expect(sendBroteTicketEmail).not.toHaveBeenCalled();
-    expect(notifyAdminOfIncident).toHaveBeenCalled();
+    expect(addCompanionTickets).toHaveBeenCalledTimes(1);
+    expect(addCompanionTickets.mock.calls[0][0].ticketIds).toHaveLength(1);
+    expect(notifyAdminOfIncident).not.toHaveBeenCalled();
+
+    // ...and it is the NEW ticket that gets emailed and anchored, never the
+    // row from the earlier payment.
+    const sent = sendBroteTicketEmail.mock.calls[0][0] as {
+      tickets: { ticketId: string }[];
+    };
+    expect(sent.tickets).toHaveLength(1);
+    expect(sent.tickets[0].ticketId).not.toBe("BROTE2-FROM-EARLIER-PURCHASE");
+    expect(markBroteTicketEmailSent.mock.calls[0][0]).not.toContain(
+      "BROTE2-FROM-EARLIER-PURCHASE",
+    );
+  });
+
+  it("T4.6b — the repeat purchase anchors Redis on the new ticket, not the old one", async () => {
+    // `brote:payment:{id}` and `brote:confirm:{ct}` both key the retry path
+    // and the /success contact step. Anchored on the earlier purchase's row,
+    // a retry resends the OLD ticket set and the guest names typed on
+    // /success land on the previous purchase's rows.
+    stash();
+    recordParticipation.mockResolvedValue({
+      personId: 7,
+      participationId: "BROTE2-FROM-EARLIER-PURCHASE",
+      created: false,
+      promoted: false,
+      personCreated: false,
+    });
+    await post("MP-1", payment());
+
+    expect(redisStore.get("brote:payment:MP-1")).not.toBe(
+      "BROTE2-FROM-EARLIER-PURCHASE",
+    );
+    expect(
+      redisStore.get("brote:confirm:ct-token-aaaaaaaaaaa"),
+    ).not.toBe("BROTE2-FROM-EARLIER-PURCHASE");
   });
 
   it("rejects an unsigned request", async () => {
@@ -334,9 +377,6 @@ describe("BROTE webhook — retrying a multi-ticket payment", () => {
     // flag, so nothing ever retries them and nothing alerts. The buyer is
     // simply short two tickets, silently.
     redisStore.set("brote:payment:MP-RETRY", "BROTE2-PRIMARY");
-    // The primary lookup and the group query share this fake, which resolves
-    // whatever `dbNext` holds; the route reads [0] for the primary and maps
-    // the rest as the group.
     dbNext = [
       {
         id: "BROTE2-PRIMARY",
@@ -361,5 +401,108 @@ describe("BROTE webhook — retrying a multi-ticket payment", () => {
     ]);
     // ...and every one gets flagged, or the next retry repeats the whole thing.
     expect(markBroteTicketEmailSent.mock.calls[0][0]).toHaveLength(3);
+  });
+});
+
+
+// ── The checkout side: what the buyer's chosen quantity does ─────────
+
+let ipCounter = 100;
+function checkoutRequest(body: Record<string, unknown> = {}) {
+  ipCounter += 1;
+  return new Request("http://localhost/api/brote/checkout", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      // Distinct IP per case: the route rate-limits 5/IP/60s in a
+      // module-level Map that survives between tests in this file.
+      "x-forwarded-for": `10.9.0.${ipCounter}`,
+    },
+    body: JSON.stringify({ locale: "es", ...body }),
+  });
+}
+
+function preferenceBody() {
+  return preferenceCreate.mock.calls[0][0].body as {
+    items: { quantity: number; unit_price: number }[];
+    metadata: Record<string, unknown>;
+  };
+}
+
+describe("BROTE checkout — quantity", () => {
+  it("T4.1 — asks MercadoPago for N units and stamps qty on the preference", async () => {
+    const { POST } = await import("./checkout/route");
+    await POST(checkoutRequest({ quantity: 3 }));
+
+    const body = preferenceBody();
+    expect(body.items[0].quantity).toBe(3);
+    expect(body.metadata.qty).toBe(3);
+  });
+
+  it("T4.4 — multiplies the QUANTITY, never the unit price", async () => {
+    // Multiplying unit_price charges the same total but shows
+    // "1 × $74.250" at MercadoPago and tells the webhook nothing about how
+    // many tickets to issue. The amount cross-check would pass either way,
+    // so only this assertion catches it.
+    const { POST } = await import("./checkout/route");
+    await POST(checkoutRequest({ quantity: 3 }));
+
+    const one = preferenceBody().items[0];
+    expect(one.unit_price).toBeLessThan(40_000);
+  });
+
+  it("T4.3 — the stash carries qty and the unit price, under BOTH anchors", async () => {
+    // The webhook needs unitPriceCents to check the amount, and reaches the
+    // stash by preferenceId OR by confirmToken depending on what MP returns.
+    const { POST } = await import("./checkout/route");
+    const res = await POST(checkoutRequest({ quantity: 2 }));
+    const { confirmToken } = await res.json();
+
+    for (const key of [
+      "brote:checkout:PREF-1",
+      `brote:checkout-ct:${confirmToken}`,
+    ]) {
+      const stashed = JSON.parse(redisStore.get(key)!);
+      expect(stashed.qty).toBe(2);
+      // The UNIT matters, not just "is set". `unitPriceCents: price` instead
+      // of `price * 100` is a silent, permanent disabling of the money
+      // guard: `affordable` comes out ~100× the request, so
+      // `affordable < requestedQty` never fires again. Pinned against the
+      // preference's own unit_price so the two cannot drift.
+      expect(stashed.unitPriceCents).toBe(
+        preferenceBody().items[0].unit_price * 100,
+      );
+    }
+  });
+
+  it("T4.7 — the CAPI event reports the BASKET, matching its browser twin", async () => {
+    // The browser fires `fbq('track','InitiateCheckout', {value, num_items})`
+    // under the SAME event_id so Meta deduplicates the pair. If only one
+    // half multiplies, the surviving event is whichever arrived first —
+    // reporting either 1 ticket or N at random.
+    const { POST } = await import("./checkout/route");
+    await POST(checkoutRequest({ quantity: 3, eventId: "evt-capi-1" }));
+
+    const call = sendMetaEvent.mock.calls[0][0] as {
+      custom_data: { value: number; num_items?: number };
+    };
+    const unit = preferenceBody().items[0].unit_price;
+    expect(call.custom_data.value).toBe(unit * 3);
+    expect(call.custom_data.num_items).toBe(3);
+  });
+
+  it.each([
+    ["3", 3],
+    [0, 1],
+    [-1, 1],
+    [2.7, 2],
+    [999, 10],
+    [undefined, 1],
+    [null, 1],
+    ["abc", 1],
+  ])("T4.2 — clamps a quantity of %p to %p", async (input, expected) => {
+    const { POST } = await import("./checkout/route");
+    await POST(checkoutRequest({ quantity: input }));
+    expect(preferenceBody().items[0].quantity).toBe(expected);
   });
 });

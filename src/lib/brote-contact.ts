@@ -129,10 +129,22 @@ export async function applyBroteContactConfirmation(
             .limit(1);
           if (clash.length > 0) return { outcome: "email_taken" as const };
 
+          // Move the WHOLE purchase, not just the row the token names. One
+          // payment can own several tickets now; re-pointing one of them
+          // splits the group across two `people` rows, so the attendee
+          // export and the door show the buyer's other tickets under the
+          // address they were trying to move away from.
+          //
+          // The other branch below has no such problem: renaming the person
+          // in place carries every participation that person owns.
           await tx
             .update(schema.participations)
             .set({ personId: existing[0].id, updatedAt: sql`NOW()` })
-            .where(eq(schema.participations.id, params.participationId));
+            .where(
+              row.paymentId
+                ? eq(schema.participations.externalPaymentId, row.paymentId)
+                : eq(schema.participations.id, params.participationId),
+            );
           personId = existing[0].id;
         } else {
           // Rename in place — keeps first_touch, attribution and the id.

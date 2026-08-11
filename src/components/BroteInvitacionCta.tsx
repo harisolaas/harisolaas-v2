@@ -4,7 +4,12 @@ import { useCallback, useState, type CSSProperties } from "react";
 import type { BroteInvitacionDict } from "@/dictionaries/types";
 import type { InvitationSlug } from "@/lib/brote-invitations";
 import { readBrowserAttribution } from "@/lib/attribution";
-import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
+import {
+  CONFIRM_TOKEN_STORAGE_KEY,
+  encodeStoredToken,
+} from "@/lib/brote-confirm-token";
+import BroteQuantityModal from "./BroteQuantityModal";
+import type { BroteDict } from "@/dictionaries/types";
 
 /**
  * The only interactive part of the invitation page.
@@ -23,6 +28,14 @@ interface Props {
       the client bundle gets serialized into the RSC payload, and the rest of
       `price` (labels, badges, notes) is server-rendered above. */
   dict: Pick<BroteInvitacionDict["price"], "cta" | "loading" | "error">;
+  /** Quantity-modal copy, from the shared BROTE dictionary. */
+  quantityDict: BroteDict["quantity"];
+  /**
+   * Unit price in whole pesos, for the modal's running total ONLY. The
+   * server prices the ticket from the invitation registry; this crosses
+   * to the client purely so the total can be shown before leaving.
+   */
+  unitPrice: number;
   locale: string;
   invite: InvitationSlug;
   /** Visual variant — the hero CTA is paper-on-green, the closing one green. */
@@ -52,16 +65,19 @@ const base: CSSProperties = {
 
 export default function BroteInvitacionCta({
   dict,
+  quantityDict,
+  unitPrice,
   locale,
   invite,
   variant,
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const onGreen = variant === "onGreen";
 
-  const handleClick = useCallback(async () => {
+  const handleClick = useCallback(async (quantity: number) => {
     if (loading) return;
     setLoading(true);
     setFailed(false);
@@ -80,6 +96,9 @@ export default function BroteInvitacionCta({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invite,
+          // A count, never a price: the server prices from the invitation
+          // registry and clamps this with the same helper the webhook uses.
+          quantity,
           eventId,
           fbp,
           fbc,
@@ -97,7 +116,9 @@ export default function BroteInvitacionCta({
           try {
             window.localStorage.setItem(
               CONFIRM_TOKEN_STORAGE_KEY,
-              data.confirmToken,
+              // The quantity rides along so /success can draw the right
+              // number of guest-name fields before the webhook lands.
+              encodeStoredToken(data.confirmToken, quantity),
             );
           } catch {
             // Locked-down browser: the ticket still reaches the MP email,
@@ -107,19 +128,33 @@ export default function BroteInvitacionCta({
         window.location.href = data.init_point;
         return;
       }
+      // Close the modal on failure: the error renders under the CTA, behind
+      // the backdrop, so leaving it open shows a working button and no
+      // explanation.
       setFailed(true);
       setLoading(false);
+      setOpen(false);
     } catch {
       setFailed(true);
       setLoading(false);
+      setOpen(false);
     }
   }, [invite, locale, loading]);
 
   return (
     <div>
+      {open && (
+        <BroteQuantityModal
+          onClose={() => setOpen(false)}
+          onConfirm={(quantity) => handleClick(quantity)}
+          unitPrice={unitPrice}
+          loading={loading}
+          dict={quantityDict}
+        />
+      )}
       <button
         type="button"
-        onClick={handleClick}
+        onClick={() => setOpen(true)}
         disabled={loading}
         style={{
           ...base,

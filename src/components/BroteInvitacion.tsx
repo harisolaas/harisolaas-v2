@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
-import type { BroteInvitacionDict } from "@/dictionaries/types";
+import type { BroteDict, BroteInvitacionDict } from "@/dictionaries/types";
 import {
   instagramUrl,
   resolveInvitationPrice,
@@ -139,11 +139,22 @@ const ILLUSTRATIONS = [
 
 interface Props {
   dict: BroteInvitacionDict;
+  /**
+   * Quantity-modal copy. Lives in the shared BROTE dictionary rather than
+   * the invitation one — the same modal serves the landing and these pages,
+   * and duplicating the strings is how the two drift apart.
+   */
+  quantityDict: BroteDict["quantity"];
   locale: string;
   invitation: BroteInvitation;
 }
 
-export default function BroteInvitacion({ dict, locale, invitation }: Props) {
+export default function BroteInvitacion({
+  dict,
+  quantityDict,
+  locale,
+  invitation,
+}: Props) {
   const copy = dict.collaborators[invitation.slug];
   const price = resolveInvitationPrice(invitation);
   const igUrl = instagramUrl(invitation);
@@ -492,6 +503,8 @@ export default function BroteInvitacion({ dict, locale, invitation }: Props) {
               <div style={{ width: "100%" }}>
                 <BroteInvitacionCta
                   dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
+                  quantityDict={quantityDict}
+                  unitPrice={price.priceRaw}
                   locale={locale}
                   invite={invitation.slug}
                   variant="onGreen"
@@ -643,6 +656,8 @@ export default function BroteInvitacion({ dict, locale, invitation }: Props) {
           <div style={{ height: "clamp(22px,6cqw,30px)" }} />
           <BroteInvitacionCta
             dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
+            quantityDict={quantityDict}
+            unitPrice={price.priceRaw}
             locale={locale}
             invite={invitation.slug}
             variant="onPaper"

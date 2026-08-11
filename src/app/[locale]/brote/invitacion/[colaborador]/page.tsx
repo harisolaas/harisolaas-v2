@@ -109,6 +109,9 @@ export default async function BroteInvitacionPage({
     >
       <BroteInvitacion
         dict={dict.broteInvitacion}
+        // The quantity modal is shared with the main landing, so its copy
+        // lives in the BROTE dictionary rather than the invitation one.
+        quantityDict={dict.brote.quantity}
         locale={locale}
         invitation={invitation}
       />

@@ -10,6 +10,12 @@ interface CustomData {
   value?: number;
   content_name?: string;
   content_category?: string;
+  /**
+   * Basket size. The browser-side `fbq` twin sends this too, and the pair is
+   * deduplicated by a shared `event_id` — a deduped pair that disagrees on
+   * what it is describing is worse than either event alone.
+   */
+  num_items?: number;
 }
 
 export interface MetaEvent {

@@ -573,9 +573,15 @@ export async function POST(req: Request) {
 
     // ── The extra tickets ─────────────────────────────────────────────
     //
-    // The primary row above covers one. Everything beyond it is a
-    // `companion` row on the same person, which is exactly what the partial
-    // unique index exempts.
+    // Everything beyond the buyer's own `attendee` row is a `companion` row
+    // on the same person, which is exactly what the partial unique index
+    // exempts.
+    //
+    // `primaryIsNew` is false when this person ALREADY had a ticket — a
+    // repeat purchase. That used to mean "alert, issue nothing": money taken
+    // and nothing delivered. Now every one of those `qty` tickets is a new
+    // companion row, and the earlier purchase is left alone — it belongs to
+    // a different payment and was emailed long ago.
     //
     // The ids are DERIVED FROM THE PAYMENT, never minted fresh: companion
     // rows get no uniqueness from the database, and the webhook's own
@@ -583,16 +589,14 @@ export async function POST(req: Request) {
     // (id) DO NOTHING` inside the helper is what stops two concurrent MP
     // deliveries double-issuing, and it can only do that if both compute
     // the same ids.
-    // The `created || promoted` half is a DELIBERATE, TEMPORARY cut, not an
-    // oversight: it means a repeat buyer gets no companions at any quantity,
-    // so they keep today's behaviour (alert, issue nothing) rather than
-    // silently gaining a feature from a unit that claims to be inert.
-    // Turning repurchase on is an observable production change and belongs
-    // on U4's revert boundary, with the modal that makes it reachable. U4
-    // replaces this condition and re-anchors Redis onto the new rows; until
-    // then `qty` is always 1 anyway, because nothing sends `quantity` yet.
-    if (qty > 1 && (result.created || result.promoted)) {
-      const companionIds = companionTicketIds(mpPaymentId, qty - 1);
+    const primaryIsNew = result.created || result.promoted;
+    const companionCount = primaryIsNew ? qty - 1 : qty;
+
+    /** Every ticket THIS payment issued, in order. */
+    let issuedIds: string[] = primaryIsNew ? [result.participationId] : [];
+
+    if (companionCount > 0) {
+      const companionIds = companionTicketIds(mpPaymentId, companionCount);
       const companions = await addCompanionTickets({
         personId: result.personId,
         eventId: BROTE_EVENT_ID,
@@ -617,39 +621,41 @@ export async function POST(req: Request) {
         }),
       });
 
-      // A row that already existed with the same id is a concurrent
-      // delivery, not a shortfall — counting it as missing would alert on
-      // every retry forever.
-      const issued = 1 + companions.createdIds.length + companions.existingIds.length;
-      if (issued < qty) {
-        console.error("brote: issued fewer tickets than paid for", {
-          mpPaymentId,
-          qty,
-          issued,
-        });
-        await notifyAdminOfIncident({
-          subject: "BROTE: se emitieron menos entradas que las pagadas",
-          lines: [
-            `MP payment id: ${mpPaymentId}`,
-            `Email: ${buyerEmail}`,
-            `Pagadas: ${qty} · emitidas: ${issued}`,
-            "Faltan entradas para este pago. Emitilas a mano desde el admin.",
-          ],
-        });
-      }
-
       // The rows that ACTUALLY exist, not the ones we asked for. Emailing a
       // QR for a row that was never inserted hands someone a code the gate
       // will reject — the same class of failure as the locally-generated id
-      // that once shipped in a QR (see the comment above `ticketId`).
-      const live = new Set([...companions.createdIds, ...companions.existingIds]);
-      extraTicketIds = companionIds.filter((id) => live.has(id));
+      // that once shipped inside a QR.
+      //
+      // A row that already existed with the same id counts as issued: it is
+      // a concurrent delivery, not a shortfall, and treating it as missing
+      // would alert on every retry forever.
+      const live = new Set([
+        ...companions.createdIds,
+        ...companions.existingIds,
+      ]);
+      issuedIds = [...issuedIds, ...companionIds.filter((id) => live.has(id))];
     }
 
-    if (!result.created && !result.promoted) {
-      // Money received but no new ticket was created — the buyer already
-      // had one (double payment, or the checkout pre-check raced). Needs a
-      // human decision (refund vs. keep), so alert the admin.
+    if (issuedIds.length < qty) {
+      console.error("brote: issued fewer tickets than paid for", {
+        mpPaymentId,
+        qty,
+        issued: issuedIds.length,
+      });
+      await notifyAdminOfIncident({
+        subject: "BROTE: se emitieron menos entradas que las pagadas",
+        lines: [
+          `MP payment id: ${mpPaymentId}`,
+          `Email: ${buyerEmail}`,
+          `Pagadas: ${qty} · emitidas: ${issuedIds.length}`,
+          "Faltan entradas para este pago. Emitilas a mano desde el admin.",
+        ],
+      });
+    }
+
+    if (issuedIds.length === 0) {
+      // Money received and nothing issued at all. Needs a human decision
+      // (refund vs. issue by hand), so alert rather than swallow it.
       console.error("brote: payment with no new ticket", {
         mpPaymentId,
         buyerEmail,
@@ -680,6 +686,14 @@ export async function POST(req: Request) {
       await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
       return NextResponse.json({ ok: true, ticketId, duplicate: true });
     }
+
+    // This payment's own tickets, never the earlier purchase's row. On a
+    // repeat purchase `result.participationId` is the OLD row: anchoring
+    // `brote:payment:*` and `brote:confirm:{ct}` on it would make the retry
+    // resend the old set, and the guest names typed on /success would land
+    // on the previous purchase's rows.
+    ticketId = issuedIds[0];
+    extraTicketIds = issuedIds.slice(1);
 
     await linkConfirmToken(ticketId);
     // Save MP → ticket idempotency mapping for webhook retries.
