@@ -4,7 +4,10 @@ import { useCallback, useState, type CSSProperties } from "react";
 import type { BroteInvitacionDict } from "@/dictionaries/types";
 import type { InvitationSlug } from "@/lib/brote-invitations";
 import { readBrowserAttribution } from "@/lib/attribution";
-import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
+import {
+  CONFIRM_TOKEN_STORAGE_KEY,
+  encodeStoredToken,
+} from "@/lib/brote-confirm-token";
 import BroteQuantityModal from "./BroteQuantityModal";
 import type { BroteDict } from "@/dictionaries/types";
 
@@ -113,7 +116,9 @@ export default function BroteInvitacionCta({
           try {
             window.localStorage.setItem(
               CONFIRM_TOKEN_STORAGE_KEY,
-              data.confirmToken,
+              // The quantity rides along so /success can draw the right
+              // number of guest-name fields before the webhook lands.
+              encodeStoredToken(data.confirmToken, quantity),
             );
           } catch {
             // Locked-down browser: the ticket still reaches the MP email,
@@ -123,11 +128,16 @@ export default function BroteInvitacionCta({
         window.location.href = data.init_point;
         return;
       }
+      // Close the modal on failure: the error renders under the CTA, behind
+      // the backdrop, so leaving it open shows a working button and no
+      // explanation.
       setFailed(true);
       setLoading(false);
+      setOpen(false);
     } catch {
       setFailed(true);
       setLoading(false);
+      setOpen(false);
     }
   }, [invite, locale, loading]);
 

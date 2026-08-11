@@ -53,9 +53,13 @@ export default function BroteQuantityModal({
   // reason.
   //
   // Focus moves in on mount so the keyboard path works and the pay button is
-  // one Enter away.
+  // one Enter away — and goes BACK to whatever opened it on unmount. Without
+  // the restore, dismissing the modal drops focus onto <body> and a keyboard
+  // or screen-reader user is returned to the top of a very long page.
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
     confirmRef.current?.focus();
+    return () => opener?.focus?.();
   }, []);
 
   useEffect(() => {

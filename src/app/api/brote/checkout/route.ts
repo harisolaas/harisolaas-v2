@@ -242,7 +242,11 @@ export async function POST(req: Request) {
         // `fbq('track','InitiateCheckout')` fires under the same event_id for
         // deduplication, so it multiplies too — a deduped pair reporting two
         // different values is worse than either alone.
-        custom_data: { currency: "ARS", value: price * quantity },
+        custom_data: {
+          currency: "ARS",
+          value: price * quantity,
+          num_items: quantity,
+        },
       }).catch(() => {}); // fire and forget
     }
 

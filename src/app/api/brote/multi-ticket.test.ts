@@ -87,7 +87,10 @@ vi.mock("@/lib/brote-ticket-email", () => ({
 
 const notifyAdminOfIncident = vi.fn(async () => {});
 vi.mock("@/lib/admin-alert", () => ({ notifyAdminOfIncident }));
-vi.mock("@/lib/meta-capi", () => ({ sendMetaEvent: vi.fn(async () => {}) }));
+const sendMetaEvent = vi.fn(async () => {});
+vi.mock("@/lib/meta-capi", () => ({
+  sendMetaEvent: (...a: unknown[]) => sendMetaEvent(...(a as [])),
+}));
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function signedWebhook(paymentId: string) {
@@ -461,8 +464,31 @@ describe("BROTE checkout — quantity", () => {
     ]) {
       const stashed = JSON.parse(redisStore.get(key)!);
       expect(stashed.qty).toBe(2);
-      expect(stashed.unitPriceCents).toBeGreaterThan(0);
+      // The UNIT matters, not just "is set". `unitPriceCents: price` instead
+      // of `price * 100` is a silent, permanent disabling of the money
+      // guard: `affordable` comes out ~100× the request, so
+      // `affordable < requestedQty` never fires again. Pinned against the
+      // preference's own unit_price so the two cannot drift.
+      expect(stashed.unitPriceCents).toBe(
+        preferenceBody().items[0].unit_price * 100,
+      );
     }
+  });
+
+  it("T4.7 — the CAPI event reports the BASKET, matching its browser twin", async () => {
+    // The browser fires `fbq('track','InitiateCheckout', {value, num_items})`
+    // under the SAME event_id so Meta deduplicates the pair. If only one
+    // half multiplies, the surviving event is whichever arrived first —
+    // reporting either 1 ticket or N at random.
+    const { POST } = await import("./checkout/route");
+    await POST(checkoutRequest({ quantity: 3, eventId: "evt-capi-1" }));
+
+    const call = sendMetaEvent.mock.calls[0][0] as {
+      custom_data: { value: number; num_items?: number };
+    };
+    const unit = preferenceBody().items[0].unit_price;
+    expect(call.custom_data.value).toBe(unit * 3);
+    expect(call.custom_data.num_items).toBe(3);
   });
 
   it.each([

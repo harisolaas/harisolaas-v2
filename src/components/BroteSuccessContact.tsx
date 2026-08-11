@@ -3,7 +3,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import type { BroteSuccessContactDict } from "@/dictionaries/types";
 import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
-import { CONFIRM_TOKEN_STORAGE_KEY } from "@/lib/brote-confirm-token";
+import {
+  CONFIRM_TOKEN_STORAGE_KEY,
+  decodeStoredToken,
+} from "@/lib/brote-confirm-token";
 
 const FOREST = "#3E5226";
 const FOREST_60 = "#78855E";
@@ -51,12 +54,16 @@ export default function BroteSuccessContact({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let stored: string | null = null;
+    let raw: string | null = null;
     try {
-      stored = window.localStorage.getItem(CONFIRM_TOKEN_STORAGE_KEY);
+      raw = window.localStorage.getItem(CONFIRM_TOKEN_STORAGE_KEY);
     } catch {
       // Storage can throw in locked-down browsers — fall through.
     }
+    // The stash holds `{ct, qty}` now, but a bare token string is still
+    // sitting in the browser of everyone who bought before that change —
+    // `decodeStoredToken` reads both, so their contact step keeps working.
+    const stored = decodeStoredToken(raw)?.ct ?? null;
     setToken(stored);
     if (!stored) return;
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
@@ -178,15 +178,46 @@ export async function POST(req: Request) {
           .select({ n: count() })
           .from(schema.participations)
           .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
+
+        // Resend the WHOLE purchase, not just the row the token points at.
+        // One payment can own several tickets now, and someone who bought
+        // three and then corrects their address here would otherwise get a
+        // single QR at the address they can actually read — with the other
+        // two only ever delivered to the MercadoPago address they were
+        // trying to move away from.
+        //
+        // Resolved by `external_payment_id`, the same anchor the webhook's
+        // retry path uses, and ordered the same way so the tree numbers do
+        // not shuffle between the original mail and this one.
+        const group = result.paymentId
+          ? await db
+              .select({ id: schema.participations.id })
+              .from(schema.participations)
+              .where(
+                eq(schema.participations.externalPaymentId, result.paymentId),
+              )
+              .orderBy(
+                sql`(${schema.participations.role} = 'companion')`,
+                schema.participations.createdAt,
+                schema.participations.id,
+              )
+          : [];
+        const groupIds = group.map((r) => r.id);
+        const ticketIds = groupIds.includes(ticketId) ? groupIds : [ticketId];
+
+        const total = Number(treeCountRes[0]?.n ?? 1);
+        const treeNumberStart = Math.max(1, total - ticketIds.length + 1);
+
         await sendBroteTicketEmail({
-          tickets: [
-            { ticketId, treeNumber: Number(treeCountRes[0]?.n ?? 1) },
-          ],
+          tickets: ticketIds.map((id, i) => ({
+            ticketId: id,
+            treeNumber: treeNumberStart + i,
+          })),
           to: result.to,
           buyerName: result.buyerName,
           paymentId: result.paymentId,
         });
-        await markBroteTicketEmailSent([ticketId]);
+        await markBroteTicketEmailSent(ticketIds);
         resent = true;
       } catch (err) {
         // The contact change is already committed and is the thing that

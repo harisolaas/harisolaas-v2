@@ -15,6 +15,47 @@ export const CONFIRM_TTL = 7 * 24 * 60 * 60;
 /** Key the browser stashes the token under before redirecting to MP. */
 export const CONFIRM_TOKEN_STORAGE_KEY = "brote:ct";
 
+/** What the browser stashes: the token, plus how many tickets were bought. */
+export interface StoredConfirmToken {
+  ct: string;
+  /** Lets `/success` draw the right number of name fields before the
+   *  webhook lands — otherwise it would have to poll for the ticket rows. */
+  qty: number;
+}
+
+/** Serialize for `localStorage`. */
+export function encodeStoredToken(ct: string, qty: number): string {
+  return JSON.stringify({ ct, qty } satisfies StoredConfirmToken);
+}
+
+/**
+ * Read the stash back, tolerating the OLD format.
+ *
+ * Before multi-ticket, this key held the bare token string. People who
+ * bought this week still have one sitting in their browser, and throwing on
+ * it — or treating it as JSON and getting null — would silently drop the
+ * contact step for exactly those buyers.
+ */
+export function decodeStoredToken(
+  raw: string | null,
+): StoredConfirmToken | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (!trimmed.startsWith("{")) return { ct: trimmed, qty: 1 };
+  try {
+    const parsed = JSON.parse(trimmed) as Partial<StoredConfirmToken>;
+    if (typeof parsed.ct !== "string" || !parsed.ct) return null;
+    const qty = Number(parsed.qty);
+    return {
+      ct: parsed.ct,
+      qty: Number.isFinite(qty) && qty >= 1 ? Math.floor(qty) : 1,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** `ct` → participation id. Written by the webhook once a ticket exists. */
 export const confirmTicketKey = (token: string) => `brote:confirm:${token}`;
 
