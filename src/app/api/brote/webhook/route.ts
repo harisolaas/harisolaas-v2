@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
@@ -271,9 +271,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, ticketId: row.id });
     }
 
-    // Email wasn't sent — fall through to retry it.
-    console.log("Retrying email for existing ticket:", row.id);
+    // Email wasn't sent — fall through to retry it, WITH THE WHOLE GROUP.
+    //
+    // One payment can own several tickets, and the Redis key points at only
+    // the primary. Resending just that one would deliver 1 QR for a 3-ticket
+    // purchase and leave the companions `emailSent` falsy for good: this
+    // branch exits early next time on the primary's flag, so nothing ever
+    // retries them and nothing alerts.
+    //
+    // Resolved by querying `external_payment_id` rather than by reading a
+    // list off metadata: a query cannot drift out of sync with the rows.
+    // Ordered so the buyer's own row comes first and the numbering is
+    // stable across retries.
+    const groupRows = await db
+      .select({ id: schema.participations.id })
+      .from(schema.participations)
+      .where(eq(schema.participations.externalPaymentId, mpPaymentId))
+      .orderBy(
+        sql`(${schema.participations.role} = 'companion')`,
+        schema.participations.createdAt,
+        schema.participations.id,
+      );
+
+    console.log("Retrying email for existing ticket:", row.id, {
+      groupSize: groupRows.length,
+    });
     ticketId = row.id;
+    extraTicketIds = groupRows.map((r) => r.id).filter((id) => id !== row.id);
     buyerEmail = row.email ?? "";
     buyerName = row.name ?? "Asistente";
   } else {
@@ -554,10 +578,10 @@ export async function POST(req: Request) {
     // exempts.
     //
     // `primaryIsNew` is false when this person ALREADY had a ticket — a
-    // repeat purchase. That used to mean "alert, issue nothing", i.e. money
-    // taken and no ticket delivered; now every one of those `qty` tickets is
-    // a new companion row, and the earlier purchase is left untouched (it
-    // belongs to a different payment and was emailed long ago).
+    // repeat purchase. That used to mean "alert, issue nothing": money taken
+    // and nothing delivered. Now every one of those `qty` tickets is a new
+    // companion row, and the earlier purchase is left alone — it belongs to
+    // a different payment and was emailed long ago.
     //
     // The ids are DERIVED FROM THE PAYMENT, never minted fresh: companion
     // rows get no uniqueness from the database, and the webhook's own
@@ -567,6 +591,9 @@ export async function POST(req: Request) {
     // the same ids.
     const primaryIsNew = result.created || result.promoted;
     const companionCount = primaryIsNew ? qty - 1 : qty;
+
+    /** Every ticket THIS payment issued, in order. */
+    let issuedIds: string[] = primaryIsNew ? [result.participationId] : [];
 
     if (companionCount > 0) {
       const companionIds = companionTicketIds(mpPaymentId, companionCount);
@@ -594,49 +621,41 @@ export async function POST(req: Request) {
         }),
       });
 
-      // A row that already existed with the same id is a concurrent
-      // delivery, not a shortfall — counting it as missing would alert on
-      // every retry forever.
-      const issued =
-        (primaryIsNew ? 1 : 0) +
-        companions.createdIds.length +
-        companions.existingIds.length;
-      if (issued < qty) {
-        console.error("brote: issued fewer tickets than paid for", {
-          mpPaymentId,
-          qty,
-          issued,
-        });
-        await notifyAdminOfIncident({
-          subject: "BROTE: se emitieron menos entradas que las pagadas",
-          lines: [
-            `MP payment id: ${mpPaymentId}`,
-            `Email: ${buyerEmail}`,
-            `Pagadas: ${qty} · emitidas: ${issued}`,
-            "Faltan entradas para este pago. Emitilas a mano desde el admin.",
-          ],
-        });
-      }
-
-      if (primaryIsNew) {
-        extraTicketIds = companionIds;
-      } else {
-        // Repeat purchase: `result.participationId` is the row from the
-        // EARLIER payment. Anchoring on it would point `brote:payment:*` and
-        // `brote:confirm:{ct}` at the wrong purchase — the retry would resend
-        // the old ticket set, and the guest names typed on /success would land
-        // on the previous purchase's rows. This payment's tickets are the
-        // companions, so the first of them is its primary.
-        ticketId = companionIds[0];
-        extraTicketIds = companionIds.slice(1);
-      }
+      // The rows that ACTUALLY exist, not the ones we asked for. Emailing a
+      // QR for a row that was never inserted hands someone a code the gate
+      // will reject — the same class of failure as the locally-generated id
+      // that once shipped inside a QR.
+      //
+      // A row that already existed with the same id counts as issued: it is
+      // a concurrent delivery, not a shortfall, and treating it as missing
+      // would alert on every retry forever.
+      const live = new Set([
+        ...companions.createdIds,
+        ...companions.existingIds,
+      ]);
+      issuedIds = [...issuedIds, ...companionIds.filter((id) => live.has(id))];
     }
 
-    if (!primaryIsNew && companionCount === 0) {
-      // Money received and nothing to issue. Reachable only when `qty`
-      // resolved to 0, which the clamp forbids — kept as a real alert rather
-      // than an assertion because the alternative is silently swallowing a
-      // payment.
+    if (issuedIds.length < qty) {
+      console.error("brote: issued fewer tickets than paid for", {
+        mpPaymentId,
+        qty,
+        issued: issuedIds.length,
+      });
+      await notifyAdminOfIncident({
+        subject: "BROTE: se emitieron menos entradas que las pagadas",
+        lines: [
+          `MP payment id: ${mpPaymentId}`,
+          `Email: ${buyerEmail}`,
+          `Pagadas: ${qty} · emitidas: ${issuedIds.length}`,
+          "Faltan entradas para este pago. Emitilas a mano desde el admin.",
+        ],
+      });
+    }
+
+    if (issuedIds.length === 0) {
+      // Money received and nothing issued at all. Needs a human decision
+      // (refund vs. issue by hand), so alert rather than swallow it.
       console.error("brote: payment with no new ticket", {
         mpPaymentId,
         buyerEmail,
@@ -667,6 +686,14 @@ export async function POST(req: Request) {
       await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
       return NextResponse.json({ ok: true, ticketId, duplicate: true });
     }
+
+    // This payment's own tickets, never the earlier purchase's row. On a
+    // repeat purchase `result.participationId` is the OLD row: anchoring
+    // `brote:payment:*` and `brote:confirm:{ct}` on it would make the retry
+    // resend the old set, and the guest names typed on /success would land
+    // on the previous purchase's rows.
+    ticketId = issuedIds[0];
+    extraTicketIds = issuedIds.slice(1);
 
     await linkConfirmToken(ticketId);
     // Save MP → ticket idempotency mapping for webhook retries.

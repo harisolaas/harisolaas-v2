@@ -19,7 +19,7 @@ Three non-negotiable operational conventions for anyone (human or agent) opening
 
 1. **Site is LIVE — do NOT push to main without explicit approval.** A clean review does not constitute merge approval. Wait for an explicit "ship" / "merge" / "mergealo" from the repo owner.
 2. **Every PR goes through the review lifecycle** — Copilot auto-review + author self-review + addressing both sets of feedback — before handing off for merge. See [`docs/ops/pr-review.md`](docs/ops/pr-review.md) for the operational steps (open PR → self-review → fetch Copilot comments → merge findings → fix → verify → resolve threads → hand off).
-3. **Every feature PR extends `scripts/seed-preview.ts`** so the repo owner can exercise the new surface in a preview Neon branch without hand-crafting DB rows. If your feature reads a column, fixture data must populate that column. Cover both the populated and the empty/conditional state when the UI branches on it (e.g. one event with contributions and one without). Use production-realistic values (BROTE early-bird = $18.650, Sinergia chips = 5k/10k/20k) — not arbitrary numbers. Treat the seeder update as part of the feature, not a follow-up PR.
+3. **Every feature PR extends `scripts/seed-preview.ts`** so the repo owner can exercise the new surface in a preview Neon branch without hand-crafting DB rows. If your feature reads a column, fixture data must populate that column. Cover both the populated and the empty/conditional state when the UI branches on it (e.g. one event with contributions and one without). Use production-realistic values (BROTE early-bird = $24.750, Sinergia chips = 5k/10k/20k) — not arbitrary numbers. Treat the seeder update as part of the feature, not a follow-up PR.
 
 Skip the review cycle only if the requester explicitly says so ("don't review" / "just open the PR") or the PR is genuinely trivial (one-line copy fix, typo). Skip the seeder update only when the feature genuinely doesn't depend on seedable data (copy-only changes, pure layout tweaks).
 
@@ -333,7 +333,9 @@ When someone finishes scrolling this site, they should think:
 
 ## BROTE — Event Ticketing System
 
-BROTE is a reforestation party (fiesta de reforestación). Each ticket plants a real tree in Argentina via partnership with Un Árbol NGO. The event is March 28, 2026 in Palermo, Buenos Aires. **The site is LIVE — do NOT push to main without explicit approval.**
+BROTE is a reforestation party (fiesta de reforestación). Each ticket plants a real tree in Argentina via partnership with Un Árbol NGO. **The site is LIVE — do NOT push to main without explicit approval.**
+
+**Current edition: BROTE 2 — Thursday 20 August 2026, 19:00–22:30, Costa Rica 5644, Palermo Hollywood.** Edition 1 (28 March 2026) is history; its `eventId` is kept as `BROTE_1_EVENT_ID` so cross-edition queries still work. Dates, times and prices all come from `broteConfig` in `src/data/brote.ts` — read them there rather than from this file.
 
 ### Payment Flow (MercadoPago Checkout Pro)
 
@@ -342,16 +344,18 @@ BROTE is a reforestation party (fiesta de reforestación). Each ticket plants a 
 3. User is redirected to MercadoPago to pay (credit, debit, cash, MP wallet)
 4. After payment → user lands on `/[locale]/brote/success` or `/brote/failure`
 5. MP sends async webhook POST to `/api/brote/webhook`
-6. Webhook: verifies HMAC signature → fetches payment from MP API → generates `BROTE-XXXXXXXX` ticket (nanoid) → stores in Redis → increments counter → sends email with QR code via Resend
+6. Webhook: verifies HMAC signature → fetches payment from MP API → generates `BROTE-XXXXXXXX` ticket (nanoid) → **writes it to Postgres (`people` + `participations`)** → sends one email via Resend carrying a QR per ticket bought. Redis holds idempotency keys and short-lived stashes only — nothing durable
 7. At the door: `/brote/gate` scans/validates ticket IDs via `/api/brote/validate`
 
 ### Pricing (in `src/data/brote.ts`)
 
 | Tier | Price (ARS) | Config key |
 |---|---|---|
-| Early bird (until Mar 14) | $18.650 | `earlyBirdPriceRaw` |
-| Regular (door) | $23.313 | `ticketPriceRaw` |
-| Un Árbol community (25% OFF) | $17.477 | `unArbolPriceRaw` |
+| Early bird (until Aug 13, inclusive) | $24.750 | `earlyBirdPriceRaw` |
+| Regular | $33.000 | `ticketPriceRaw` |
+| Collaborator invitation (35% off regular) | derived | `resolveInvitationPrice()` |
+
+Never hardcode a price. `currentTicketPrice(now)` is what both the landing renders and the checkout charges, so the two cannot drift; collaborator pricing is derived off the **regular** price by `resolveInvitationPrice()`, so it doesn't jump when the preventa ends.
 
 ### API Routes (`src/app/api/brote/`)
 
@@ -359,34 +363,36 @@ BROTE is a reforestation party (fiesta de reforestación). Each ticket plants a 
 |---|---|---|
 | `checkout/` | POST | Creates MP Preference for regular/early-bird ticket. Rate limited (5/IP/60s) |
 | `webhook/` | POST | Receives MP payment notifications. HMAC verification, idempotent (Redis `brote:payment:{id}` → ticketId), `emailSent` flag for crash recovery email retry |
-| `counter/` | GET | Returns ticket count from Redis |
+| `counter/` | GET | Ticket count — `COUNT(*)` over `participations` (status `confirmed`/`used`) for the current `BROTE_EVENT_ID`. Postgres, not Redis |
 | `validate/` | POST | Actions: `check` (is ticket valid?) and `use` (mark used at door) |
 | `admin/` | GET/POST | System status, ticket lookup, email resend, payment lookup. Auth: `Bearer $BROTE_ADMIN_SECRET` |
 | `attendees/` | GET | Export attendee list. Auth required |
-| `unarbol/` | GET/POST | Un Árbol discount codes: validate code, checkout at $17.477, admin generate/reset/list codes |
 
-### Un Árbol Discount System (`/api/brote/unarbol`)
+### Share card (`BROTE_OG_IMAGE` in `src/data/brote.ts`)
 
-Single-use codes stored in Redis (`brote:unarbol:{CODE}` → `"valid"` or `"used"`). Page at `/[locale]/brote-unarbol` (noindex, not in nav/sitemap). Flow: enter code → validate → show checkout CTA → checkout marks code as used + creates MP preference at discounted price.
+One constant names the OG image for the landing, the invitation pages, success and failure. **Bump the filename when the artwork changes — never overwrite in place.** Facebook, WhatsApp and X cache OG images by URL, so a same-path replacement keeps serving the old card from their caches for weeks. `og-brote-v2.png` replaced an edition-1 card that was still advertising "Sábado 28 de marzo" months after that party.
 
-**Admin: generate codes:**
-```
-POST /api/brote/unarbol  (Auth: Bearer $BROTE_ADMIN_SECRET)
-{"action": "generate", "count": 20}
-```
+After deploying a new card, re-scrape the URL in the Facebook Sharing Debugger to force a refetch.
 
-**Admin: list codes:** `GET /api/brote/unarbol` (Auth required)
+### Collaborators (`src/lib/brote-invitations.ts`)
 
-**Admin: reset used code:** `POST {"action": "reset", "code": "UNARBOL-XXXXXX"}` (Auth required)
+The single source of truth for who collaborates and how they are identified — name, `@handle`, optional `website`, `kind` (`brand` | `artist` | `community`), discount, and the `links` row their sales are attributed through.
+
+**Identity lives here, never in the dictionaries.** The landing renders collaborator names by `slug` and resolves the rest from this registry. That rule exists because it was broken once: the line-up carried its own copy of Gian's Instagram URL, it went stale against the registry, and a dead link shipped on a live page. A test walks both dictionaries and fails if any `slug` doesn't resolve.
+
+`collaboratorNameUrl()` gives the name's link (own site when there is one, Instagram otherwise); `instagramUrl()` always gives the `@handle` chip's; `brandInvitations()` returns the sponsors row, selected on `kind`.
+
+Edition 1's Un Árbol / CIMA single-use discount-code system was removed in `bcf68d1`. `/brote-unarbol` now 308-redirects to `/es/brote/invitacion/unarbol`.
 
 ### Pages
 
 | Path | Purpose |
 |---|---|
-| `/[locale]/brote` | Main landing page — hero, experience grid, lineup accordion, impact section, pricing, about, practical details, final CTA |
+| `/[locale]/brote` | Main landing — hero, info bar, three-block line-up, tree counter, pricing, "qué incluye", community + sponsors row, final CTA |
 | `/[locale]/brote/success` | Post-payment confirmation with forest message, email instructions, WhatsApp fallback |
 | `/[locale]/brote/failure` | Failed/cancelled payment |
-| `/[locale]/brote-unarbol` | Un Árbol community discount page (noindex, code-gated) |
+| `/[locale]/brote/invitacion/[colaborador]` | Per-collaborator invitation landing (noindex, `force-dynamic`). Slugs in `INVITATION_SLUGS` |
+| `/[locale]/brote/gate` | Door scanner (noindex). Linked from every ticket email |
 | `/brote/flyer` | Internal flyer generator — 4 formats (1:1, 9:16, 16:9, 4:5), dark/light themes, original/promo variants, full-res PNG export. State lives in URL params (`?f=story&t=dark&v=promo`) |
 
 ### Key Files
@@ -394,11 +400,11 @@ POST /api/brote/unarbol  (Auth: Bearer $BROTE_ADMIN_SECRET)
 | File | What it does |
 |---|---|
 | `src/components/BroteLanding.tsx` | Main landing — CTA calls `handleCheckout()` → POST `/api/brote/checkout` → redirect to MP |
-| `src/components/BroteUnArbol.tsx` | Un Árbol discount page — code validation + checkout |
+| `src/lib/brote-invitations.ts` | Collaborator registry — names, handles, websites, discounts. Identity lives here, not in the dictionaries |
 | `src/components/TreeCounter.tsx` | Animated SVG forest visualization (tickets vs goal). Dev buttons gated behind `NODE_ENV` |
 | `src/data/brote.ts` | Config: prices, currency, venue, early bird deadline, expected attendees |
 | `src/lib/brote-types.ts` | `BroteTicket` interface (id, paymentId, buyerEmail, buyerName, status, emailSent) |
-| `src/lib/brote-email.ts` | HTML email template with inline QR code (CID attachment) |
+| `src/lib/brote-email.ts` | Ticket + day-of reminder templates. One mail carries one QR per ticket (CID attachments, `qrContentId()`), pinned byte-for-byte by a golden fixture. The reminder's run of show is derived from `es.brote.lineup`, so it cannot drift from the landing |
 | `src/lib/redis.ts` | Redis client singleton (node-redis v4, camelCase methods: `sMembers`, `sAdd`) |
 | `src/lib/meta-capi.ts` | Meta Conversions API helper — `sendMetaEvent()`, fails silently |
 | `src/app/brote/flyer/page.tsx` | Flyer generator with format/theme/variant toggles, html-to-image export |
@@ -430,13 +436,11 @@ POST /api/brote/unarbol  (Auth: Bearer $BROTE_ADMIN_SECRET)
 
 ### Redis Keys
 
+Idempotency and short-lived stashes only. **Tickets and attendees are durable rows in Postgres** (`people` + `participations`), not Redis.
+
 | Key | Value |
 |---|---|
-| `brote:ticket:{ticketId}` | JSON BroteTicket (includes `emailSent` flag) |
 | `brote:payment:{mpPaymentId}` | ticketId (idempotency) |
-| `brote:counter` | Integer ticket count |
-| `brote:attendees` | SET of JSON attendee objects |
-| `brote:unarbol:{CODE}` | `"valid"` or `"used"` |
 | `brote:checkout:{preferenceId}` | JSON: `{eventId, fbp, fbc, ip, ua}` for Meta CAPI (24h TTL) |
 
 ### Known Issues
@@ -451,8 +455,8 @@ POST /api/brote/unarbol  (Auth: Bearer $BROTE_ADMIN_SECRET)
 
 - `src/proxy.ts` handles locale middleware. Matcher excludes: `_next`, `api`, `brote/flyer`, `favicon.ico`, static files
 - The flyer route (`/brote/flyer`) lives outside `[locale]` with a standalone layout
-- Dictionary content for BROTE is in `es.ts`/`en.ts` under `brote` and `broteUnArbol` keys
-- Types in `src/dictionaries/types.ts`: `BroteDict`, `BroteUnArbolDict`, `BroteLineupItem`, `BroteExperienceItem`
+- Dictionary content for BROTE is in `es.ts`/`en.ts` under the `brote` and `broteInvitacion` keys
+- Types in `src/dictionaries/types.ts`: `BroteDict`, `BroteInvitacionDict`, `BroteCollaboratorMention`, `BroteIncludesItem`, `BroteInfoCell`
 
 ---
 

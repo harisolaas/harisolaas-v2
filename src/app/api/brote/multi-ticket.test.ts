@@ -346,7 +346,61 @@ describe("BROTE webhook — N tickets per payment", () => {
     );
     expect(res.status).toBe(401);
   });
+
+  it("T3.11 — never emails a QR for a row that was not inserted", async () => {
+    // `addCompanionTickets` reports what it ACTUALLY wrote. Emailing the ids
+    // we asked for instead hands someone a code the gate rejects — the same
+    // class of failure as the locally-generated id that once shipped inside
+    // a QR for a row that was never inserted.
+    stash();
+    addCompanionTickets.mockResolvedValue({ createdIds: [], existingIds: [] });
+    await post("MP-1", paymentFor(3));
+
+    const sent = sendBroteTicketEmail.mock.calls[0][0] as {
+      tickets: { ticketId: string }[];
+    };
+    expect(sent.tickets).toHaveLength(1);
+    expect(sent.tickets[0].ticketId).toBe("BROTE2-PRIMARY");
+    // A shortfall is exactly what the admin alert exists for.
+    expect(notifyAdminOfIncident).toHaveBeenCalled();
+  });
 });
+
+describe("BROTE webhook — retrying a multi-ticket payment", () => {
+  it("T3.5 — resends the WHOLE group, not just the primary", async () => {
+    // The Redis idempotency key points at the primary only. Resending just
+    // that one delivers 1 QR for a 3-ticket purchase, and the companions stay
+    // `emailSent` falsy for good: the next retry exits early on the primary's
+    // flag, so nothing ever retries them and nothing alerts. The buyer is
+    // simply short two tickets, silently.
+    redisStore.set("brote:payment:MP-RETRY", "BROTE2-PRIMARY");
+    dbNext = [
+      {
+        id: "BROTE2-PRIMARY",
+        metadata: {},
+        email: "buyer@example.com",
+        name: "Ana",
+      },
+      { id: "BROTE2-COMP-A" },
+      { id: "BROTE2-COMP-B" },
+    ];
+
+    const { POST } = await import("./webhook/route");
+    await POST(signedWebhook("MP-RETRY"));
+
+    const sent = sendBroteTicketEmail.mock.calls[0][0] as {
+      tickets: { ticketId: string }[];
+    };
+    expect(sent.tickets.map((t) => t.ticketId)).toEqual([
+      "BROTE2-PRIMARY",
+      "BROTE2-COMP-A",
+      "BROTE2-COMP-B",
+    ]);
+    // ...and every one gets flagged, or the next retry repeats the whole thing.
+    expect(markBroteTicketEmailSent.mock.calls[0][0]).toHaveLength(3);
+  });
+});
+
 
 // ── The checkout side: what the buyer's chosen quantity does ─────────
 
