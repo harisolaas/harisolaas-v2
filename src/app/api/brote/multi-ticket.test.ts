@@ -296,6 +296,11 @@ describe("BROTE webhook — N tickets per payment", () => {
       promoted: false,
       personCreated: false,
     });
+    // The row `recordParticipation` found EXISTS — it always does when
+    // `created` is false — and it belongs to a DIFFERENT payment. Modelling
+    // it as absent would make the discriminator look like an existence
+    // check, and a mutation that only tests existence would survive.
+    dbNext = [{ paymentId: "MP-AN-EARLIER-PAYMENT" }];
     await post("MP-1", payment());
 
     expect(addCompanionTickets).toHaveBeenCalledTimes(1);
@@ -385,6 +390,7 @@ describe("BROTE webhook — N tickets per payment", () => {
       promoted: false,
       personCreated: false,
     });
+    dbNext = [{ paymentId: "MP-AN-EARLIER-PAYMENT" }];
     await post("MP-1", payment());
 
     expect(redisStore.get("brote:payment:MP-1")).not.toBe(
