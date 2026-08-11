@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
 import { db, schema } from "@/db";
-import { CapacityReachedError, recordParticipation } from "@/lib/community";
+import {
+  addCompanionTickets,
+  CapacityReachedError,
+  recordParticipation,
+} from "@/lib/community";
+import {
+  companionTicketIds,
+  parseTicketQuantity,
+} from "@/lib/brote-ticket-ids";
 import { resolveBuyerInfo, type CheckoutMetaLike } from "@/lib/mp-buyer-info";
 import { notifyAdminOfIncident } from "@/lib/admin-alert";
 import {
@@ -41,6 +49,10 @@ interface CheckoutMeta extends CheckoutMetaLike {
   medium?: string;
   campaign?: string;
   linkSlug?: string;
+  /** How many tickets the checkout asked MercadoPago to charge for. */
+  qty?: number;
+  /** Price of ONE ticket at checkout time — what the amount is checked against. */
+  unitPriceCents?: number;
 }
 
 async function readCheckoutMeta(
@@ -197,6 +209,8 @@ export async function POST(req: Request) {
   const existingTicketId = await redis.get(`brote:payment:${mpPaymentId}`);
 
   let ticketId: string;
+  /** Companion ticket ids issued by this payment, beyond the primary. */
+  let extraTicketIds: string[] = [];
   let buyerEmail: string;
   let buyerName: string;
   let checkoutMeta: CheckoutMeta | null = null;
@@ -257,9 +271,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, ticketId: row.id });
     }
 
-    // Email wasn't sent — fall through to retry it.
-    console.log("Retrying email for existing ticket:", row.id);
+    // Email wasn't sent — fall through to retry it, WITH THE WHOLE GROUP.
+    //
+    // One payment can own several tickets, and the Redis key points at only
+    // the primary. Resending just that one would deliver 1 QR for a 3-ticket
+    // purchase and leave the companions `emailSent` falsy for good: this
+    // branch exits early next time on the primary's flag, so nothing ever
+    // retries them and nothing alerts.
+    //
+    // Resolved by querying `external_payment_id` rather than by reading a
+    // list off metadata: a query cannot drift out of sync with the rows.
+    // Ordered so the buyer's own row comes first and the numbering is
+    // stable across retries.
+    const groupRows = await db
+      .select({ id: schema.participations.id })
+      .from(schema.participations)
+      .where(eq(schema.participations.externalPaymentId, mpPaymentId))
+      .orderBy(
+        sql`(${schema.participations.role} = 'companion')`,
+        schema.participations.createdAt,
+        schema.participations.id,
+      );
+
+    console.log("Retrying email for existing ticket:", row.id, {
+      groupSize: groupRows.length,
+    });
     ticketId = row.id;
+    extraTicketIds = groupRows.map((r) => r.id).filter((id) => id !== row.id);
     buyerEmail = row.email ?? "";
     buyerName = row.name ?? "Asistente";
   } else {
@@ -388,6 +426,55 @@ export async function POST(req: Request) {
 
     const newTicketId = `BROTE2-${nanoid(8).toUpperCase()}`;
 
+    // ── How many tickets did this payment buy? ────────────────────────
+    //
+    // Read from the PAYMENT, in cascade. `metadata.qty` is what our own
+    // checkout stamped on the Preference; `additional_info.items[].quantity`
+    // is MP's own record of what it charged for; the stash is our server-side
+    // copy. All three are server-authored — the buyer never supplies a price
+    // or a quantity that isn't echoed back through a Preference we created.
+    const requestedQty = parseTicketQuantity(
+      payment.metadata?.qty ??
+        payment.additional_info?.items?.[0]?.quantity ??
+        checkoutMeta?.qty,
+    );
+
+    // ...but the tickets follow the MONEY, not the request. If the amount
+    // received covers fewer tickets than were asked for, issue what was paid
+    // for and let a human sort out the rest. Without the stashed unit price
+    // there is nothing to compare against, so the check is skipped rather
+    // than guessed at.
+    const paidCents = Math.round(Number(payment.transaction_amount ?? 0) * 100);
+    const unitPriceCents = Number(checkoutMeta?.unitPriceCents ?? 0);
+    let qty = requestedQty;
+    if (unitPriceCents > 0) {
+      const affordable = Math.max(1, Math.floor(paidCents / unitPriceCents));
+      if (affordable < requestedQty) {
+        console.error("brote: payment covers fewer tickets than requested", {
+          mpPaymentId,
+          requestedQty,
+          affordable,
+          paidCents,
+          unitPriceCents,
+        });
+        await notifyAdminOfIncident({
+          subject: "BROTE: el pago no cubre las entradas pedidas",
+          lines: [
+            `MP payment id: ${mpPaymentId}`,
+            `Email: ${buyerEmail}`,
+            `Pedidas: ${requestedQty} · pagadas: ${affordable}`,
+            `Monto: ${payment.transaction_amount ?? "?"} ${payment.currency_id ?? "ARS"}`,
+            "Se emitieron sólo las entradas que cubre el monto. Revisá el pago en MercadoPago.",
+          ],
+        });
+        qty = affordable;
+      }
+    }
+
+    // Per ticket, never the basket total: `price_cents` is what revenue
+    // reporting and the collaborator payout sum over rows.
+    const unitCents = Math.round(paidCents / qty);
+
     // Attribution from the checkout stash (populated when the buyer arrived
     // via a tracked link; absent otherwise).
     let attribution: Record<string, string> | undefined;
@@ -418,7 +505,7 @@ export async function POST(req: Request) {
         role: "attendee",
         status: "confirmed",
         externalPaymentId: mpPaymentId,
-        priceCents: Math.round(Number(payment.transaction_amount ?? 0) * 100),
+        priceCents: unitCents,
         currency: payment.currency_id ?? "ARS",
         attribution: attribution
           ? { ...attribution, capturedAt: attribution.capturedAt }
@@ -484,6 +571,81 @@ export async function POST(req: Request) {
     // went out with a ticket id that didn't exist.
     ticketId = result.participationId;
 
+    // ── The extra tickets ─────────────────────────────────────────────
+    //
+    // The primary row above covers one. Everything beyond it is a
+    // `companion` row on the same person, which is exactly what the partial
+    // unique index exempts.
+    //
+    // The ids are DERIVED FROM THE PAYMENT, never minted fresh: companion
+    // rows get no uniqueness from the database, and the webhook's own
+    // idempotency is a plain `redis.get` with no atomic claim. `ON CONFLICT
+    // (id) DO NOTHING` inside the helper is what stops two concurrent MP
+    // deliveries double-issuing, and it can only do that if both compute
+    // the same ids.
+    // The `created || promoted` half is a DELIBERATE, TEMPORARY cut, not an
+    // oversight: it means a repeat buyer gets no companions at any quantity,
+    // so they keep today's behaviour (alert, issue nothing) rather than
+    // silently gaining a feature from a unit that claims to be inert.
+    // Turning repurchase on is an observable production change and belongs
+    // on U4's revert boundary, with the modal that makes it reachable. U4
+    // replaces this condition and re-anchors Redis onto the new rows; until
+    // then `qty` is always 1 anyway, because nothing sends `quantity` yet.
+    if (qty > 1 && (result.created || result.promoted)) {
+      const companionIds = companionTicketIds(mpPaymentId, qty - 1);
+      const companions = await addCompanionTickets({
+        personId: result.personId,
+        eventId: BROTE_EVENT_ID,
+        ticketIds: companionIds,
+        externalPaymentId: mpPaymentId,
+        priceCents: unitCents,
+        currency: payment.currency_id ?? "ARS",
+        attribution: attribution
+          ? { ...attribution, capturedAt: attribution.capturedAt }
+          : undefined,
+        // Same metadata as the primary. `invite` especially: the payout
+        // report selects on `metadata->>'invite'`, so omitting it here pays
+        // a collaborator for one ticket out of a three-pack.
+        metadata: buildParticipationMetadata({
+          confirmedContact,
+          mpPayerEmail,
+          invite: getInvitation(
+            typeof payment.metadata?.invite === "string"
+              ? payment.metadata.invite
+              : undefined,
+          )?.slug,
+        }),
+      });
+
+      // A row that already existed with the same id is a concurrent
+      // delivery, not a shortfall — counting it as missing would alert on
+      // every retry forever.
+      const issued = 1 + companions.createdIds.length + companions.existingIds.length;
+      if (issued < qty) {
+        console.error("brote: issued fewer tickets than paid for", {
+          mpPaymentId,
+          qty,
+          issued,
+        });
+        await notifyAdminOfIncident({
+          subject: "BROTE: se emitieron menos entradas que las pagadas",
+          lines: [
+            `MP payment id: ${mpPaymentId}`,
+            `Email: ${buyerEmail}`,
+            `Pagadas: ${qty} · emitidas: ${issued}`,
+            "Faltan entradas para este pago. Emitilas a mano desde el admin.",
+          ],
+        });
+      }
+
+      // The rows that ACTUALLY exist, not the ones we asked for. Emailing a
+      // QR for a row that was never inserted hands someone a code the gate
+      // will reject — the same class of failure as the locally-generated id
+      // that once shipped in a QR (see the comment above `ticketId`).
+      const live = new Set([...companions.createdIds, ...companions.existingIds]);
+      extraTicketIds = companionIds.filter((id) => live.has(id));
+    }
+
     if (!result.created && !result.promoted) {
       // Money received but no new ticket was created — the buyer already
       // had one (double payment, or the checkout pre-check raced). Needs a
@@ -524,29 +686,40 @@ export async function POST(req: Request) {
     await redis.set(`brote:payment:${mpPaymentId}`, ticketId);
   }
 
-  // Tree number for the email = ticket count for this event (display-only).
+  // Tree numbers are display-only: the count AFTER inserting, so this
+  // payment's tickets are the last N. Computed here rather than before the
+  // insert, or every buyer would see the number of the person before them.
   const treeCountRes = await db
     .select({ n: count() })
     .from(schema.participations)
     .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
-  const treeNumber = Number(treeCountRes[0]?.n ?? 1);
+  const treeTotal = Number(treeCountRes[0]?.n ?? 1);
 
-  // Send email (runs for both new tickets and retries). The flag is only
-  // stamped after the send resolves, so a failure leaves `emailSent` falsy
-  // and the next MP retry tries again.
+  const allTicketIds = [ticketId, ...extraTicketIds];
+  const treeNumberStart = Math.max(1, treeTotal - allTicketIds.length + 1);
+  const emailTickets = allTicketIds.map((id, i) => ({
+    ticketId: id,
+    treeNumber: treeNumberStart + i,
+  }));
+
+  // Send email (runs for both new tickets and retries). ONE message carrying
+  // every ticket from this payment. The flag is only stamped after the send
+  // resolves, so a failure leaves `emailSent` falsy and the next MP retry
+  // tries again — for the whole batch, which is why the flag write takes the
+  // same list the email did.
   if (buyerEmail) {
     try {
       await sendBroteTicketEmail({
-        tickets: [{ ticketId, treeNumber }],
+        tickets: emailTickets,
         to: buyerEmail,
         buyerName,
         paymentId: mpPaymentId,
       });
-      await markBroteTicketEmailSent([ticketId]);
+      await markBroteTicketEmailSent(allTicketIds);
 
-      console.log("Email sent:", { to: buyerEmail, ticketId });
+      console.log("Email sent:", { to: buyerEmail, tickets: allTicketIds });
     } catch (err) {
-      console.error("Email send failed:", ticketId, err);
+      console.error("Email send failed:", allTicketIds, err);
       // Don't fail the webhook — MP will retry and we'll try email again.
     }
   }
