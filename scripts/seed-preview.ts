@@ -114,6 +114,15 @@ interface ParticipationFixture {
   guestName?: string;
   /** Who paid, when that isn't the attendee. Mirrors `buyer_person_id`. */
   buyerEmail?: string;
+  /**
+   * Position within the purchase, 0-based, on companion rows. Mirrors
+   * `metadata.seq`, which `addCompanionTickets` stamps in prod and which is
+   * THE canonical order every reader of a group sorts by — the form on
+   * /success, the door and the resend all number tickets from it. Without
+   * it the preview data sorts by id and the fixtures stop resembling what
+   * production actually produces.
+   */
+  seq?: number;
 }
 
 interface LinkFixture {
@@ -330,6 +339,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     paymentId: "PREVIEW-MP-B2-MULTI-1",
     buyerEmail: "preview-tina@example.com",
     guestName: "Marce Quiroga",
+    seq: 0,
   },
   {
     // Deliberately unnamed: the empty state of the guest-name field, and
@@ -343,6 +353,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     currency: "ARS",
     paymentId: "PREVIEW-MP-B2-MULTI-1",
     buyerEmail: "preview-tina@example.com",
+    seq: 1,
   },
   {
     // A SECOND, separate purchase by the same person — the repurchase that
@@ -358,6 +369,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     paymentId: "PREVIEW-MP-B2-MULTI-2",
     buyerEmail: "preview-tina@example.com",
     guestName: "Vale Iribarne",
+    seq: 0,
   },
   {
     // Two tickets bought from a collaborator page. BOTH carry
@@ -388,6 +400,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     paymentId: "PREVIEW-MP-B2-INV-MULTI",
     buyerEmail: "preview-ulises@example.com",
     invite: "pulso",
+    seq: 0,
     linkSlug: "inv-pulso",
     attributionSource: "instagram",
     attributionMedium: "bio",
@@ -744,6 +757,7 @@ async function main() {
     }
     if (p.invite) meta.invite = p.invite;
     if (p.guestName) meta.guestName = p.guestName;
+    if (p.seq !== undefined) meta.seq = p.seq;
     const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
 
     // `attribution` is the typed touch the admin reads; `link_slug` is the
