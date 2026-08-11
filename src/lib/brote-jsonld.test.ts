@@ -162,7 +162,14 @@ describe("offers", () => {
   });
 
   it("hands the early bird over to the regular tier without a gap", () => {
-    const [early, regular] = jsonLd.offers;
+    // Selected by price, not by position: array order is not part of what
+    // this asserts, and destructuring would red on a harmless reorder.
+    const early = jsonLd.offers.find(
+      (o) => o.price === broteConfig.earlyBirdPriceRaw,
+    )!;
+    const regular = jsonLd.offers.find(
+      (o) => o.price === broteConfig.ticketPriceRaw,
+    )!;
     // 23:59:59 on the 13th → 00:00:00 on the 14th. A gap would leave a moment
     // with no advertised price; an overlap would advertise two at once.
     expect(new Date(regular.validFrom!).getTime()).toBeGreaterThan(
