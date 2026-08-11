@@ -581,9 +581,8 @@ export async function POST(req: Request) {
     // on the same person, which is exactly what the partial unique index
     // exempts.
     //
-    // `primaryIsNew` is false when this person ALREADY had a ticket — a
-    // repeat purchase. That used to mean "alert, issue nothing": money taken
-    // and nothing delivered. Now every one of those `qty` tickets is a new
+    // A repeat purchase used to mean "alert, issue nothing": money taken and
+    // nothing delivered. Now every one of those `qty` tickets is a new
     // companion row, and the earlier purchase is left alone — it belongs to
     // a different payment and was emailed long ago.
     //
@@ -593,11 +592,44 @@ export async function POST(req: Request) {
     // (id) DO NOTHING` inside the helper is what stops two concurrent MP
     // deliveries double-issuing, and it can only do that if both compute
     // the same ids.
-    const primaryIsNew = result.created || result.promoted;
-    const companionCount = primaryIsNew ? qty - 1 : qty;
+    // `created` is not enough to decide how many companions this payment
+    // still owes, and getting it wrong DOUBLE-ISSUES.
+    //
+    // Two concurrent deliveries of one payment: A creates the primary and
+    // asks for companions C0…C(qty-2); B arrives before A stamped
+    // `brote:payment:{id}`, finds A's row, concludes "this person already
+    // had a ticket" and asks for C0…C(qty-1). `ON CONFLICT (id) DO NOTHING`
+    // dedups the shared prefix — but that last id nobody else claimed
+    // inserts, and the payment issues one ticket too many. At qty=1, the
+    // ordinary purchase, that is two tickets for one payment, two emails,
+    // an inflated counter and double collaborator credit, with nothing to
+    // show for it: the shortfall alert only fires on issuing too FEW.
+    //
+    // So the question is not "did I create this row" but "does this row
+    // belong to THIS payment". If it does, my twin created it moments ago
+    // and we both owe qty-1 companions — identical id sets, and the
+    // ON CONFLICT guard finally does what it was chosen to do. If it does
+    // not, the buyer really is coming back for more, and this payment owes
+    // all qty.
+    //
+    // `recordParticipation` never overwrites `external_payment_id` on a row
+    // it merely found, so the column is a truthful answer to that question.
+    let primaryIsThisPayment = result.created || result.promoted;
+    if (!primaryIsThisPayment) {
+      const [existingRow] = await db
+        .select({ paymentId: schema.participations.externalPaymentId })
+        .from(schema.participations)
+        .where(eq(schema.participations.id, result.participationId))
+        .limit(1);
+      primaryIsThisPayment = existingRow?.paymentId === mpPaymentId;
+    }
+
+    const companionCount = primaryIsThisPayment ? qty - 1 : qty;
 
     /** Every ticket THIS payment issued, in order. */
-    let issuedIds: string[] = primaryIsNew ? [result.participationId] : [];
+    let issuedIds: string[] = primaryIsThisPayment
+      ? [result.participationId]
+      : [];
 
     if (companionCount > 0) {
       const companionIds = companionTicketIds(mpPaymentId, companionCount);
