@@ -24,6 +24,17 @@ programme-specific notes; those live in each programme's PROGRESS.md.
 - **`tsconfig.json` excludes `**/*.test.ts`**, so `npx tsc --noEmit` does not
   typecheck test files. Type errors there only surface under vitest.
 - **A worktree has no `node_modules`** — `npm ci` before anything.
+- **CI is serialised repo-wide** (`concurrency: ci-shared-neon-branch` in
+  `ci.yml`). Every run shares one Neon dev branch and the DB suites seed
+  fixtures under fixed ids, so overlapping runs delete each other's rows
+  mid-test. `maxWorkers: 1` serialises *within* a run and cannot help. Before
+  running a DB suite locally, check `gh run list --workflow=ci.yml --limit 2`
+  is idle — a local run collides with CI exactly the same way.
+- **A green suite is not evidence a sink is wired.** Extracting a helper and
+  testing the helper proves nothing about the call site: deleting the call
+  can leave everything green. Every new sink needs one test that fails when
+  the call is removed — for routes, that means a test file per route, and
+  `validate/route.ts` had none at all until 2026-08.
 - **Never chain `gh pr merge` with `git push --delete` in one command.** If the
   merge doesn't complete, the delete still runs, GitHub closes the PR as
   *closed* rather than *merged*, and the work is only recoverable from the
@@ -155,11 +166,45 @@ programme-specific notes; those live in each programme's PROGRESS.md.
   case-insensitive — no need to lowercase to *compare*. Do normalize what you
   *store*, so the persisted form doesn't depend on which code path got there
   first.
-- **`participations` has a unique on `(person_id, event_id)`.** Re-pointing
-  `personId` can violate it.
+- **`participations` has a PARTIAL unique on `(person_id, event_id)`**
+  (`WHERE role <> 'companion'`). One buyer can hold several tickets for one
+  event; the extras are `companion` rows sharing an `external_payment_id`,
+  with `buyer_person_id` recording who paid. Re-pointing `personId` can still
+  violate it for non-companion rows.
+- **`recordParticipation` is NOT deduplicated by that index — it is
+  deduplicated by a row lock.** Its person upsert holds `ON CONFLICT (email)
+  DO UPDATE` on `people` until commit, so same-person calls serialise there
+  and the later ones short-circuit on the existing-row SELECT. Verified: three
+  concurrent transactions with *no* unique constraint still produce one row.
+  The corollary is what matters — a writer that does NOT touch the `people`
+  row (like `addCompanionTickets`) inherits none of that protection, and needs
+  its own: deterministic ids plus `ON CONFLICT (id) DO NOTHING`.
+- **A batch INSERT shares one `created_at`.** All rows get the transaction
+  timestamp, so `ORDER BY created_at, id` really orders by `id` — and if the
+  ids are hash-derived that is a *different* sequence from the one they were
+  created in. Anything that numbers a group for a human (ticket 2 of 3) must
+  order by an explicit stored position, not by time. Costs half of all
+  3-item groups otherwise.
 - **`BROTE_EVENT_ID` does not exist on the Neon dev branch.** A helper that
   closes over it is untestable; take `eventId` as a parameter. DB-backed tests
   create their own synthetic event and clean up by email prefix.
+
+## Mutation testing
+
+- **Mutating `schema.ts` proves nothing about an index.** Drizzle does not
+  enforce index definitions at runtime and the DB suites hit a real database,
+  so an index mutation has to be applied as real DDL. Do it in one transaction
+  with a `trap` that restores — the dev branch is shared with every PR's CI.
+- **A test that passes against the unfixed code is not a test.** Two in one
+  programme: one passed because the row it asserted on happened to be
+  physically first in the heap (an `UPDATE` rewrites the tuple to the end and
+  it went red), another because the fixture ids sorted the same way under
+  every candidate ordering. Both were caught by mutation, neither by review.
+- **A surviving mutant is a finding either way.** Sometimes the test is weak;
+  sometimes the mutation is genuinely harmless and the *reason* is worth
+  writing down (drizzle compiles `inArray(col, [])` to `where false`, so the
+  empty-batch guard is defensive rather than load-bearing). Record which one
+  it is instead of adding a test to make the table look clean.
 
 ## Drizzle / Postgres
 
@@ -193,6 +238,15 @@ programme-specific notes; those live in each programme's PROGRESS.md.
   hang anything on the return query string without a real payment — and if
   something sensitive goes there anyway, remember `capture_pageview` ships the
   whole `$current_url` to PostHog.
+- **The SDK types `additional_info.items[].quantity` as `number`; the REST
+  payment response returns a string.** Coercion there is load-bearing, not
+  defensive — without it every multi-ticket purchase silently issues one.
+- **Multiply `quantity`, never `unit_price`.** Both charge the same total, but
+  multiplying the price shows "1 × $74.250" at MercadoPago and tells the
+  webhook nothing about how many tickets to issue.
+- **Deduplicated Meta events must agree.** The browser `fbq` and the server
+  CAPI event share an `event_id`; if only one multiplies the basket, the
+  surviving event reports whichever arrived first.
 - **`auto_return: "approved"` only auto-redirects approved payments.** A cash
   payment sits pending for days and the buyer has to click "volver al sitio";
   many never do.
