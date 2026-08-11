@@ -314,6 +314,64 @@ describe("BROTE webhook — N tickets per payment", () => {
     );
   });
 
+  it("T4.8 — a racing second delivery of ONE payment issues nothing extra", async () => {
+    // The regression this replaces: `created` alone decided how many
+    // companions the payment still owed, so two concurrent deliveries
+    // computed id sequences of DIFFERENT LENGTHS — A asked for
+    // C0…C(qty-2), B (seeing A's fresh row) asked for C0…C(qty-1).
+    // ON CONFLICT dedups the shared prefix, but that last id nobody else
+    // claimed inserts. At qty=1 — the ordinary purchase — that is two
+    // tickets for one payment, two emails, and silence: the shortfall
+    // alert only fires on issuing too FEW.
+    //
+    // The discriminator is whether the existing row belongs to THIS
+    // payment. Here it does: the twin created it moments ago.
+    stash();
+    recordParticipation.mockResolvedValue({
+      personId: 7,
+      participationId: "BROTE2-PRIMARY",
+      created: false, // the twin got there first
+      promoted: false,
+      personCreated: false,
+    });
+    // ...and the row it found carries THIS payment's id.
+    dbNext = [{ paymentId: "MP-1" }];
+
+    await post("MP-1", payment());
+
+    // qty is 1 and the primary already exists, so this delivery owes zero
+    // companions. Asking for even one would mint a second valid ticket.
+    expect(addCompanionTickets).not.toHaveBeenCalled();
+    const sent = sendBroteTicketEmail.mock.calls[0][0] as {
+      tickets: { ticketId: string }[];
+    };
+    expect(sent.tickets.map((t) => t.ticketId)).toEqual(["BROTE2-PRIMARY"]);
+  });
+
+  it("T4.8b — a racing delivery of a 3-pack converges on the SAME three ids", async () => {
+    // Both deliveries must compute one identical id set, or ON CONFLICT
+    // cannot dedup them.
+    stash();
+    recordParticipation.mockResolvedValue({
+      personId: 7,
+      participationId: "BROTE2-PRIMARY",
+      created: false,
+      promoted: false,
+      personCreated: false,
+    });
+    dbNext = [{ paymentId: "MP-1" }];
+
+    await post("MP-1", paymentFor(3));
+
+    // qty-1 companions, exactly as the delivery that created the primary
+    // would have asked for — not qty.
+    expect(addCompanionTickets.mock.calls[0][0].ticketIds).toHaveLength(2);
+    const sent = sendBroteTicketEmail.mock.calls[0][0] as {
+      tickets: { ticketId: string }[];
+    };
+    expect(sent.tickets).toHaveLength(3);
+  });
+
   it("T4.6b — the repeat purchase anchors Redis on the new ticket, not the old one", async () => {
     // `brote:payment:{id}` and `brote:confirm:{ct}` both key the retry path
     // and the /success contact step. Anchored on the earlier purchase's row,
