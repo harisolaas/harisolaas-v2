@@ -596,6 +596,14 @@ const en: Dictionary = {
           "Saved. Your ticket already went to that address: if you don't see it, check spam or message us on WhatsApp.",
         donePending:
           "Saved. As soon as the payment clears, your ticket goes to that address.",
+        guestNames: {
+          heading: "Who\u2019s coming with you?",
+          intro:
+            "Optional. Adding names means the door knows who\u2019s who. You can also just forward each QR and leave it at that.",
+          ticketLabel: "Ticket {n} of {total}",
+          yours: "yours",
+          placeholder: "Full name",
+        },
         errors: {
           nameRequired: "Add your name.",
           emailInvalid: "Check the email.",

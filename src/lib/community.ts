@@ -357,7 +357,7 @@ export async function addCompanionTickets(
     // MercadoPago has taken the money.
     const attribution = await sanitizeAttribution(tx, params.attribution);
 
-    const rows = params.ticketIds.map((id) => ({
+    const rows = params.ticketIds.map((id, i) => ({
       id,
       personId: params.personId,
       eventId: params.eventId,
@@ -369,7 +369,14 @@ export async function addCompanionTickets(
       externalPaymentId: params.externalPaymentId,
       priceCents: params.priceCents,
       currency: params.currency,
-      metadata: params.metadata ?? {},
+      // `seq` is the position within the purchase, and it is load-bearing.
+      // Every row of a batch shares one `created_at` (it defaults to the
+      // transaction timestamp), so ordering by `created_at, id` really
+      // orders by id — and the ids are sha256-derived, so that is a
+      // different sequence from the one the buyer's email was numbered in.
+      // Whoever reads this group back has to see the SAME order the email
+      // showed, or "Entrada 2 de 3" names the wrong person's ticket.
+      metadata: { ...(params.metadata ?? {}), seq: i },
     })) satisfies NewParticipation[];
 
     const inserted = await tx

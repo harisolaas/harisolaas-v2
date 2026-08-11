@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { count, eq, sql } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { getRedis } from "@/lib/redis";
 import { isValidEmail, isValidWhatsApp } from "@/lib/plant-types";
@@ -14,6 +14,10 @@ import {
   markBroteTicketEmailSent,
   sendBroteTicketEmail,
 } from "@/lib/brote-ticket-email";
+import {
+  applyGuestNames,
+  ticketsForPayment,
+} from "@/lib/brote-guest-names";
 import { BROTE_EVENT_ID } from "@/data/brote";
 
 /**
@@ -82,6 +86,7 @@ export async function GET(req: Request) {
   const rows = await db
     .select({
       metadata: schema.participations.metadata,
+      paymentId: schema.participations.externalPaymentId,
       email: schema.people.email,
       name: schema.people.name,
       phone: schema.people.phone,
@@ -98,12 +103,18 @@ export async function GET(req: Request) {
   const row = rows[0];
   const meta = (row.metadata as Record<string, unknown>) ?? {};
 
+  // Every ticket of this purchase, so the form can draw one name field per
+  // ticket and prefill whatever was already set. Resolved server-side from
+  // the payment — the client never names a row.
+  const tickets = await ticketsForPayment(row.paymentId ?? "");
+
   return NextResponse.json({
     found: true,
     name: row.name ?? "",
     email: row.email ?? "",
     phone: row.phone ?? "",
     confirmed: Boolean(meta.contact),
+    tickets: tickets.map((t) => ({ id: t.id, guestName: t.guestName })),
   });
 }
 
@@ -118,6 +129,11 @@ export async function POST(req: Request) {
     const name = ((body.name as string) || "").trim().slice(0, MAX_NAME);
     const email = ((body.email as string) || "").trim();
     const phone = ((body.phone as string) || "").trim().slice(0, MAX_PHONE);
+    // Ordered, not a map of id → name: the ids come from the payment on the
+    // server, so nothing in the body can pick which row gets written.
+    const guestNames = Array.isArray(body.guestNames)
+      ? (body.guestNames as unknown[]).map((n) => (typeof n === "string" ? n : ""))
+      : [];
 
     if (!token) {
       return NextResponse.json({ error: "invalid_token" }, { status: 400 });
@@ -131,6 +147,13 @@ export async function POST(req: Request) {
     // ── No ticket yet: the normal case. Park the contact for the webhook.
     if (!ticketId) {
       const pending: PendingContact = {
+        // Parked with the contact rather than dropped. This is the DOMINANT
+        // path — MP redirects instantly and the webhook is asynchronous, so
+        // most people submit before any ticket row exists, and every cash
+        // payment does. Dropping them here meant the fields were filled,
+        // "listo" was shown, and nothing was written; and since the client
+        // clears its token on success, the form never came back to try again.
+        ...(guestNames.length > 1 && { guestNames }),
         name,
         // Normalized before parking: the webhook writes this straight into
         // `people.email` via recordParticipation, which only trims. Keeping
@@ -171,6 +194,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "email_taken" }, { status: 409 });
     }
 
+    // Guest names are independent of the contact change: someone can name
+    // their tickets without touching the address, and a failure here must
+    // not cost them the contact confirmation that already committed.
+    if (guestNames.length > 0 && result.paymentId) {
+      try {
+        await applyGuestNames(result.paymentId, guestNames);
+      } catch (err) {
+        console.error("brote/confirm-contact: guest names failed:", err);
+      }
+    }
+
     let resent = false;
     if (result.shouldResend) {
       try {
@@ -190,17 +224,7 @@ export async function POST(req: Request) {
         // retry path uses, and ordered the same way so the tree numbers do
         // not shuffle between the original mail and this one.
         const group = result.paymentId
-          ? await db
-              .select({ id: schema.participations.id })
-              .from(schema.participations)
-              .where(
-                eq(schema.participations.externalPaymentId, result.paymentId),
-              )
-              .orderBy(
-                sql`(${schema.participations.role} = 'companion')`,
-                schema.participations.createdAt,
-                schema.participations.id,
-              )
+          ? await ticketsForPayment(result.paymentId)
           : [];
         const groupIds = group.map((r) => r.id);
         const ticketIds = groupIds.includes(ticketId) ? groupIds : [ticketId];
@@ -208,10 +232,19 @@ export async function POST(req: Request) {
         const total = Number(treeCountRes[0]?.n ?? 1);
         const treeNumberStart = Math.max(1, total - ticketIds.length + 1);
 
+        // Re-read the names AFTER writing them, so a resend triggered in the
+        // same request shows what the buyer just typed rather than what was
+        // there before.
+        const named = result.paymentId
+          ? await ticketsForPayment(result.paymentId)
+          : [];
+        const nameById = new Map(named.map((t) => [t.id, t.guestName]));
+
         await sendBroteTicketEmail({
           tickets: ticketIds.map((id, i) => ({
             ticketId: id,
             treeNumber: treeNumberStart + i,
+            guestName: nameById.get(id) || undefined,
           })),
           to: result.to,
           buyerName: result.buyerName,

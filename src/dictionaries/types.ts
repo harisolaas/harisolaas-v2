@@ -115,6 +115,16 @@ export interface BroteSuccessContactDict {
   doneSaved: string;
   /** Contact parked; the ticket goes out when the payment clears. */
   donePending: string;
+  /** Per-ticket names, shown only when the purchase has more than one. */
+  guestNames: {
+    heading: string;
+    intro: string;
+    /** Carries `{n}` and `{total}`. */
+    ticketLabel: string;
+    /** Appended to the first ticket — the buyer's own. */
+    yours: string;
+    placeholder: string;
+  };
   errors: {
     nameRequired: string;
     emailInvalid: string;

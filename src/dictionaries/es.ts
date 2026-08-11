@@ -601,6 +601,14 @@ const es: Dictionary = {
           "Listo, guardamos tus datos. La entrada ya sali\u00f3 a ese mail: si no la ves, fijate en el spam o escribinos por WhatsApp.",
         donePending:
           "Listo, lo guardamos. Apenas se acredite el pago, la entrada sale a ese mail.",
+        guestNames: {
+          heading: "\u00bfQui\u00e9n viene con vos?",
+          intro:
+            "Opcional. Si les pon\u00e9s nombre, en la puerta ya saben qui\u00e9n es cada quien. Igual pod\u00e9s reenviar cada QR y listo.",
+          ticketLabel: "Entrada {n} de {total}",
+          yours: "la tuya",
+          placeholder: "Nombre y apellido",
+        },
         errors: {
           nameRequired: "Pon\u00e9 tu nombre.",
           emailInvalid: "Revis\u00e1 el email.",

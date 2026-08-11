@@ -83,6 +83,13 @@ export const checkoutByTokenKey = (token: string) =>
   `brote:checkout-ct:${token}`;
 
 export interface PendingContact {
+  /**
+   * Names for the individual tickets, ordered, when the buyer typed them
+   * before any ticket existed. Optional: the field did not exist for
+   * contacts parked by an earlier deploy, and a single-ticket buyer never
+   * sees the inputs.
+   */
+  guestNames?: string[];
   name: string;
   email: string;
   phone: string;
