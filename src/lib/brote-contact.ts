@@ -127,6 +127,15 @@ export async function applyBroteContactConfirmation(
               ),
             )
             .limit(1);
+          // CUT, deliberately, and recorded rather than silent: the spec
+          // wanted this to demote our row to `companion` and re-point
+          // anyway, since the partial index now permits it. That is a
+          // behaviour change on a live path — it would merge two people's
+          // purchases under one identity — and it is not needed for guest
+          // names to work. Refusing keeps today's behaviour, which is
+          // wrong-but-known: the buyer sees "ese email ya tiene una
+          // entrada" and can use another address or write on WhatsApp.
+          // Backlogged with that reasoning.
           if (clash.length > 0) return { outcome: "email_taken" as const };
 
           // Move the WHOLE purchase, not just the row the token names. One
