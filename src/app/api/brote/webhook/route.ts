@@ -14,6 +14,11 @@ import {
   companionTicketIds,
   parseTicketQuantity,
 } from "@/lib/brote-ticket-ids";
+import {
+  applyGuestNames,
+  purchaseOrder,
+  ticketsForPayment,
+} from "@/lib/brote-guest-names";
 import { resolveBuyerInfo, type CheckoutMetaLike } from "@/lib/mp-buyer-info";
 import { notifyAdminOfIncident } from "@/lib/admin-alert";
 import {
@@ -287,11 +292,10 @@ export async function POST(req: Request) {
       .select({ id: schema.participations.id })
       .from(schema.participations)
       .where(eq(schema.participations.externalPaymentId, mpPaymentId))
-      .orderBy(
-        sql`(${schema.participations.role} = 'companion')`,
-        schema.participations.createdAt,
-        schema.participations.id,
-      );
+      // THE canonical order — shared with `/success` and the guest-name
+      // writer. Ordering differently here would renumber the tickets
+      // between the first email and this retry.
+      .orderBy(...purchaseOrder);
 
     console.log("Retrying email for existing ticket:", row.id, {
       groupSize: groupRows.length,
@@ -709,11 +713,26 @@ export async function POST(req: Request) {
     .where(eq(schema.participations.eventId, BROTE_EVENT_ID));
   const treeTotal = Number(treeCountRes[0]?.n ?? 1);
 
+  // Names the buyer typed on /success BEFORE any ticket existed — the
+  // normal path, since MP redirects instantly and this webhook does not.
+  // They were parked with the contact; now that the rows exist they can be
+  // written, in the same order the email is about to number them.
+  if (confirmedContact?.guestNames?.length) {
+    try {
+      await applyGuestNames(mpPaymentId, confirmedContact.guestNames);
+    } catch (err) {
+      console.error("brote: failed to apply parked guest names:", err);
+    }
+  }
+
   const allTicketIds = [ticketId, ...extraTicketIds];
   const treeNumberStart = Math.max(1, treeTotal - allTicketIds.length + 1);
+  const namedTickets = await ticketsForPayment(mpPaymentId).catch(() => []);
+  const guestNameById = new Map(namedTickets.map((t) => [t.id, t.guestName]));
   const emailTickets = allTicketIds.map((id, i) => ({
     ticketId: id,
     treeNumber: treeNumberStart + i,
+    guestName: guestNameById.get(id) || undefined,
   }));
 
   // Send email (runs for both new tickets and retries). ONE message carrying

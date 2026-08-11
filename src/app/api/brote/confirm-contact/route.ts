@@ -147,6 +147,13 @@ export async function POST(req: Request) {
     // ── No ticket yet: the normal case. Park the contact for the webhook.
     if (!ticketId) {
       const pending: PendingContact = {
+        // Parked with the contact rather than dropped. This is the DOMINANT
+        // path — MP redirects instantly and the webhook is asynchronous, so
+        // most people submit before any ticket row exists, and every cash
+        // payment does. Dropping them here meant the fields were filled,
+        // "listo" was shown, and nothing was written; and since the client
+        // clears its token on success, the form never came back to try again.
+        ...(guestNames.length > 1 && { guestNames }),
         name,
         // Normalized before parking: the webhook writes this straight into
         // `people.email` via recordParticipation, which only trims. Keeping

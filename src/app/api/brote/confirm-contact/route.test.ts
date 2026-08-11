@@ -223,3 +223,42 @@ describe("GET /api/brote/confirm-contact", () => {
     expect(res.status).toBe(400);
   });
 });
+
+// ── U5: guest names ──────────────────────────────────────────────────
+//
+// These pin the SINK. Without them, deleting the guest-name handling from
+// this route leaves the whole suite green: the lib tests prove the helper
+// works, never that anything calls it.
+describe("guest names", () => {
+  it("T5.7 — parks the names when no ticket exists yet (the normal path)", async () => {
+    // MercadoPago redirects instantly and the webhook does not, so most
+    // people submit before any row exists — and every cash payment does.
+    // Dropping the names here meant the fields were filled, "listo" was
+    // shown, and nothing was written: the client clears its token on
+    // success, so the form never came back to try again.
+    const res = await post(
+      { ...valid, guestNames: ["Ana", "Cami", "Jo"] },
+      "10.0.7.1",
+    );
+    expect((await res.json()).outcome).toBe("pending");
+
+    const redis = await getRedis();
+    const parked = JSON.parse(
+      (await redis.get(pendingContactKey(VALID_TOKEN)))!,
+    );
+    expect(parked.guestNames).toEqual(["Ana", "Cami", "Jo"]);
+  });
+
+  it("T5.8 — a single-ticket buyer parks no names", async () => {
+    // They never see the inputs, and an empty array would read as
+    // "clear them".
+    const res = await post({ ...valid, guestNames: ["Ana"] }, "10.0.7.2");
+    expect((await res.json()).outcome).toBe("pending");
+
+    const redis = await getRedis();
+    const parked = JSON.parse(
+      (await redis.get(pendingContactKey(VALID_TOKEN)))!,
+    );
+    expect(parked.guestNames).toBeUndefined();
+  });
+});

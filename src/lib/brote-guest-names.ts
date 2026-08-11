@@ -22,11 +22,33 @@ export function normalizeGuestName(raw: unknown): string {
 }
 
 /**
- * Every ticket of one payment, in the order they are numbered.
+ * THE canonical order of one purchase's tickets. Every reader of a group
+ * must use this, or two of them will number the same tickets differently.
+ *
+ * 1. the buyer's own row first (`attendee` before `companion`);
+ * 2. then `metadata.seq`, the position stamped at insert time.
+ *
+ * `created_at` is NOT a usable tiebreak: the companions of a purchase are
+ * written by one multi-row INSERT, so they all share the transaction
+ * timestamp and the real ordering falls through to `id` — which is
+ * sha256-derived and therefore in a different sequence from the one the
+ * buyer's email was numbered in. Measured, that disagrees for roughly half
+ * of 3-ticket purchases and most 4-ticket ones. It stays as a last resort
+ * only for rows written before `seq` existed, where the group is a single
+ * ticket and the order cannot matter.
+ */
+export const purchaseOrder = [
+  sql`(role = 'companion')`,
+  sql`COALESCE((metadata->>'seq')::int, 0)`,
+  sql`created_at`,
+  sql`id`,
+];
+
+/**
+ * Every ticket of one payment, in the order the buyer's email numbered them.
  *
  * Anchored on `external_payment_id`, the same anchor the webhook's retry
- * path and the contact resend use, with the same ordering — so the position
- * a buyer sees in the form is the position the email showed.
+ * path and the contact resend use.
  */
 export async function ticketsForPayment(
   paymentId: string,
@@ -39,11 +61,7 @@ export async function ticketsForPayment(
     })
     .from(schema.participations)
     .where(eq(schema.participations.externalPaymentId, paymentId))
-    .orderBy(
-      sql`(${schema.participations.role} = 'companion')`,
-      schema.participations.createdAt,
-      schema.participations.id,
-    );
+    .orderBy(...purchaseOrder);
 
   return rows.map((r) => ({
     id: r.id,

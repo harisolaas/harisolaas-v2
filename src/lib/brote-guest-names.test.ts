@@ -45,6 +45,11 @@ beforeEach(async () => {
   await db.execute(sql`DELETE FROM participations WHERE event_id = ${EVENT}`);
   // One purchase of three, plus a ticket from a DIFFERENT payment that must
   // never be reachable from this one.
+  // The ids are DELIBERATELY not in alphabetical order, and `seq` runs
+  // against it. Real companion ids are sha256-derived, so `ORDER BY id`
+  // gives a different sequence from the one the buyer's email was numbered
+  // in — a fixture whose ids happen to sort the same way as they were
+  // inserted cannot detect that, and the ordering mutation survives.
   await db.insert(schema.participations).values([
     {
       id: "GN-PRIMARY",
@@ -55,20 +60,22 @@ beforeEach(async () => {
       externalPaymentId: PAYMENT,
     },
     {
-      id: "GN-COMP-A",
+      id: "GN-ZULU",          // seq 0, but LAST alphabetically
       personId,
       eventId: EVENT,
       role: "companion",
       status: "confirmed",
       externalPaymentId: PAYMENT,
+      metadata: { seq: 0 },
     },
     {
-      id: "GN-COMP-B",
+      id: "GN-ALFA",          // seq 1, but FIRST alphabetically
       personId,
       eventId: EVENT,
       role: "companion",
       status: "confirmed",
       externalPaymentId: PAYMENT,
+      metadata: { seq: 1 },
     },
     {
       id: "GN-OTHER",
@@ -109,13 +116,30 @@ describe("normalizeGuestName", () => {
 });
 
 describe("ticketsForPayment", () => {
-  it("T5.1 — returns the whole purchase, buyer's own ticket first", async () => {
+  it("T5.1 — returns the purchase in the order the EMAIL numbered it", async () => {
+    // Buyer's own row first, then `metadata.seq` — NOT id order. The
+    // fixture ids run against alphabetical order on purpose: ordering by
+    // `id` (or by `created_at`, which is identical across a batch insert
+    // and so falls through to id) would return ZULU and ALFA swapped, and
+    // then "Entrada 2 de 3" in the form names the ticket the mail called
+    // "ENTRADA 3 DE 3".
     const tickets = await ticketsForPayment(PAYMENT);
     expect(tickets.map((t) => t.id)).toEqual([
       "GN-PRIMARY",
-      "GN-COMP-A",
-      "GN-COMP-B",
+      "GN-ZULU",
+      "GN-ALFA",
     ]);
+  });
+
+  it("T5.1b — falls back to a stable order for rows written before seq", async () => {
+    // Single-ticket purchases predate `seq` and have none. They are one row,
+    // so the order cannot matter — but the query must not drop them.
+    await db.execute(
+      sql`UPDATE participations SET metadata = '{}'::jsonb WHERE external_payment_id = ${PAYMENT}`,
+    );
+    const tickets = await ticketsForPayment(PAYMENT);
+    expect(tickets).toHaveLength(3);
+    expect(tickets[0].id).toBe("GN-PRIMARY");
   });
 
   it("returns nothing for a blank payment id rather than the whole table", async () => {
@@ -128,8 +152,8 @@ describe("applyGuestNames", () => {
     const written = await applyGuestNames(PAYMENT, ["Ana", "Cami", "Jo"]);
     expect(written).toBe(3);
     expect(await guestNameOf("GN-PRIMARY")).toBe("Ana");
-    expect(await guestNameOf("GN-COMP-A")).toBe("Cami");
-    expect(await guestNameOf("GN-COMP-B")).toBe("Jo");
+    expect(await guestNameOf("GN-ZULU")).toBe("Cami");
+    expect(await guestNameOf("GN-ALFA")).toBe("Jo");
   });
 
   it("T5.3 — cannot reach a ticket belonging to another payment", async () => {
@@ -146,8 +170,8 @@ describe("applyGuestNames", () => {
     await applyGuestNames(PAYMENT, ["Ana", "Cami", ""]);
     await applyGuestNames(PAYMENT, ["", "", "Jo"]);
     expect(await guestNameOf("GN-PRIMARY")).toBe("Ana");
-    expect(await guestNameOf("GN-COMP-A")).toBe("Cami");
-    expect(await guestNameOf("GN-COMP-B")).toBe("Jo");
+    expect(await guestNameOf("GN-ZULU")).toBe("Cami");
+    expect(await guestNameOf("GN-ALFA")).toBe("Jo");
   });
 
   it("T5.5 — does not clobber sibling metadata", async () => {
