@@ -48,6 +48,14 @@ export async function POST(req: Request) {
     const metadata = (row.metadata as Record<string, unknown>) ?? {};
     const coffeeRedeemed = Boolean(metadata.coffeeRedeemed);
 
+    // Whose ticket this is. A buyer of several can put a name on each one,
+    // so the door shows the guest rather than the payer — otherwise three
+    // people arrive and every scan reads the same name.
+    const guestName =
+      typeof metadata.guestName === "string" && metadata.guestName.trim()
+        ? metadata.guestName
+        : row.buyerName;
+
     // Legacy response shape expects string status: 'valid' | 'used'.
     const legacyStatus = row.status === "used" ? "used" : "valid";
 
@@ -59,7 +67,7 @@ export async function POST(req: Request) {
         ticket: {
           id: row.id,
           type: "ticket",
-          buyerName: row.buyerName,
+          buyerName: guestName,
           status: legacyStatus,
           coffeeRedeemed,
         },
@@ -92,7 +100,7 @@ export async function POST(req: Request) {
         ticket: {
           id: row.id,
           type: "ticket",
-          buyerName: row.buyerName,
+          buyerName: guestName,
           status: "used",
           coffeeRedeemed,
         },
@@ -127,7 +135,7 @@ export async function POST(req: Request) {
         ticket: {
           id: row.id,
           type: "ticket",
-          buyerName: row.buyerName,
+          buyerName: guestName,
           status: legacyStatus,
           coffeeRedeemed: true,
         },
