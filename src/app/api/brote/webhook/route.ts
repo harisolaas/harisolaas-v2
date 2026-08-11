@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { nanoid } from "nanoid";
 import { getRedis } from "@/lib/redis";
@@ -271,9 +271,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, ticketId: row.id });
     }
 
-    // Email wasn't sent — fall through to retry it.
-    console.log("Retrying email for existing ticket:", row.id);
+    // Email wasn't sent — fall through to retry it, WITH THE WHOLE GROUP.
+    //
+    // One payment can own several tickets, and the Redis key points at only
+    // the primary. Resending just that one would deliver 1 QR for a 3-ticket
+    // purchase and leave the companions `emailSent` falsy for good: this
+    // branch exits early next time on the primary's flag, so nothing ever
+    // retries them and nothing alerts.
+    //
+    // Resolved by querying `external_payment_id` rather than by reading a
+    // list off metadata: a query cannot drift out of sync with the rows.
+    // Ordered so the buyer's own row comes first and the numbering is
+    // stable across retries.
+    const groupRows = await db
+      .select({ id: schema.participations.id })
+      .from(schema.participations)
+      .where(eq(schema.participations.externalPaymentId, mpPaymentId))
+      .orderBy(
+        sql`(${schema.participations.role} = 'companion')`,
+        schema.participations.createdAt,
+        schema.participations.id,
+      );
+
+    console.log("Retrying email for existing ticket:", row.id, {
+      groupSize: groupRows.length,
+    });
     ticketId = row.id;
+    extraTicketIds = groupRows.map((r) => r.id).filter((id) => id !== row.id);
     buyerEmail = row.email ?? "";
     buyerName = row.name ?? "Asistente";
   } else {
@@ -559,6 +583,14 @@ export async function POST(req: Request) {
     // (id) DO NOTHING` inside the helper is what stops two concurrent MP
     // deliveries double-issuing, and it can only do that if both compute
     // the same ids.
+    // The `created || promoted` half is a DELIBERATE, TEMPORARY cut, not an
+    // oversight: it means a repeat buyer gets no companions at any quantity,
+    // so they keep today's behaviour (alert, issue nothing) rather than
+    // silently gaining a feature from a unit that claims to be inert.
+    // Turning repurchase on is an observable production change and belongs
+    // on U4's revert boundary, with the modal that makes it reachable. U4
+    // replaces this condition and re-anchors Redis onto the new rows; until
+    // then `qty` is always 1 anyway, because nothing sends `quantity` yet.
     if (qty > 1 && (result.created || result.promoted)) {
       const companionIds = companionTicketIds(mpPaymentId, qty - 1);
       const companions = await addCompanionTickets({
@@ -606,7 +638,12 @@ export async function POST(req: Request) {
         });
       }
 
-      extraTicketIds = companionIds;
+      // The rows that ACTUALLY exist, not the ones we asked for. Emailing a
+      // QR for a row that was never inserted hands someone a code the gate
+      // will reject — the same class of failure as the locally-generated id
+      // that once shipped in a QR (see the comment above `ticketId`).
+      const live = new Set([...companions.createdIds, ...companions.existingIds]);
+      extraTicketIds = companionIds.filter((id) => live.has(id));
     }
 
     if (!result.created && !result.promoted) {
