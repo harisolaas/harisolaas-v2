@@ -33,6 +33,9 @@ export async function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+/** Meta app behind the Pixel, for Facebook domain insights. Optional. */
+const fbAppId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
+
 export async function generateMetadata({
   params,
 }: {
@@ -71,6 +74,11 @@ export async function generateMetadata({
         es: "/es",
       },
     },
+    // Facebook's debugger reports `fb:app_id` as a missing required property.
+    // It does not affect how the share card renders — it is what ties shares
+    // back to a Meta app for domain insights. Emitted only when the env var is
+    // set: a placeholder id would be a claim about an app that isn't ours.
+    ...(fbAppId ? { other: { "fb:app_id": fbAppId } } : {}),
   };
 }
 

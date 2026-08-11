@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -145,6 +145,41 @@ describe("locale layout metadata", () => {
     // object — Next resolves it in `mergeMetadata` — so it is asserted here.
     expect(String(md.metadataBase)).toBe(`${CANONICAL_HOST}/`);
     expect(md.openGraph?.url).toBe(`${CANONICAL_HOST}/es`);
+  });
+});
+
+describe("fb:app_id", () => {
+  // Facebook's debugger reports it as a missing required property. It does not
+  // change how the card renders — it ties shares to a Meta app for domain
+  // insights — so it is emitted only when the env var is set. A placeholder
+  // would be a claim about an app that isn't ours.
+  const ENV_KEY = "NEXT_PUBLIC_FACEBOOK_APP_ID";
+
+  afterEach(() => {
+    delete process.env[ENV_KEY];
+    vi.resetModules();
+  });
+
+  it("is emitted when the app id is configured", async () => {
+    process.env[ENV_KEY] = "1234567890";
+    vi.resetModules();
+
+    const { generateMetadata } = await import("@/app/[locale]/layout");
+    const md = await generateMetadata(params("es"));
+
+    expect(md.other?.["fb:app_id"]).toBe("1234567890");
+  });
+
+  it("is absent — not empty — when it is not configured", async () => {
+    delete process.env[ENV_KEY];
+    vi.resetModules();
+
+    const { generateMetadata } = await import("@/app/[locale]/layout");
+    const md = await generateMetadata(params("es"));
+
+    // `fb:app_id=""` would be worse than no tag: Facebook reads it as a
+    // malformed id rather than an absent one.
+    expect(md.other?.["fb:app_id"]).toBeUndefined();
   });
 });
 
