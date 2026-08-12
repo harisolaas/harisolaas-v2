@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { broteConfig, currentTicketPrice } from "@/data/brote";
-import es from "@/dictionaries/es";
 import { getInvitation, resolveInvitationPrice } from "./brote-invitations";
 import {
   firstName,
@@ -44,8 +43,8 @@ describe("comunidad email — segment routing", () => {
     const openings = Object.values(SEGMENTS).map(
       (r) => renderComunidadEmail(1, r, DEADLINE_DAY).html,
     );
-    expect(openings[0]).toContain("El 28 de marzo estuviste en la primera");
-    expect(openings[1]).toContain("El 19 de abril te tomaste el viaje");
+    expect(openings[0]).toContain("El 28 de marzo estuviste. Bailaste");
+    expect(openings[1]).toContain("El 19 de abril te fuiste hasta la reserva");
     expect(openings[2]).toContain("Estuviste en las dos");
   });
 
@@ -54,7 +53,7 @@ describe("comunidad email — segment routing", () => {
       "Ya sabés cómo termina esto.",
     );
     expect(renderComunidadEmail(2, SEGMENTS.plant, AFTER_DEADLINE).html).toContain(
-      "La fiesta la conocés de oídas",
+      "La fiesta te la contaron",
     );
   });
 });
@@ -210,9 +209,7 @@ describe("comunidad email — links and structure", () => {
     const { subject } = renderComunidadEmail(2, SEGMENTS.both, AFTER_DEADLINE);
     // The subject is the half of the mail most people read; if the line-up
     // changes, it has to move with it.
-    const jose = getInvitation("jose")!.name.split(" ")[0];
-    expect(subject).toContain(jose);
-    expect(subject).toContain(es.brote.lineup.live.time.split(":")[0]);
+    expect(subject).toContain(getInvitation("jose")!.name.split(" ")[0]);
   });
 
   it("takes the running order from the landing, so it cannot drift", () => {

@@ -172,13 +172,15 @@ function priceRiseLine(now: Date): string {
   const regular = broteConfig.ticketPrice;
   const from = regularPriceFromDisplay();
 
+  const twist = "Para vos no. Ventaja de haber estado desde el principio.";
+
   if (argentinaDate(now) === broteConfig.earlyBirdDeadline) {
-    return `Mañana, ${from}, la entrada pasa a ${regular} para todo el mundo. Para vos no: tenés un precio aparte, por haber estado.`;
+    return `Mañana, ${from}, la entrada pasa a ${regular} para todo el mundo. ${twist}`;
   }
   if (isEarlyBird(now)) {
-    return `El ${from} la entrada pasa a ${regular} para todo el mundo. Para vos no: tenés un precio aparte, por haber estado.`;
+    return `El ${from} la entrada pasa a ${regular} para todo el mundo. ${twist}`;
   }
-  return `Desde el ${from} la entrada está ${regular} para todo el mundo. Para vos no: tenés un precio aparte, por haber estado.`;
+  return `Desde el ${from} la entrada está ${regular} para todo el mundo. ${twist}`;
 }
 
 /**
@@ -339,7 +341,7 @@ function priceCard(now: Date): string {
         </table>
         <p style="margin:14px 0 0;font-family:${SERIF};font-size:24px;line-height:1;color:${FOREST_60};text-decoration:line-through">${price.compareAtDisplay ?? broteConfig.ticketPrice}</p>
         <p style="margin:4px 0 0;font-family:${SERIF};font-size:56px;line-height:1;color:${FOREST}">${price.priceDisplay}</p>
-        <p style="margin:14px 0 0;font-family:${MONO};font-size:11px;line-height:1.6;color:${FOREST_60}">Es tu precio por haber estado.<br>No está en la web.</p>
+        <p style="margin:14px 0 0;font-family:${MONO};font-size:11px;line-height:1.6;color:${FOREST_60}">Tu precio por haber estado.<br>No lo busques en la web, no está.</p>
       </td></tr>
     </table>
   </td></tr>
@@ -388,10 +390,10 @@ ${rows}
  */
 const WAVE1_OPENING: Record<ComunidadSegment, string> = {
   brote1:
-    "El 28 de marzo estuviste en la primera. Esa noche no bailaste nomás: se plantaron árboles que hoy están en el suelo, creciendo, con tu nombre entre ellos.",
+    "El 28 de marzo estuviste. Bailaste, brindaste y de paso plantaste un árbol que hoy está en el suelo, creciendo solo. Nada mal para una noche.",
   plant:
-    "El 19 de abril te tomaste el viaje hasta la reserva y plantaste con las manos. Volviste con tierra en las zapatillas y un árbol que sigue ahí.",
-  both: "Estuviste en las dos: en la fiesta de marzo y en la reserva de San Miguel, con las manos en la tierra. Sos de la primera camada, de quienes empezaron esto.",
+    "El 19 de abril te fuiste hasta la reserva y plantaste con las manos. Volviste con tierra en las zapatillas. Ya hiciste la parte con pala — ahora viene la divertida.",
+  both: "Estuviste en las dos: la fiesta de marzo y la reserva de San Miguel. Sos de la primera camada. Esta la armamos para que vuelvas.",
 };
 
 function renderWave1(recipient: ComunidadRecipient, now: Date): RenderedEmail {
@@ -416,7 +418,7 @@ ${DIVIDER}
 
 <tr><td>
   ${paragraph(WAVE1_OPENING[segmentOf(recipient)])}
-  ${paragraph(`El ${broteConfig.eventDateDisplay.toLowerCase()} hacemos la segunda. Mismo bosque, otra noche.`)}
+  ${paragraph(`El ${broteConfig.eventDateDisplay.toLowerCase()} hacemos la segunda. Mismo bosque, más gente, mejor música.`)}
   ${paragraph(priceRiseLine(now))}
 </td></tr>
 
@@ -433,12 +435,16 @@ ${DIVIDER}
 ${DIVIDER}
 
 <tr><td>
-  <p style="margin:0 0 16px;font-family:${SERIF};font-size:26px;line-height:1.25;color:${FOREST}">Volvé. El bosque que empezaste sigue creciendo.</p>
-  <p style="margin:0;font-family:${MONO};font-size:11px;line-height:1.7;color:${FOREST_60}">P.D. Si venís con alguien, podés llevar hasta 10 entradas en la misma compra, todas a ${price.priceDisplay}.</p>
+  <p style="margin:0 0 16px;font-family:${SERIF};font-size:26px;line-height:1.25;color:${FOREST}">El bosque ya crece solo. Lo que falta es la fiesta.</p>
+  <p style="margin:0;font-family:${MONO};font-size:11px;line-height:1.7;color:${FOREST_60}">P.D. Podés llevar hasta 10 entradas en la misma compra, todas a ${price.priceDisplay}. Traé a quien quieras.</p>
 </td></tr>
 ${SHELL_CLOSE}`;
 
-  return { subject: "Un regalo para quien ya plantó un bosque", html };
+  // The reciprocity is the hook, but the reason to open is that this is a
+  // party — so the subject promises the party and the H1 delivers the gift.
+  // "Un regalo para quien ya plantó un bosque" said the same thing with the
+  // energy of a plaque.
+  return { subject: "Plantaste un bosque. Vení a bailarlo.", html };
 }
 
 /* ─── wave 2 — "cómo suena" ───────────────────────────────────────────── */
@@ -452,7 +458,7 @@ ${SHELL_CLOSE}`;
  */
 const WAVE2_CLOSER: Record<ComunidadSegment, string> = {
   brote1: "Ya sabés cómo termina esto.",
-  plant: "La fiesta la conocés de oídas. El jueves la ves.",
+  plant: "La fiesta te la contaron. El jueves la vivís.",
   both: "Ya sabés cómo termina esto.",
 };
 
@@ -473,7 +479,7 @@ function renderWave2(recipient: ComunidadRecipient, now: Date): RenderedEmail {
   const blocks = [
     {
       time: lineup.welcome.time,
-      body: "Algo para comer, algo para tomar y una hora entera para conocerse. Si venís por tu cuenta, estamos en la puerta: te presentamos gente.",
+      body: "Algo para comer, algo para tomar y una hora entera para conocerse. Si venís por tu cuenta, mejor: estamos en la puerta y te presentamos gente.",
     },
     { time: lineup.live.time, body: mentionText(lineup.live.mention) },
     { time: lineup.dj.time, body: mentionText(lineup.dj.mention) },
@@ -490,8 +496,8 @@ function renderWave2(recipient: ComunidadRecipient, now: Date): RenderedEmail {
     })
     .join("\n");
 
-  const html = `${shellOpen("Line up", `Guitarra y voz, sin nada en el medio. Después entra ${collaboratorFirstName("gian")}.`)}
-<tr><td style="padding:0 0 22px">${serifHeading("Cómo va a sonar<br>el jueves.")}</td></tr>
+  const html = `${shellOpen("Line up", `Guitarra y voz, sin nada en el medio. Después entra ${collaboratorFirstName("gian")} y no se para más.`)}
+<tr><td style="padding:0 0 22px">${serifHeading("Así se va a poner<br>el jueves.")}</td></tr>
 
 <tr><td>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -503,7 +509,7 @@ ${DIVIDER}
 
 <tr><td>
   <p style="margin:0 0 14px;font-family:${SERIF};font-style:italic;font-size:22px;line-height:1.3;color:${FOREST}">${WAVE2_CLOSER[segmentOf(recipient)]}</p>
-  ${paragraph(`Tu precio sigue en <strong style="color:${FOREST}">${price.priceDisplay}</strong>. El resto está pagando ${publicPrice}.`)}
+  ${paragraph(`Tu precio sigue en <strong style="color:${FOREST}">${price.priceDisplay}</strong>. El resto paga ${publicPrice}. No lo pensés tanto.`)}
 </td></tr>
 
 <tr><td style="padding:16px 0 0">${ctaButton(2, "Quiero mi entrada")}</td></tr>
@@ -511,12 +517,12 @@ ${DIVIDER}
 <tr><td style="padding:30px 0 0">${eventStrip()}</td></tr>
 ${SHELL_CLOSE}`;
 
-  // Both variables: the hour off the line-up ("20:00 · En vivo" → "20"), the
-  // artist off the registry. Neither is retyped, so a change to the running
-  // order or the line-up moves the subject with it.
-  const liveHour = lineup.live.time.split(":")[0].trim();
+  // The artist comes off the registry so the subject cannot go stale. The
+  // hour used to be in here too, derived off the line-up — it was accurate
+  // and it read like a press release. What sells a Thursday night is what
+  // happens after the set, not the timestamp of it.
   return {
-    subject: `El jueves, a las ${liveHour}, toca ${collaboratorFirstName("jose")}`,
+    subject: `Toca ${collaboratorFirstName("jose")}. Después se baila.`,
     html,
   };
 }
@@ -537,7 +543,7 @@ function renderWave3(recipient: ComunidadRecipient, now: Date): RenderedEmail {
   // No segment variant here on purpose: the closing line is true for both
   // halves of the audience — everyone in it has a tree in the ground.
   const closer =
-    "Y si no llegás, no pasa nada: el árbol que plantaste sigue creciendo igual. Nos vemos en la próxima.";
+    "Y si no llegás, no pasa nada — tu árbol sigue creciendo igual. Nos vemos en la próxima.";
 
   // Every part of this line is config: "Jueves 20 de agosto" → "Jueves", and
   // the start hour off `eventTime`. Typed out, the weekday goes stale the
@@ -549,7 +555,7 @@ function renderWave3(recipient: ComunidadRecipient, now: Date): RenderedEmail {
 <tr><td style="padding:0 0 22px">${serifHeading(name ? `Mañana, ${escapeHtml(name)}.` : "Mañana.", 58)}</td></tr>
 
 <tr><td>
-  ${paragraph(`${broteConfig.eventDateDisplay}, ${broteConfig.eventTime}, ${broteConfig.locationAddress}. Somos alrededor de ${broteConfig.expectedAttendees} personas en una casa de Palermo. Mañana a esta hora ya estamos ahí.`)}
+  ${paragraph(`Mañana a esta hora ya estamos sirviendo la primera. ${broteConfig.eventDateDisplay}, ${broteConfig.eventTime}, ${broteConfig.locationAddress} — unas ${broteConfig.expectedAttendees} personas en una casa que se va a poner buena.`)}
   ${paragraph("Si lo venías pensando, es hoy.")}
 </td></tr>
 
