@@ -34,16 +34,32 @@ const WAVE_SLUGS = [
   "email-comunidad-w3",
 ];
 
-const seededPeople = sql`
-  SELECT id FROM people
-  WHERE email LIKE ${P + "%"} OR name LIKE ${"%" + MARK}
-`;
-
+/**
+ * One statement, on purpose.
+ *
+ * Two separate DELETEs (participations, then people) left CI red with an FK
+ * violation: `participations` points at `people` through **two** columns —
+ * `person_id` and `buyer_person_id`, which `recordParticipation` also stamps
+ * — so deleting by `person_id` alone leaves a row still referencing a person
+ * the next statement then tries to remove.
+ *
+ * A CTE fixes both halves at once: every child row goes in the same snapshot
+ * as the parent lookup, and both foreign keys are covered.
+ */
 async function cleanup() {
   await db.execute(sql`
-    DELETE FROM participations WHERE person_id IN (${seededPeople})
+    WITH victims AS (
+      SELECT id FROM people
+      WHERE email LIKE ${P + "%"} OR name LIKE ${"%" + MARK}
+    ), dropped AS (
+      DELETE FROM participations
+      WHERE person_id IN (SELECT id FROM victims)
+         OR buyer_person_id IN (SELECT id FROM victims)
+         OR id LIKE 'CM-TEST-%'
+      RETURNING 1
+    )
+    DELETE FROM people WHERE id IN (SELECT id FROM victims)
   `);
-  await db.execute(sql`DELETE FROM people WHERE id IN (${seededPeople})`);
 }
 
 /** Everyone this test seeds, by the reason they exist. */
