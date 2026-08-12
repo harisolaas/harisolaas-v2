@@ -20,7 +20,10 @@ import {
   type BulkEmailWarning,
 } from "@/lib/bulk-email";
 import { notifyAdminOfCampaign } from "@/lib/admin-alert";
-import { loadComunidadAudience } from "@/lib/brote-comunidad-audience";
+import {
+  countComunidadAudienceMissingEmail,
+  loadComunidadAudience,
+} from "@/lib/brote-comunidad-audience";
 import {
   renderComunidadEmail,
   waveCtaUrl,
@@ -95,7 +98,11 @@ export async function runComunidadCampaign(opts: {
       source: "email",
       medium: "campaign",
       campaign: "brote-comunidad",
-      createdDate: new Date().toISOString().slice(0, 10),
+      // Buenos Aires, not UTC: a wave sent at 21:00 ART would otherwise be
+      // filed under tomorrow in the admin's by-date view.
+      createdDate: new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Argentina/Buenos_Aires",
+      }).format(new Date()),
       createdBy: "brote-comunidad-campaign",
       note: "Auto-created by the Comunidad BROTE win-back campaign.",
     })
@@ -215,6 +222,9 @@ export async function runComunidadCampaign(opts: {
     skipped: result.skipped,
     failed: result.failed,
     warnings: result.warnings,
+    // Only meaningful for a full run: with an override the audience was
+    // chosen by hand, so "who has no email on file" says nothing about it.
+    missingEmails: override ? 0 : await countComunidadAudienceMissingEmail(),
     note: override
       ? "Run used audienceOverride (not the full DB audience)."
       : undefined,

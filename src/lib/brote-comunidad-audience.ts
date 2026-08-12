@@ -40,6 +40,36 @@ interface RawRow {
   came_to_plant: boolean;
 }
 
+/**
+ * Everything that decides whether a person belongs, EXCEPT whether we can
+ * reach them.
+ *
+ * Composed rather than written twice because two queries need it: the one
+ * that builds the audience (`email IS NOT NULL`) and the one that counts who
+ * qualified but has no address (`email IS NULL`). The second feeds
+ * `missingEmails` on the admin alert, which exists precisely to surface
+ * people the send never saw — and it can only be trusted if both halves ask
+ * the same question.
+ */
+const QUALIFIES = sql`
+  pa.event_id IN (${BROTE_1_EVENT_ID}, ${PLANT_EVENT_ID})
+  AND pa.status <> 'cancelled'
+  -- An explicit opt-out is the one preference we do have on record.
+  -- communication_opt_ins is NOT filtered on: the consent flow that would
+  -- populate it meaningfully was never built, so every row carries the same
+  -- default and filtering on it would be theatre.
+  AND p.opted_out_at IS NULL
+  -- Already holds a BROTE 2 ticket: don't offer them a discount on something
+  -- they have already paid for. Re-evaluated on every wave, so anyone who
+  -- buys between sends drops out of the next one by itself.
+  AND NOT EXISTS (
+    SELECT 1 FROM participations b2
+    WHERE b2.person_id = p.id
+      AND b2.event_id = ${BROTE_EVENT_ID}
+      AND b2.status IN ('confirmed', 'used', 'no_show')
+  )
+`;
+
 export async function loadComunidadAudience(): Promise<
   ComunidadAudienceRow[]
 > {
@@ -53,23 +83,8 @@ export async function loadComunidadAudience(): Promise<
       bool_or(pa.event_id = ${PLANT_EVENT_ID})   AS came_to_plant
     FROM people p
     JOIN participations pa ON pa.person_id = p.id
-    WHERE pa.event_id IN (${BROTE_1_EVENT_ID}, ${PLANT_EVENT_ID})
-      AND pa.status <> 'cancelled'
+    WHERE ${QUALIFIES}
       AND p.email IS NOT NULL
-      -- An explicit opt-out is the one preference we do have on record.
-      -- communication_opt_ins is NOT filtered on: the consent flow that would
-      -- populate it meaningfully was never built, so every row carries the
-      -- same default and filtering on it would be theatre.
-      AND p.opted_out_at IS NULL
-      -- Already holds a BROTE 2 ticket: don't offer them a discount on
-      -- something they have already paid for. Re-evaluated on every wave, so
-      -- anyone who buys between sends drops out of the next one by itself.
-      AND NOT EXISTS (
-        SELECT 1 FROM participations b2
-        WHERE b2.person_id = p.id
-          AND b2.event_id = ${BROTE_EVENT_ID}
-          AND b2.status IN ('confirmed', 'used', 'no_show')
-      )
     GROUP BY p.id, p.name, p.email, p.phone
     ORDER BY p.name NULLS LAST
   `);
@@ -85,4 +100,23 @@ export async function loadComunidadAudience(): Promise<
     cameToBrote1: Boolean(r.came_to_brote1),
     cameToPlant: Boolean(r.came_to_plant),
   }));
+}
+
+/**
+ * How many people belong in this campaign but have no address on file.
+ *
+ * They never enter the audience, so `sendBulkEmails` cannot see them and the
+ * reconciliation gap stays at zero while real people go uncontacted. This is
+ * the number `notifyAdminOfCampaign`'s `missingEmails` bucket reports, and
+ * the runbook's instruction is to fix `people` before the next wave.
+ */
+export async function countComunidadAudienceMissingEmail(): Promise<number> {
+  const result = await db.execute(sql`
+    SELECT COUNT(DISTINCT p.id)::int AS n
+    FROM people p
+    JOIN participations pa ON pa.person_id = p.id
+    WHERE ${QUALIFIES}
+      AND p.email IS NULL
+  `);
+  return Number((result.rows[0] as { n: number } | undefined)?.n ?? 0);
 }
