@@ -211,6 +211,18 @@ function collaboratorLink(slug: string): string {
   return `<a href="${href}" style="color:${FOREST};text-decoration:underline">${invitation.name}</a>`;
 }
 
+/**
+ * A collaborator's first name, for a subject line where the full name is too
+ * long. Resolved from the registry like everything else: a subject that says
+ * "toca José" while the body resolves whoever is actually on the line-up is
+ * the same drift `brote-invitations.ts` exists to prevent — and the subject
+ * is the half of the mail that most people will read.
+ */
+function collaboratorFirstName(slug: string): string {
+  const name = getInvitation(slug)?.name ?? "";
+  return name.split(/\s+/)[0] ?? "";
+}
+
 /** `{bodyBefore}{collaborator}{bodyAfter}` as the dictionary stores it. */
 function mentionText(mention: {
   bodyBefore: string;
@@ -478,7 +490,7 @@ function renderWave2(recipient: ComunidadRecipient, now: Date): RenderedEmail {
     })
     .join("\n");
 
-  const html = `${shellOpen("Line up", "Guitarra y voz, sin nada en el medio. Después entra Gian.")}
+  const html = `${shellOpen("Line up", `Guitarra y voz, sin nada en el medio. Después entra ${collaboratorFirstName("gian")}.`)}
 <tr><td style="padding:0 0 22px">${serifHeading("Cómo va a sonar<br>el jueves.")}</td></tr>
 
 <tr><td>
@@ -499,7 +511,14 @@ ${DIVIDER}
 <tr><td style="padding:30px 0 0">${eventStrip()}</td></tr>
 ${SHELL_CLOSE}`;
 
-  return { subject: "El jueves, a las 20, toca José", html };
+  // Both variables: the hour off the line-up ("20:00 · En vivo" → "20"), the
+  // artist off the registry. Neither is retyped, so a change to the running
+  // order or the line-up moves the subject with it.
+  const liveHour = lineup.live.time.split(":")[0].trim();
+  return {
+    subject: `El jueves, a las ${liveHour}, toca ${collaboratorFirstName("jose")}`,
+    html,
+  };
 }
 
 /* ─── wave 3 — "mañana" ───────────────────────────────────────────────── */
@@ -520,7 +539,13 @@ function renderWave3(recipient: ComunidadRecipient, now: Date): RenderedEmail {
   const closer =
     "Y si no llegás, no pasa nada: el árbol que plantaste sigue creciendo igual. Nos vemos en la próxima.";
 
-  const html = `${shellOpen("Mañana", `Jueves 19:00, ${broteConfig.locationAddress}. Tu entrada sigue en ${price.priceDisplay}.`)}
+  // Every part of this line is config: "Jueves 20 de agosto" → "Jueves", and
+  // the start hour off `eventTime`. Typed out, the weekday goes stale the
+  // first time the party moves and nothing else in the mail does.
+  const weekday = broteConfig.eventDateDisplay.split(/\s+/)[0];
+  const startTime = broteConfig.eventStartTime;
+
+  const html = `${shellOpen("Mañana", `${weekday} ${startTime}, ${broteConfig.locationAddress}. Tu entrada sigue en ${price.priceDisplay}.`)}
 <tr><td style="padding:0 0 22px">${serifHeading(name ? `Mañana, ${escapeHtml(name)}.` : "Mañana.", 58)}</td></tr>
 
 <tr><td>

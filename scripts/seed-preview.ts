@@ -695,6 +695,16 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     role: "attendee",
     status: "cancelled",
   },
+  {
+    // Excluded — `waitlist`. Never got a place, so the copy's "estuviste" /
+    // "plantaste" would be false. Real plantación waitlist rows also carry
+    // the email address as the name.
+    id: "PREVIEW-CM-010",
+    personEmail: "preview-gabi@example.com",
+    eventId: "plant-2026-04",
+    role: "planter",
+    status: "waitlist",
+  },
   // Excluded — already holds a BROTE 2 ticket. Offering a discount on
   // something they have paid for reads as a mistake and invites a refund
   // request, so the two rows below have to keep Flor out of the audience.

@@ -79,17 +79,21 @@ re-run on every wave, so anyone who buys between sends drops out of the
 next one by themselves. `scripts/brote-returning-audience.ts` prints the
 same list read-only, and is the right way to eyeball it before sending.
 
-```
+```sh
+send() {
+  curl -X POST https://www.harisolaas.com/api/brote/admin \
+    -H "Authorization: Bearer $BROTE_ADMIN_SECRET" \
+    -H 'content-type: application/json' -d "$1"
+}
+
 # 1. see who it would go to (NEVER sends)
-curl -X POST https://www.harisolaas.com/api/brote/admin \
-  -H "Authorization: Bearer $BROTE_ADMIN_SECRET" -H 'content-type: application/json' \
-  -d '{"action":"comunidad-campaign","wave":1,"mode":"preview"}'
+send '{"action":"comunidad-campaign","wave":1,"mode":"preview"}'
 
 # 2. send one to yourself first
-  -d '{"action":"comunidad-campaign","wave":1,"mode":"send","audienceOverride":["you@example.com"]}'
+send '{"action":"comunidad-campaign","wave":1,"mode":"send","audienceOverride":["you@example.com"]}'
 
 # 3. the real send
-  -d '{"action":"comunidad-campaign","wave":1,"mode":"send"}'
+send '{"action":"comunidad-campaign","wave":1,"mode":"send"}'
 ```
 
 Two things specific to this campaign:

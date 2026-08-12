@@ -2,13 +2,13 @@
  * Who already came — the audience for the "Comunidad BROTE" campaign and for
  * `/es/brote/invitacion/comunidad`.
  *
- * Everyone with a real participation in BROTE 1 or the planting day, minus
+ * Everyone who actually took part in BROTE 1 or the planting day, minus
  * anyone who already bought for BROTE 2 (sending them a discount for a ticket
  * they own reads as a mistake, and invites a refund request).
  *
- * `cancelled` is excluded: they signed up and pulled out. `no_show` is kept —
- * they paid and didn't make it, which is a reason to invite them back, not a
- * reason to drop them.
+ * "Actually took part" is an allow-list of `confirmed` / `used` / `no_show` —
+ * see the comment on QUALIFIES for why `waitlist` and `pending` are not the
+ * same thing as having been there.
  *
  * This lives in `src/lib` rather than in the script that first wrote it
  * because two things read it now — `scripts/brote-returning-audience.ts` and
@@ -53,7 +53,19 @@ interface RawRow {
  */
 const QUALIFIES = sql`
   pa.event_id IN (${BROTE_1_EVENT_ID}, ${PLANT_EVENT_ID})
-  AND pa.status <> 'cancelled'
+  -- Allow-list, not "anything except cancelled".
+  --
+  -- The copy makes a specific claim — "el 28 de marzo estuviste en la
+  -- primera", "el 19 de abril plantaste con las manos" — and waitlist and
+  -- pending are people that never happened to. The plantación waitlist rows
+  -- in particular were seeded with the email address as the name, so those
+  -- would also have been greeted by their own inbox.
+  --
+  -- no_show stays: they paid and didn't make it, which is a reason to invite
+  -- them back, not a reason to drop them. Same three statuses the BROTE 2
+  -- exclusion below counts as "already has a ticket", which is the symmetry
+  -- you want — held a place then, holds one now.
+  AND pa.status IN ('confirmed', 'used', 'no_show')
   -- An explicit opt-out is the one preference we do have on record.
   -- communication_opt_ins is NOT filtered on: the consent flow that would
   -- populate it meaningfully was never built, so every row carries the same

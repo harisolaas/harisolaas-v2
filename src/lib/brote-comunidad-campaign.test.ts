@@ -50,7 +50,7 @@ async function cleanup() {
 async function seed(opts: {
   key: string;
   eventId: string;
-  status: "confirmed" | "used" | "no_show" | "cancelled";
+  status: "confirmed" | "used" | "no_show" | "cancelled" | "waitlist" | "pending";
 }) {
   await recordParticipation({
     email: `${P}${opts.key}@example.com`,
@@ -151,6 +151,33 @@ describe("loadComunidadAudience — who is out", () => {
 
     const emails = (await loadComunidadAudience()).map((r) => r.email);
     expect(emails).not.toContain(emailOf("cx"));
+  });
+
+  it.each(["waitlist", "pending"] as const)(
+    "drops %s — the copy claims they were there, and they were not",
+    async (status) => {
+      await seed({ key: `w-${status}`, eventId: PLANT_EVENT_ID, status });
+
+      // "El 19 de abril te tomaste el viaje hasta la reserva y plantaste con
+      // las manos" is not a sentence you can send to someone who sat on the
+      // waitlist, or whose checkout never completed.
+      const emails = (await loadComunidadAudience()).map((r) => r.email);
+      expect(emails).not.toContain(emailOf(`w-${status}`));
+    },
+  );
+
+  it("still reaches someone waitlisted for one event and confirmed at the other", async () => {
+    await seed({ key: "mix", eventId: PLANT_EVENT_ID, status: "waitlist" });
+    await seed({ key: "mix", eventId: BROTE_1_EVENT_ID, status: "used" });
+
+    const row = (await loadComunidadAudience()).find(
+      (r) => r.email === emailOf("mix"),
+    );
+    expect(row).toBeDefined();
+    // And the waitlisted half must not set the flag, or they get the
+    // plantación paragraph about a day they never went to.
+    expect(row!.cameToPlant).toBe(false);
+    expect(row!.cameToBrote1).toBe(true);
   });
 
   it.each(["confirmed", "used", "no_show"] as const)(

@@ -85,6 +85,16 @@ export async function runComunidadCampaign(opts: {
   const { wave } = opts;
   const slug = waveLinkSlug(wave);
 
+  // One clock for the whole wave.
+  //
+  // The body is time-dependent — the price-rise line, the preheader and the
+  // public price all branch on `now` — and a send throttled at 1s/recipient
+  // takes minutes. Left to each render's default, a wave that crosses
+  // midnight (or the preventa deadline) would deliver two different mails
+  // under one subject, and the people at the end of the alphabet would get
+  // the other one.
+  const renderNow = new Date();
+
   // Tracked short link, upserted here rather than in a seed script so the
   // campaign cannot run against a `/go/` slug that has no row — the redirect
   // would 404 and the whole wave would be unclickable.
@@ -151,11 +161,11 @@ export async function runComunidadCampaign(opts: {
 
   // The subject does not vary per recipient, so one render answers for the
   // whole wave — and the preview reports the real string, not a copy of it.
-  const { subject } = renderComunidadEmail(wave, {
-    name: null,
-    cameToBrote1: true,
-    cameToPlant: false,
-  });
+  const { subject } = renderComunidadEmail(
+    wave,
+    { name: null, cameToBrote1: true, cameToPlant: false },
+    renderNow,
+  );
 
   const base = {
     ok: true as const,
@@ -186,11 +196,15 @@ export async function runComunidadCampaign(opts: {
     resend,
     getEmail: (r) => r.email,
     build: (r) => {
-      const { subject: s, html } = renderComunidadEmail(wave, {
-        name: r.name,
-        cameToBrote1: r.cameToBrote1,
-        cameToPlant: r.cameToPlant,
-      });
+      const { subject: s, html } = renderComunidadEmail(
+        wave,
+        {
+          name: r.name,
+          cameToBrote1: r.cameToBrote1,
+          cameToPlant: r.cameToPlant,
+        },
+        renderNow,
+      );
       return {
         from: `BROTE <${fromEmail}>`,
         to: r.email,

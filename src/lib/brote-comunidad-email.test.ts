@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { broteConfig, currentTicketPrice } from "@/data/brote";
+import es from "@/dictionaries/es";
 import { getInvitation, resolveInvitationPrice } from "./brote-invitations";
 import {
   firstName,
@@ -179,9 +180,12 @@ describe("comunidad email — links and structure", () => {
     const { html } = renderComunidadEmail(wave, SEGMENTS.both, AFTER_DEADLINE);
     expect(waveLinkSlug(wave)).toBe(`email-comunidad-w${wave}`);
     expect(html).toContain(waveCtaUrl(wave));
-    // The bare invitation URL would land the sale on `inv-comunidad` and the
-    // wave would report zero conversions.
-    expect(html).not.toContain('href="https://www.harisolaas.com/es/brote/invitacion/comunidad"');
+    // Not "the production URL is absent" — that assertion passes for the
+    // wrong reason whenever NEXT_PUBLIC_BASE_URL differs. What must never
+    // appear is a link straight to the invitation path, whatever the host:
+    // it would land the sale on `inv-comunidad` and the wave would report
+    // zero conversions.
+    expect(html).not.toMatch(/href="[^"]*\/brote\/invitacion\//);
   });
 
   it.each(WAVES)("wave %i has a subject and a preheader", (wave) => {
@@ -200,6 +204,15 @@ describe("comunidad email — links and structure", () => {
   it.each(WAVES)("wave %i offers a way out — this is marketing", (wave) => {
     const { html } = renderComunidadEmail(wave, SEGMENTS.both, AFTER_DEADLINE);
     expect(html).toContain("respondé BAJA");
+  });
+
+  it("builds wave 2's subject from the registry, not from a typed name", () => {
+    const { subject } = renderComunidadEmail(2, SEGMENTS.both, AFTER_DEADLINE);
+    // The subject is the half of the mail most people read; if the line-up
+    // changes, it has to move with it.
+    const jose = getInvitation("jose")!.name.split(" ")[0];
+    expect(subject).toContain(jose);
+    expect(subject).toContain(es.brote.lineup.live.time.split(":")[0]);
   });
 
   it("takes the running order from the landing, so it cannot drift", () => {
