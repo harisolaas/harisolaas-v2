@@ -76,6 +76,11 @@ interface EventFixture {
 interface PersonFixture {
   email: string;
   name: string;
+  /**
+   * Stamps `opted_out_at`. The Comunidad BROTE audience filters these out, so
+   * a preview branch needs at least one to prove the filter does something.
+   */
+  optedOut?: boolean;
 }
 
 interface ParticipationFixture {
@@ -204,6 +209,48 @@ const EVENTS: EventFixture[] = [
     status: "upcoming",
     landingPath: "/es/sinergia-parrafo",
   },
+  // ── The three REAL edition ids, deliberately not `preview-` prefixed ──
+  //
+  // Anything keyed on the constants in `src/data/brote.ts` — the tree counter,
+  // and the Comunidad BROTE campaign's audience query — looks up
+  // `brote-2026-03-28`, `plant-2026-04` and `brote-2026-08-20` by name. Seeded
+  // only under `preview-` ids, those surfaces return zero rows in a preview
+  // branch and cannot be exercised at all, which is the exact thing seeding is
+  // supposed to prevent.
+  //
+  // Safe because this script only ever runs against a preview/dev Neon branch
+  // and every insert is ON CONFLICT DO NOTHING: on the off chance it is
+  // pointed at a branch that already has the real rows, it changes nothing.
+  {
+    id: "brote-2026-03-28",
+    type: "brote",
+    series: null,
+    name: "BROTE — 28 de marzo 2026",
+    date: "2026-03-28T20:00:00-03:00",
+    capacity: null,
+    status: "past",
+    landingPath: "/es/brote",
+  },
+  {
+    id: "plant-2026-04",
+    type: "plant",
+    series: null,
+    name: "Plantación Abril 2026",
+    date: "2026-04-19T14:30:00-03:00",
+    capacity: 40,
+    status: "past",
+    landingPath: null,
+  },
+  {
+    id: "brote-2026-08-20",
+    type: "brote",
+    series: null,
+    name: "BROTE 2 — 20 de agosto 2026",
+    date: "2026-08-20T19:00:00-03:00",
+    capacity: null,
+    status: "upcoming",
+    landingPath: "/es/brote",
+  },
 ];
 
 const PEOPLE: PersonFixture[] = [
@@ -243,6 +290,10 @@ const PEOPLE: PersonFixture[] = [
   // / `recordParticipation` and the backfill script's filter
   // (`name='Asistente' AND external_payment_id IS NOT NULL`).
   { email: "preview-asistente@example.com", name: "Asistente" },
+  // Came to BROTE 1 and later asked to be taken off the list. Nothing in the
+  // admin UI makes them look different — the only way to see that the
+  // Comunidad BROTE audience honours `opted_out_at` is to have one.
+  { email: "preview-baja@example.com", name: "Bruno Baja", optedOut: true },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -577,6 +628,108 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       paymentId: `PREVIEW-MP-SP-${String(i + 1).padStart(3, "0")}`,
     }),
   })),
+
+  // ── Comunidad BROTE audience, under the REAL edition ids ──
+  //
+  // `loadComunidadAudience()` looks up `brote-2026-03-28` / `plant-2026-04`
+  // and excludes anyone holding `brote-2026-08-20`, so these rows are what
+  // make `{"action":"comunidad-campaign","wave":1,"mode":"preview"}` return
+  // anything at all in a preview branch. Every branch of the query is
+  // covered: the three segments that each get different copy, and the three
+  // reasons a person is dropped.
+  {
+    // Segment "brote1". `used` — they came.
+    id: "PREVIEW-CM-001",
+    personEmail: "preview-ana@example.com",
+    eventId: "brote-2026-03-28",
+    role: "attendee",
+    status: "used",
+    priceCents: 1_865_000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-CM-001",
+  },
+  {
+    // Segment "brote1" via `no_show` — kept on purpose. They paid and didn't
+    // make it, which is a reason to invite them back, not to drop them.
+    id: "PREVIEW-CM-002",
+    personEmail: "preview-beto@example.com",
+    eventId: "brote-2026-03-28",
+    role: "attendee",
+    status: "no_show",
+    priceCents: 1_865_000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-CM-002",
+  },
+  {
+    // Segment "plant" — the planting day was free, so no price.
+    id: "PREVIEW-CM-003",
+    personEmail: "preview-carla@example.com",
+    eventId: "plant-2026-04",
+    role: "planter",
+    status: "confirmed",
+  },
+  // Segment "both" — Dani is in the two rows below, and gets the third copy
+  // variant ("Sos de la primera camada").
+  {
+    id: "PREVIEW-CM-004",
+    personEmail: "preview-dani@example.com",
+    eventId: "brote-2026-03-28",
+    role: "attendee",
+    status: "used",
+    priceCents: 1_865_000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-CM-004",
+  },
+  {
+    id: "PREVIEW-CM-005",
+    personEmail: "preview-dani@example.com",
+    eventId: "plant-2026-04",
+    role: "planter",
+    status: "confirmed",
+  },
+  {
+    // Excluded — `cancelled`. Signed up and pulled out.
+    id: "PREVIEW-CM-006",
+    personEmail: "preview-eze@example.com",
+    eventId: "brote-2026-03-28",
+    role: "attendee",
+    status: "cancelled",
+  },
+  // Excluded — already holds a BROTE 2 ticket. Offering a discount on
+  // something they have paid for reads as a mistake and invites a refund
+  // request, so the two rows below have to keep Flor out of the audience.
+  {
+    id: "PREVIEW-CM-007",
+    personEmail: "preview-flor@example.com",
+    eventId: "brote-2026-03-28",
+    role: "attendee",
+    status: "used",
+    priceCents: 1_865_000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-CM-007",
+  },
+  {
+    id: "PREVIEW-CM-008",
+    personEmail: "preview-flor@example.com",
+    eventId: "brote-2026-08-20",
+    role: "attendee",
+    status: "confirmed",
+    priceCents: 2_145_000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-CM-008",
+    invite: "comunidad",
+  },
+  {
+    // Excluded — opted out. Came to BROTE 1 and asked off the list.
+    id: "PREVIEW-CM-009",
+    personEmail: "preview-baja@example.com",
+    eventId: "brote-2026-03-28",
+    role: "attendee",
+    status: "used",
+    priceCents: 1_865_000,
+    currency: "ARS",
+    paymentId: "PREVIEW-MP-CM-009",
+  },
 ];
 
 
@@ -710,8 +863,11 @@ async function main() {
   // People.
   for (const p of PEOPLE) {
     await db.execute(sql`
-      INSERT INTO people (email, name)
-      VALUES (${p.email}, ${p.name})
+      INSERT INTO people (email, name, opted_out_at)
+      VALUES (
+        ${p.email}, ${p.name},
+        ${p.optedOut ? sql`NOW() - INTERVAL '30 days'` : sql`NULL`}
+      )
       ON CONFLICT (email) DO NOTHING
     `);
   }

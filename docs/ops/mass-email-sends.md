@@ -68,6 +68,44 @@ conclude everything was fine — check the cron response first.
 | `src/lib/plant-reminder.ts` (via `/api/cron/plant-reminder`) | `plant-day-of-reminder-2026-04-19` | `plant:rsvp:<rsvpId>:day-of-reminder` | `0 13 19 4 *` (one-shot, 2026-04-19) |
 | `src/app/api/sinergia/send-reminders/route.ts` | `sinergia-reminder-<YYYY-MM-DD>` | `sinergia:rsvp:<rsvpId>:reminder` | `0 13 * * 3` (weekly, Wednesdays) |
 | `src/app/api/sinergia/admin/route.ts` (`send-first-session-extras`) | `sinergia-first-session-extras-<YYYY-MM-DD>` | `sinergia:rsvp:<rsvpId>:first-session-extra` | admin-triggered (one-off) |
+| `src/lib/brote-comunidad-campaign.ts` (via `POST /api/brote/admin` `comunidad-campaign`) | `brote-comunidad-w<1\|2\|3>-2026-08` | `brote:comunidad:<personId>:w<N>` | admin-triggered (three waves) |
+
+### Comunidad BROTE — the three-wave win-back
+
+Audience: everyone with a participation in BROTE 1 (`brote-2026-03-28`) or
+the planting day (`plant-2026-04`) who does **not** already hold a BROTE 2
+ticket. The query lives in `src/lib/brote-comunidad-audience.ts` and is
+re-run on every wave, so anyone who buys between sends drops out of the
+next one by themselves. `scripts/brote-returning-audience.ts` prints the
+same list read-only, and is the right way to eyeball it before sending.
+
+```
+# 1. see who it would go to (NEVER sends)
+curl -X POST https://www.harisolaas.com/api/brote/admin \
+  -H "Authorization: Bearer $BROTE_ADMIN_SECRET" -H 'content-type: application/json' \
+  -d '{"action":"comunidad-campaign","wave":1,"mode":"preview"}'
+
+# 2. send one to yourself first
+  -d '{"action":"comunidad-campaign","wave":1,"mode":"send","audienceOverride":["you@example.com"]}'
+
+# 3. the real send
+  -d '{"action":"comunidad-campaign","wave":1,"mode":"send"}'
+```
+
+Two things specific to this campaign:
+
+- **`mode: "preview"` never sends.** It reports `audienceSize`, the
+  per-segment split and a 10-address sample. To see the mail in a real
+  inbox use `mode: "send"` with an `audienceOverride`.
+- **Throttle is 1000ms**, not the 600ms default. Eight days out from the
+  party there is no room for a rate-limited round that has to be unpicked
+  by hand.
+
+A test send to an address that is itself in the audience sets that
+person's real flag, so they are skipped in the full run. That is
+deliberate — it is how you avoid mailing yourself twice — but it means
+you should test from an address you are happy to have "already received"
+the wave.
 
 `src/app/api/brote/admin/route.ts` also has a `plant-send-reminder`
 admin action that wraps `runPlantReminderCampaign` — useful for preview
