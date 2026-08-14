@@ -440,11 +440,18 @@ ${DIVIDER}
 </td></tr>
 ${SHELL_CLOSE}`;
 
-  // The reciprocity is the hook, but the reason to open is that this is a
-  // party — so the subject promises the party and the H1 delivers the gift.
-  // "Un regalo para quien ya plantó un bosque" said the same thing with the
-  // energy of a plaque.
-  return { subject: "Plantaste un bosque. Vení a bailarlo.", html };
+  // Hari's line, verbatim, at his explicit request.
+  //
+  // It runs well past what a phone shows in the subject list (~40 chars, so
+  // it clips around "…que ya le regalaste"). That is a deliberate trade, not
+  // an oversight: the clipped half still reads as a complete promise, and
+  // this is the sentence that made the campaign worth sending. The preheader
+  // carries the price deadline so the truncated line is not the only hook.
+  return {
+    subject:
+      "Tenemos un regalo para vos que ya le regalaste un bosque a tu país.",
+    html,
+  };
 }
 
 /* ─── wave 2 — "cómo suena" ───────────────────────────────────────────── */

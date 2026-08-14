@@ -194,9 +194,11 @@ describe("comunidad email — links and structure", () => {
       AFTER_DEADLINE,
     );
     expect(subject.trim().length).toBeGreaterThan(0);
-    // Mobile clients cut the subject around 40 characters; anything longer
-    // loses the part that earns the open.
-    expect(subject.length).toBeLessThanOrEqual(45);
+    // Not a mobile-truncation guard any more: wave 1 deliberately runs long
+    // (Hari's line, his call), and the first ~40 characters still read as a
+    // whole promise. What this bound protects is the mail itself — past ~78
+    // some clients fold or clip the header outright.
+    expect(subject.length).toBeLessThanOrEqual(78);
     expect(html).toMatch(/mso-hide:all">[^<]+</);
   });
 
