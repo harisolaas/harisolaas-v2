@@ -18,6 +18,8 @@ import {
   buildPlantInvite2Html,
 } from "@/lib/plant-email";
 import { runPlantReminderCampaign } from "@/lib/plant-reminder";
+import { runComunidadCampaign } from "@/lib/brote-comunidad-campaign";
+import type { ComunidadWave } from "@/lib/brote-comunidad-email";
 import { sendMetaEvent } from "@/lib/meta-capi";
 
 const PLANT_EVENT_ID = "plant-2026-04";
@@ -231,6 +233,7 @@ export async function POST(req: Request) {
       toEmail?: string;
       giftName?: string;
       variant?: 1 | 2;
+      wave?: number;
       mode?: "preview" | "send";
       audienceOverride?: string[];
       registrationId?: string;
@@ -245,6 +248,7 @@ export async function POST(req: Request) {
       toEmail,
       giftName,
       variant,
+      wave,
       mode,
       audienceOverride,
       registrationId,
@@ -392,6 +396,27 @@ export async function POST(req: Request) {
     // logic runs unattended via the /api/cron/plant-reminder cron.
     if (action === "plant-send-reminder") {
       const result = await runPlantReminderCampaign({
+        mode: mode === "send" ? "send" : "preview",
+        audienceOverride,
+      });
+      return NextResponse.json(result);
+    }
+
+    // ── comunidad-campaign ──
+    // Win-back for BROTE 1 / plantación attendees who haven't bought BROTE 2.
+    // Three waves; the audience is recomputed on each one, so anyone who buys
+    // in between drops out by themselves. `mode` defaults to preview and
+    // preview NEVER sends — to see the mail in a real inbox, use
+    // `{mode:"send", audienceOverride:["you@..."]}`.
+    if (action === "comunidad-campaign") {
+      if (wave !== 1 && wave !== 2 && wave !== 3) {
+        return NextResponse.json(
+          { error: "wave must be 1, 2 or 3" },
+          { status: 400 },
+        );
+      }
+      const result = await runComunidadCampaign({
+        wave: wave as ComunidadWave,
         mode: mode === "send" ? "send" : "preview",
         audienceOverride,
       });
