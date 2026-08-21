@@ -27,7 +27,7 @@ interface Props {
   /** Only the three strings this button renders — everything crossing into
       the client bundle gets serialized into the RSC payload, and the rest of
       `price` (labels, badges, notes) is server-rendered above. */
-  dict: Pick<BroteInvitacionDict["price"], "cta" | "loading" | "error">;
+  dict: Pick<BroteInvitacionDict["price"], "cta" | "loading" | "error" | "closed">;
   /** Quantity-modal copy, from the shared BROTE dictionary. */
   quantityDict: BroteDict["quantity"];
   /**
@@ -74,6 +74,9 @@ export default function BroteInvitacionCta({
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
+  // Set when the server answers 410: the page was rendered while sales were
+  // still open, but the party has ended since. Replaces the button.
+  const [closed, setClosed] = useState(false);
 
   const onGreen = variant === "onGreen";
 
@@ -128,6 +131,12 @@ export default function BroteInvitacionCta({
         window.location.href = data.init_point;
         return;
       }
+      if (res.status === 410) {
+        setClosed(true);
+        setLoading(false);
+        setOpen(false);
+        return;
+      }
       // Close the modal on failure: the error renders under the CTA, behind
       // the backdrop, so leaving it open shows a working button and no
       // explanation.
@@ -140,6 +149,22 @@ export default function BroteInvitacionCta({
       setOpen(false);
     }
   }, [invite, locale, loading]);
+
+  if (closed) {
+    return (
+      <p
+        style={{
+          fontFamily: "var(--font-brote-serif), serif",
+          fontSize: 19,
+          lineHeight: 1.4,
+          textAlign: "center",
+          margin: 0,
+        }}
+      >
+        {dict.closed}
+      </p>
+    );
+  }
 
   return (
     <div>

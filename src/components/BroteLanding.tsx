@@ -699,6 +699,15 @@ export default function BroteLanding({ dict, locale }: Props) {
         window.location.href = data.init_point;
         return;
       }
+      // The server says the party is over — a tab left open since before it
+      // ended, or a skewed clock. Not a failure: swap every CTA for the
+      // closed notice rather than blaming MercadoPago.
+      if (res.status === 410) {
+        setSalesOpen(false);
+        setCheckoutLoading(false);
+        setQuantityFor(null);
+        return;
+      }
       failCheckout(ctaId);
     } catch {
       failCheckout(ctaId);
@@ -713,7 +722,7 @@ export default function BroteLanding({ dict, locale }: Props) {
   // Same question the checkout API asks before minting a preference. Read
   // once: the page was either loaded before the party ended (and the server
   // will 410 a late click) or after it, when nothing sells.
-  const [salesOpen] = useState(() => isSalesOpen());
+  const [salesOpen, setSalesOpen] = useState(() => isSalesOpen());
 
   useEffect(() => {
     const deadline = new Date(

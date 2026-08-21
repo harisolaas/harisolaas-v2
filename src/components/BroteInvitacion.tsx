@@ -520,7 +520,7 @@ export default function BroteInvitacion({
               <div style={{ width: "100%" }}>
                 {salesOpen ? (
                   <BroteInvitacionCta
-                    dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
+                    dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error, closed: dict.price.closed }}
                     quantityDict={quantityDict}
                     unitPrice={price.priceRaw}
                     locale={locale}
@@ -677,7 +677,7 @@ export default function BroteInvitacion({
           <div style={{ height: "clamp(22px,6cqw,30px)" }} />
           {salesOpen ? (
             <BroteInvitacionCta
-              dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
+              dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error, closed: dict.price.closed }}
               quantityDict={quantityDict}
               unitPrice={price.priceRaw}
               locale={locale}

@@ -220,7 +220,7 @@ describe("checkout — the server prices the invitation", () => {
 });
 
 describe("checkout — once the party is over", () => {
-  it("T2.6 — refuses with 410 and never asks MercadoPago for a preference", async () => {
+  it("T2.14 — refuses with 410 and never asks MercadoPago for a preference", async () => {
     vi.setSystemTime(AFTER_THE_PARTY);
     const { POST } = await import("./checkout/route");
     const res = await POST(checkoutRequest({ invite: "unarbol" }));
