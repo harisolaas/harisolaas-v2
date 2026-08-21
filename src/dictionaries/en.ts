@@ -548,6 +548,10 @@ const en: Dictionary = {
     },
     checkoutError:
       "We couldn't open the payment. Try again in a moment, or message us on WhatsApp.",
+    salesClosed: {
+      title: "This edition is over",
+      body: "Thank you to everyone who came. The trees are on their way \u2014 and so is the next BROTE.",
+    },
     quantity: {
       heading: "How many tickets?",
       intro:
@@ -653,6 +657,7 @@ const en: Dictionary = {
       paymentMethods: "MercadoPago, card or bank transfer",
       loading: "One moment…",
       error: "We couldn't open the payment. Please try again in a moment.",
+      closed: "This edition is over. Thank you to everyone who came \u2014 the next BROTE will be announced here too.",
     },
     includes: {
       eyebrow: "Your ticket includes",

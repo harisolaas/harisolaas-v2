@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Attribution on the BROTE ticket path.
@@ -149,6 +149,14 @@ beforeEach(() => {
   // Distinct IPs per test: the checkout route rate-limits 5/IP/60s in a
   // module-level Map that survives between tests in the same file.
   ipCounter += 1;
+  // Pinned before the party: past `eventEndTime` the checkout 410s and
+  // none of this is reachable.
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-08-10T12:00:00-03:00"));
+});
+
+afterAll(() => {
+  vi.useRealTimers();
 });
 
 describe("BROTE checkout — attribution reaches the Redis stash", () => {

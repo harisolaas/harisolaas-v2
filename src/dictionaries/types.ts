@@ -164,6 +164,8 @@ export interface BroteInvitacionDict {
     paymentMethods: string;
     loading: string;
     error: string;
+    /** Replaces the CTA once the party is over (`isSalesOpen()` is false). */
+    closed: string;
   };
   includes: {
     eyebrow: string;
@@ -259,6 +261,8 @@ export interface BroteDict {
   footer: { left: string; right: BroteCollaboratorMention };
   /** Shown under the CTA when creating the MercadoPago preference fails. */
   checkoutError: string;
+  /** Replaces every CTA once the party is over (`isSalesOpen()` is false). */
+  salesClosed: { title: string; body: string };
   /**
    * Quantity picker. Opens on the CTA instead of going straight to
    * MercadoPago, so someone can bring friends without paying N times.

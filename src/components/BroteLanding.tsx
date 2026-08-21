@@ -16,6 +16,7 @@ import {
   broteConfig,
   currentTicketPrice,
   fillTokens,
+  isSalesOpen,
   pricingTokens,
 } from "@/data/brote";
 import {
@@ -709,6 +710,10 @@ export default function BroteLanding({ dict, locale }: Props) {
   // live if the deadline passes while the page is open.
   const [ticket, setTicket] = useState(() => currentTicketPrice());
   const isEarlyBird = ticket.isEarlyBird;
+  // Same question the checkout API asks before minting a preference. Read
+  // once: the page was either loaded before the party ended (and the server
+  // will 410 a late click) or after it, when nothing sells.
+  const [salesOpen] = useState(() => isSalesOpen());
 
   useEffect(() => {
     const deadline = new Date(
@@ -730,6 +735,31 @@ export default function BroteLanding({ dict, locale }: Props) {
   /** `invert` = cream on green, for the CTA sitting inside the green block. */
   const ctaButton = (label: string, id: string, invert = false) => {
     const hovered = ctaHover === id;
+    // The party is over: every CTA becomes the same quiet notice. Same slot,
+    // same column, so the sections keep their rhythm without a buy button.
+    if (!salesOpen) {
+      return (
+        <div
+          className="flex max-w-[36ch] flex-col items-center text-center"
+          style={{ gap: 8 }}
+        >
+          <span
+            style={{
+              ...mono,
+              fontWeight: 700,
+              fontSize: 13,
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+            }}
+          >
+            {dict.salesClosed.title}
+          </span>
+          <span style={{ fontSize: 13, lineHeight: 1.7, opacity: 0.75 }}>
+            {dict.salesClosed.body}
+          </span>
+        </div>
+      );
+    }
     return (
       // Own column: one call site's container is `flex justify-center` (a
       // row), where a bare fragment would lay the error message BESIDE the

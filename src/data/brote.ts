@@ -87,6 +87,17 @@ export const eventStartsAt = () =>
 export const eventEndsAt = () =>
   `${broteConfig.eventDate}T${broteConfig.eventEndTime}:00-03:00`;
 
+/**
+ * Are tickets still for sale? They stop when the party ends: once the last
+ * song is over there is nothing to buy, and a ticket sold at 23:00 would be
+ * a refund to process by hand. Every consumer takes `now` so the boundary
+ * is testable; the landing, the invitation pages and the checkout API all
+ * ask this same question so none of them can keep selling on its own.
+ */
+export function isSalesOpen(now: Date = new Date()): boolean {
+  return now <= new Date(eventEndsAt());
+}
+
 /** Last instant of the preventa, as a schema.org `priceValidUntil`. */
 export const earlyBirdValidUntil = () =>
   `${broteConfig.earlyBirdDeadline}T23:59:59-03:00`;

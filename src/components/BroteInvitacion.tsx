@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import type { BroteDict, BroteInvitacionDict } from "@/dictionaries/types";
+import { isSalesOpen } from "@/data/brote";
 import {
   instagramUrl,
   resolveInvitationPrice,
@@ -157,6 +158,22 @@ export default function BroteInvitacion({
 }: Props) {
   const copy = dict.collaborators[invitation.slug];
   const price = resolveInvitationPrice(invitation);
+  // The page is `force-dynamic`, so this is evaluated per request: the day
+  // after the party every invitation stops selling without a redeploy.
+  const salesOpen = isSalesOpen();
+  const closedNotice = (
+    <p
+      style={{
+        ...serif,
+        fontSize: "clamp(17px,4.6cqw,21px)",
+        lineHeight: 1.4,
+        textAlign: "center",
+        margin: 0,
+      }}
+    >
+      {dict.price.closed}
+    </p>
+  );
   const igUrl = instagramUrl(invitation);
   // "Te invita" reads wrong when nobody is inviting you — the returning
   // community page overrides it with its own line.
@@ -501,14 +518,18 @@ export default function BroteInvitacion({
               }}
             >
               <div style={{ width: "100%" }}>
-                <BroteInvitacionCta
-                  dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
-                  quantityDict={quantityDict}
-                  unitPrice={price.priceRaw}
-                  locale={locale}
-                  invite={invitation.slug}
-                  variant="onGreen"
-                />
+                {salesOpen ? (
+                  <BroteInvitacionCta
+                    dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
+                    quantityDict={quantityDict}
+                    unitPrice={price.priceRaw}
+                    locale={locale}
+                    invite={invitation.slug}
+                    variant="onGreen"
+                  />
+                ) : (
+                  closedNotice
+                )}
               </div>
               <span
                 style={{
@@ -654,14 +675,18 @@ export default function BroteInvitacion({
           {/* Always present, so the rhythm doesn't change when the closing
               line is missing. */}
           <div style={{ height: "clamp(22px,6cqw,30px)" }} />
-          <BroteInvitacionCta
-            dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
-            quantityDict={quantityDict}
-            unitPrice={price.priceRaw}
-            locale={locale}
-            invite={invitation.slug}
-            variant="onPaper"
-          />
+          {salesOpen ? (
+            <BroteInvitacionCta
+              dict={{ cta: dict.price.cta, loading: dict.price.loading, error: dict.price.error }}
+              quantityDict={quantityDict}
+              unitPrice={price.priceRaw}
+              locale={locale}
+              invite={invitation.slug}
+              variant="onPaper"
+            />
+          ) : (
+            closedNotice
+          )}
         </section>
 
         <footer

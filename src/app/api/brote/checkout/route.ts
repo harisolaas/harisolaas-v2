@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 // redesign (#54): the landing, the invitation pages and this route all price
 // from one helper, so what's shown and what's charged cannot drift. The
 // identity imports are gone — no name/email/phone is collected before payment.
-import { broteConfig } from "@/data/brote";
+import { broteConfig, isSalesOpen } from "@/data/brote";
 import {
   getInvitation,
   resolveInvitationPrice,
@@ -56,6 +56,14 @@ export async function POST(req: Request) {
         { error: "Too many requests" },
         { status: 429 },
       );
+    }
+
+    // The party is over: nothing to sell. The landing already hides its CTAs
+    // past this point, but a tab left open since before the event (or a
+    // hand-crafted POST) must not mint a preference for a ticket nobody can
+    // use.
+    if (!isSalesOpen()) {
+      return NextResponse.json({ error: "Sales closed" }, { status: 410 });
     }
 
     const body = await req.json();
