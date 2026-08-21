@@ -568,6 +568,10 @@ export default function BroteLanding({ dict, locale }: Props) {
   const [ctaHover, setCtaHover] = useState<string | null>(null);
   /** Which CTA opened the quantity modal, or null when it is closed. */
   const [quantityFor, setQuantityFor] = useState<string | null>(null);
+  // Same question the checkout API asks before minting a preference. Read
+  // once on load; flipped to false if the server answers 410 to a late click
+  // from a tab left open across the end of the party.
+  const [salesOpen, setSalesOpen] = useState(() => isSalesOpen());
 
   useEffect(() => {
     initPostHog();
@@ -719,10 +723,6 @@ export default function BroteLanding({ dict, locale }: Props) {
   // live if the deadline passes while the page is open.
   const [ticket, setTicket] = useState(() => currentTicketPrice());
   const isEarlyBird = ticket.isEarlyBird;
-  // Same question the checkout API asks before minting a preference. Read
-  // once: the page was either loaded before the party ended (and the server
-  // will 410 a late click) or after it, when nothing sells.
-  const [salesOpen, setSalesOpen] = useState(() => isSalesOpen());
 
   useEffect(() => {
     const deadline = new Date(
