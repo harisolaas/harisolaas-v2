@@ -551,6 +551,10 @@ const es: Dictionary = {
     },
     checkoutError:
       "No pudimos abrir el pago. Prob\u00e1 de nuevo en un momento, o escribinos por WhatsApp.",
+    salesClosed: {
+      title: "Esta edici\u00f3n ya pas\u00f3",
+      body: "Gracias a quienes vinieron. Los \u00e1rboles ya est\u00e1n en camino \u2014 y la pr\u00f3xima BROTE tambi\u00e9n.",
+    },
     quantity: {
       heading: "\u00bfCu\u00e1ntas entradas?",
       intro:
@@ -658,6 +662,7 @@ const es: Dictionary = {
       paymentMethods: "Con MercadoPago, tarjeta o transferencia",
       loading: "Un segundo…",
       error: "No pudimos abrir el pago. Probá de nuevo en un momento.",
+      closed: "Esta edición ya pasó. Gracias a quienes vinieron — la próxima BROTE también se anuncia por acá.",
     },
     includes: {
       eyebrow: "Tu entrada incluye",

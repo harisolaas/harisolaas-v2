@@ -15,6 +15,7 @@ import { broteConfig } from "@/data/brote";
 
 const DURING_EARLY_BIRD = new Date("2026-08-10T12:00:00-03:00");
 const AFTER_EARLY_BIRD = new Date("2026-08-15T12:00:00-03:00");
+const AFTER_THE_PARTY = new Date("2026-08-21T10:00:00-03:00");
 
 // ── Redis ────────────────────────────────────────────────────────────
 const redisStore = new Map<string, string>();
@@ -215,6 +216,17 @@ describe("checkout — the server prices the invitation", () => {
 
     expect(preferenceMetadata().invite).toBeUndefined();
     expect(chargedItem().unit_price).toBe(broteConfig.earlyBirdPriceRaw);
+  });
+});
+
+describe("checkout — once the party is over", () => {
+  it("T2.14 — refuses with 410 and never asks MercadoPago for a preference", async () => {
+    vi.setSystemTime(AFTER_THE_PARTY);
+    const { POST } = await import("./checkout/route");
+    const res = await POST(checkoutRequest({ invite: "unarbol" }));
+    expect(res.status).toBe(410);
+    expect(preferenceCreate).not.toHaveBeenCalled();
+    expect(redisStore.size).toBe(0);
   });
 });
 

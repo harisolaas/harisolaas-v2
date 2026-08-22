@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   broteConfig,
   isEarlyBird,
+  isSalesOpen,
   currentTicketPrice,
   earlyBirdSavings,
   formatArs,
@@ -84,6 +85,27 @@ describe("isEarlyBird", () => {
 
   it("is true well before the deadline", () => {
     expect(isEarlyBird(new Date("2026-08-01T12:00:00-03:00"))).toBe(true);
+  });
+});
+
+describe("isSalesOpen", () => {
+  const DAY = broteConfig.eventDate; // "2026-08-20"
+  const END = broteConfig.eventEndTime; // "22:30"
+
+  it("is open while the party is still on", () => {
+    expect(isSalesOpen(new Date(`${DAY}T${END}:00${AR}`))).toBe(true);
+    expect(isSalesOpen(new Date(`${DAY}T19:00:00${AR}`))).toBe(true);
+    expect(isSalesOpen(new Date(`2026-07-01T12:00:00${AR}`))).toBe(true);
+  });
+
+  it("closes the second the party ends, and stays closed", () => {
+    expect(isSalesOpen(new Date(`${DAY}T${END}:01${AR}`))).toBe(false);
+    expect(isSalesOpen(new Date(`2026-08-21T10:00:00${AR}`))).toBe(false);
+  });
+
+  it("reads the end time in Argentina, not UTC", () => {
+    // 22:30 UTC is 19:30 in Buenos Aires — the party has barely started.
+    expect(isSalesOpen(new Date(`${DAY}T${END}:00Z`))).toBe(true);
   });
 });
 

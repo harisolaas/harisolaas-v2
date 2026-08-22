@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHmac } from "crypto";
 
 /**
@@ -150,6 +150,10 @@ beforeEach(() => {
   redisStore.clear();
   vi.clearAllMocks();
   dbNext = [];
+  // Pinned before the party: past `eventEndTime` the checkout 410s and
+  // none of this is reachable.
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-08-10T12:00:00-03:00"));
   recordParticipation.mockResolvedValue({
     personId: 7,
     participationId: "BROTE2-PRIMARY",
@@ -170,6 +174,10 @@ async function post(paymentId: string, p: Record<string, unknown>) {
   const { POST } = await import("./webhook/route");
   return POST(signedWebhook(paymentId));
 }
+
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 describe("BROTE webhook — N tickets per payment", () => {
   it("T3.1 — qty 3 issues one primary plus two companions, all in one email", async () => {
