@@ -108,6 +108,13 @@ interface ParticipationFixture {
   paymentId?: string;
   donation?: boolean;
   /**
+   * `metadata.donation.receiptSent`. Defaults to true — the webhook flips it
+   * once the "Gracias por tu aporte" mail goes out. One fixture leaves it
+   * false so the loose end (plata cobrada, mail sin salir) that
+   * `scripts/sinergia-revenue.ts` warns about exists in preview.
+   */
+  receiptSent?: boolean;
+  /**
    * Name written on THIS ticket, for a buyer who bought several. Mirrors
    * `metadata.guestName`, which the door prefers over the payer's name.
    */
@@ -505,6 +512,13 @@ const PARTICIPATIONS: ParticipationFixture[] = [
   // panel surfaces partial-coverage math (6/15 = 40%). The remaining
   // 9 confirmed RSVP without a donation, exercising the free-RSVP
   // path.
+  //
+  // Two of those donations carry an edge the revenue report
+  // (`scripts/sinergia-revenue.ts`) has to handle and that the happy
+  // path would never produce: `gabi` paid but her receipt never went
+  // out, and `leo` paid and then cancelled. Both stay out of the
+  // headline total — the cancelled one because whether it was refunded
+  // only MercadoPago knows — and each surfaces in its own block.
   ...[
     { k: "ana", donate: 500000, status: "confirmed" as const },
     { k: "beto", donate: 0, status: "confirmed" as const },
@@ -512,17 +526,17 @@ const PARTICIPATIONS: ParticipationFixture[] = [
     { k: "dani", donate: 0, status: "confirmed" as const },
     { k: "eze", donate: 2000000, status: "confirmed" as const },
     { k: "flor", donate: 0, status: "confirmed" as const },
-    { k: "gabi", donate: 500000, status: "confirmed" as const },
+    { k: "gabi", donate: 500000, status: "confirmed" as const, receiptSent: false },
     { k: "hugo", donate: 0, status: "confirmed" as const },
     { k: "ine", donate: 1000000, status: "confirmed" as const },
     { k: "javi", donate: 0, status: "confirmed" as const },
     { k: "kari", donate: 2000000, status: "confirmed" as const },
-    { k: "leo", donate: 0, status: "cancelled" as const },
+    { k: "leo", donate: 1000000, status: "cancelled" as const },
     { k: "mica", donate: 0, status: "confirmed" as const },
     { k: "nico", donate: 0, status: "confirmed" as const },
     { k: "oli", donate: 0, status: "confirmed" as const },
     { k: "vale", donate: 0, status: "confirmed" as const },
-  ].map<ParticipationFixture>(({ k, donate, status }, i) => ({
+  ].map<ParticipationFixture>(({ k, donate, status, receiptSent }, i) => ({
     id: `PREVIEW-SF-${String(i + 1).padStart(3, "0")}`,
     personEmail: `preview-${k}@example.com`,
     eventId: "preview-sinergia-full",
@@ -534,6 +548,7 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       currency: "ARS",
       paymentId: `PREVIEW-MP-SF-${String(i + 1).padStart(3, "0")}`,
       donation: true,
+      ...(receiptSent === false && { receiptSent: false }),
     }),
   })),
   // Sinergia OPEN — 5 confirmed, room for more. Intentionally no
@@ -752,7 +767,7 @@ async function main() {
         amountCents: p.priceCents,
         currency: p.currency ?? "ARS",
         paymentId: p.paymentId,
-        receiptSent: true,
+        receiptSent: p.receiptSent ?? true,
       };
     }
     if (p.invite) meta.invite = p.invite;
