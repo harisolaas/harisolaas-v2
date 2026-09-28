@@ -13,6 +13,11 @@
 --   → tiene que dar 1786380427385 (0006).
 -- Verificación: SELECT to_regclass('public.challenge_days');
 --
+-- Re-ejecución: NO es idempotente a propósito. Con --single-transaction un
+-- intento fallido se revierte entero (no hay estado parcial), y correrla de
+-- nuevo después de un éxito aborta en CREATE TABLE sin tocar nada. Si la
+-- verificación ya devuelve la tabla, está aplicada: no la vuelvas a correr.
+--
 -- Es puramente aditiva: CREATE TABLE + FK hacia events. No toca filas
 -- existentes. La fila de events `desafio-15-dias-2026` NO se inserta acá: la
 -- crea `ensureDesafioEvent()` en el primer request al panel o a la inscripción.
@@ -35,7 +40,8 @@ CREATE TABLE "challenge_days" (
 
 ALTER TABLE "challenge_days" ADD CONSTRAINT "challenge_days_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;
 
--- Ledger en la misma transacción que el DDL. Idempotente por hash.
+-- Ledger en la misma transacción que el DDL. El guard por hash evita una
+-- fila duplicada en el ledger; no hace re-ejecutable al archivo (ver arriba).
 -- hash = shasum -a 256 src/db/migrations/0007_perpetual_giant_man.sql
 -- created_at = el `when` de 0007 en meta/_journal.json
 INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)
