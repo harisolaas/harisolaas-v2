@@ -202,6 +202,18 @@ const en: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Teaching",
+        title: "Challenge: 15 days of meditation",
+        description:
+          "One short practice a day, online and free. Starts October 12.",
+        status: "Sign-ups open",
+        cta: {
+          label: "Join",
+          href: "/en/desafio",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
         title: "1:1 Mentorship",
         description:
           "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around you, with the tools I use on myself.",
@@ -1225,6 +1237,89 @@ const en: Dictionary = {
       // CTA destination is an open owner decision.
       href: "https://wa.me/5491122555110?text=Hi%21%20I%27d%20like%20to%20know%20more%20about%20the%201%3A1%20mentorship",
     },
+  },
+  desafio: {
+    meta: {
+      title: "15 days of meditating together — a free challenge with Hari",
+      description:
+        "A free online challenge: one short meditation practice a day for 15 days, guided by Hari Solaas.",
+      ogDescription:
+        "One short practice a day, for 15 days. Online, free, and in community.",
+    },
+    hero: {
+      eyebrow: "Online challenge · free",
+      title: "15 days of meditating together",
+      subtitle:
+        "One short practice a day, guided by Hari. Wherever you are, at your own pace, alongside a community practicing with you.",
+      startLabel: "Starts {date}",
+      liveLabel: "We're on day {day} of {total}",
+      endedLabel: "The challenge is over. The path stays open.",
+      cta: "I want in",
+    },
+    what: {
+      heading: "How it works",
+      items: [
+        {
+          title: "One practice a day",
+          description:
+            "Each day a new practice opens: guided meditation, breathwork, or a short reflection. About 15 minutes, no more.",
+        },
+        {
+          title: "Online and free",
+          description:
+            "No experience needed. A quiet spot, headphones if you have them, and a willingness to try.",
+        },
+        {
+          title: "In good company",
+          description:
+            "We'll reach out on WhatsApp to keep you company. Practicing alongside others makes it easier to stick with.",
+        },
+      ],
+      languageNote: "Practices are guided in Spanish.",
+    },
+    host: {
+      heading: "Who's guiding",
+      body: "Hari has been meditating since he was 15 and has taught meditation and breathwork with the Art of Living since 2022. He built this challenge to make starting — or coming back to — meditation simple.",
+    },
+    form: {
+      heading: "Sign up",
+      subtitle:
+        "It's free. We'll email you access and message you on WhatsApp when it starts.",
+      namePlaceholder: "Your name",
+      emailPlaceholder: "Your email",
+      phonePlaceholder: "Your WhatsApp (e.g. +54 11 2255 5110)",
+      phoneHelper: "This is how we'll keep you company over the 15 days.",
+      nameError: "Enter your name",
+      emailError: "Invalid email",
+      phoneError: "Enter a valid WhatsApp number (e.g. +54 11 2255 5110)",
+      cta: "Join the challenge",
+      submitting: "Signing you up...",
+      successHeading: "You're in.",
+      successMessage:
+        "We emailed you everything. Day 1 opens right here on {date}.",
+      alreadyRegistered:
+        "You were already signed up. Check your email (and your spam folder).",
+      errorMessage: "Something went wrong. Please try again.",
+      closedHeading: "Sign-ups are closed",
+      closedMessage:
+        "The challenge is over, but the practices are still open below.",
+      micro: "No spam — just the challenge.",
+    },
+    path: {
+      heading: "The path",
+      subtitle:
+        "One day at a time. Each practice opens on its date and stays available after.",
+      dayLabel: "Day {n}",
+      todayBadge: "Today",
+      lockedLabel: "Opens {date}",
+      emptyTitle: "We're preparing this practice",
+      emptyBody: "Check back soon — it's going up today.",
+      openMedia: "Open the practice",
+      audioFallback: "Your browser can't play this audio.",
+      expand: "See practice",
+      collapse: "Close",
+    },
+    footer: { backHome: "Back to home", localeSwitch: "ES" },
   },
 };
 

@@ -254,3 +254,66 @@ describe.each(dicts)("$locale dictionary — mentoria", ({ locale, dict }) => {
     }
   });
 });
+
+describe.each(dicts)("$locale dictionary — desafio", ({ locale, dict }) => {
+  const desafio = dict.desafio;
+
+  it("has no empty copy strings", () => {
+    const strings = collectStrings(desafio);
+    expect(strings.length).toBeGreaterThan(30);
+    for (const s of strings) {
+      expect(s.trim(), "no empty copy strings in desafio").not.toBe("");
+    }
+  });
+
+  it("only links into its own locale's routes", () => {
+    const hrefs = internalHrefs({ desafio, now: dict.now });
+    for (const href of hrefs) {
+      expect(
+        href === `/${locale}` || href.startsWith(`/${locale}/`),
+        `internal href ${href} must be under /${locale}`,
+      ).toBe(true);
+    }
+  });
+
+  it("has a landing Now card linking to the desafio page", () => {
+    const card = dict.now.items.find(
+      (item) => item.cta?.href === `/${locale}/desafio`,
+    );
+    expect(card, `now.items must link to /${locale}/desafio`).toBeDefined();
+    expect(card!.title.trim()).not.toBe("");
+    expect(card!.cta!.label.trim()).not.toBe("");
+  });
+
+  it("declares the tokens the page fills", () => {
+    expect(desafio.hero.startLabel).toContain("{date}");
+    expect(desafio.form.successMessage).toContain("{date}");
+    expect(desafio.path.lockedLabel).toContain("{date}");
+    expect(desafio.hero.liveLabel).toContain("{day}");
+    expect(desafio.hero.liveLabel).toContain("{total}");
+    expect(desafio.path.dayLabel).toContain("{n}");
+  });
+
+  it("leaves no unfilled token once filled", () => {
+    const values = { date: "x", day: "3", total: "15", n: "1" };
+    for (const s of collectStrings(desafio)) {
+      expect(fillTokens(s, values)).not.toMatch(/\{\w+\}/);
+    }
+  });
+});
+
+describe("desafio dictionary — es/en parity", () => {
+  const esLeaves = leafPaths(es.desafio);
+  const enLeaves = leafPaths(en.desafio);
+
+  it("has the same shape in both locales", () => {
+    expect(Object.keys(enLeaves).sort()).toEqual(Object.keys(esLeaves).sort());
+  });
+
+  it("translates every copy field", () => {
+    const untranslated = Object.keys(esLeaves).filter(
+      (path) => esLeaves[path] === enLeaves[path],
+    );
+    expect(untranslated).toEqual([]);
+  });
+});

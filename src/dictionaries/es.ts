@@ -203,6 +203,18 @@ const es: Dictionary = {
     items: [
       {
         categoryKey: "teaching",
+        categoryLabel: "Enseñanza",
+        title: "Desafío: 15 días meditando",
+        description:
+          "Una práctica corta por día, online y gratis. Arranca el 12 de octubre.",
+        status: "Inscripciones abiertas",
+        cta: {
+          label: "Sumarme",
+          href: "/es/desafio",
+        },
+      },
+      {
+        categoryKey: "teaching",
         categoryLabel: "Ense\u00f1anza",
         title: "Mentor\u00eda 1 a 1",
         description:
@@ -1247,6 +1259,91 @@ const es: Dictionary = {
       // destino definitivo del CTA es una decisión abierta del owner.
       href: "https://wa.me/5491122555110?text=Hola%21%20Quiero%20saber%20m%C3%A1s%20sobre%20la%20mentor%C3%ADa%201%20a%201",
     },
+  },
+  desafio: {
+    meta: {
+      title: "15 días meditando juntos — Desafío gratuito con Hari",
+      description:
+        "Un desafío online y gratuito: una práctica corta de meditación por día, durante 15 días, guiada por Hari Solaas.",
+      ogDescription:
+        "Una práctica corta por día, durante 15 días. Online, gratis y en comunidad.",
+    },
+    hero: {
+      eyebrow: "Desafío online · gratis",
+      // "juntos" sólo acá y en meta.title (nombre del producto). Alternativa
+      // neutral si se prefiere: "15 días meditando en comunidad".
+      title: "15 días meditando juntos",
+      subtitle:
+        "Una práctica corta por día, guiada por Hari. Desde donde estés, a tu ritmo, con una comunidad que practica a la par.",
+      startLabel: "Arranca el {date}",
+      liveLabel: "Vamos por el día {day} de {total}",
+      endedLabel: "El desafío terminó. El recorrido queda abierto.",
+      cta: "Quiero sumarme",
+    },
+    what: {
+      heading: "Cómo funciona",
+      items: [
+        {
+          title: "Una práctica por día",
+          description:
+            "Cada día se abre una práctica nueva: meditación guiada, respiración o una reflexión corta. Unos 15 minutos, no más.",
+        },
+        {
+          title: "Online y gratis",
+          description:
+            "No necesitás experiencia ni nada especial. Un lugar tranquilo, auriculares si tenés, y ganas de probar.",
+        },
+        {
+          title: "En compañía",
+          description:
+            "Te escribimos por WhatsApp para acompañarte. Practicar a la par de otras personas hace más fácil sostenerlo.",
+        },
+      ],
+      languageNote: "Las prácticas están guiadas en español.",
+    },
+    host: {
+      heading: "Quién guía",
+      body: "Hari medita desde los 15 años y enseña meditación y respiración con El Arte de Vivir desde 2022. Armó este desafío para que arrancar —o volver— a meditar sea simple.",
+    },
+    form: {
+      heading: "Anotate",
+      subtitle:
+        "Es gratis. Te mandamos el acceso por mail y te escribimos por WhatsApp cuando arranca.",
+      namePlaceholder: "Tu nombre",
+      emailPlaceholder: "Tu email",
+      phonePlaceholder: "Tu WhatsApp (ej: 11 2255 5110)",
+      phoneHelper: "Por acá te acompañamos durante los 15 días.",
+      nameError: "Ingresá tu nombre",
+      emailError: "Email inválido",
+      phoneError: "Ingresá un WhatsApp válido (ej: 11 2255 5110)",
+      cta: "Sumarme al desafío",
+      submitting: "Anotando...",
+      successHeading: "Ya tenés tu lugar.",
+      successMessage:
+        "Te mandamos un mail con todo. El {date} se abre el día 1, acá mismo.",
+      alreadyRegistered:
+        "Ya tenías tu lugar. Revisá tu mail (y la carpeta de spam).",
+      errorMessage: "Algo salió mal. Intentá de nuevo.",
+      closedHeading: "Las inscripciones cerraron",
+      closedMessage:
+        "El desafío ya terminó, pero las prácticas siguen abiertas acá abajo.",
+      micro: "Nada de spam: solo lo del desafío.",
+    },
+    path: {
+      heading: "El recorrido",
+      subtitle:
+        "Un día a la vez. Cada práctica se abre en su fecha y queda disponible después.",
+      dayLabel: "Día {n}",
+      todayBadge: "Hoy",
+      lockedLabel: "Se abre el {date}",
+      emptyTitle: "Estamos preparando esta práctica",
+      emptyBody: "Volvé en un rato: la subimos hoy.",
+      openMedia: "Abrir la práctica",
+      audioFallback: "Tu navegador no puede reproducir este audio.",
+      expand: "Ver práctica",
+      collapse: "Cerrar",
+    },
+    footer: { backHome: "Volver al inicio", localeSwitch: "EN" },
   },
 };
 

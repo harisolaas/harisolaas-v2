@@ -600,6 +600,65 @@ export interface MentoriaSection {
   imageAlt?: string;
 }
 
+// ============================================================
+// Desafío "15 días meditando" (/[locale]/desafio)
+// ============================================================
+// Tokens: {date} in hero.startLabel, form.successMessage, path.lockedLabel;
+// {day} and {total} in hero.liveLabel; {n} in path.dayLabel. Filled with
+// fillTokens from src/data/brote.ts.
+export interface DesafioDict {
+  meta: { title: string; description: string; ogDescription: string };
+  hero: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    startLabel: string;
+    liveLabel: string;
+    endedLabel: string;
+    cta: string;
+  };
+  what: {
+    heading: string;
+    items: Array<{ title: string; description: string }>;
+    languageNote: string;
+  };
+  host: { heading: string; body: string };
+  form: {
+    heading: string;
+    subtitle: string;
+    namePlaceholder: string;
+    emailPlaceholder: string;
+    phonePlaceholder: string;
+    phoneHelper: string;
+    nameError: string;
+    emailError: string;
+    phoneError: string;
+    cta: string;
+    submitting: string;
+    successHeading: string;
+    successMessage: string;
+    alreadyRegistered: string;
+    errorMessage: string;
+    closedHeading: string;
+    closedMessage: string;
+    micro: string;
+  };
+  path: {
+    heading: string;
+    subtitle: string;
+    dayLabel: string;
+    todayBadge: string;
+    lockedLabel: string;
+    emptyTitle: string;
+    emptyBody: string;
+    openMedia: string;
+    audioFallback: string;
+    expand: string;
+    collapse: string;
+  };
+  footer: { backHome: string; localeSwitch: string };
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -665,4 +724,5 @@ export interface Dictionary {
   sinergia: SinergiaDict;
   sinergiaParrafo: SinergiaParrafoDict;
   mentoria: MentoriaDict;
+  desafio: DesafioDict;
 }
