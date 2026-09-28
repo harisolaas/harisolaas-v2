@@ -637,6 +637,8 @@ export interface DesafioDict {
     submitting: string;
     successHeading: string;
     successMessage: string;
+    /** Shown instead of successMessage once day 1 has already opened. */
+    successMessageLive: string;
     alreadyRegistered: string;
     errorMessage: string;
     closedHeading: string;

@@ -1297,6 +1297,8 @@ const en: Dictionary = {
       successHeading: "You're in.",
       successMessage:
         "We emailed you everything. Day 1 opens right here on {date}.",
+      successMessageLive:
+        "We emailed you everything. The path is already open, right below.",
       alreadyRegistered:
         "You were already signed up. Check your email (and your spam folder).",
       errorMessage: "Something went wrong. Please try again.",

@@ -1321,6 +1321,8 @@ const es: Dictionary = {
       successHeading: "Ya tenés tu lugar.",
       successMessage:
         "Te mandamos un mail con todo. El {date} se abre el día 1, acá mismo.",
+      successMessageLive:
+        "Te mandamos un mail con todo. El recorrido ya está abierto, acá abajo.",
       alreadyRegistered:
         "Ya tenías tu lugar. Revisá tu mail (y la carpeta de spam).",
       errorMessage: "Algo salió mal. Intentá de nuevo.",
