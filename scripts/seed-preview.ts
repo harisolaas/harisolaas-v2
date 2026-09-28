@@ -26,8 +26,9 @@ import {
   INVITATION_SLUGS,
   getInvitation,
 } from "../src/lib/brote-invitations";
-import { DESAFIO_EVENT_ID, desafioConfig } from "../src/data/desafio";
+import { DESAFIO_EVENT_ID, DESAFIO_TOTAL_DAYS } from "../src/data/desafio";
 import { DESAFIO_PREFILL } from "../src/data/desafio-prefill";
+import { validateDayInput, type DesafioDayFields } from "../src/lib/desafio";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -78,7 +79,6 @@ interface EventFixture {
 interface PersonFixture {
   email: string;
   name: string;
-  phone?: string;
 }
 
 interface ParticipationFixture {
@@ -128,12 +128,9 @@ interface ParticipationFixture {
   seq?: number;
 }
 
-interface ChallengeDayFixture {
-  dayNumber: number;
-  title: string | null;
-  body: string | null;
-  mediaUrl: string | null;
-  published: boolean;
+interface ChallengeDayFixture extends DesafioDayFields {
+  dia: number;
+  publicado: boolean;
 }
 
 interface LinkFixture {
@@ -223,7 +220,7 @@ const EVENTS: EventFixture[] = [
     type: "desafio",
     series: "desafio",
     name: "Desafío 15 días meditando (preview)",
-    date: `${desafioConfig.startDate}T00:00:00-03:00`,
+    date: "2026-09-28T00:00:00-03:00",
     capacity: null,
     status: "live",
     landingPath: "/es/desafio",
@@ -267,11 +264,6 @@ const PEOPLE: PersonFixture[] = [
   // / `recordParticipation` and the backfill script's filter
   // (`name='Asistente' AND external_payment_id IS NOT NULL`).
   { email: "preview-asistente@example.com", name: "Asistente" },
-  // Desafío registrants — WhatsApp is required on that form, so they carry
-  // phones (AR local and full international) to exercise the wa.me links.
-  { email: "preview-luz@example.com", name: "Luz Benítez", phone: "11 5555 0101" },
-  { email: "preview-mateo@example.com", name: "Mateo Quiroga", phone: "+54 9 351 555 0102" },
-  { email: "preview-noe@example.com", name: "Noe Salinas", phone: "11 5555 0103" },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -606,73 +598,33 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       paymentId: `PREVIEW-MP-SP-${String(i + 1).padStart(3, "0")}`,
     }),
   })),
-  // Desafío: three registrants with phones (one attributed to the IG story
-  // link) plus Ana, an existing person with no phone — exercises the
-  // cross-event history and the empty-WhatsApp cell in the admin table.
-  {
-    id: "PREVIEW-DES-001",
-    personEmail: "preview-luz@example.com",
-    eventId: DESAFIO_EVENT_ID,
-    role: "participant",
-    status: "confirmed",
-    linkSlug: "preview-desafio-ig-20260928",
-    attributionSource: "instagram",
-    attributionMedium: "story",
-    attributionCampaign: "desafio_preview",
-  },
-  {
-    id: "PREVIEW-DES-002",
-    personEmail: "preview-mateo@example.com",
-    eventId: DESAFIO_EVENT_ID,
-    role: "participant",
-    status: "confirmed",
-  },
-  {
-    id: "PREVIEW-DES-003",
-    personEmail: "preview-noe@example.com",
-    eventId: DESAFIO_EVENT_ID,
-    role: "participant",
-    status: "confirmed",
-  },
-  {
-    id: "PREVIEW-DES-004",
-    personEmail: "preview-ana@example.com",
-    eventId: DESAFIO_EVENT_ID,
-    role: "participant",
-    status: "confirmed",
-  },
 ];
 
 // Desafío day content, built on the real prefill (src/data/desafio-prefill.ts)
-// so the preview reads like prod will:
-//   days 1–3  prefill, published (YouTube embeds)
-//   day 4     prefill text, NOT published (draft → placeholder once unlocked)
-//   day 5     published with an audio file (the <audio> branch)
-//   day 6     published with a plain link (the button branch)
-//   days 7–15 no row (the empty placeholder state)
-const prefillDay = (n: number) => {
-  const d = DESAFIO_PREFILL.find((p) => p.dayNumber === n);
+// so the preview reads like prod will. Prod gets all 15 published; the
+// preview deliberately mixes states so every UI branch is reachable:
+//   day 1     published + intro video + reflection text + reflection video
+//             (a /shorts/ link → the vertical 9/16 embed)
+//   day 2     published, NO reflection at all (section hidden)
+//   days 3–9  published, prefill as-is (reflection text, no videos)
+//   day 10    draft: prefill content but publicado:false → "Se publica pronto"
+//             (its content must NOT reach the page)
+//   days 11–15 no row (unpublished placeholders)
+const prefillDay = (n: number): ChallengeDayFixture => {
+  const d = DESAFIO_PREFILL.find((p) => p.dia === n);
   if (!d) throw new Error(`desafio prefill has no day ${n}`);
-  return d;
+  return { ...d, publicado: true };
 };
 
 const CHALLENGE_DAYS: ChallengeDayFixture[] = [
-  ...[1, 2, 3].map((n) => ({ ...prefillDay(n), published: true })),
-  { ...prefillDay(4), published: false },
   {
-    dayNumber: 5,
-    title: prefillDay(5).title,
-    body: "Fixture de preview: el mismo día, pero con un audio en vez de YouTube, para probar el reproductor.",
-    mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    published: true,
+    ...prefillDay(1),
+    introVideo: "https://youtu.be/UD87tGkyrs8",
+    reflexionVideo: "https://www.youtube.com/shorts/J1MwcuRU0r8",
   },
-  {
-    dayNumber: 6,
-    title: prefillDay(6).title,
-    body: "Fixture de preview: un link común, que se muestra como botón.",
-    mediaUrl: "https://www.harisolaas.com/es/sinergia",
-    published: true,
-  },
+  { ...prefillDay(2), reflexion: "", reflexionVideo: "" },
+  ...[3, 4, 5, 6, 7, 8, 9].map(prefillDay),
+  { ...prefillDay(10), publicado: false },
 ];
 
 
@@ -783,15 +735,13 @@ async function main() {
     }
   }
   for (const d of CHALLENGE_DAYS) {
-    if (
-      !Number.isInteger(d.dayNumber) ||
-      d.dayNumber < 1 ||
-      d.dayNumber > desafioConfig.totalDays
-    ) {
-      problems.push(
-        `challenge day ${d.dayNumber}: outside 1..${desafioConfig.totalDays}`,
-      );
+    if (!Number.isInteger(d.dia) || d.dia < 1 || d.dia > DESAFIO_TOTAL_DAYS) {
+      problems.push(`challenge day ${d.dia}: outside 1..${DESAFIO_TOTAL_DAYS}`);
     }
+    // Same validation as the admin PUT, so preview never holds a day the
+    // editor would refuse to save back.
+    const res = validateDayInput(d);
+    if (!res.ok) problems.push(`challenge day ${d.dia}: ${res.error}`);
   }
   if (problems.length > 0) {
     console.error("\n✗ Fixture references that would not resolve:");
@@ -827,26 +777,52 @@ async function main() {
   }
   console.log(`✓ events`);
 
-  // Desafío day content. After events (FK on event_id).
+  // Desafío day content. After events (FK on event_id). DO UPDATE, unlike
+  // the rest of this file: these rows use the real event id and a preview
+  // branch may still hold pre-0008 fixtures (audio/link days without the
+  // design's fields), which would otherwise never refresh.
   for (const d of CHALLENGE_DAYS) {
+    const v = (s: string) => (s.trim() === "" ? null : s);
     await db.execute(sql`
       INSERT INTO challenge_days (
-        event_id, day_number, title, body, media_url, published, updated_by_email
+        event_id, day_number, title, body, intro_video_url, meditation_title,
+        media_url, duration_label, reflection, reflection_video_url,
+        published, updated_by_email
       )
       VALUES (
-        ${DESAFIO_EVENT_ID}, ${d.dayNumber}, ${d.title}, ${d.body},
-        ${d.mediaUrl}, ${d.published}, 'seed-preview'
+        ${DESAFIO_EVENT_ID}, ${d.dia}, ${v(d.titulo)}, ${v(d.intro)},
+        ${v(d.introVideo)}, ${v(d.meditacion)}, ${v(d.meditacionVideo)},
+        ${v(d.duracion)}, ${v(d.reflexion)}, ${v(d.reflexionVideo)},
+        ${d.publicado}, 'seed-preview'
       )
-      ON CONFLICT (event_id, day_number) DO NOTHING
+      ON CONFLICT (event_id, day_number) DO UPDATE SET
+        title = EXCLUDED.title,
+        body = EXCLUDED.body,
+        intro_video_url = EXCLUDED.intro_video_url,
+        meditation_title = EXCLUDED.meditation_title,
+        media_url = EXCLUDED.media_url,
+        duration_label = EXCLUDED.duration_label,
+        reflection = EXCLUDED.reflection,
+        reflection_video_url = EXCLUDED.reflection_video_url,
+        published = EXCLUDED.published,
+        updated_by_email = EXCLUDED.updated_by_email,
+        updated_at = now()
     `);
   }
+  // Rows for days the fixture leaves empty (11–15) are removed so the
+  // "no row" state is real even on a branch seeded by an older version.
+  await db.execute(sql`
+    DELETE FROM challenge_days
+    WHERE event_id = ${DESAFIO_EVENT_ID}
+      AND day_number > ${Math.max(...CHALLENGE_DAYS.map((d) => d.dia))}
+  `);
   console.log(`✓ challenge_days`);
 
   // People.
   for (const p of PEOPLE) {
     await db.execute(sql`
-      INSERT INTO people (email, name, phone)
-      VALUES (${p.email}, ${p.name}, ${p.phone ?? null})
+      INSERT INTO people (email, name)
+      VALUES (${p.email}, ${p.name})
       ON CONFLICT (email) DO NOTHING
     `);
   }
@@ -948,7 +924,7 @@ async function main() {
 
   console.log("\nDone. Log into the preview admin and start poking.");
   console.log(
-    `Desafío: days unlock by date (start ${desafioConfig.startDate}). To see more days unlocked in preview (audio day 5, link day 6, empty days 7+), set DESAFIO_START_DATE_OVERRIDE=<YYYY-MM-DD, e.g. 8 days ago> in the Vercel Preview env and redeploy.`,
+    "Desafío: /es/desafio shows days 1–9 published (day 1 with intro + shorts reflection video, day 2 without reflection), day 10 as a draft and 11–15 without a row. Edit them at /admin/desafio.",
   );
 }
 
