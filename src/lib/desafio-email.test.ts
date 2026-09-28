@@ -61,6 +61,13 @@ describe("desafío confirmation email", () => {
     expect(html).not.toContain("<img src=x>");
   });
 
+  it("inserts the name literally, without String.replace $-patterns", () => {
+    // "$`" / "$&" are special in a string replacement: without a replacer
+    // function, "$`" would splice "Hola, " back in and "$&" would echo "{name}".
+    const html = buildDesafioConfirmationEmailHtml({ name: "A$`B$&C", locale: "es", startDate: "2026-10-12" });
+    expect(html).toContain("Hola, A$`B$&amp;C.");
+  });
+
   it("only renders the WhatsApp group button when a URL is configured", () => {
     desafioConfig.whatsappGroupUrl = "";
     expect(

@@ -92,8 +92,8 @@ export function buildDesafioConfirmationEmailHtml({
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid ${SAGE}">
 <tr><td style="padding:32px 28px">
   <p style="margin:0 0 8px;font-family:${SANS};font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${TERRACOTTA}">${c.kicker}</p>
-  <h1 style="margin:0 0 20px;font-family:${SERIF};font-size:28px;font-weight:400;line-height:1.2;color:${FOREST}">${c.heading.replace("{name}", escapeHtml(name))}</h1>
-  ${p(c.body1.replace("{date}", date))}
+  <h1 style="margin:0 0 20px;font-family:${SERIF};font-size:28px;font-weight:400;line-height:1.2;color:${FOREST}">${c.heading.replace("{name}", () => escapeHtml(name))}</h1>
+  ${p(c.body1.replace("{date}", () => date))}
   ${button(landing, c.button, FOREST)}
   ${p(c.body2)}
   ${p(c.body3)}
