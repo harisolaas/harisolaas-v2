@@ -29,21 +29,6 @@ export interface NowItem {
   description: string;
   status: string;
   cta?: { label: string; href: string };
-  /**
-   * Desafío card only: copy that replaces description/status (and optionally
-   * the CTA label) once the challenge is live or over. The top-level fields
-   * are the "before" copy. Resolved by `resolveDesafioNowItem`.
-   */
-  desafioPhases?: {
-    live: NowItemPhaseCopy;
-    after: NowItemPhaseCopy;
-  };
-}
-
-export interface NowItemPhaseCopy {
-  description: string;
-  status: string;
-  ctaLabel?: string;
 }
 
 export interface ImpactDict {
@@ -616,64 +601,63 @@ export interface MentoriaSection {
 }
 
 // ============================================================
-// Desafío "15 días meditando" (/[locale]/desafio)
+// Desafío "15 días meditando juntos" (/[locale]/desafio)
 // ============================================================
-// Tokens: {date} in hero.startLabel, form.successMessage, path.lockedLabel;
-// {day} and {total} in hero.liveLabel; {n} in path.dayLabel. Filled with
-// fillTokens from src/data/brote.ts.
+// UI strings of the design handoff, verbatim in es. Event-level copy that the
+// design keeps in its data file (nombre — also the H1 —, guía, bienvenida,
+// cierre) lives in `desafioConfig` (src/data/desafio.ts), NOT here.
+// Tokens (filled with fillTokens from src/data/brote.ts):
+//   {n} day number · {next} the following day number · {guia} guide name
+//   {titulo} day title · {meditacion} meditation title · {duracion} "20 min"
+// Line breaks (closing.titleLines) are separate array items → <br>.
 export interface DesafioDict {
   meta: { title: string; description: string; ogDescription: string };
-  hero: {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-    startLabel: string;
-    liveLabel: string;
-    endedLabel: string;
-    cta: string;
+  /** Sticky bottom button on every screen. */
+  whatsappCta: string;
+  /** "Día {n}" — list rows, prev/next nav. */
+  dayLabel: string;
+  /** "Se publica pronto" — soon rows and the unpublished next-day pill. */
+  soon: string;
+  /** "Ver tu cierre" — home all-done card and the day panel. */
+  seeClosing: string;
+  home: {
+    guideTag: string; // {guia}
+    /** "Llevás {n} de 15 días" — {n} renders as the big Caprasimo number. */
+    progress: string;
+    nextKicker: string;
+    nextTitle: string; // {n} {titulo}
+    nextMeta: string; // {meditacion} {duracion}
+    nextCta: string; // {n}
+    upToDateTitle: string;
+    upToDateText: string; // {n} = next unpublished day
+    allDoneTitle: string;
+    daysHeading: string;
+    statusDone: string;
+    statusNext: string; // {duracion}
+    statusOpen: string; // {duracion}
   };
-  what: {
-    heading: string;
-    items: Array<{ title: string; description: string }>;
-    languageNote: string;
+  day: {
+    backToDays: string;
+    doneCount: string; // {n}
+    kicker: string; // {n}
+    introLabel: string;
+    meditationKicker: string;
+    teacherTag: string;
+    reflectionLabel: string;
+    markDone: string; // {n}
+    doneTitle: string;
+    doneAll: string;
+    doneLastMissing: string;
+    doneNextOpen: string; // {next}
+    doneNextSoon: string; // {next}
+    unmark: string; // {n}
   };
-  host: { heading: string; body: string };
-  form: {
-    heading: string;
-    subtitle: string;
-    namePlaceholder: string;
-    emailPlaceholder: string;
-    phonePlaceholder: string;
-    phoneHelper: string;
-    nameError: string;
-    emailError: string;
-    phoneError: string;
-    cta: string;
-    submitting: string;
-    successHeading: string;
-    successMessage: string;
-    /** Shown instead of successMessage once day 1 has already opened. */
-    successMessageLive: string;
-    alreadyRegistered: string;
-    errorMessage: string;
-    closedHeading: string;
-    closedMessage: string;
-    micro: string;
+  closing: {
+    kicker: string;
+    titleLines: string[];
+    text: string;
+    comingSoonTag: string;
   };
-  path: {
-    heading: string;
-    subtitle: string;
-    dayLabel: string;
-    todayBadge: string;
-    lockedLabel: string;
-    emptyTitle: string;
-    emptyBody: string;
-    openMedia: string;
-    audioFallback: string;
-    expand: string;
-    collapse: string;
-  };
-  footer: { backHome: string; localeSwitch: string };
 }
 
 export interface Dictionary {

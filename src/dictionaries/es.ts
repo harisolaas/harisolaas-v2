@@ -204,26 +204,13 @@ const es: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Enseñanza",
-        title: "Desafío: 15 días meditando",
+        title: "15 días meditando juntos",
         description:
-          "Una práctica corta por día, online y gratis. Arranca el {date}.",
-        status: "Inscripciones abiertas",
+          "Una meditación guiada por día, online y gratis, a tu ritmo. Empezá cuando quieras.",
+        status: "Abierto",
         cta: {
-          label: "Sumarme",
+          label: "Empezar",
           href: "/es/desafio",
-        },
-        desafioPhases: {
-          live: {
-            description:
-              "Una práctica corta por día, online y gratis. Empezó el {date}: sumate cuando quieras, los días anteriores quedan abiertos.",
-            status: "En curso",
-          },
-          after: {
-            description:
-              "Quince días, una práctica corta por día. El desafío terminó, pero el recorrido completo sigue abierto.",
-            status: "Terminó",
-            ctaLabel: "Ver el recorrido",
-          },
         },
       },
       {
@@ -1277,88 +1264,56 @@ const es: Dictionary = {
     meta: {
       title: "15 días meditando juntos — Desafío gratuito con Hari",
       description:
-        "Un desafío online y gratuito: una práctica corta de meditación por día, durante 15 días, guiada por Hari Solaas.",
+        "Un desafío online y gratuito: una meditación guiada por día, durante 15 días, a tu ritmo. Con Hari Solaas.",
       ogDescription:
-        "Una práctica corta por día, durante 15 días. Online, gratis y en comunidad.",
+        "Una meditación guiada por día, durante 15 días. Online, gratis y a tu ritmo.",
     },
-    hero: {
-      eyebrow: "Desafío online · gratis",
-      // "juntos" sólo acá y en meta.title (nombre del producto). Alternativa
-      // neutral si se prefiere: "15 días meditando en comunidad".
-      title: "15 días meditando juntos",
-      subtitle:
-        "Una práctica corta por día, guiada por Hari. Desde donde estés, a tu ritmo, con una comunidad que practica a la par.",
-      startLabel: "Arranca el {date}",
-      liveLabel: "Vamos por el día {day} de {total}",
-      endedLabel: "El desafío terminó. El recorrido queda abierto.",
-      cta: "Quiero sumarme",
+    // UI strings verbatim from the design handoff (README). Uppercase
+    // kickers are written in sentence case; the page uppercases via CSS.
+    whatsappCta: "Volver al grupo de WhatsApp",
+    dayLabel: "Día {n}",
+    soon: "Se publica pronto",
+    seeClosing: "Ver tu cierre",
+    home: {
+      guideTag: "con {guia}",
+      progress: "Llevás {n} de 15 días",
+      nextKicker: "Tu próximo día",
+      nextTitle: "Día {n} · {titulo}",
+      nextMeta: "{meditacion} · {duracion}",
+      nextCta: "Empezar el día {n}",
+      upToDateTitle: "Estás al día",
+      upToDateText:
+        "Hiciste todos los días publicados. Pronto se publica el día {n}, te aviso en el grupo.",
+      allDoneTitle: "¡Completaste los 15 días!",
+      daysHeading: "Los días",
+      statusDone: "Hecho",
+      statusNext: "Tu próximo día · {duracion}",
+      statusOpen: "Disponible · {duracion}",
     },
-    what: {
-      heading: "Cómo funciona",
-      items: [
-        {
-          title: "Una práctica por día",
-          description:
-            "Cada día se abre una práctica nueva: meditación guiada, respiración o una reflexión corta. Unos 15 minutos, no más.",
-        },
-        {
-          title: "Online y gratis",
-          description:
-            "No necesitás experiencia ni nada especial. Un lugar tranquilo, auriculares si tenés, y ganas de probar.",
-        },
-        {
-          title: "En compañía",
-          description:
-            "Te escribimos por WhatsApp para acompañarte. Practicar a la par de otras personas hace más fácil sostenerlo.",
-        },
-      ],
-      languageNote: "Las prácticas están guiadas en español.",
+    day: {
+      backToDays: "Todos los días",
+      doneCount: "{n} de 15 hechos",
+      kicker: "Día {n} de 15",
+      introLabel: "Para arrancar",
+      meditationKicker: "Meditación del día",
+      teacherTag: "Gurudev Sri Sri Ravi Shankar",
+      reflectionLabel: "Para después de meditar",
+      markDone: "Hice el día {n} ✓",
+      doneTitle: "Qué lindo.",
+      doneAll: "Completaste los 15 días. Te preparé algo para el final.",
+      doneLastMissing:
+        "Terminaste el último día. Te quedan algunos días por completar.",
+      doneNextOpen:
+        "Nos vemos mañana. Y si hoy tenés ganas de seguir, el día {next} ya te espera.",
+      doneNextSoon: "Nos vemos mañana en el día {next}.",
+      unmark: "Desmarcar el día {n}",
     },
-    host: {
-      heading: "Quién guía",
-      body: "Hari medita desde los 15 años y enseña meditación y respiración con El Arte de Vivir desde 2022. Armó este desafío para que arrancar —o volver— a meditar sea simple.",
+    closing: {
+      kicker: "15 de 15",
+      titleLines: ["Lo hiciste.", "Quince días", "meditando juntos."],
+      text: "Gracias por darte este tiempo, día tras día. Eso que encontraste en el silencio ya es tuyo: podés volver cuando quieras.",
+      comingSoonTag: "Próximamente",
     },
-    form: {
-      heading: "Anotate",
-      subtitle:
-        "Es gratis. Te mandamos el acceso por mail y te acompañamos por WhatsApp durante los 15 días.",
-      namePlaceholder: "Tu nombre",
-      emailPlaceholder: "Tu email",
-      phonePlaceholder: "Tu WhatsApp (ej: 11 2255 5110)",
-      phoneHelper: "Por acá te acompañamos durante los 15 días.",
-      nameError: "Ingresá tu nombre",
-      emailError: "Email inválido",
-      phoneError: "Ingresá un WhatsApp válido (ej: 11 2255 5110)",
-      cta: "Sumarme al desafío",
-      submitting: "Anotando...",
-      successHeading: "Ya tenés tu lugar.",
-      successMessage:
-        "Te mandamos un mail con todo. El {date} se abre el día 1, acá mismo.",
-      successMessageLive:
-        "Te mandamos un mail con todo. El recorrido ya está abierto, acá abajo.",
-      alreadyRegistered:
-        "Ya tenías tu lugar. Revisá tu mail (y la carpeta de spam).",
-      errorMessage: "Algo salió mal. Intentá de nuevo.",
-      closedHeading: "Las inscripciones cerraron",
-      closedMessage:
-        "El desafío ya terminó, pero las prácticas siguen abiertas acá abajo.",
-      micro: "Nada de spam: únicamente lo del desafío.",
-    },
-    path: {
-      heading: "El recorrido",
-      subtitle:
-        "Un día a la vez. Cada práctica se abre en su fecha y queda disponible después.",
-      dayLabel: "Día {n}",
-      todayBadge: "Hoy",
-      lockedLabel: "Se abre el {date}",
-      emptyTitle: "Estamos preparando esta práctica",
-      emptyBody: "Volvé en un rato: la subimos hoy.",
-      openMedia: "Abrir la práctica",
-      audioFallback: "Tu navegador no puede reproducir este audio.",
-      expand: "Ver práctica",
-      collapse: "Cerrar",
-    },
-    footer: { backHome: "Volver al inicio", localeSwitch: "EN" },
   },
 };
 

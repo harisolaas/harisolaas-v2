@@ -266,39 +266,64 @@ describe.each(dicts)("$locale dictionary — desafio", ({ locale, dict }) => {
     }
   });
 
-  it("only links into its own locale's routes", () => {
-    const hrefs = internalHrefs({ desafio, now: dict.now });
-    for (const href of hrefs) {
-      expect(
-        href === `/${locale}` || href.startsWith(`/${locale}/`),
-        `internal href ${href} must be under /${locale}`,
-      ).toBe(true);
-    }
-  });
-
-  it("has a landing Now card linking to the desafio page", () => {
+  it("has a landing Now card linking to the desafio page, with no date in it", () => {
     const card = dict.now.items.find(
       (item) => item.cta?.href === `/${locale}/desafio`,
     );
     expect(card, `now.items must link to /${locale}/desafio`).toBeDefined();
     expect(card!.title.trim()).not.toBe("");
     expect(card!.cta!.label.trim()).not.toBe("");
+    // Self-paced, no start date: the card must not carry a date token.
+    expect(`${card!.description} ${card!.status}`).not.toMatch(/\{\w+\}/);
   });
 
+  // The page fills these; a missing token would render a sentence without
+  // its number/name.
   it("declares the tokens the page fills", () => {
-    expect(desafio.hero.startLabel).toContain("{date}");
-    expect(desafio.form.successMessage).toContain("{date}");
-    expect(desafio.path.lockedLabel).toContain("{date}");
-    expect(desafio.hero.liveLabel).toContain("{day}");
-    expect(desafio.hero.liveLabel).toContain("{total}");
-    expect(desafio.path.dayLabel).toContain("{n}");
+    const expected: Array<[string, string[]]> = [
+      [desafio.dayLabel, ["n"]],
+      [desafio.home.guideTag, ["guia"]],
+      [desafio.home.progress, ["n"]],
+      [desafio.home.nextTitle, ["n", "titulo"]],
+      [desafio.home.nextMeta, ["meditacion", "duracion"]],
+      [desafio.home.nextCta, ["n"]],
+      [desafio.home.upToDateText, ["n"]],
+      [desafio.home.statusNext, ["duracion"]],
+      [desafio.home.statusOpen, ["duracion"]],
+      [desafio.day.doneCount, ["n"]],
+      [desafio.day.kicker, ["n"]],
+      [desafio.day.markDone, ["n"]],
+      [desafio.day.doneNextOpen, ["next"]],
+      [desafio.day.doneNextSoon, ["next"]],
+      [desafio.day.unmark, ["n"]],
+    ];
+    for (const [s, tokens] of expected) {
+      for (const t of tokens) expect(s, `${s} needs {${t}}`).toContain(`{${t}}`);
+    }
   });
 
   it("leaves no unfilled token once filled", () => {
-    const values = { date: "x", day: "3", total: "15", n: "1" };
+    const values = {
+      n: "1",
+      next: "2",
+      guia: "Hari",
+      titulo: "t",
+      meditacion: "m",
+      duracion: "20 min",
+    };
     for (const s of collectStrings(desafio)) {
       expect(fillTokens(s, values)).not.toMatch(/\{\w+\}/);
     }
+  });
+});
+
+describe("desafio dictionary — es", () => {
+  // Spot-check the design's copy stays verbatim (README of the handoff).
+  it("keeps the design's key strings verbatim", () => {
+    expect(es.desafio.whatsappCta).toBe("Volver al grupo de WhatsApp");
+    expect(es.desafio.home.progress).toBe("Llevás {n} de 15 días");
+    expect(es.desafio.day.markDone).toBe("Hice el día {n} ✓");
+    expect(es.desafio.soon).toBe("Se publica pronto");
   });
 });
 
@@ -311,39 +336,14 @@ describe("desafio dictionary — es/en parity", () => {
   });
 
   it("translates every copy field", () => {
+    // Proper nouns and pure-token strings are legitimately identical.
+    const sameOnPurpose = new Set([
+      "day.teacherTag",
+      "home.nextMeta",
+    ]);
     const untranslated = Object.keys(esLeaves).filter(
-      (path) => esLeaves[path] === enLeaves[path],
+      (path) => esLeaves[path] === enLeaves[path] && !sameOnPurpose.has(path),
     );
     expect(untranslated).toEqual([]);
-  });
-});
-
-describe.each(dicts)("$locale dictionary — desafío Now card", ({ locale, dict }) => {
-  // The home page fills `{date}` from desafioStartDate(); a literal date here
-  // would go stale the moment the config moves.
-  it("carries the start date as a token, not a literal", () => {
-    const card = dict.now.items.find(
-      (item) => item.cta?.href === `/${locale}/desafio`,
-    );
-    expect(card, `now.items must contain the /${locale}/desafio card`).toBeDefined();
-    expect(card!.description).toContain("{date}");
-    expect(fillTokens(card!.description, { date: "X" })).not.toMatch(/\{\w+\}/);
-  });
-
-  // The challenge runs while sign-ups stay open, so "starts {date}" would be
-  // false for most of the time the card is up.
-  it("has live and after copy, with the live one still naming the start date", () => {
-    const card = dict.now.items.find(
-      (item) => item.cta?.href === `/${locale}/desafio`,
-    )!;
-    const phases = card.desafioPhases;
-    expect(phases, "desafío card needs desafioPhases").toBeDefined();
-    expect(phases!.live.description).toContain("{date}");
-    for (const copy of [phases!.live, phases!.after]) {
-      expect(copy.description.trim()).not.toBe("");
-      expect(copy.status.trim()).not.toBe("");
-      expect(copy.description).not.toBe(card.description);
-      expect(fillTokens(copy.description, { date: "X" })).not.toMatch(/\{\w+\}/);
-    }
   });
 });
