@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { fillTokens } from "@/data/brote";
 import { DESAFIO_TOTAL_DAYS } from "@/data/desafio";
 import type { DesafioDay } from "@/lib/desafio";
@@ -50,6 +51,18 @@ export default function DesafioDayView({
   const content = day.publicado ? day : null;
   const hasIntro = Boolean(content && (content.intro || content.introVideo));
   const hasReflection = Boolean(content && (content.reflexion || content.reflexionVideo));
+  // Marking swaps the button for the panel (and unmarking swaps it back), so
+  // the focused element disappears. Move focus to what replaced it — not on
+  // the first render, so opening a day doesn't steal focus.
+  const doneHeadingRef = useRef<HTMLHeadingElement>(null);
+  const markRef = useRef<HTMLButtonElement>(null);
+  const prevDone = useRef(isDone);
+  useEffect(() => {
+    if (prevDone.current === isDone) return;
+    prevDone.current = isDone;
+    (isDone ? doneHeadingRef.current : markRef.current)?.focus({ preventScroll: true });
+  }, [isDone]);
+
   const nextMessage = fillTokens(t[DONE_MESSAGE_KEY[doneMessage(n, dias, done)]], {
     next: String(nextN),
   });
@@ -142,7 +155,9 @@ export default function DesafioDayView({
         {isDone ? (
           <div className="desafio-done">
             <Celebration key={burstId ?? "static"} animate={burstId !== null} />
-            <h2 className="desafio-done-h2">{t.doneTitle}</h2>
+            <h2 ref={doneHeadingRef} tabIndex={-1} className="desafio-done-h2">
+              {t.doneTitle}
+            </h2>
             <p className="desafio-done-text">{nextMessage}</p>
             {allDone && (
               <button
@@ -159,6 +174,7 @@ export default function DesafioDayView({
           </div>
         ) : (
           <button
+            ref={markRef}
             type="button"
             className="btn btn-primary btn-block desafio-mark"
             onClick={onToggle}
