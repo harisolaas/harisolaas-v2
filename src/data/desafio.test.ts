@@ -47,13 +47,16 @@ describe("desafio date math", () => {
     expect(desafioPhase(new Date("2026-10-12T02:59:59Z"), START)).toBe("before");
     expect(desafioPhase(new Date("2026-10-12T03:00:00Z"), START)).toBe("live");
     expect(desafioPhase(new Date("2026-10-27T02:59:58Z"), START)).toBe("live");
+    // The last day's final millisecond is still live (was "after" when the
+    // end was pinned to 23:59:59.000).
+    expect(desafioPhase(new Date("2026-10-27T02:59:59.999Z"), START)).toBe("live");
     expect(desafioPhase(new Date("2026-10-27T03:00:00Z"), START)).toBe("after");
-    expect(challengeEndsAt(START).toISOString()).toBe("2026-10-27T02:59:59.000Z");
+    expect(challengeEndsAt(START).toISOString()).toBe("2026-10-27T03:00:00.000Z");
   });
 
   it("closes registration exactly when the phase turns to after", () => {
     expect(isRegistrationOpen(new Date("2026-10-01T00:00:00Z"), START)).toBe(true);
-    expect(isRegistrationOpen(new Date("2026-10-27T02:59:58Z"), START)).toBe(true);
+    expect(isRegistrationOpen(new Date("2026-10-27T02:59:59.999Z"), START)).toBe(true);
     expect(isRegistrationOpen(new Date("2026-10-27T03:00:00Z"), START)).toBe(false);
   });
 

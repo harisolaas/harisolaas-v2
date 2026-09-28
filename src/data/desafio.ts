@@ -74,9 +74,13 @@ export function isDayUnlocked(
   return now.getTime() >= dayUnlocksAt(n, start).getTime();
 }
 
-/** Last second of the last day, Argentina time. */
+/**
+ * The instant the challenge is over: 00:00 Argentina time the day AFTER the
+ * last day. Exclusive — the whole last day, including its final second, is
+ * still `live`.
+ */
 export function challengeEndsAt(start: string = desafioStartDate()): Date {
-  return new Date(`${dayDate(desafioConfig.totalDays, start)}T23:59:59-03:00`);
+  return dayUnlocksAt(desafioConfig.totalDays + 1, start);
 }
 
 /** How many days are open at `now`, 0..totalDays. */
@@ -97,7 +101,7 @@ export function desafioPhase(
   start: string = desafioStartDate(),
 ): DesafioPhase {
   if (!isDayUnlocked(1, now, start)) return "before";
-  if (now.getTime() > challengeEndsAt(start).getTime()) return "after";
+  if (now.getTime() >= challengeEndsAt(start).getTime()) return "after";
   return "live";
 }
 
