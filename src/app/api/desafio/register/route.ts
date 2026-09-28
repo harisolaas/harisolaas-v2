@@ -58,7 +58,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    // `null`, arrays and primitives are valid JSON too — read fields only off
+    // a plain object so a malformed client gets a 400, not a 500.
+    const parsed: unknown = await req.json().catch(() => null);
+    const body: Record<string, unknown> =
+      parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
     const name = (typeof body.name === "string" ? body.name : "").trim();
     const email = (typeof body.email === "string" ? body.email : "").trim();
     const phone = (typeof body.phone === "string" ? body.phone : "").trim();

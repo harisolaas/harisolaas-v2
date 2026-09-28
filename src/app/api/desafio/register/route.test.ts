@@ -40,7 +40,7 @@ vi.mock("@/data/desafio", async (orig) => ({
 const { POST } = await import("./route");
 
 let ipCounter = 0;
-function register(body: Record<string, unknown>, ip?: string) {
+function register(body: unknown, ip?: string) {
   return POST(
     new Request("http://localhost/api/desafio/register", {
       method: "POST",
@@ -95,6 +95,8 @@ describe("POST /api/desafio/register", () => {
     ["overlong name", { ...valid("a"), name: "x".repeat(121) }],
     ["bad email", { ...valid("a"), email: "nope@x" }],
     ["bad phone", { ...valid("a"), phone: "123" }],
+    ["a JSON null body", null],
+    ["a JSON array body", [valid("a")]],
   ])("400 for %s", async (_label, body) => {
     const res = await register(body);
     expect(res.status).toBe(400);
