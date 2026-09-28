@@ -650,7 +650,16 @@ export interface DesafioDict {
     doneLastMissing: string;
     doneNextOpen: string; // {next}
     doneNextSoon: string; // {next}
+    /** Next day published and already done. */
+    doneNextDone: string;
     unmark: string; // {n}
+  };
+  /** Accessible names with no visible text of their own. */
+  a11y: {
+    progress: string;
+    dayNav: string;
+    introVideo: string;
+    reflectionVideo: string;
   };
   closing: {
     kicker: string;

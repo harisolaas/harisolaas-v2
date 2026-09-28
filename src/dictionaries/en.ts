@@ -204,10 +204,12 @@ const en: Dictionary = {
         categoryLabel: "Teaching",
         title: "15 days of meditating together",
         description:
-          "One guided meditation a day, online and free, at your own pace. Start whenever you like.",
+          "One guided meditation a day, online and free, at your own pace. Start whenever you like. In Spanish.",
         status: "Open",
         cta: {
           label: "Start",
+          // Stays under /en (see dictionaries.test); next.config redirects
+          // it to the Spanish-only /es/desafio.
           href: "/en/desafio",
         },
       },
@@ -1246,8 +1248,9 @@ const en: Dictionary = {
       ogDescription:
         "One guided meditation a day, for 15 days. Online, free, at your own pace.",
     },
-    // Mirrors es.desafio. The page is Spanish-first (the practices and the
-    // event config are in Spanish); this keeps the /en route coherent.
+    // Mirrors es.desafio for type parity. The page itself is Spanish-only
+    // (/en/desafio redirects to /es/desafio), so these strings are unused
+    // except by tests; they're kept ready for a future English version.
     whatsappCta: "Back to the WhatsApp group",
     dayLabel: "Day {n}",
     soon: "Coming soon",
@@ -1284,7 +1287,14 @@ const en: Dictionary = {
       doneNextOpen:
         "See you tomorrow. And if you feel like keeping going today, day {next} is waiting for you.",
       doneNextSoon: "See you tomorrow for day {next}.",
+      doneNextDone: "See you tomorrow.",
       unmark: "Unmark day {n}",
+    },
+    a11y: {
+      progress: "Your progress",
+      dayNav: "Other days",
+      introVideo: "Day intro",
+      reflectionVideo: "Reflection",
     },
     closing: {
       kicker: "15 of 15",

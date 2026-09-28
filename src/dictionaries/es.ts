@@ -1306,7 +1306,14 @@ const es: Dictionary = {
       doneNextOpen:
         "Nos vemos mañana. Y si hoy tenés ganas de seguir, el día {next} ya te espera.",
       doneNextSoon: "Nos vemos mañana en el día {next}.",
+      doneNextDone: "Nos vemos mañana.",
       unmark: "Desmarcar el día {n}",
+    },
+    a11y: {
+      progress: "Tu progreso",
+      dayNav: "Otros días",
+      introVideo: "Intro del día",
+      reflectionVideo: "Reflexión",
     },
     closing: {
       kicker: "15 de 15",
