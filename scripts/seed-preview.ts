@@ -648,7 +648,7 @@ const CHALLENGE_DAYS: ChallengeDayFixture[] = [
   {
     dayNumber: 1,
     title: "Llegar al cuerpo",
-    body: "Buscá un lugar tranquilo y una postura en la que puedas quedarte un rato. Hoy solo observamos la respiración.",
+    body: "Buscá un lugar tranquilo y una postura en la que puedas quedarte un rato. Hoy nada más observamos la respiración.",
     mediaUrl: "https://youtu.be/inpok4MKVLM",
     published: true,
   },
