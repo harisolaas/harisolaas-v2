@@ -27,6 +27,7 @@ import {
   getInvitation,
 } from "../src/lib/brote-invitations";
 import { DESAFIO_EVENT_ID, desafioConfig } from "../src/data/desafio";
+import { DESAFIO_PREFILL } from "../src/data/desafio-prefill";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -224,7 +225,7 @@ const EVENTS: EventFixture[] = [
     name: "Desafío 15 días meditando (preview)",
     date: `${desafioConfig.startDate}T00:00:00-03:00`,
     capacity: null,
-    status: "upcoming",
+    status: "live",
     landingPath: "/es/desafio",
   },
 ];
@@ -642,36 +643,35 @@ const PARTICIPATIONS: ParticipationFixture[] = [
   },
 ];
 
-// Desafío day content: published YouTube / audio / link (days 1–3), a
-// draft (day 4), and days 5–15 with no row (the placeholder state).
+// Desafío day content, built on the real prefill (src/data/desafio-prefill.ts)
+// so the preview reads like prod will:
+//   days 1–3  prefill, published (YouTube embeds)
+//   day 4     prefill text, NOT published (draft → placeholder once unlocked)
+//   day 5     published with an audio file (the <audio> branch)
+//   day 6     published with a plain link (the button branch)
+//   days 7–15 no row (the empty placeholder state)
+const prefillDay = (n: number) => {
+  const d = DESAFIO_PREFILL.find((p) => p.dayNumber === n);
+  if (!d) throw new Error(`desafio prefill has no day ${n}`);
+  return d;
+};
+
 const CHALLENGE_DAYS: ChallengeDayFixture[] = [
+  ...[1, 2, 3].map((n) => ({ ...prefillDay(n), published: true })),
+  { ...prefillDay(4), published: false },
   {
-    dayNumber: 1,
-    title: "Llegar al cuerpo",
-    body: "Buscá un lugar tranquilo y una postura en la que puedas quedarte un rato. Hoy nada más observamos la respiración.",
-    mediaUrl: "https://youtu.be/inpok4MKVLM",
-    published: true,
-  },
-  {
-    dayNumber: 2,
-    title: "Respirar más lento",
-    body: "Una práctica corta de respiración para bajar un cambio. Con auriculares, mejor.",
+    dayNumber: 5,
+    title: prefillDay(5).title,
+    body: "Fixture de preview: el mismo día, pero con un audio en vez de YouTube, para probar el reproductor.",
     mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
     published: true,
   },
   {
-    dayNumber: 3,
-    title: "Una pausa en el día",
-    body: "Hoy la práctica es un texto para leer y tres minutos de silencio.",
+    dayNumber: 6,
+    title: prefillDay(6).title,
+    body: "Fixture de preview: un link común, que se muestra como botón.",
     mediaUrl: "https://www.harisolaas.com/es/sinergia",
     published: true,
-  },
-  {
-    dayNumber: 4,
-    title: "Borrador — gratitud",
-    body: null,
-    mediaUrl: null,
-    published: false,
   },
 ];
 
@@ -948,7 +948,7 @@ async function main() {
 
   console.log("\nDone. Log into the preview admin and start poking.");
   console.log(
-    `Desafío: days unlock by date (start ${desafioConfig.startDate}). To see unlocked days in preview before then, set DESAFIO_START_DATE_OVERRIDE=<YYYY-MM-DD, e.g. 3 days ago> in the Vercel Preview env and redeploy.`,
+    `Desafío: days unlock by date (start ${desafioConfig.startDate}). To see more days unlocked in preview (audio day 5, link day 6, empty days 7+), set DESAFIO_START_DATE_OVERRIDE=<YYYY-MM-DD, e.g. 8 days ago> in the Vercel Preview env and redeploy.`,
   );
 }
 
