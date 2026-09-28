@@ -92,6 +92,7 @@ afterEach(() => {
 describe("POST /api/desafio/register", () => {
   it.each([
     ["missing name", { ...valid("a"), name: "  " }],
+    ["overlong name", { ...valid("a"), name: "x".repeat(121) }],
     ["bad email", { ...valid("a"), email: "nope@x" }],
     ["bad phone", { ...valid("a"), phone: "123" }],
   ])("400 for %s", async (_label, body) => {

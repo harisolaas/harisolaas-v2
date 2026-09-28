@@ -377,6 +377,7 @@ function RegistrationForm({
           <input
             type="text"
             autoComplete="name"
+            maxLength={120}
             value={name}
             onChange={(e) => {
               setName(e.target.value);

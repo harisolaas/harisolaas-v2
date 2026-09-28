@@ -19,6 +19,8 @@ import {
 const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 5;
 const RATE_WINDOW = 60_000;
+// The name lands in people.name, the admin table and a mail subject.
+const NAME_MAX = 120;
 
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
     const phone = (typeof body.phone === "string" ? body.phone : "").trim();
     const locale = body.locale === "en" ? "en" : "es";
 
-    if (!name || !isValidEmail(email) || !isValidWhatsApp(phone)) {
+    if (!name || name.length > NAME_MAX || !isValidEmail(email) || !isValidWhatsApp(phone)) {
       return NextResponse.json(
         { error: "Name, valid email, and valid WhatsApp required" },
         { status: 400 },
