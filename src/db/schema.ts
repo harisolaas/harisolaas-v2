@@ -436,6 +436,33 @@ export const adminUserEventScopes = pgTable(
   ],
 );
 
+// ============================================================
+// challenge_days — per-day content for online challenges (Desafío 15 días)
+// ============================================================
+// One row per (event, day). Rows are optional: a missing row renders as the
+// "still preparing" placeholder. Unlocking is by date (src/data/desafio.ts),
+// not stored here; `published` is a draft flag on top of the date gate.
+export const challengeDays = pgTable(
+  "challenge_days",
+  {
+    eventId: text()
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    dayNumber: integer().notNull(),
+    title: text(),
+    body: text(),
+    mediaUrl: text(),
+    published: boolean().notNull().default(false),
+    updatedByEmail: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.dayNumber] }),
+    check("challenge_days_day_number_check", sql`${t.dayNumber} >= 1`),
+  ],
+);
+
 // Exported types for application code.
 export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
@@ -459,3 +486,5 @@ export type AdminUser = typeof adminUsers.$inferSelect;
 export type NewAdminUser = typeof adminUsers.$inferInsert;
 export type AdminUserEventScope = typeof adminUserEventScopes.$inferSelect;
 export type NewAdminUserEventScope = typeof adminUserEventScopes.$inferInsert;
+export type ChallengeDay = typeof challengeDays.$inferSelect;
+export type NewChallengeDay = typeof challengeDays.$inferInsert;
