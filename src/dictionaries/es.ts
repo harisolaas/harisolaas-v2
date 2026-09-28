@@ -206,7 +206,7 @@ const es: Dictionary = {
         categoryLabel: "Enseñanza",
         title: "Desafío: 15 días meditando",
         description:
-          "Una práctica corta por día, online y gratis. Arranca el 12 de octubre.",
+          "Una práctica corta por día, online y gratis. Arranca el {date}.",
         status: "Inscripciones abiertas",
         cta: {
           label: "Sumarme",

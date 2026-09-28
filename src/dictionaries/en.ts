@@ -204,7 +204,7 @@ const en: Dictionary = {
         categoryLabel: "Teaching",
         title: "Challenge: 15 days of meditation",
         description:
-          "One short practice a day, online and free. Starts October 12.",
+          "One short practice a day, online and free. Starts {date}.",
         status: "Sign-ups open",
         cta: {
           label: "Join",

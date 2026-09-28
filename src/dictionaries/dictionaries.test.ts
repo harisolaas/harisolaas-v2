@@ -317,3 +317,16 @@ describe("desafio dictionary — es/en parity", () => {
     expect(untranslated).toEqual([]);
   });
 });
+
+describe.each(dicts)("$locale dictionary — desafío Now card", ({ locale, dict }) => {
+  // The home page fills `{date}` from desafioStartDate(); a literal date here
+  // would go stale the moment the config moves.
+  it("carries the start date as a token, not a literal", () => {
+    const card = dict.now.items.find(
+      (item) => item.cta?.href === `/${locale}/desafio`,
+    );
+    expect(card, `now.items must contain the /${locale}/desafio card`).toBeDefined();
+    expect(card!.description).toContain("{date}");
+    expect(fillTokens(card!.description, { date: "X" })).not.toMatch(/\{\w+\}/);
+  });
+});

@@ -16,6 +16,8 @@ import NowSection from "@/components/NowSection";
 // import Timeline from "@/components/Timeline";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import { fillTokens } from "@/data/brote";
+import { desafioStartDate, formatDayDate } from "@/data/desafio";
 
 export default async function Home({
   params,
@@ -28,6 +30,19 @@ export default async function Home({
   const hasSpeakingPhoto = existsSync(
     join(process.cwd(), "public", "speaking.jpg")
   );
+  // The desafío card's `{date}` comes from the same start date the /desafio
+  // landing uses, so moving the date in config can't leave this card stale.
+  const desafioDate = formatDayDate(
+    desafioStartDate(),
+    locale === "en" ? "en" : "es",
+  );
+  const nowDict = {
+    ...dict.now,
+    items: dict.now.items.map((item) => ({
+      ...item,
+      description: fillTokens(item.description, { date: desafioDate }),
+    })),
+  };
 
   return (
     <>
@@ -48,7 +63,7 @@ export default async function Home({
           />
         ))}
         <BeyondSection dict={dict.beyond} hasPhoto={hasSpeakingPhoto} />
-        <NowSection dict={dict.now} />
+        <NowSection dict={nowDict} />
         {/* Timeline ("The Full Story") hidden for now — restore to bring it back */}
         {/* <Timeline dict={dict.timeline} /> */}
         <Contact dict={dict.contact} />
