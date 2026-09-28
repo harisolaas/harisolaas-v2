@@ -57,6 +57,7 @@ describe("isValidYouTubeUrl (admin input)", () => {
   it("accepts https YouTube links", () => {
     expect(isValidYouTubeUrl(`https://youtu.be/${ID}`)).toBe(true);
     expect(isValidYouTubeUrl(`https://www.youtube.com/shorts/${ID}`)).toBe(true);
+    expect(isValidYouTubeUrl(`https://www.youtube-nocookie.com/embed/${ID}`)).toBe(true);
   });
 
   it.each([

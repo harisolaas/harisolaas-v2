@@ -65,6 +65,9 @@ const YOUTUBE_HOSTS = new Set([
   "www.youtube.com",
   "m.youtube.com",
   "youtu.be",
+  // Privacy-mode "Embed" links (…/embed/{id}); the page embeds from here anyway.
+  "youtube-nocookie.com",
+  "www.youtube-nocookie.com",
 ]);
 
 /**
