@@ -600,6 +600,75 @@ export interface MentoriaSection {
   imageAlt?: string;
 }
 
+// ============================================================
+// Desafío "15 días meditando juntos" (/[locale]/desafio)
+// ============================================================
+// UI strings of the design handoff, verbatim in es. Event-level copy that the
+// design keeps in its data file (nombre — also the H1 —, guía, bienvenida,
+// cierre) lives in `desafioConfig` (src/data/desafio.ts), NOT here.
+// Tokens (filled with fillTokens from src/data/brote.ts):
+//   {n} day number · {next} the following day number · {guia} guide name
+//   {titulo} day title · {meditacion} meditation title · {duracion} "20 min"
+// Line breaks (closing.titleLines) are separate array items → <br>.
+export interface DesafioDict {
+  meta: { title: string; description: string; ogDescription: string };
+  /** Sticky bottom button on every screen. */
+  whatsappCta: string;
+  /** "Día {n}" — list rows, prev/next nav. */
+  dayLabel: string;
+  /** "Se publica pronto" — soon rows and the unpublished next-day pill. */
+  soon: string;
+  /** "Ver tu cierre" — home all-done card and the day panel. */
+  seeClosing: string;
+  home: {
+    guideTag: string; // {guia}
+    /** "Llevás {n} de 15 días" — {n} renders as the big Caprasimo number. */
+    progress: string;
+    nextKicker: string;
+    nextTitle: string; // {n} {titulo}
+    nextMeta: string; // {meditacion} {duracion}
+    nextCta: string; // {n}
+    upToDateTitle: string;
+    upToDateText: string; // {n} = next unpublished day
+    allDoneTitle: string;
+    daysHeading: string;
+    statusDone: string;
+    statusNext: string; // {duracion}
+    statusOpen: string; // {duracion}
+  };
+  day: {
+    backToDays: string;
+    doneCount: string; // {n}
+    kicker: string; // {n}
+    introLabel: string;
+    meditationKicker: string;
+    teacherTag: string;
+    reflectionLabel: string;
+    markDone: string; // {n}
+    doneTitle: string;
+    doneAll: string;
+    doneLastMissing: string;
+    doneNextOpen: string; // {next}
+    doneNextSoon: string; // {next}
+    /** Next day published and already done. */
+    doneNextDone: string;
+    unmark: string; // {n}
+  };
+  /** Accessible names with no visible text of their own. */
+  a11y: {
+    progress: string;
+    dayNav: string;
+    introVideo: string;
+    reflectionVideo: string;
+  };
+  closing: {
+    kicker: string;
+    titleLines: string[];
+    text: string;
+    comingSoonTag: string;
+  };
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -665,4 +734,5 @@ export interface Dictionary {
   sinergia: SinergiaDict;
   sinergiaParrafo: SinergiaParrafoDict;
   mentoria: MentoriaDict;
+  desafio: DesafioDict;
 }

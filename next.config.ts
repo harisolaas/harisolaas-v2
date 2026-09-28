@@ -19,6 +19,14 @@ const nextConfig: NextConfig = {
         destination: "/:locale/brote/invitacion/unarbol",
         permanent: true,
       },
+      // The desafío is Spanish-only (practices, day content and event copy
+      // are all Spanish). Temporary (307) so a real English version can take
+      // the URL later without browsers having cached the redirect.
+      {
+        source: "/en/desafio",
+        destination: "/es/desafio",
+        permanent: false,
+      },
     ];
   },
   async headers() {

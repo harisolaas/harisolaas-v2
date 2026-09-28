@@ -202,6 +202,20 @@ const en: Dictionary = {
       {
         categoryKey: "teaching",
         categoryLabel: "Teaching",
+        title: "15 days of meditating together",
+        description:
+          "One guided meditation a day, online and free, at your own pace. Start whenever you like. In Spanish.",
+        status: "Open",
+        cta: {
+          label: "Start",
+          // Stays under /en (see dictionaries.test); next.config redirects
+          // it to the Spanish-only /es/desafio.
+          href: "/en/desafio",
+        },
+      },
+      {
+        categoryKey: "teaching",
+        categoryLabel: "Teaching",
         title: "1:1 Mentorship",
         description:
           "Individual accompaniment with weekly sessions, in three-month cycles. A process shaped around you, with the tools I use on myself.",
@@ -1224,6 +1238,69 @@ const en: Dictionary = {
       // CTA destination: WhatsApp per site convention. Swappable — the final
       // CTA destination is an open owner decision.
       href: "https://wa.me/5491122555110?text=Hi%21%20I%27d%20like%20to%20know%20more%20about%20the%201%3A1%20mentorship",
+    },
+  },
+  desafio: {
+    meta: {
+      title: "15 days of meditating together — a free challenge with Hari",
+      description:
+        "A free online challenge: one guided meditation a day for 15 days, at your own pace. With Hari Solaas.",
+      ogDescription:
+        "One guided meditation a day, for 15 days. Online, free, at your own pace.",
+    },
+    // Mirrors es.desafio for type parity. The page itself is Spanish-only
+    // (/en/desafio redirects to /es/desafio), so these strings are unused
+    // except by tests; they're kept ready for a future English version.
+    whatsappCta: "Back to the WhatsApp group",
+    dayLabel: "Day {n}",
+    soon: "Coming soon",
+    seeClosing: "See your closing",
+    home: {
+      guideTag: "with {guia}",
+      progress: "You've done {n} of 15 days",
+      nextKicker: "Your next day",
+      nextTitle: "Day {n} · {titulo}",
+      nextMeta: "{meditacion} · {duracion}",
+      nextCta: "Start day {n}",
+      upToDateTitle: "You're all caught up",
+      upToDateText:
+        "You've done every published day. Day {n} is coming soon — I'll let you know in the group.",
+      allDoneTitle: "You completed all 15 days!",
+      daysHeading: "The days",
+      statusDone: "Done",
+      statusNext: "Your next day · {duracion}",
+      statusOpen: "Available · {duracion}",
+    },
+    day: {
+      backToDays: "All days",
+      doneCount: "{n} of 15 done",
+      kicker: "Day {n} of 15",
+      introLabel: "To begin",
+      meditationKicker: "Today's meditation",
+      teacherTag: "Gurudev Sri Sri Ravi Shankar",
+      reflectionLabel: "After meditating",
+      markDone: "I did day {n} ✓",
+      doneTitle: "Lovely.",
+      doneAll: "You completed all 15 days. I made something for the end.",
+      doneLastMissing:
+        "You finished the last day. You still have a few days to complete.",
+      doneNextOpen:
+        "See you tomorrow. And if you feel like keeping going today, day {next} is waiting for you.",
+      doneNextSoon: "See you tomorrow for day {next}.",
+      doneNextDone: "See you tomorrow.",
+      unmark: "Unmark day {n}",
+    },
+    a11y: {
+      progress: "Your progress",
+      dayNav: "Other days",
+      introVideo: "Day intro",
+      reflectionVideo: "Reflection",
+    },
+    closing: {
+      kicker: "15 of 15",
+      titleLines: ["You did it.", "Fifteen days", "of meditating together."],
+      text: "Thank you for giving yourself this time, day after day. What you found in the silence is yours now: you can come back whenever you like.",
+      comingSoonTag: "Coming soon",
     },
   },
 };

@@ -26,6 +26,9 @@ import {
   INVITATION_SLUGS,
   getInvitation,
 } from "../src/lib/brote-invitations";
+import { DESAFIO_EVENT_ID, DESAFIO_TOTAL_DAYS } from "../src/data/desafio";
+import { DESAFIO_PREFILL } from "../src/data/desafio-prefill";
+import { validateDayInput, type DesafioDayFields } from "../src/lib/desafio";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -62,7 +65,7 @@ function dbHost(): string {
 // collide with real people.
 interface EventFixture {
   id: string;
-  type: "brote" | "plant" | "sinergia" | "sinergia-parrafo";
+  type: "brote" | "plant" | "sinergia" | "sinergia-parrafo" | "desafio";
   series: string | null;
   name: string;
   date: string; // ISO
@@ -123,6 +126,11 @@ interface ParticipationFixture {
    * production actually produces.
    */
   seq?: number;
+}
+
+interface ChallengeDayFixture extends DesafioDayFields {
+  dia: number;
+  publicado: boolean;
 }
 
 interface LinkFixture {
@@ -203,6 +211,19 @@ const EVENTS: EventFixture[] = [
     capacity: 50,
     status: "upcoming",
     landingPath: "/es/sinergia-parrafo",
+  },
+  // Desafío 15 días. Real id, not `preview-` prefixed — same reasoning as the
+  // invitation link slugs: the page and the admin panel read the
+  // DESAFIO_EVENT_ID constant, so a renamed copy would be invisible.
+  {
+    id: DESAFIO_EVENT_ID,
+    type: "desafio",
+    series: "desafio",
+    name: "Desafío 15 días meditando (preview)",
+    date: "2026-09-28T00:00:00-03:00",
+    capacity: null,
+    status: "live",
+    landingPath: "/es/desafio",
   },
 ];
 
@@ -579,9 +600,48 @@ const PARTICIPATIONS: ParticipationFixture[] = [
   })),
 ];
 
+// Desafío day content, built on the real prefill (src/data/desafio-prefill.ts)
+// so the preview reads like prod will. Prod gets all 15 published; the
+// preview deliberately mixes states so every UI branch is reachable:
+//   day 1     published + intro video + reflection text + reflection video
+//             (a /shorts/ link → the vertical 9/16 embed)
+//   day 2     published, NO reflection at all (section hidden)
+//   days 3–9  published, prefill as-is (reflection text, no videos)
+//   day 10    draft: prefill content but publicado:false → "Se publica pronto"
+//             (its content must NOT reach the page)
+//   days 11–15 no row (unpublished placeholders)
+const prefillDay = (n: number): ChallengeDayFixture => {
+  const d = DESAFIO_PREFILL.find((p) => p.dia === n);
+  if (!d) throw new Error(`desafio prefill has no day ${n}`);
+  return { ...d, publicado: true };
+};
+
+const CHALLENGE_DAYS: ChallengeDayFixture[] = [
+  {
+    ...prefillDay(1),
+    introVideo: "https://youtu.be/UD87tGkyrs8",
+    reflexionVideo: "https://www.youtube.com/shorts/J1MwcuRU0r8",
+  },
+  { ...prefillDay(2), reflexion: "", reflexionVideo: "" },
+  ...[3, 4, 5, 6, 7, 8, 9].map(prefillDay),
+  { ...prefillDay(10), publicado: false },
+];
+
 
 
 const LINKS: LinkFixture[] = [
+  {
+    slug: "preview-desafio-ig-20260928",
+    destination: "/es/desafio",
+    label: "Preview · Story IG desafío",
+    channel: "ig-story",
+    source: "instagram",
+    medium: "story",
+    campaign: "desafio_preview",
+    createdDate: "2026-09-28",
+    bypassCapacity: false,
+    referrerEmail: null,
+  },
   {
     slug: "preview-instagram-story-20260420",
     destination: "/es/sinergia",
@@ -674,6 +734,15 @@ async function main() {
       problems.push(`${l.slug}: referrerEmail ${l.referrerEmail} is not in PEOPLE`);
     }
   }
+  for (const d of CHALLENGE_DAYS) {
+    if (!Number.isInteger(d.dia) || d.dia < 1 || d.dia > DESAFIO_TOTAL_DAYS) {
+      problems.push(`challenge day ${d.dia}: outside 1..${DESAFIO_TOTAL_DAYS}`);
+    }
+    // Same validation as the admin PUT, so preview never holds a day the
+    // editor would refuse to save back.
+    const res = validateDayInput(d);
+    if (!res.ok) problems.push(`challenge day ${d.dia}: ${res.error}`);
+  }
   if (problems.length > 0) {
     console.error("\n✗ Fixture references that would not resolve:");
     for (const p of problems) console.error(`  ${p}`);
@@ -685,6 +754,7 @@ async function main() {
   console.log(`  ${PEOPLE.length} people`);
   console.log(`  ${PARTICIPATIONS.length} participations`);
   console.log(`  ${LINKS.length} links`);
+  console.log(`  ${CHALLENGE_DAYS.length} challenge_days`);
   if (ADMIN_EMAIL) console.log(`  1 admin_users row (${ADMIN_EMAIL})`);
 
   if (DRY_RUN) {
@@ -706,6 +776,47 @@ async function main() {
     `);
   }
   console.log(`✓ events`);
+
+  // Desafío day content. After events (FK on event_id). DO UPDATE, unlike
+  // the rest of this file: these rows use the real event id and a preview
+  // branch may still hold pre-0008 fixtures (audio/link days without the
+  // design's fields), which would otherwise never refresh.
+  for (const d of CHALLENGE_DAYS) {
+    const v = (s: string) => (s.trim() === "" ? null : s);
+    await db.execute(sql`
+      INSERT INTO challenge_days (
+        event_id, day_number, title, body, intro_video_url, meditation_title,
+        media_url, duration_label, reflection, reflection_video_url,
+        published, updated_by_email
+      )
+      VALUES (
+        ${DESAFIO_EVENT_ID}, ${d.dia}, ${v(d.titulo)}, ${v(d.intro)},
+        ${v(d.introVideo)}, ${v(d.meditacion)}, ${v(d.meditacionVideo)},
+        ${v(d.duracion)}, ${v(d.reflexion)}, ${v(d.reflexionVideo)},
+        ${d.publicado}, 'seed-preview'
+      )
+      ON CONFLICT (event_id, day_number) DO UPDATE SET
+        title = EXCLUDED.title,
+        body = EXCLUDED.body,
+        intro_video_url = EXCLUDED.intro_video_url,
+        meditation_title = EXCLUDED.meditation_title,
+        media_url = EXCLUDED.media_url,
+        duration_label = EXCLUDED.duration_label,
+        reflection = EXCLUDED.reflection,
+        reflection_video_url = EXCLUDED.reflection_video_url,
+        published = EXCLUDED.published,
+        updated_by_email = EXCLUDED.updated_by_email,
+        updated_at = now()
+    `);
+  }
+  // Rows for days the fixture leaves empty (11–15) are removed so the
+  // "no row" state is real even on a branch seeded by an older version.
+  await db.execute(sql`
+    DELETE FROM challenge_days
+    WHERE event_id = ${DESAFIO_EVENT_ID}
+      AND day_number > ${Math.max(...CHALLENGE_DAYS.map((d) => d.dia))}
+  `);
+  console.log(`✓ challenge_days`);
 
   // People.
   for (const p of PEOPLE) {
@@ -812,6 +923,9 @@ async function main() {
   }
 
   console.log("\nDone. Log into the preview admin and start poking.");
+  console.log(
+    "Desafío: /es/desafio shows days 1–9 published (day 1 with intro + shorts reflection video, day 2 without reflection), day 10 as a draft and 11–15 without a row. Edit them at /admin/desafio.",
+  );
 }
 
 main()

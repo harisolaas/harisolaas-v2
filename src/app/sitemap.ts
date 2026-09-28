@@ -52,5 +52,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
       alternates: { languages: broteAlternates },
     },
+    // The 15-day challenge. `daily`: new days get published as it goes.
+    // Spanish-only — `/en/desafio` redirects here, so it isn't listed.
+    {
+      url: `${BASE}/es/desafio`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
   ];
 }

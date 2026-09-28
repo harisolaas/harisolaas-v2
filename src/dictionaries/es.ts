@@ -203,6 +203,18 @@ const es: Dictionary = {
     items: [
       {
         categoryKey: "teaching",
+        categoryLabel: "Enseñanza",
+        title: "15 días meditando juntos",
+        description:
+          "Una meditación guiada por día, online y gratis, a tu ritmo. Empezá cuando quieras.",
+        status: "Abierto",
+        cta: {
+          label: "Empezar",
+          href: "/es/desafio",
+        },
+      },
+      {
+        categoryKey: "teaching",
         categoryLabel: "Ense\u00f1anza",
         title: "Mentor\u00eda 1 a 1",
         description:
@@ -1246,6 +1258,68 @@ const es: Dictionary = {
       // CTA destination: WhatsApp por convención del sitio. Swappable — el
       // destino definitivo del CTA es una decisión abierta del owner.
       href: "https://wa.me/5491122555110?text=Hola%21%20Quiero%20saber%20m%C3%A1s%20sobre%20la%20mentor%C3%ADa%201%20a%201",
+    },
+  },
+  desafio: {
+    meta: {
+      title: "15 días meditando juntos — Desafío gratuito con Hari",
+      description:
+        "Un desafío online y gratuito: una meditación guiada por día, durante 15 días, a tu ritmo. Con Hari Solaas.",
+      ogDescription:
+        "Una meditación guiada por día, durante 15 días. Online, gratis y a tu ritmo.",
+    },
+    // UI strings verbatim from the design handoff (README). Uppercase
+    // kickers are written in sentence case; the page uppercases via CSS.
+    whatsappCta: "Volver al grupo de WhatsApp",
+    dayLabel: "Día {n}",
+    soon: "Se publica pronto",
+    seeClosing: "Ver tu cierre",
+    home: {
+      guideTag: "con {guia}",
+      progress: "Llevás {n} de 15 días",
+      nextKicker: "Tu próximo día",
+      nextTitle: "Día {n} · {titulo}",
+      nextMeta: "{meditacion} · {duracion}",
+      nextCta: "Empezar el día {n}",
+      upToDateTitle: "Estás al día",
+      upToDateText:
+        "Hiciste todos los días publicados. Pronto se publica el día {n}, te aviso en el grupo.",
+      allDoneTitle: "¡Completaste los 15 días!",
+      daysHeading: "Los días",
+      statusDone: "Hecho",
+      statusNext: "Tu próximo día · {duracion}",
+      statusOpen: "Disponible · {duracion}",
+    },
+    day: {
+      backToDays: "Todos los días",
+      doneCount: "{n} de 15 hechos",
+      kicker: "Día {n} de 15",
+      introLabel: "Para arrancar",
+      meditationKicker: "Meditación del día",
+      teacherTag: "Gurudev Sri Sri Ravi Shankar",
+      reflectionLabel: "Para después de meditar",
+      markDone: "Hice el día {n} ✓",
+      doneTitle: "Qué lindo.",
+      doneAll: "Completaste los 15 días. Te preparé algo para el final.",
+      doneLastMissing:
+        "Terminaste el último día. Te quedan algunos días por completar.",
+      doneNextOpen:
+        "Nos vemos mañana. Y si hoy tenés ganas de seguir, el día {next} ya te espera.",
+      doneNextSoon: "Nos vemos mañana en el día {next}.",
+      doneNextDone: "Nos vemos mañana.",
+      unmark: "Desmarcar el día {n}",
+    },
+    a11y: {
+      progress: "Tu progreso",
+      dayNav: "Otros días",
+      introVideo: "Intro del día",
+      reflectionVideo: "Reflexión",
+    },
+    closing: {
+      kicker: "15 de 15",
+      titleLines: ["Lo hiciste.", "Quince días", "meditando juntos."],
+      text: "Gracias por darte este tiempo, día tras día. Eso que encontraste en el silencio ya es tuyo: podés volver cuando quieras.",
+      comingSoonTag: "Próximamente",
     },
   },
 };

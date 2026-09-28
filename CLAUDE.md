@@ -483,3 +483,48 @@ After deploying the first time, register `https://www.harisolaas.com/api/sinergi
 ### Donation data shape
 
 Donation details live in `participations.metadata.donation = { amountCents, currency, paymentId, receiptSent }`. No schema migration — the column was already `jsonb`. `participations.externalPaymentId`, `priceCents`, `currency` are also set by the webhook for reporting parity with BROTE.
+
+---
+
+## DESAFÍO — "15 días meditando juntos" (online challenge)
+
+A free, self-paced challenge built from a Claude Design handoff: one guided meditation per day for 15 days. **No registration** — people arrive from the WhatsApp group (via Instagram), start at day 1 whenever they arrive and track their own progress in localStorage (`desafio15.completados`). **No date gate** — a day is visible when its row is `published`, nothing else.
+
+### Config (`src/data/desafio.ts`)
+
+- `DESAFIO_EVENT_ID = "desafio-15-dias-2026"` — a key, not a date claim. Never change it once content is loaded in prod. Helpers in `src/lib` take it as a parameter (tests partially mock the constant).
+- `desafioConfig` — the event-level copy the design keeps in its data file: `nombre` (also the H1; "juntos" is the product name, kept on purpose), `guia`, `bienvenida`, `whatsapp` (group invite), `cierre {titulo, texto}`.
+- UI strings from the design live in `dict.desafio` (`es.ts` verbatim from the handoff; `en.ts` mirrors). Tokens: `{n} {next} {guia} {titulo} {meditacion} {duracion}`.
+
+### Content model (`src/lib/desafio.ts`)
+
+`DesafioDay` uses the design's Spanish keys: `dia, publicado, titulo, intro, introVideo, meditacion, meditacionVideo, duracion, reflexion, reflexionVideo`. DB columns keep English names (`title, body, intro_video_url, meditation_title, media_url, duration_label, reflection, reflection_video_url, published`); the mapping lives only in `rowToFields` / `upsertChallengeDay` (and the prefill script's `toColumns`).
+
+**Security invariant:** `buildDesafioDays` turns missing, unpublished and untitled rows into `{ dia, publicado: false }` — no content. Never pass raw `challenge_days` rows to a client component. Video fields are YouTube-only (`parseYouTube`, `youtube-nocookie` embed; `/shorts/` → 9/16); anything else is dropped to `""`.
+
+### Pages & routes
+
+| Path | Purpose |
+|---|---|
+| `/[locale]/desafio` | Public page. `force-dynamic`, data from `loadDesafio()` → `{ config, dias }` (never throws: on DB error every day comes back unpublished) |
+| `/admin/desafio` | Per-day editor with every design field + `publicado`. Linked from the Comunidad header for `scope: all` |
+| `GET /api/admin/desafio` | All 15 days + `counts.published`. Session auth + `assertEventAccess` |
+| `PUT /api/admin/desafio/days/{n}` | Full replace of one day. Editor+ (`assertCanWriteEvent`). Videos must be https YouTube links; publishing needs `titulo` + `meditacionVideo`. 400s carry a Spanish error the UI shows verbatim |
+
+The `events` row is created lazily and idempotently by `ensureDesafioEvent()` on the first admin GET/PUT (and by the prefill script). **No manual data insert.**
+
+### Day content prefill (`src/data/desafio-prefill.ts`)
+
+All 15 days, published: one Gurudev meditation from Hari's playlist per day (day 1 = Luna Llena), a clean meditation title, the real video length, an intro and a reflection. First draft only — once loaded, `challenge_days` is the source of truth and Hari edits it in `/admin/desafio`.
+
+`npx tsx scripts/prefill-desafio.ts [--env-file=.env.prod.local] [--execute] [--replace]` — dry run by default (read-only). `--execute` creates the event row if missing and inserts each day with `ON CONFLICT DO NOTHING`: **a day that already has a row is never overwritten**. `--replace` overwrites existing rows (prints a warning) — for resetting non-prod branches, never prod without Hari's say-so. Validates each day with the admin's `validateDayInput` first.
+
+### Manual migrations (0007 + 0008)
+
+Both are purely additive. Apply to prod **in order, right before merging**: `psql "$PROD_URL" --single-transaction -f docs/ops/0007-prod.sql` (`CREATE TABLE challenge_days`), then `-f docs/ops/0008-prod.sql` (five nullable text columns; re-runnable). Each file has its pre-flight and verification queries. Then, with Hari's go-ahead: `npx tsx scripts/prefill-desafio.ts --env-file=.env.prod.local` (dry run), then the same with `--execute`.
+
+Non-prod branches that already have 0007 (the `.env.local` preview branch, CI's dev branch) need 0008 too: CI applies it via `npm run db:migrate`; the preview branch needs it applied by hand before the admin DB suite or the preview works there.
+
+### Preview
+
+`scripts/seed-preview.ts` seeds the real-id event and days 1–9 published (day 1 with intro video + a Shorts reflection video, day 2 without reflection), day 10 as a draft and 11–15 without a row. Unlike the rest of the seeder it upserts these rows, so a branch holding older fixtures gets refreshed.

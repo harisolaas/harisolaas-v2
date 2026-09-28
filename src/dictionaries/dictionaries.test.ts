@@ -254,3 +254,96 @@ describe.each(dicts)("$locale dictionary — mentoria", ({ locale, dict }) => {
     }
   });
 });
+
+describe.each(dicts)("$locale dictionary — desafio", ({ locale, dict }) => {
+  const desafio = dict.desafio;
+
+  it("has no empty copy strings", () => {
+    const strings = collectStrings(desafio);
+    expect(strings.length).toBeGreaterThan(30);
+    for (const s of strings) {
+      expect(s.trim(), "no empty copy strings in desafio").not.toBe("");
+    }
+  });
+
+  it("has a landing Now card linking to the desafio page, with no date in it", () => {
+    const card = dict.now.items.find(
+      (item) => item.cta?.href === `/${locale}/desafio`,
+    );
+    expect(card, `now.items must link to /${locale}/desafio`).toBeDefined();
+    expect(card!.title.trim()).not.toBe("");
+    expect(card!.cta!.label.trim()).not.toBe("");
+    // Self-paced, no start date: the card must not carry a date token.
+    expect(`${card!.description} ${card!.status}`).not.toMatch(/\{\w+\}/);
+  });
+
+  // The page fills these; a missing token would render a sentence without
+  // its number/name.
+  it("declares the tokens the page fills", () => {
+    const expected: Array<[string, string[]]> = [
+      [desafio.dayLabel, ["n"]],
+      [desafio.home.guideTag, ["guia"]],
+      [desafio.home.progress, ["n"]],
+      [desafio.home.nextTitle, ["n", "titulo"]],
+      [desafio.home.nextMeta, ["meditacion", "duracion"]],
+      [desafio.home.nextCta, ["n"]],
+      [desafio.home.upToDateText, ["n"]],
+      [desafio.home.statusNext, ["duracion"]],
+      [desafio.home.statusOpen, ["duracion"]],
+      [desafio.day.doneCount, ["n"]],
+      [desafio.day.kicker, ["n"]],
+      [desafio.day.markDone, ["n"]],
+      [desafio.day.doneNextOpen, ["next"]],
+      [desafio.day.doneNextSoon, ["next"]],
+      [desafio.day.unmark, ["n"]],
+    ];
+    for (const [s, tokens] of expected) {
+      for (const t of tokens) expect(s, `${s} needs {${t}}`).toContain(`{${t}}`);
+    }
+  });
+
+  it("leaves no unfilled token once filled", () => {
+    const values = {
+      n: "1",
+      next: "2",
+      guia: "Hari",
+      titulo: "t",
+      meditacion: "m",
+      duracion: "20 min",
+    };
+    for (const s of collectStrings(desafio)) {
+      expect(fillTokens(s, values)).not.toMatch(/\{\w+\}/);
+    }
+  });
+});
+
+describe("desafio dictionary — es", () => {
+  // Spot-check the design's copy stays verbatim (README of the handoff).
+  it("keeps the design's key strings verbatim", () => {
+    expect(es.desafio.whatsappCta).toBe("Volver al grupo de WhatsApp");
+    expect(es.desafio.home.progress).toBe("Llevás {n} de 15 días");
+    expect(es.desafio.day.markDone).toBe("Hice el día {n} ✓");
+    expect(es.desafio.soon).toBe("Se publica pronto");
+  });
+});
+
+describe("desafio dictionary — es/en parity", () => {
+  const esLeaves = leafPaths(es.desafio);
+  const enLeaves = leafPaths(en.desafio);
+
+  it("has the same shape in both locales", () => {
+    expect(Object.keys(enLeaves).sort()).toEqual(Object.keys(esLeaves).sort());
+  });
+
+  it("translates every copy field", () => {
+    // Proper nouns and pure-token strings are legitimately identical.
+    const sameOnPurpose = new Set([
+      "day.teacherTag",
+      "home.nextMeta",
+    ]);
+    const untranslated = Object.keys(esLeaves).filter(
+      (path) => esLeaves[path] === enLeaves[path] && !sameOnPurpose.has(path),
+    );
+    expect(untranslated).toEqual([]);
+  });
+});
