@@ -4,26 +4,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import MetricCard from "./MetricCard";
 import {
-  DAY_BODY_MAX,
-  DAY_TITLE_MAX,
-  parseDesafioMedia,
+  DAY_LIMITS,
+  isValidYouTubeUrl,
+  parseYouTube,
   type DesafioAdminDay,
   type DesafioAdminResponse,
+  type DesafioDayFields,
 } from "@/lib/desafio";
 
 // Same palette the admin already uses; kept local so each badge is one
 // lookup and the list stays readable.
 const BADGE = {
-  locked: "bg-sage/15 text-sage",
-  unlocked: "border border-forest/30 text-forest",
   published: "bg-forest text-cream",
   draft: "bg-tan/60 text-charcoal/70",
   empty: "bg-charcoal/5 text-charcoal/40",
 } as const;
-
-function isReady(day: Pick<DesafioAdminDay, "published" | "title">): boolean {
-  return day.published && Boolean(day.title?.trim());
-}
 
 type LoadResult =
   | { kind: "ok"; data: DesafioAdminResponse }
@@ -92,7 +87,7 @@ export default function DesafioManager({
         ? {
             ...prev,
             days: prev.days.map((d) =>
-              d.dayNumber === day.dayNumber ? day : d,
+              d.dia === day.dia ? day : d,
             ),
           }
         : prev,
@@ -100,8 +95,8 @@ export default function DesafioManager({
   }, []);
 
   // Recomputed from the rows so a save updates the metric without a refetch.
-  const daysReady = useMemo(
-    () => data?.days.filter(isReady).length ?? 0,
+  const daysVisible = useMemo(
+    () => data?.days.filter((d) => d.visible).length ?? 0,
     [data],
   );
 
@@ -163,25 +158,10 @@ export default function DesafioManager({
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <MetricCard
-                label="Personas anotadas"
-                value={data.counts.registered}
-              />
-              <MetricCard
-                label="Día actual"
-                value={`${data.event.unlockedDays}/${data.event.totalDays}`}
-                subtitle={
-                  data.event.phase === "before"
-                    ? `Arranca el ${data.days[0]?.dateLabel ?? data.event.startDate}`
-                    : data.event.phase === "after"
-                      ? "El desafío terminó"
-                      : "En curso"
-                }
-              />
-              <MetricCard
-                label="Días listos"
-                value={`${daysReady}/${data.event.totalDays}`}
-                subtitle="Publicados y con título"
-                accent={daysReady < data.event.unlockedDays}
+                label="Días publicados"
+                value={`${daysVisible}/${data.event.totalDays}`}
+                subtitle="Marcados como publicados y con título: se ven en la página"
+                accent={daysVisible < data.event.totalDays}
               />
             </div>
 
@@ -195,7 +175,7 @@ export default function DesafioManager({
               <ol className="space-y-2">
                 {data.days.map((day) => (
                   <DayEditor
-                    key={day.dayNumber}
+                    key={day.dia}
                     day={day}
                     canWrite={canWrite}
                     onSaved={onSaved}
@@ -203,8 +183,6 @@ export default function DesafioManager({
                 ))}
               </ol>
             </section>
-
-            <RegistrantsTable registrants={data.registrants} />
           </>
         )}
       </main>
@@ -216,33 +194,147 @@ export default function DesafioManager({
 // One day
 // ============================================================
 
-interface Draft {
-  title: string;
-  body: string;
-  mediaUrl: string;
-  published: boolean;
-}
+type Draft = DesafioDayFields & { publicado: boolean };
+
+const FIELD_KEYS = [
+  "titulo",
+  "intro",
+  "introVideo",
+  "meditacion",
+  "meditacionVideo",
+  "duracion",
+  "reflexion",
+  "reflexionVideo",
+] as const;
 
 function toDraft(day: DesafioAdminDay): Draft {
+  const draft = { publicado: day.publicado } as Draft;
+  for (const k of FIELD_KEYS) draft[k] = day[k];
+  return draft;
+}
+
+function videoHint(raw: string): { text: string; invalid: boolean } | null {
+  if (!raw.trim()) return null;
+  if (!isValidYouTubeUrl(raw.trim())) {
+    return { text: "Tiene que ser un link de YouTube (https://…)", invalid: true };
+  }
+  const yt = parseYouTube(raw);
   return {
-    title: day.title ?? "",
-    body: day.body ?? "",
-    mediaUrl: day.mediaUrl ?? "",
-    published: day.published,
+    text: yt?.isShort ? "YouTube Short · se ve vertical" : "YouTube · se ve embebido",
+    invalid: false,
   };
 }
 
-function mediaHint(raw: string): { text: string; invalid: boolean } | null {
-  if (!raw.trim()) return null;
-  const media = parseDesafioMedia(raw);
-  if (!media) return { text: "Link inválido", invalid: true };
-  if (media.kind === "youtube") {
-    return { text: "YouTube · se va a ver embebido", invalid: false };
-  }
-  if (media.kind === "audio") {
-    return { text: "Audio · se va a reproducir en la página", invalid: false };
-  }
-  return { text: "Link · se abre en otra pestaña", invalid: false };
+const INPUT =
+  "w-full rounded-lg border px-3 py-2 text-sm text-charcoal outline-none focus:border-forest/40 disabled:bg-charcoal/5";
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-charcoal/40">
+      {children}
+    </span>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  max,
+  disabled,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  disabled: boolean;
+  placeholder?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <Label>{label}</Label>
+      <input
+        type="text"
+        value={value}
+        maxLength={max}
+        disabled={disabled}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${INPUT} border-sage/30`}
+      />
+    </label>
+  );
+}
+
+function TextArea({
+  label,
+  value,
+  max,
+  rows,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  max: number;
+  rows: number;
+  disabled: boolean;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <Label>{label}</Label>
+      <textarea
+        value={value}
+        maxLength={max}
+        rows={rows}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${INPUT} border-sage/30 leading-relaxed`}
+      />
+      <span className="mt-0.5 block text-right text-[11px] text-charcoal/40">
+        {value.length}/{max}
+      </span>
+    </label>
+  );
+}
+
+function VideoField({
+  label,
+  value,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  disabled: boolean;
+  onChange: (v: string) => void;
+}) {
+  const hint = videoHint(value);
+  return (
+    <label className="block">
+      <Label>{label}</Label>
+      <input
+        type="url"
+        value={value}
+        maxLength={DAY_LIMITS.video}
+        disabled={disabled}
+        placeholder="https://youtu.be/…"
+        onChange={(e) => onChange(e.target.value)}
+        className={`${INPUT} ${hint?.invalid ? "border-terracotta" : "border-sage/30"}`}
+      />
+      {hint && (
+        <span
+          className={`mt-1 block text-xs ${
+            hint.invalid ? "text-terracotta" : "text-charcoal/50"
+          }`}
+        >
+          {hint.text}
+        </span>
+      )}
+    </label>
+  );
 }
 
 function DayEditor({
@@ -260,29 +352,24 @@ function DayEditor({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const ready = isReady(day);
-  const hasContent = Boolean(day.title || day.body || day.mediaUrl);
-  const contentBadge = ready
+  const hasContent = FIELD_KEYS.some((k) => day[k].trim() !== "");
+  const contentBadge = day.visible
     ? { label: "Publicado", cls: BADGE.published }
     : hasContent
       ? { label: "Borrador", cls: BADGE.draft }
       : { label: "Vacío", cls: BADGE.empty };
-  const needsAttention = day.unlocked && !ready;
 
   const saved0 = toDraft(day);
   const dirty =
-    draft.title !== saved0.title ||
-    draft.body !== saved0.body ||
-    draft.mediaUrl !== saved0.mediaUrl ||
-    draft.published !== saved0.published;
-
-  const hint = mediaHint(draft.mediaUrl);
+    draft.publicado !== saved0.publicado ||
+    FIELD_KEYS.some((k) => draft[k] !== saved0[k]);
 
   const update = (patch: Partial<Draft>) => {
     setDraft((d) => ({ ...d, ...patch }));
     setSaved(false);
     setError(null);
   };
+  const disabled = !canWrite;
 
   const save = async () => {
     if (!canWrite || saving) return;
@@ -290,15 +377,10 @@ function DayEditor({
     setError(null);
     setSaved(false);
     try {
-      const res = await fetch(`/api/admin/desafio/days/${day.dayNumber}`, {
+      const res = await fetch(`/api/admin/desafio/days/${day.dia}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: draft.title,
-          body: draft.body,
-          mediaUrl: draft.mediaUrl,
-          published: draft.published,
-        }),
+        body: JSON.stringify(draft),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body.ok && body.day) {
@@ -328,25 +410,16 @@ function DayEditor({
         aria-expanded={expanded}
         className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-left"
       >
-        <span className="font-serif text-lg text-forest">
-          Día {day.dayNumber}
-        </span>
-        <span className="text-xs text-charcoal/50">{day.dateLabel}</span>
-        <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-            day.unlocked ? BADGE.unlocked : BADGE.locked
-          }`}
-        >
-          {day.unlocked ? "Abierto" : "Bloqueado"}
-        </span>
+        <span className="font-serif text-lg text-forest">Día {day.dia}</span>
         <span
           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${contentBadge.cls}`}
         >
           {contentBadge.label}
         </span>
-        {day.title && (
+        {day.titulo && (
           <span className="min-w-0 flex-1 truncate text-sm text-charcoal/70">
-            {day.title}
+            {day.titulo}
+            {day.duracion ? ` · ${day.duracion}` : ""}
           </span>
         )}
         <span className="ml-auto text-xs text-charcoal/40">
@@ -354,79 +427,94 @@ function DayEditor({
         </span>
       </button>
 
-      {needsAttention && (
-        <p className="mx-4 mb-3 rounded-lg bg-terracotta/10 px-3 py-2 text-xs text-terracotta">
-          Este día ya está abierto y todavía no se ve: falta cargarlo o
-          publicarlo.
-        </p>
-      )}
-
       {expanded && (
-        <div className="space-y-3 border-t border-sage/15 px-4 py-4">
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-charcoal/40">
-              Título
-            </span>
-            <input
-              type="text"
-              value={draft.title}
-              maxLength={DAY_TITLE_MAX}
-              disabled={!canWrite}
-              onChange={(e) => update({ title: e.target.value })}
-              className="w-full rounded-lg border border-sage/30 px-3 py-2 text-sm text-charcoal outline-none focus:border-forest/40 disabled:bg-charcoal/5"
+        <div className="space-y-4 border-t border-sage/15 px-4 py-4">
+          <TextField
+            label="Título del día"
+            value={draft.titulo}
+            max={DAY_LIMITS.titulo}
+            disabled={disabled}
+            onChange={(titulo) => update({ titulo })}
+          />
+
+          <fieldset className="space-y-3 rounded-lg bg-cream/60 p-3">
+            <legend className="px-1 text-xs font-semibold text-forest">
+              Para arrancar
+            </legend>
+            <TextArea
+              label="Texto de intro"
+              value={draft.intro}
+              max={DAY_LIMITS.intro}
+              rows={4}
+              disabled={disabled}
+              onChange={(intro) => update({ intro })}
             />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-charcoal/40">
-              Texto
-            </span>
-            <textarea
-              value={draft.body}
-              maxLength={DAY_BODY_MAX}
-              rows={6}
-              disabled={!canWrite}
-              onChange={(e) => update({ body: e.target.value })}
-              className="w-full rounded-lg border border-sage/30 px-3 py-2 text-sm leading-relaxed text-charcoal outline-none focus:border-forest/40 disabled:bg-charcoal/5"
+            <VideoField
+              label="Video de intro (opcional)"
+              value={draft.introVideo}
+              disabled={disabled}
+              onChange={(introVideo) => update({ introVideo })}
             />
-            <span className="mt-0.5 block text-right text-[11px] text-charcoal/40">
-              {draft.body.length}/{DAY_BODY_MAX}
-            </span>
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-wider text-charcoal/40">
-              Link de la práctica (YouTube, audio o página)
-            </span>
-            <input
-              type="url"
-              value={draft.mediaUrl}
-              disabled={!canWrite}
-              placeholder="https://"
-              onChange={(e) => update({ mediaUrl: e.target.value })}
-              className={`w-full rounded-lg border px-3 py-2 text-sm text-charcoal outline-none focus:border-forest/40 disabled:bg-charcoal/5 ${
-                hint?.invalid ? "border-terracotta" : "border-sage/30"
-              }`}
+          </fieldset>
+
+          <fieldset className="space-y-3 rounded-lg bg-cream/60 p-3">
+            <legend className="px-1 text-xs font-semibold text-forest">
+              Meditación del día
+            </legend>
+            <TextField
+              label="Título de la meditación"
+              value={draft.meditacion}
+              max={DAY_LIMITS.meditacion}
+              disabled={disabled}
+              onChange={(meditacion) => update({ meditacion })}
             />
-            {hint && (
-              <span
-                className={`mt-1 block text-xs ${
-                  hint.invalid ? "text-terracotta" : "text-charcoal/50"
-                }`}
-              >
-                {hint.text}
-              </span>
-            )}
-          </label>
+            <VideoField
+              label="Video de la meditación"
+              value={draft.meditacionVideo}
+              disabled={disabled}
+              onChange={(meditacionVideo) => update({ meditacionVideo })}
+            />
+            <TextField
+              label="Duración"
+              value={draft.duracion}
+              max={DAY_LIMITS.duracion}
+              disabled={disabled}
+              placeholder="20 min"
+              onChange={(duracion) => update({ duracion })}
+            />
+          </fieldset>
+
+          <fieldset className="space-y-3 rounded-lg bg-cream/60 p-3">
+            <legend className="px-1 text-xs font-semibold text-forest">
+              Para después de meditar (opcional: vacío = no se muestra)
+            </legend>
+            <TextArea
+              label="Reflexión"
+              value={draft.reflexion}
+              max={DAY_LIMITS.reflexion}
+              rows={3}
+              disabled={disabled}
+              onChange={(reflexion) => update({ reflexion })}
+            />
+            <VideoField
+              label="Video de reflexión (opcional)"
+              value={draft.reflexionVideo}
+              disabled={disabled}
+              onChange={(reflexionVideo) => update({ reflexionVideo })}
+            />
+          </fieldset>
+
           <label className="flex items-center gap-2 text-sm text-charcoal/80">
             <input
               type="checkbox"
-              checked={draft.published}
-              disabled={!canWrite}
-              onChange={(e) => update({ published: e.target.checked })}
+              checked={draft.publicado}
+              disabled={disabled}
+              onChange={(e) => update({ publicado: e.target.checked })}
               className="h-4 w-4 accent-forest"
             />
             Publicado
             <span className="text-xs text-charcoal/40">
-              (se ve en la página cuando llega su fecha)
+              (se ve en la página apenas guardás)
             </span>
           </label>
 
@@ -463,10 +551,6 @@ function DayEditor({
   );
 }
 
-// ============================================================
-// Registrants
-// ============================================================
-
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("es-AR", {
     timeZone: "America/Argentina/Buenos_Aires",
@@ -475,78 +559,4 @@ function formatDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function RegistrantsTable({
-  registrants,
-}: {
-  registrants: DesafioAdminResponse["registrants"];
-}) {
-  return (
-    <section>
-      <h2 className="mb-3 font-serif text-2xl text-forest">
-        Inscripciones{" "}
-        <span className="text-base text-charcoal/40">
-          ({registrants.length})
-        </span>
-      </h2>
-      {registrants.length === 0 ? (
-        <p className="rounded-xl border border-sage/20 bg-white px-4 py-6 text-center text-sm text-charcoal/50">
-          Todavía no hay inscripciones.
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-xl border border-sage/20 bg-white shadow-sm">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-sage/20 text-xs uppercase tracking-wider text-charcoal/40">
-              <tr>
-                <th className="px-4 py-2 font-semibold">Nombre</th>
-                <th className="px-4 py-2 font-semibold">Email</th>
-                <th className="px-4 py-2 font-semibold">WhatsApp</th>
-                <th className="px-4 py-2 font-semibold">Fecha</th>
-              </tr>
-            </thead>
-            <tbody>
-              {registrants.map((r) => (
-                <tr
-                  key={r.participationId}
-                  className="border-b border-sage/10 last:border-0"
-                >
-                  <td className="px-4 py-2 text-charcoal">{r.name}</td>
-                  <td className="px-4 py-2">
-                    {r.email ? (
-                      <a
-                        href={`mailto:${r.email}`}
-                        className="text-charcoal/70 hover:text-forest"
-                      >
-                        {r.email}
-                      </a>
-                    ) : (
-                      <span className="text-charcoal/30">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {r.waMe ? (
-                      <a
-                        href={r.waMe}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-terracotta hover:text-forest"
-                      >
-                        {r.phone}
-                      </a>
-                    ) : (
-                      <span className="text-charcoal/30">—</span>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-charcoal/60">
-                    {formatDateTime(r.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
 }
