@@ -200,9 +200,14 @@ export function validateDayInput(
   if (body && body.length > DAY_BODY_MAX) {
     return { ok: false, error: "El texto no puede superar 4000 caracteres" };
   }
+  // Stricter than parseDesafioMedia (which tolerates http: for rendering):
+  // an http audio file on the https page is mixed content, so new input must
+  // be https — which is exactly what the error message promises.
   if (
     mediaUrl &&
-    (mediaUrl.length > DAY_MEDIA_URL_MAX || !parseDesafioMedia(mediaUrl))
+    (mediaUrl.length > DAY_MEDIA_URL_MAX ||
+      !/^https:\/\//i.test(mediaUrl) ||
+      !parseDesafioMedia(mediaUrl))
   ) {
     return {
       ok: false,

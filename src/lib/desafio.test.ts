@@ -150,6 +150,10 @@ describe("validateDayInput", () => {
       "El link tiene que ser una URL válida que empiece con https://",
     ],
     [
+      { mediaUrl: "http://example.com/dia1.mp3" },
+      "El link tiene que ser una URL válida que empiece con https://",
+    ],
+    [
       { mediaUrl: `https://example.com/${"a".repeat(500)}` },
       "El link tiene que ser una URL válida que empiece con https://",
     ],
