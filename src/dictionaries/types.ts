@@ -29,6 +29,21 @@ export interface NowItem {
   description: string;
   status: string;
   cta?: { label: string; href: string };
+  /**
+   * Desafío card only: copy that replaces description/status (and optionally
+   * the CTA label) once the challenge is live or over. The top-level fields
+   * are the "before" copy. Resolved by `resolveDesafioNowItem`.
+   */
+  desafioPhases?: {
+    live: NowItemPhaseCopy;
+    after: NowItemPhaseCopy;
+  };
+}
+
+export interface NowItemPhaseCopy {
+  description: string;
+  status: string;
+  ctaLabel?: string;
 }
 
 export interface ImpactDict {

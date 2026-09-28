@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+import type { NowItem } from "@/dictionaries/types";
 import {
+  buildDesafioEventRow,
   buildPublicDays,
   parseDayNumber,
+  resolveDesafioNowItem,
   parseDesafioMedia,
   validateDayInput,
   type ChallengeDayRow,
@@ -177,5 +180,60 @@ describe("parseDayNumber", () => {
   });
   it.each(["0", "16", "1.5", "abc", "", "-1", " 3"])("rejects %j", (raw) => {
     expect(parseDayNumber(raw)).toBeNull();
+  });
+});
+
+describe("resolveDesafioNowItem", () => {
+  const card: NowItem = {
+    categoryKey: "teaching",
+    categoryLabel: "Enseñanza",
+    title: "Desafío",
+    description: "Arranca el {date}.",
+    status: "Inscripciones abiertas",
+    cta: { label: "Sumarme", href: "/es/desafio" },
+    desafioPhases: {
+      live: { description: "Empezó el {date}.", status: "En curso" },
+      after: { description: "Terminó.", status: "Terminó", ctaLabel: "Ver el recorrido" },
+    },
+  };
+
+  it("keeps the top-level copy before the start", () => {
+    const r = resolveDesafioNowItem(card, "before");
+    expect(r.description).toBe("Arranca el {date}.");
+    expect(r.status).toBe("Inscripciones abiertas");
+    expect(r.cta?.label).toBe("Sumarme");
+    expect(r).not.toHaveProperty("desafioPhases");
+  });
+
+  it("switches to the live copy and keeps the CTA label", () => {
+    const r = resolveDesafioNowItem(card, "live");
+    expect(r.description).toBe("Empezó el {date}.");
+    expect(r.status).toBe("En curso");
+    expect(r.cta).toEqual({ label: "Sumarme", href: "/es/desafio" });
+    expect(r).not.toHaveProperty("desafioPhases");
+  });
+
+  it("switches to the after copy and CTA label", () => {
+    const r = resolveDesafioNowItem(card, "after");
+    expect(r.status).toBe("Terminó");
+    expect(r.cta).toEqual({ label: "Ver el recorrido", href: "/es/desafio" });
+  });
+
+  it("passes other cards through untouched", () => {
+    const { desafioPhases: _omit, ...plain } = card;
+    void _omit;
+    expect(resolveDesafioNowItem(plain, "live")).toEqual(plain);
+  });
+});
+
+describe("buildDesafioEventRow", () => {
+  it("derives date and status from the start date and now", () => {
+    const start = "2026-09-28";
+    const row = buildDesafioEventRow("evt", new Date("2026-09-28T15:00:00Z"), start);
+    expect(row.id).toBe("evt");
+    expect(row.date.toISOString()).toBe("2026-09-28T03:00:00.000Z");
+    expect(row.status).toBe("live");
+    expect(buildDesafioEventRow("evt", new Date("2026-09-20T12:00:00Z"), start).status).toBe("upcoming");
+    expect(buildDesafioEventRow("evt", new Date("2026-10-13T03:00:00Z"), start).status).toBe("past");
   });
 });

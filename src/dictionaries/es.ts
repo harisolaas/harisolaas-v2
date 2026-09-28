@@ -212,6 +212,19 @@ const es: Dictionary = {
           label: "Sumarme",
           href: "/es/desafio",
         },
+        desafioPhases: {
+          live: {
+            description:
+              "Una práctica corta por día, online y gratis. Empezó el {date}: sumate cuando quieras, los días anteriores quedan abiertos.",
+            status: "En curso",
+          },
+          after: {
+            description:
+              "Quince días, una práctica corta por día. El desafío terminó, pero el recorrido completo sigue abierto.",
+            status: "Terminó",
+            ctaLabel: "Ver el recorrido",
+          },
+        },
       },
       {
         categoryKey: "teaching",
@@ -1308,7 +1321,7 @@ const es: Dictionary = {
     form: {
       heading: "Anotate",
       subtitle:
-        "Es gratis. Te mandamos el acceso por mail y te escribimos por WhatsApp cuando arranca.",
+        "Es gratis. Te mandamos el acceso por mail y te acompañamos por WhatsApp durante los 15 días.",
       namePlaceholder: "Tu nombre",
       emailPlaceholder: "Tu email",
       phonePlaceholder: "Tu WhatsApp (ej: 11 2255 5110)",

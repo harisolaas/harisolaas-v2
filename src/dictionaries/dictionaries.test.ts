@@ -329,4 +329,21 @@ describe.each(dicts)("$locale dictionary — desafío Now card", ({ locale, dict
     expect(card!.description).toContain("{date}");
     expect(fillTokens(card!.description, { date: "X" })).not.toMatch(/\{\w+\}/);
   });
+
+  // The challenge runs while sign-ups stay open, so "starts {date}" would be
+  // false for most of the time the card is up.
+  it("has live and after copy, with the live one still naming the start date", () => {
+    const card = dict.now.items.find(
+      (item) => item.cta?.href === `/${locale}/desafio`,
+    )!;
+    const phases = card.desafioPhases;
+    expect(phases, "desafío card needs desafioPhases").toBeDefined();
+    expect(phases!.live.description).toContain("{date}");
+    for (const copy of [phases!.live, phases!.after]) {
+      expect(copy.description.trim()).not.toBe("");
+      expect(copy.status.trim()).not.toBe("");
+      expect(copy.description).not.toBe(card.description);
+      expect(fillTokens(copy.description, { date: "X" })).not.toMatch(/\{\w+\}/);
+    }
+  });
 });

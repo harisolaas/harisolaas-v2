@@ -17,8 +17,8 @@
 export const DESAFIO_EVENT_ID = "desafio-15-dias-2026";
 
 export const desafioConfig = {
-  // YYYY-MM-DD, Argentina time. TBD: confirm with Hari (Monday → day 15 = Monday 2026-10-26)
-  startDate: "2026-10-12",
+  // YYYY-MM-DD, Argentina time. Monday 28 Sep → day 15 = Monday 2026-10-12.
+  startDate: "2026-09-28",
   totalDays: 15,
   // TBD: used in copy only via dict, keep in sync
   practiceMinutes: 15,

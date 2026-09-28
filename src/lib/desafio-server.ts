@@ -1,25 +1,14 @@
 import "server-only";
 import { asc, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { DESAFIO_EVENT_ID, type DesafioLocale } from "@/data/desafio";
 import {
-  DESAFIO_EVENT_ID,
-  desafioConfig,
-  desafioPhase,
-  desafioStartDate,
-  type DesafioLocale,
-} from "@/data/desafio";
-import {
+  buildDesafioEventRow,
   buildPublicDays,
   type ChallengeDayAdminRow,
   type DayInput,
   type DesafioPublicDay,
 } from "@/lib/desafio";
-
-const PHASE_TO_STATUS = {
-  before: "upcoming",
-  live: "live",
-  after: "past",
-} as const;
 
 /**
  * Lazily create the desafío `events` row. Idempotent (ON CONFLICT DO
@@ -29,19 +18,9 @@ const PHASE_TO_STATUS = {
  * to exist before the first day is saved.
  */
 export async function ensureDesafioEvent(now: Date = new Date()): Promise<string> {
-  const start = desafioStartDate();
   await db
     .insert(schema.events)
-    .values({
-      id: DESAFIO_EVENT_ID,
-      type: "desafio",
-      series: "desafio",
-      name: "Desafío 15 días meditando — oct 2026",
-      date: new Date(`${start}T00:00:00-03:00`),
-      capacity: null,
-      status: PHASE_TO_STATUS[desafioPhase(now, start)],
-      landingPath: desafioConfig.landingPath,
-    })
+    .values(buildDesafioEventRow(DESAFIO_EVENT_ID, now))
     .onConflictDoNothing();
   return DESAFIO_EVENT_ID;
 }

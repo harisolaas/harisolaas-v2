@@ -116,6 +116,7 @@ export async function POST(req: Request) {
             name,
             locale,
             startDate: desafioStartDate(),
+            now: new Date(),
           }),
         });
       } catch (err) {

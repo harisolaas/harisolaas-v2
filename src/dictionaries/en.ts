@@ -210,6 +210,19 @@ const en: Dictionary = {
           label: "Join",
           href: "/en/desafio",
         },
+        desafioPhases: {
+          live: {
+            description:
+              "One short practice a day, online and free. Started {date} — join anytime, earlier days stay open.",
+            status: "Happening now",
+          },
+          after: {
+            description:
+              "Fifteen days, one short practice a day. The challenge is over, but the whole path stays open.",
+            status: "Wrapped up",
+            ctaLabel: "See the path",
+          },
+        },
       },
       {
         categoryKey: "teaching",
@@ -1284,7 +1297,7 @@ const en: Dictionary = {
     form: {
       heading: "Sign up",
       subtitle:
-        "It's free. We'll email you access and message you on WhatsApp when it starts.",
+        "It's free. We'll email you access and keep you company on WhatsApp for all 15 days.",
       namePlaceholder: "Your name",
       emailPlaceholder: "Your email",
       phonePlaceholder: "Your WhatsApp (e.g. +54 11 2255 5110)",

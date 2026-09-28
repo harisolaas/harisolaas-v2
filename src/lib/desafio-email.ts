@@ -1,4 +1,9 @@
-import { desafioConfig, formatDayDate, type DesafioLocale } from "@/data/desafio";
+import {
+  desafioConfig,
+  desafioPhase,
+  formatDayDate,
+  type DesafioLocale,
+} from "@/data/desafio";
 import { phoneToWaMe } from "@/lib/plant-types";
 
 // Site palette (warm & earthy), not Sinergia's. Serif headings fall back
@@ -34,6 +39,10 @@ const COPY = {
     heading: "Hola, {name}.",
     body1:
       "El desafío arranca el {date}. Cada día se abre una práctica corta, de unos 15 minutos, en esta página:",
+    // Registration stays open until day 15 ends, so most sign-ups may land
+    // mid-challenge: "arranca" would be false then.
+    body1Live:
+      "El desafío empezó el {date} y ya está en marcha. Cada día se abre una práctica corta, de unos 15 minutos, en esta página:",
     button: "Ir al desafío",
     body2:
       "Guardala en favoritos: ahí vas a encontrar la práctica de cada día. Si arrancás más tarde, no pasa nada: los días anteriores quedan abiertos.",
@@ -47,6 +56,8 @@ const COPY = {
     heading: "Hi, {name}.",
     body1:
       "The challenge starts on {date}. Each day a short practice, about 15 minutes, opens on this page:",
+    body1Live:
+      "The challenge started on {date} and is already underway. Each day a short practice, about 15 minutes, opens on this page:",
     button: "Go to the challenge",
     body2:
       "Bookmark it — that's where each day's practice lives. If you start late, no problem: earlier days stay open.",
@@ -71,14 +82,18 @@ interface ConfirmationParams {
   name: string;
   locale: DesafioLocale;
   startDate: string;
+  /** Picks "starts on" vs "started on" — explicit so tests pin it. */
+  now: Date;
 }
 
 export function buildDesafioConfirmationEmailHtml({
   name,
   locale,
   startDate,
+  now,
 }: ConfirmationParams): string {
   const c = COPY[locale];
+  const body1 = desafioPhase(now, startDate) === "before" ? c.body1 : c.body1Live;
   const date = formatDayDate(startDate, locale);
   const landing = `${baseUrl()}/${locale}/desafio`;
   const groupUrl = desafioConfig.whatsappGroupUrl;
@@ -93,7 +108,7 @@ export function buildDesafioConfirmationEmailHtml({
 <tr><td style="padding:32px 28px">
   <p style="margin:0 0 8px;font-family:${SANS};font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:${TERRACOTTA}">${c.kicker}</p>
   <h1 style="margin:0 0 20px;font-family:${SERIF};font-size:28px;font-weight:400;line-height:1.2;color:${FOREST}">${c.heading.replace("{name}", () => escapeHtml(name))}</h1>
-  ${p(c.body1.replace("{date}", () => date))}
+  ${p(body1.replace("{date}", () => date))}
   ${button(landing, c.button, FOREST)}
   ${p(c.body2)}
   ${p(c.body3)}

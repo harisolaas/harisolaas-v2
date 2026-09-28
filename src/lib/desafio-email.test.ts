@@ -39,6 +39,10 @@ describe("desafío host notification", () => {
   });
 });
 
+const START = "2026-09-28";
+const BEFORE = new Date("2026-09-20T12:00:00Z");
+const LIVE = new Date("2026-09-30T12:00:00Z");
+
 describe("desafío confirmation email", () => {
   const original = desafioConfig.whatsappGroupUrl;
   afterEach(() => {
@@ -46,36 +50,48 @@ describe("desafío confirmation email", () => {
   });
 
   it("links to the locale's landing and shows the formatted start date", () => {
-    const es = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: "2026-10-12" });
+    const es = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: START, now: BEFORE });
     expect(es).toContain("/es/desafio");
-    expect(es).toContain("lunes 12 de octubre");
+    expect(es).toContain("lunes 28 de septiembre");
+    expect(es).toContain("El desafío arranca el");
     expect(es).toContain("Hola, Luz.");
 
-    const en = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "en", startDate: "2026-10-12" });
+    const en = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "en", startDate: START, now: BEFORE });
     expect(en).toContain("/en/desafio");
-    expect(en).toContain("Monday, October 12");
+    expect(en).toContain("Monday, September 28");
+    expect(en).toContain("starts on");
+  });
+
+  it("says the challenge already started when signing up mid-challenge", () => {
+    const es = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: START, now: LIVE });
+    expect(es).toContain("El desafío empezó el lunes 28 de septiembre");
+    expect(es).not.toContain("arranca el");
+
+    const en = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "en", startDate: START, now: LIVE });
+    expect(en).toContain("started on Monday, September 28");
+    expect(en).not.toContain("starts on");
   });
 
   it("escapes the name", () => {
-    const html = buildDesafioConfirmationEmailHtml({ name: "<img src=x>", locale: "es", startDate: "2026-10-12" });
+    const html = buildDesafioConfirmationEmailHtml({ name: "<img src=x>", locale: "es", startDate: START, now: BEFORE });
     expect(html).not.toContain("<img src=x>");
   });
 
   it("inserts the name literally, without String.replace $-patterns", () => {
     // "$`" / "$&" are special in a string replacement: without a replacer
     // function, "$`" would splice "Hola, " back in and "$&" would echo "{name}".
-    const html = buildDesafioConfirmationEmailHtml({ name: "A$`B$&C", locale: "es", startDate: "2026-10-12" });
+    const html = buildDesafioConfirmationEmailHtml({ name: "A$`B$&C", locale: "es", startDate: START, now: BEFORE });
     expect(html).toContain("Hola, A$`B$&amp;C.");
   });
 
   it("only renders the WhatsApp group button when a URL is configured", () => {
     desafioConfig.whatsappGroupUrl = "";
     expect(
-      buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: "2026-10-12" }),
+      buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: START, now: BEFORE }),
     ).not.toContain("Sumarme al grupo de WhatsApp");
 
     desafioConfig.whatsappGroupUrl = "https://chat.whatsapp.com/abc";
-    const html = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: "2026-10-12" });
+    const html = buildDesafioConfirmationEmailHtml({ name: "Luz", locale: "es", startDate: START, now: BEFORE });
     expect(html).toContain("Sumarme al grupo de WhatsApp");
     expect(html).toContain("https://chat.whatsapp.com/abc");
   });

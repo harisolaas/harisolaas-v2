@@ -17,7 +17,8 @@ import NowSection from "@/components/NowSection";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import { fillTokens } from "@/data/brote";
-import { desafioStartDate, formatDayDate } from "@/data/desafio";
+import { desafioPhase, desafioStartDate, formatDayDate } from "@/data/desafio";
+import { resolveDesafioNowItem } from "@/lib/desafio";
 
 export default async function Home({
   params,
@@ -36,12 +37,19 @@ export default async function Home({
     desafioStartDate(),
     locale === "en" ? "en" : "es",
   );
+  // The card's copy is phase-aware ("Arranca el…" → "Empezó el…" →
+  // "Terminó"). This page is statically generated, so the phase is the one
+  // at build time: it follows the challenge on each deploy, not live.
+  const phase = desafioPhase();
   const nowDict = {
     ...dict.now,
-    items: dict.now.items.map((item) => ({
-      ...item,
-      description: fillTokens(item.description, { date: desafioDate }),
-    })),
+    items: dict.now.items.map((raw) => {
+      const item = resolveDesafioNowItem(raw, phase);
+      return {
+        ...item,
+        description: fillTokens(item.description, { date: desafioDate }),
+      };
+    }),
   };
 
   return (

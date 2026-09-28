@@ -7,11 +7,14 @@ import {
   argentinaToday,
   dayDate,
   desafioConfig,
+  desafioPhase,
   desafioStartDate,
   formatDayDate,
   isDayUnlocked,
   type DesafioLocale,
+  type DesafioPhase,
 } from "@/data/desafio";
+import type { NowItem } from "@/dictionaries/types";
 
 // ============================================================
 // Media
@@ -317,4 +320,61 @@ export function buildAdminDays(
 /** A day counts as ready when it would render as "open" once unlocked. */
 export function isDayReady(row: Pick<ChallengeDayRow, "published" | "title">): boolean {
   return row.published && Boolean(row.title?.trim());
+}
+
+// ============================================================
+// Home "Ahora" card
+// ============================================================
+
+/**
+ * Pick the desafío card's copy for `phase`: the item's top-level fields are
+ * the "before" copy; `desafioPhases` overrides description/status (and the
+ * CTA label, when given) once the challenge is live or over. Items without
+ * `desafioPhases` pass through untouched. The phase map is dropped so it
+ * never reaches the client component.
+ */
+export function resolveDesafioNowItem(item: NowItem, phase: DesafioPhase): NowItem {
+  const { desafioPhases, ...base } = item;
+  if (!desafioPhases || phase === "before") return base;
+  const copy = desafioPhases[phase];
+  return {
+    ...base,
+    description: copy.description,
+    status: copy.status,
+    ...(base.cta && copy.ctaLabel
+      ? { cta: { ...base.cta, label: copy.ctaLabel } }
+      : {}),
+  };
+}
+
+// ============================================================
+// events row
+// ============================================================
+
+const PHASE_TO_EVENT_STATUS = {
+  before: "upcoming",
+  live: "live",
+  after: "past",
+} as const;
+
+/**
+ * The desafío `events` row. Shared by `ensureDesafioEvent` (server) and
+ * `scripts/prefill-desafio.ts`, which can't import the `server-only` module.
+ * `eventId` is a parameter so this never reads the (test-mocked) constant.
+ */
+export function buildDesafioEventRow(
+  eventId: string,
+  now: Date,
+  start: string = desafioStartDate(),
+) {
+  return {
+    id: eventId,
+    type: "desafio",
+    series: "desafio",
+    name: "Desafío 15 días meditando — sep/oct 2026",
+    date: new Date(`${start}T00:00:00-03:00`),
+    capacity: null,
+    status: PHASE_TO_EVENT_STATUS[desafioPhase(now, start)],
+    landingPath: desafioConfig.landingPath,
+  };
 }
