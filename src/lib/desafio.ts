@@ -222,3 +222,94 @@ export function parseDayNumber(raw: string): number | null {
   const n = Number(raw);
   return n >= 1 && n <= desafioConfig.totalDays ? n : null;
 }
+
+// ============================================================
+// Admin API shapes (GET /api/admin/desafio, PUT …/days/[day])
+// ============================================================
+// Pure types + builder so the admin client component can import them
+// without touching the server-only DB layer.
+
+export interface DesafioAdminDay {
+  dayNumber: number;
+  date: string;
+  dateLabel: string;
+  unlocked: boolean;
+  title: string | null;
+  body: string | null;
+  mediaUrl: string | null;
+  mediaKind: DesafioMedia["kind"] | null;
+  published: boolean;
+  updatedAt: string | null;
+  updatedByEmail: string | null;
+}
+
+export interface DesafioAdminRegistrant {
+  participationId: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  waMe: string | null;
+  createdAt: string;
+  status: string;
+}
+
+export interface DesafioAdminResponse {
+  event: {
+    id: string;
+    startDate: string;
+    totalDays: number;
+    phase: "before" | "live" | "after";
+    unlockedDays: number;
+  };
+  days: DesafioAdminDay[];
+  registrants: DesafioAdminRegistrant[];
+  counts: { registered: number; daysReady: number };
+}
+
+export type ChallengeDayAdminRow = ChallengeDayRow & {
+  updatedAt: Date | string | null;
+  updatedByEmail: string | null;
+};
+
+/** One admin day entry. `row` is undefined when nothing is stored yet. */
+export function buildAdminDay(
+  dayNumber: number,
+  row: ChallengeDayAdminRow | undefined,
+  now: Date,
+  start: string = desafioStartDate(),
+): DesafioAdminDay {
+  const date = dayDate(dayNumber, start);
+  const updatedAt = row?.updatedAt
+    ? new Date(row.updatedAt).toISOString()
+    : null;
+  return {
+    dayNumber,
+    date,
+    dateLabel: formatDayDate(date, "es"),
+    unlocked: isDayUnlocked(dayNumber, now, start),
+    title: row?.title ?? null,
+    body: row?.body ?? null,
+    mediaUrl: row?.mediaUrl ?? null,
+    mediaKind: parseDesafioMedia(row?.mediaUrl)?.kind ?? null,
+    published: row?.published ?? false,
+    updatedAt,
+    updatedByEmail: row?.updatedByEmail ?? null,
+  };
+}
+
+/** All `totalDays` admin entries, filling gaps with empty days. */
+export function buildAdminDays(
+  rows: ChallengeDayAdminRow[],
+  now: Date,
+  start: string = desafioStartDate(),
+): DesafioAdminDay[] {
+  const byDay = new Map(rows.map((r) => [r.dayNumber, r]));
+  return Array.from({ length: desafioConfig.totalDays }, (_, i) =>
+    buildAdminDay(i + 1, byDay.get(i + 1), now, start),
+  );
+}
+
+/** A day counts as ready when it would render as "open" once unlocked. */
+export function isDayReady(row: Pick<ChallengeDayRow, "published" | "title">): boolean {
+  return row.published && Boolean(row.title?.trim());
+}
