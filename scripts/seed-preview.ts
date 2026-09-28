@@ -26,6 +26,7 @@ import {
   INVITATION_SLUGS,
   getInvitation,
 } from "../src/lib/brote-invitations";
+import { DESAFIO_EVENT_ID, desafioConfig } from "../src/data/desafio";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -62,7 +63,7 @@ function dbHost(): string {
 // collide with real people.
 interface EventFixture {
   id: string;
-  type: "brote" | "plant" | "sinergia" | "sinergia-parrafo";
+  type: "brote" | "plant" | "sinergia" | "sinergia-parrafo" | "desafio";
   series: string | null;
   name: string;
   date: string; // ISO
@@ -76,6 +77,7 @@ interface EventFixture {
 interface PersonFixture {
   email: string;
   name: string;
+  phone?: string;
 }
 
 interface ParticipationFixture {
@@ -123,6 +125,14 @@ interface ParticipationFixture {
    * production actually produces.
    */
   seq?: number;
+}
+
+interface ChallengeDayFixture {
+  dayNumber: number;
+  title: string | null;
+  body: string | null;
+  mediaUrl: string | null;
+  published: boolean;
 }
 
 interface LinkFixture {
@@ -204,6 +214,19 @@ const EVENTS: EventFixture[] = [
     status: "upcoming",
     landingPath: "/es/sinergia-parrafo",
   },
+  // Desafío 15 días. Real id, not `preview-` prefixed — same reasoning as the
+  // invitation link slugs: the page and the admin panel read the
+  // DESAFIO_EVENT_ID constant, so a renamed copy would be invisible.
+  {
+    id: DESAFIO_EVENT_ID,
+    type: "desafio",
+    series: "desafio",
+    name: "Desafío 15 días meditando (preview)",
+    date: "2026-10-12T00:00:00-03:00",
+    capacity: null,
+    status: "upcoming",
+    landingPath: "/es/desafio",
+  },
 ];
 
 const PEOPLE: PersonFixture[] = [
@@ -243,6 +266,11 @@ const PEOPLE: PersonFixture[] = [
   // / `recordParticipation` and the backfill script's filter
   // (`name='Asistente' AND external_payment_id IS NOT NULL`).
   { email: "preview-asistente@example.com", name: "Asistente" },
+  // Desafío registrants — WhatsApp is required on that form, so they carry
+  // phones (AR local and full international) to exercise the wa.me links.
+  { email: "preview-luz@example.com", name: "Luz Benítez", phone: "11 5555 0101" },
+  { email: "preview-mateo@example.com", name: "Mateo Quiroga", phone: "+54 9 351 555 0102" },
+  { email: "preview-noe@example.com", name: "Noe Salinas", phone: "11 5555 0103" },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -577,11 +605,91 @@ const PARTICIPATIONS: ParticipationFixture[] = [
       paymentId: `PREVIEW-MP-SP-${String(i + 1).padStart(3, "0")}`,
     }),
   })),
+  // Desafío: three registrants with phones (one attributed to the IG story
+  // link) plus Ana, an existing person with no phone — exercises the
+  // cross-event history and the empty-WhatsApp cell in the admin table.
+  {
+    id: "PREVIEW-DES-001",
+    personEmail: "preview-luz@example.com",
+    eventId: DESAFIO_EVENT_ID,
+    role: "participant",
+    status: "confirmed",
+    linkSlug: "preview-desafio-ig-20260928",
+    attributionSource: "instagram",
+    attributionMedium: "story",
+    attributionCampaign: "desafio_preview",
+  },
+  {
+    id: "PREVIEW-DES-002",
+    personEmail: "preview-mateo@example.com",
+    eventId: DESAFIO_EVENT_ID,
+    role: "participant",
+    status: "confirmed",
+  },
+  {
+    id: "PREVIEW-DES-003",
+    personEmail: "preview-noe@example.com",
+    eventId: DESAFIO_EVENT_ID,
+    role: "participant",
+    status: "confirmed",
+  },
+  {
+    id: "PREVIEW-DES-004",
+    personEmail: "preview-ana@example.com",
+    eventId: DESAFIO_EVENT_ID,
+    role: "participant",
+    status: "confirmed",
+  },
+];
+
+// Desafío day content: published YouTube / audio / link (days 1–3), a
+// draft (day 4), and days 5–15 with no row (the placeholder state).
+const CHALLENGE_DAYS: ChallengeDayFixture[] = [
+  {
+    dayNumber: 1,
+    title: "Llegar al cuerpo",
+    body: "Buscá un lugar tranquilo y una postura en la que puedas quedarte un rato. Hoy solo observamos la respiración.",
+    mediaUrl: "https://youtu.be/inpok4MKVLM",
+    published: true,
+  },
+  {
+    dayNumber: 2,
+    title: "Respirar más lento",
+    body: "Una práctica corta de respiración para bajar un cambio. Con auriculares, mejor.",
+    mediaUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    published: true,
+  },
+  {
+    dayNumber: 3,
+    title: "Una pausa en el día",
+    body: "Hoy la práctica es un texto para leer y tres minutos de silencio.",
+    mediaUrl: "https://www.harisolaas.com/es/sinergia",
+    published: true,
+  },
+  {
+    dayNumber: 4,
+    title: "Borrador — gratitud",
+    body: null,
+    mediaUrl: null,
+    published: false,
+  },
 ];
 
 
 
 const LINKS: LinkFixture[] = [
+  {
+    slug: "preview-desafio-ig-20260928",
+    destination: "/es/desafio",
+    label: "Preview · Story IG desafío",
+    channel: "ig-story",
+    source: "instagram",
+    medium: "story",
+    campaign: "desafio_preview",
+    createdDate: "2026-09-28",
+    bypassCapacity: false,
+    referrerEmail: null,
+  },
   {
     slug: "preview-instagram-story-20260420",
     destination: "/es/sinergia",
@@ -674,6 +782,17 @@ async function main() {
       problems.push(`${l.slug}: referrerEmail ${l.referrerEmail} is not in PEOPLE`);
     }
   }
+  for (const d of CHALLENGE_DAYS) {
+    if (
+      !Number.isInteger(d.dayNumber) ||
+      d.dayNumber < 1 ||
+      d.dayNumber > desafioConfig.totalDays
+    ) {
+      problems.push(
+        `challenge day ${d.dayNumber}: outside 1..${desafioConfig.totalDays}`,
+      );
+    }
+  }
   if (problems.length > 0) {
     console.error("\n✗ Fixture references that would not resolve:");
     for (const p of problems) console.error(`  ${p}`);
@@ -685,6 +804,7 @@ async function main() {
   console.log(`  ${PEOPLE.length} people`);
   console.log(`  ${PARTICIPATIONS.length} participations`);
   console.log(`  ${LINKS.length} links`);
+  console.log(`  ${CHALLENGE_DAYS.length} challenge_days`);
   if (ADMIN_EMAIL) console.log(`  1 admin_users row (${ADMIN_EMAIL})`);
 
   if (DRY_RUN) {
@@ -707,11 +827,26 @@ async function main() {
   }
   console.log(`✓ events`);
 
+  // Desafío day content. After events (FK on event_id).
+  for (const d of CHALLENGE_DAYS) {
+    await db.execute(sql`
+      INSERT INTO challenge_days (
+        event_id, day_number, title, body, media_url, published, updated_by_email
+      )
+      VALUES (
+        ${DESAFIO_EVENT_ID}, ${d.dayNumber}, ${d.title}, ${d.body},
+        ${d.mediaUrl}, ${d.published}, 'seed-preview'
+      )
+      ON CONFLICT (event_id, day_number) DO NOTHING
+    `);
+  }
+  console.log(`✓ challenge_days`);
+
   // People.
   for (const p of PEOPLE) {
     await db.execute(sql`
-      INSERT INTO people (email, name)
-      VALUES (${p.email}, ${p.name})
+      INSERT INTO people (email, name, phone)
+      VALUES (${p.email}, ${p.name}, ${p.phone ?? null})
       ON CONFLICT (email) DO NOTHING
     `);
   }
@@ -812,6 +947,9 @@ async function main() {
   }
 
   console.log("\nDone. Log into the preview admin and start poking.");
+  console.log(
+    `Desafío: days unlock by date (start ${desafioConfig.startDate}). To see unlocked days in preview before then, set DESAFIO_START_DATE_OVERRIDE=<YYYY-MM-DD, e.g. 3 days ago> in the Vercel Preview env and redeploy.`,
+  );
 }
 
 main()
