@@ -439,9 +439,13 @@ export const adminUserEventScopes = pgTable(
 // ============================================================
 // challenge_days — per-day content for online challenges (Desafío 15 días)
 // ============================================================
-// One row per (event, day). Rows are optional: a missing row renders as the
-// "still preparing" placeholder. Unlocking is by date (src/data/desafio.ts),
-// not stored here; `published` is a draft flag on top of the date gate.
+// One row per (event, day). Rows are optional: a missing row renders as an
+// unpublished day. There is no date gate — `published` alone decides whether
+// a day's content reaches the public page. Column ↔ design-field mapping
+// (see `DesafioDay` in src/lib/desafio.ts): title=titulo, body=intro,
+// intro_video_url=introVideo, meditation_title=meditacion,
+// media_url=meditacionVideo, duration_label=duracion, reflection=reflexion,
+// reflection_video_url=reflexionVideo, published=publicado.
 export const challengeDays = pgTable(
   "challenge_days",
   {
@@ -452,6 +456,12 @@ export const challengeDays = pgTable(
     title: text(),
     body: text(),
     mediaUrl: text(),
+    // Added in 0008 (design-driven content model). Nullable: empty = hidden.
+    introVideoUrl: text(),
+    meditationTitle: text(),
+    durationLabel: text(),
+    reflection: text(),
+    reflectionVideoUrl: text(),
     published: boolean().notNull().default(false),
     updatedByEmail: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
