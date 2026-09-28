@@ -1,147 +1,59 @@
 /**
- * Desafío "15 días meditando" — config + date logic.
+ * Desafío "15 días meditando juntos" — event-level config.
  *
- * Pure: no DB, no env except the preview-only start-date override. Every
- * helper takes `now` and/or `start` as parameters so tests can pin them.
+ * Pure data, safe to import anywhere. The per-day content lives in the DB
+ * (`challenge_days`, edited from /admin/desafio); everything that belongs to
+ * the challenge as a whole lives here — it's the `nombre` / `guia` /
+ * `bienvenida` / `whatsapp` / `cierre` block of the design's `contenido.js`.
  *
- * Unlock rule: day N opens at 00:00 Argentina time (UTC-3, no DST) on
- * `startDate + (N - 1)`. Same explicit `-03:00` offset pattern as
- * `isEarlyBird` in `src/data/brote.ts`.
+ * No registration and no date gate: people arrive from the WhatsApp group,
+ * start at day 1 whenever they arrive and move at their own pace. A day is
+ * visible when its row is `published`, nothing else.
  *
- * NOTE: none of these helpers may reference `DESAFIO_EVENT_ID` — tests
- * partially mock that constant, and a helper reading it would silently
- * keep the real value.
+ * NOTE: nothing in src/lib may read `DESAFIO_EVENT_ID` through a helper —
+ * tests partially mock the constant, and a helper reading it would silently
+ * keep the real value. Pass it as a parameter.
  */
 
 /** A key, not a date claim. Never change it once content has been loaded in prod. */
 export const DESAFIO_EVENT_ID = "desafio-15-dias-2026";
 
-export const desafioConfig = {
-  // YYYY-MM-DD, Argentina time. Monday 28 Sep → day 15 = Monday 2026-10-12.
-  startDate: "2026-09-28",
-  totalDays: 15,
-  // TBD: used in copy only via dict, keep in sync
-  practiceMinutes: 15,
-  landingPath: "/es/desafio",
-  // TBD: optional community group invite; "" hides the button in the email
-  whatsappGroupUrl: "",
+export const DESAFIO_TOTAL_DAYS = 15;
+
+export interface DesafioConfig {
+  /** Display name — also the page H1. */
+  nombre: string;
+  /** Guide's name, rendered as the "con {guia}" tag. */
+  guia: string;
+  /** Welcome paragraph under the H1. */
+  bienvenida: string;
+  /** WhatsApp group invite; the sticky "Volver al grupo" button opens it. */
+  whatsapp: string;
+  /** Closing CTA block on the finale screen (placeholder for a talk invite). */
+  cierre: { titulo: string; texto: string };
+}
+
+export const desafioConfig: DesafioConfig = {
+  // "juntos" is the product name, kept verbatim by Hari's decision.
+  nombre: "15 días meditando juntos",
+  guia: "Hari",
+  bienvenida:
+    "Qué bueno que estés acá. Un ratito por día, a tu ritmo: empezás por el Día 1 y seguís cuando puedas.",
+  whatsapp: "https://chat.whatsapp.com/JXejj6W5KaB3I8VwPDz5Ld",
+  cierre: {
+    titulo: "Se viene algo lindo",
+    // Design text said "Quedate atento/a en el grupo"; rewritten without the
+    // gendered "/a" per CLAUDE.md.
+    texto:
+      "Estoy preparando un encuentro para seguir compartiendo. No te pierdas el grupo: ahí te aviso primero.",
+  },
 };
 
-export type DesafioPhase = "before" | "live" | "after";
-export type DesafioLocale = "es" | "en";
-
-const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const ART_OFFSET_MS = 3 * 60 * 60 * 1000;
+/** Where the public page lives (used for the `events` row and the sitemap). */
+export const DESAFIO_LANDING_PATH = "/es/desafio";
 
 /**
- * The effective start date. `DESAFIO_START_DATE_OVERRIDE` lets a preview
- * deploy exercise unlocked days before the real start; it is ignored in
- * production and when malformed. Server-side only.
+ * The `events.date` of the desafío row (NOT NULL column). Informational only:
+ * it's when the challenge was first shared, it gates nothing.
  */
-export function desafioStartDate(): string {
-  const override = process.env.DESAFIO_START_DATE_OVERRIDE;
-  if (
-    override &&
-    ISO_DATE_RE.test(override) &&
-    process.env.VERCEL_ENV !== "production"
-  ) {
-    return override;
-  }
-  return desafioConfig.startDate;
-}
-
-/** Date-only arithmetic on a YYYY-MM-DD string. */
-export function addDays(iso: string, n: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
-}
-
-/** Calendar date (ART) of day `n` (1-based). */
-export function dayDate(n: number, start: string = desafioStartDate()): string {
-  return addDays(start, n - 1);
-}
-
-/** The instant day `n` opens: 00:00 Argentina time on its date. */
-export function dayUnlocksAt(n: number, start: string = desafioStartDate()): Date {
-  return new Date(`${dayDate(n, start)}T00:00:00-03:00`);
-}
-
-export function isDayUnlocked(
-  n: number,
-  now: Date = new Date(),
-  start: string = desafioStartDate(),
-): boolean {
-  return now.getTime() >= dayUnlocksAt(n, start).getTime();
-}
-
-/**
- * The instant the challenge is over: 00:00 Argentina time the day AFTER the
- * last day. Exclusive — the whole last day, including its final second, is
- * still `live`.
- */
-export function challengeEndsAt(start: string = desafioStartDate()): Date {
-  return dayUnlocksAt(desafioConfig.totalDays + 1, start);
-}
-
-/** How many days are open at `now`, 0..totalDays. */
-export function unlockedDayCount(
-  now: Date = new Date(),
-  start: string = desafioStartDate(),
-): number {
-  let count = 0;
-  for (let n = 1; n <= desafioConfig.totalDays; n++) {
-    if (isDayUnlocked(n, now, start)) count = n;
-    else break;
-  }
-  return count;
-}
-
-export function desafioPhase(
-  now: Date = new Date(),
-  start: string = desafioStartDate(),
-): DesafioPhase {
-  if (!isDayUnlocked(1, now, start)) return "before";
-  if (now.getTime() >= challengeEndsAt(start).getTime()) return "after";
-  return "live";
-}
-
-export function isRegistrationOpen(
-  now: Date = new Date(),
-  start: string = desafioStartDate(),
-): boolean {
-  return desafioPhase(now, start) !== "after";
-}
-
-/** Today's calendar date in Argentina, YYYY-MM-DD. */
-export function argentinaToday(now: Date = new Date()): string {
-  return new Date(now.getTime() - ART_OFFSET_MS).toISOString().slice(0, 10);
-}
-
-const WEEKDAYS_ES = [
-  "domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado",
-];
-const MONTHS_ES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-const WEEKDAYS_EN = [
-  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
-];
-const MONTHS_EN = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-/**
- * es: "lunes 12 de octubre" · en: "Monday, October 12". Hand-rolled
- * (not Intl) so server and client render identical strings.
- */
-export function formatDayDate(iso: string, locale: DesafioLocale): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(Date.UTC(y, m - 1, d));
-  const wd = date.getUTCDay();
-  const mo = date.getUTCMonth();
-  const day = date.getUTCDate();
-  if (locale === "en") return `${WEEKDAYS_EN[wd]}, ${MONTHS_EN[mo]} ${day}`;
-  return `${WEEKDAYS_ES[wd]} ${day} de ${MONTHS_ES[mo]}`;
-}
+export const DESAFIO_EVENT_DATE = "2026-09-28T00:00:00-03:00";

@@ -1,47 +1,52 @@
 import "server-only";
 import { asc, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { DESAFIO_EVENT_ID, type DesafioLocale } from "@/data/desafio";
+import { DESAFIO_EVENT_ID, desafioConfig } from "@/data/desafio";
 import {
+  buildDesafioDays,
   buildDesafioEventRow,
-  buildPublicDays,
   type ChallengeDayAdminRow,
   type DayInput,
-  type DesafioPublicDay,
+  type DesafioData,
 } from "@/lib/desafio";
 
 /**
  * Lazily create the desafío `events` row. Idempotent (ON CONFLICT DO
  * NOTHING), same pattern as `ensureSinergiaEvent`. Called from the admin
- * panel GET, the day editor PUT and the public registration, so no manual
- * prod data insert is ever needed — `challenge_days.event_id` needs the row
- * to exist before the first day is saved.
+ * panel GET and the day editor PUT, so no manual prod data insert is ever
+ * needed — `challenge_days.event_id` needs the row before the first save.
  */
-export async function ensureDesafioEvent(now: Date = new Date()): Promise<string> {
+export async function ensureDesafioEvent(): Promise<string> {
   await db
     .insert(schema.events)
-    .values(buildDesafioEventRow(DESAFIO_EVENT_ID, now))
+    .values(buildDesafioEventRow(DESAFIO_EVENT_ID))
     .onConflictDoNothing();
   return DESAFIO_EVENT_ID;
 }
 
+const dayColumns = {
+  dayNumber: schema.challengeDays.dayNumber,
+  title: schema.challengeDays.title,
+  body: schema.challengeDays.body,
+  introVideoUrl: schema.challengeDays.introVideoUrl,
+  meditationTitle: schema.challengeDays.meditationTitle,
+  mediaUrl: schema.challengeDays.mediaUrl,
+  durationLabel: schema.challengeDays.durationLabel,
+  reflection: schema.challengeDays.reflection,
+  reflectionVideoUrl: schema.challengeDays.reflectionVideoUrl,
+  published: schema.challengeDays.published,
+  updatedAt: schema.challengeDays.updatedAt,
+  updatedByEmail: schema.challengeDays.updatedByEmail,
+};
+
 export async function getChallengeDayRows(
   eventId: string,
 ): Promise<ChallengeDayAdminRow[]> {
-  const rows = await db
-    .select({
-      dayNumber: schema.challengeDays.dayNumber,
-      title: schema.challengeDays.title,
-      body: schema.challengeDays.body,
-      mediaUrl: schema.challengeDays.mediaUrl,
-      published: schema.challengeDays.published,
-      updatedAt: schema.challengeDays.updatedAt,
-      updatedByEmail: schema.challengeDays.updatedByEmail,
-    })
+  return db
+    .select(dayColumns)
     .from(schema.challengeDays)
     .where(eq(schema.challengeDays.eventId, eventId))
     .orderBy(asc(schema.challengeDays.dayNumber));
-  return rows;
 }
 
 /** Insert-or-replace one day. Full-replace semantics (see validateDayInput). */
@@ -51,97 +56,41 @@ export async function upsertChallengeDay(
   input: DayInput,
   email: string,
 ): Promise<ChallengeDayAdminRow> {
+  const content = {
+    title: input.titulo,
+    body: input.intro,
+    introVideoUrl: input.introVideo,
+    meditationTitle: input.meditacion,
+    mediaUrl: input.meditacionVideo,
+    durationLabel: input.duracion,
+    reflection: input.reflexion,
+    reflectionVideoUrl: input.reflexionVideo,
+    published: input.publicado,
+    updatedByEmail: email,
+  };
   const [row] = await db
     .insert(schema.challengeDays)
-    .values({
-      eventId,
-      dayNumber,
-      title: input.title,
-      body: input.body,
-      mediaUrl: input.mediaUrl,
-      published: input.published,
-      updatedByEmail: email,
-    })
+    .values({ eventId, dayNumber, ...content })
     .onConflictDoUpdate({
       target: [schema.challengeDays.eventId, schema.challengeDays.dayNumber],
-      set: {
-        title: input.title,
-        body: input.body,
-        mediaUrl: input.mediaUrl,
-        published: input.published,
-        updatedByEmail: email,
-        updatedAt: sql`now()`,
-      },
+      set: { ...content, updatedAt: sql`now()` },
     })
-    .returning();
-  return {
-    dayNumber: row.dayNumber,
-    title: row.title,
-    body: row.body,
-    mediaUrl: row.mediaUrl,
-    published: row.published,
-    updatedAt: row.updatedAt,
-    updatedByEmail: row.updatedByEmail,
-  };
+    .returning(dayColumns);
+  return row;
 }
 
-export interface DesafioRegistrantRow {
-  participationId: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  createdAt: string;
-  status: string;
-}
-
-/** Confirmed/used registrants, newest first. */
-export async function listDesafioRegistrants(
-  eventId: string,
-): Promise<DesafioRegistrantRow[]> {
-  const res = await db.execute<{
-    participation_id: string;
-    name: string;
-    email: string | null;
-    phone: string | null;
-    created_at: string | Date;
-    status: string;
-  }>(sql`
-    SELECT
-      p.id AS participation_id,
-      people.name,
-      people.email,
-      people.phone,
-      p.created_at,
-      p.status
-    FROM participations p
-    JOIN people ON people.id = p.person_id
-    WHERE p.event_id = ${eventId}
-      AND p.status IN ('confirmed', 'used')
-    ORDER BY p.created_at DESC
-  `);
-  return (res.rows ?? []).map((r) => ({
-    participationId: r.participation_id,
-    name: r.name,
-    email: r.email,
-    phone: r.phone,
-    createdAt: new Date(r.created_at).toISOString(),
-    status: r.status,
-  }));
-}
-
-/** Count of confirmed/used registrations — the host email's running total. */
-export async function countDesafioRegistrants(eventId: string): Promise<number> {
-  const res = await db.execute<{ n: string | number }>(sql`
-    SELECT count(*) AS n FROM participations
-    WHERE event_id = ${eventId} AND status IN ('confirmed', 'used')
-  `);
-  return Number(res.rows?.[0]?.n ?? 0);
-}
-
-/** The page's data loader: all 15 days, content only on unlocked+published. */
-export async function loadPublicDesafioDays(
-  now: Date,
-  locale: DesafioLocale,
-): Promise<DesafioPublicDay[]> {
-  return buildPublicDays(await getChallengeDayRows(DESAFIO_EVENT_ID), now, locale);
+/**
+ * The public page's data: event config + all 15 days. Content only on
+ * published days (see `buildDesafioDays`). Never throws: if the DB read
+ * fails it logs and returns every day unpublished, so the page still
+ * renders (welcome + WhatsApp button) instead of erroring.
+ */
+export async function loadDesafio(): Promise<DesafioData> {
+  let rows: ChallengeDayAdminRow[] = [];
+  try {
+    rows = await getChallengeDayRows(DESAFIO_EVENT_ID);
+  } catch (err) {
+    console.error("[desafio] failed to load days", err);
+  }
+  return { config: desafioConfig, dias: buildDesafioDays(rows) };
 }

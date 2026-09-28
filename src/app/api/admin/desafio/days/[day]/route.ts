@@ -10,8 +10,8 @@ import { ensureDesafioEvent, upsertChallengeDay } from "@/lib/desafio-server";
 export const dynamic = "force-dynamic";
 
 // PUT /api/admin/desafio/days/[day]
-// Full replace of one day's content. Editing future (locked) days is the
-// point — content is loaded ahead of time and the date gate opens it.
+// Full replace of one day's content (every design field + `publicado`).
+// Setting `publicado: true` is what makes the day appear on the public page.
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ day: string }> },
@@ -33,15 +33,14 @@ export async function PUT(
   }
 
   try {
-    const now = new Date();
-    await ensureDesafioEvent(now);
+    await ensureDesafioEvent();
     const row = await upsertChallengeDay(
       DESAFIO_EVENT_ID,
       n,
       parsed.value,
       session.email,
     );
-    return NextResponse.json({ ok: true, day: buildAdminDay(n, row, now) });
+    return NextResponse.json({ ok: true, day: buildAdminDay(n, row) });
   } catch (err) {
     console.error("admin/desafio PUT error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

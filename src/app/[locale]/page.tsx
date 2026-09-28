@@ -16,9 +16,6 @@ import NowSection from "@/components/NowSection";
 // import Timeline from "@/components/Timeline";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
-import { fillTokens } from "@/data/brote";
-import { desafioPhase, desafioStartDate, formatDayDate } from "@/data/desafio";
-import { resolveDesafioNowItem } from "@/lib/desafio";
 
 export default async function Home({
   params,
@@ -31,26 +28,6 @@ export default async function Home({
   const hasSpeakingPhoto = existsSync(
     join(process.cwd(), "public", "speaking.jpg")
   );
-  // The desafío card's `{date}` comes from the same start date the /desafio
-  // landing uses, so moving the date in config can't leave this card stale.
-  const desafioDate = formatDayDate(
-    desafioStartDate(),
-    locale === "en" ? "en" : "es",
-  );
-  // The card's copy is phase-aware ("Arranca el…" → "Empezó el…" →
-  // "Terminó"). This page is statically generated, so the phase is the one
-  // at build time: it follows the challenge on each deploy, not live.
-  const phase = desafioPhase();
-  const nowDict = {
-    ...dict.now,
-    items: dict.now.items.map((raw) => {
-      const item = resolveDesafioNowItem(raw, phase);
-      return {
-        ...item,
-        description: fillTokens(item.description, { date: desafioDate }),
-      };
-    }),
-  };
 
   return (
     <>
@@ -71,7 +48,7 @@ export default async function Home({
           />
         ))}
         <BeyondSection dict={dict.beyond} hasPhoto={hasSpeakingPhoto} />
-        <NowSection dict={nowDict} />
+        <NowSection dict={dict.now} />
         {/* Timeline ("The Full Story") hidden for now — restore to bring it back */}
         {/* <Timeline dict={dict.timeline} /> */}
         <Contact dict={dict.contact} />

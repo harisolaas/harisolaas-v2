@@ -19,11 +19,18 @@ vi.mock("next/font/google", () => {
   };
 });
 
-// The page's DB loader. Mocked so this suite never needs a database, and so
-// the fallback path (loader throws) can be driven directly.
-const loadPublicDesafioDays = vi.fn();
-vi.mock("@/lib/desafio-server", () => ({
-  loadPublicDesafioDays: (...args: unknown[]) => loadPublicDesafioDays(...args),
+// The DB read under the page's loader. Mocked so this suite never needs a
+// database, and so the fallback path (read throws) can be driven directly.
+const getChallengeDayRows = vi.fn();
+vi.mock("@/db", () => ({
+  db: {
+    select: () => ({
+      from: () => ({
+        where: () => ({ orderBy: () => getChallengeDayRows() }),
+      }),
+    }),
+  },
+  schema: { challengeDays: {}, events: {} },
 }));
 
 const CANONICAL_HOST = "https://www.harisolaas.com";
@@ -80,28 +87,59 @@ describe("desafío landing metadata", () => {
   });
 });
 
-describe("desafío page render", () => {
+describe("desafío page data", () => {
   beforeEach(() => {
-    loadPublicDesafioDays.mockReset();
+    getChallengeDayRows.mockReset();
   });
 
-  it("falls back to the date-only path when the DB loader throws", async () => {
-    loadPublicDesafioDays.mockImplementation(async () => {
+  it("loadDesafio falls back to 15 unpublished days when the DB read throws", async () => {
+    getChallengeDayRows.mockImplementation(async () => {
       throw new Error("db down");
     });
     const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { default: DesafioPage } = await import("@/app/[locale]/desafio/page");
+    const { loadDesafio } = await import("@/lib/desafio-server");
 
-    const el = (await DesafioPage(params("es"))) as {
-      props: { days: Array<{ state: string; title?: string }> };
-    };
+    const { config, dias } = await loadDesafio();
 
-    expect(el.props.days).toHaveLength(15);
-    for (const d of el.props.days) {
-      expect(d.state).not.toBe("open");
-      expect(d.title).toBeUndefined();
-    }
+    expect(config.whatsapp).toMatch(/^https:\/\/chat\.whatsapp\.com\//);
+    expect(dias).toHaveLength(15);
+    for (const d of dias) expect(d).toEqual({ dia: d.dia, publicado: false });
+    expect(errSpy).toHaveBeenCalled();
     errSpy.mockRestore();
+  });
+
+  it("loadDesafio only carries content for published days", async () => {
+    getChallengeDayRows.mockResolvedValue([
+      {
+        dayNumber: 1,
+        title: "Público",
+        body: "ok",
+        introVideoUrl: null,
+        meditationTitle: "M",
+        mediaUrl: "https://youtu.be/sq9Ug1hrqW4",
+        durationLabel: "18 min",
+        reflection: null,
+        reflectionVideoUrl: null,
+        published: true,
+      },
+      {
+        dayNumber: 2,
+        title: "Borrador",
+        body: "no debería salir",
+        introVideoUrl: null,
+        meditationTitle: null,
+        mediaUrl: null,
+        durationLabel: null,
+        reflection: null,
+        reflectionVideoUrl: null,
+        published: false,
+      },
+    ]);
+    const { loadDesafio } = await import("@/lib/desafio-server");
+    const { dias } = await loadDesafio();
+    expect(dias[0]).toMatchObject({ dia: 1, publicado: true, titulo: "Público" });
+    expect(dias[1]).toEqual({ dia: 2, publicado: false });
+    expect(JSON.stringify(dias)).not.toContain("no debería salir");
   });
 });
 

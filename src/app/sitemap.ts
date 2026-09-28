@@ -57,8 +57,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
       alternates: { languages: broteAlternates },
     },
-    // The 15-day challenge. `daily`: a new practice unlocks every day while
-    // it runs.
+    // The 15-day challenge. `daily`: new days get published as it goes.
     {
       url: `${BASE}/es/desafio`,
       lastModified,

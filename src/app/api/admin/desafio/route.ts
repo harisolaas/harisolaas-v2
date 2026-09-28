@@ -3,30 +3,19 @@ import {
   requireAdminSession,
   assertEventAccess,
 } from "@/lib/admin-api-auth";
-import {
-  DESAFIO_EVENT_ID,
-  desafioConfig,
-  desafioPhase,
-  desafioStartDate,
-  unlockedDayCount,
-} from "@/data/desafio";
+import { DESAFIO_EVENT_ID, DESAFIO_TOTAL_DAYS } from "@/data/desafio";
 import {
   buildAdminDays,
-  isDayReady,
+  isDayPublic,
   type DesafioAdminResponse,
 } from "@/lib/desafio";
-import {
-  ensureDesafioEvent,
-  getChallengeDayRows,
-  listDesafioRegistrants,
-} from "@/lib/desafio-server";
-import { phoneToWaMe } from "@/lib/plant-types";
+import { ensureDesafioEvent, getChallengeDayRows } from "@/lib/desafio-server";
 
 export const dynamic = "force-dynamic";
 
 // GET /api/admin/desafio
-// Everything the /admin/desafio panel needs in one round-trip: the
-// event's phase, all 15 days (stored or not), and the registrant list.
+// Everything the /admin/desafio panel needs in one round-trip: all 15 days
+// (stored or not) with every design field, plus how many are visible.
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
@@ -34,34 +23,15 @@ export async function GET(req: Request) {
   if (denied) return denied;
 
   try {
-    const now = new Date();
-    const start = desafioStartDate();
     // Idempotent side effect: opening the panel creates the event row the
     // challenge_days FK needs (and surfaces /es/desafio in the link builder).
-    await ensureDesafioEvent(now);
-
-    const [rows, registrants] = await Promise.all([
-      getChallengeDayRows(DESAFIO_EVENT_ID),
-      listDesafioRegistrants(DESAFIO_EVENT_ID),
-    ]);
+    await ensureDesafioEvent();
+    const rows = await getChallengeDayRows(DESAFIO_EVENT_ID);
 
     const body: DesafioAdminResponse = {
-      event: {
-        id: DESAFIO_EVENT_ID,
-        startDate: start,
-        totalDays: desafioConfig.totalDays,
-        phase: desafioPhase(now, start),
-        unlockedDays: unlockedDayCount(now, start),
-      },
-      days: buildAdminDays(rows, now, start),
-      registrants: registrants.map((r) => ({
-        ...r,
-        waMe: r.phone ? `https://wa.me/${phoneToWaMe(r.phone)}` : null,
-      })),
-      counts: {
-        registered: registrants.length,
-        daysReady: rows.filter(isDayReady).length,
-      },
+      event: { id: DESAFIO_EVENT_ID, totalDays: DESAFIO_TOTAL_DAYS },
+      days: buildAdminDays(rows),
+      counts: { published: rows.filter(isDayPublic).length },
     };
     return NextResponse.json(body);
   } catch (err) {
