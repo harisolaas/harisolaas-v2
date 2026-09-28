@@ -483,3 +483,51 @@ After deploying the first time, register `https://www.harisolaas.com/api/sinergi
 ### Donation data shape
 
 Donation details live in `participations.metadata.donation = { amountCents, currency, paymentId, receiptSent }`. No schema migration — the column was already `jsonb`. `participations.externalPaymentId`, `priceCents`, `currency` are also set by the webhook for reporting parity with BROTE.
+
+---
+
+## DESAFÍO — "15 días meditando" (online challenge)
+
+A free online challenge: one short practice per day for 15 days. Registrants sign up on `/[locale]/desafio` (name + email + WhatsApp, all required) and come back to the same page each day. Day content is loaded ahead of time from the admin panel and unlocks by date.
+
+### Config & unlock rule (`src/data/desafio.ts`)
+
+- `DESAFIO_EVENT_ID = "desafio-15-dias-2026"` — a key, not a date claim. Never change it once content is loaded in prod.
+- `desafioConfig` holds `startDate`, `totalDays` (15), `landingPath`, `whatsappGroupUrl` ("" hides the group button in the confirmation email). Read dates from here, not from this file.
+- Day N unlocks at **00:00 Argentina time** (fixed `-03:00`) on `startDate + (N-1)`. Registration closes when day 15 ends (`isRegistrationOpen`); the path stays visible afterwards.
+- Every helper takes `now`/`start` as params. None may read `DESAFIO_EVENT_ID` — tests partially mock it.
+
+### Pages & routes
+
+| Path | Purpose |
+|---|---|
+| `/[locale]/desafio` | Landing + form + the 15-day path. `force-dynamic`. Day states: `locked` (only the date), `empty` (unlocked but not published/no title → placeholder), `open` (title, plain-text body, media). If the DB read fails the page falls back to the date-only view rather than erroring |
+| `POST /api/desafio/register` | `{name,email,phone,locale,utm?,linkSlug?}` → `recordParticipation()` (`DES-XXXXXXXX`), confirmation email (es/en) + host email with `wa.me` link. 409 `{closed:true}` after the end, 5/IP/60s rate limit |
+| `/admin/desafio` | Panel: metrics, per-day editor (title, body, media URL, published), registrant list with WhatsApp links. Linked from the Comunidad header for `scope: all` |
+| `GET /api/admin/desafio` | Event phase, all 15 days, registrants, counts. Session auth + `assertEventAccess` |
+| `PUT /api/admin/desafio/days/{n}` | Full replace of one day. Editor+ (`assertCanWriteEvent`). 400s carry a Spanish error the UI shows verbatim. Editing future days is allowed — that's the point |
+
+**Security invariant:** `buildPublicDays` (`src/lib/desafio.ts`) strips title/body/media from locked days server-side, even when published. Never pass raw `challenge_days` rows to a client component.
+
+**Media:** one URL field, classified by `parseDesafioMedia` — YouTube → `youtube-nocookie` embed, `.mp3/.m4a/.ogg/.wav/.aac` → `<audio>`, any other http(s) URL → button link. Non-http(s) is rejected.
+
+### Storage
+
+- **`challenge_days`** — PK `(event_id, day_number)`, FK to `events` (cascade). `published` is a draft flag on top of the date gate; a missing row renders as the placeholder.
+- Registrants are ordinary `participations` rows (role `participant`) on the desafío `events` row.
+- The `events` row is created lazily and idempotently by `ensureDesafioEvent()` (`src/lib/desafio-server.ts`) on the first admin panel open, day save or registration. **No manual data insert.** Open `/admin/desafio` once after deploy — that also surfaces `/es/desafio` in the link builder.
+
+### Manual migration
+
+Migration `0007` (`CREATE TABLE challenge_days` + FK) is purely additive: apply it to prod **right before merging**, with `docs/ops/0007-prod.sql` (`psql "$PROD_URL" --single-transaction -f docs/ops/0007-prod.sql`). Verify with `SELECT to_regclass('public.challenge_days')`.
+
+### Env vars
+
+| Var | Notes |
+|---|---|
+| `DESAFIO_NOTIFY_EMAILS` | Host notification list (comma-separated). Falls back to `SINERGIA_NOTIFY_EMAILS` |
+| `DESAFIO_START_DATE_OVERRIDE` | `YYYY-MM-DD`. **Preview only** — ignored when `VERCEL_ENV=production`. Lets a preview show unlocked days before the real start |
+
+### Preview
+
+`scripts/seed-preview.ts` seeds the real-id event, days 1–3 published (YouTube / audio / link), a day-4 draft, days 5–15 empty, and four registrants (one without phone). Set `DESAFIO_START_DATE_OVERRIDE` to a few days ago in the Preview env to see open days.
