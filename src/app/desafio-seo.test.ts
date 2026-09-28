@@ -16,6 +16,8 @@ vi.mock("next/font/google", () => {
     DM_Serif_Display: font,
     Source_Sans_3: font,
     JetBrains_Mono: font,
+    Caprasimo: font,
+    Figtree: font,
   };
 });
 
@@ -34,8 +36,6 @@ vi.mock("@/db", () => ({
 }));
 
 const CANONICAL_HOST = "https://www.harisolaas.com";
-const locales = ["es", "en"] as const;
-const params = (locale: string) => ({ params: Promise.resolve({ locale }) });
 
 /** `Metadata["robots"]` is `null | string | Robots`; both spellings de-index. */
 function isIndexable(robots: unknown): boolean {
@@ -45,22 +45,21 @@ function isIndexable(robots: unknown): boolean {
 }
 
 describe("desafío landing metadata", () => {
-  it.each(locales)("declares itself canonical in %s", async (locale) => {
+  // Spanish-only page: /en/desafio redirects (next.config.ts), so the page
+  // always declares the Spanish URL, with no English alternate.
+  it("declares /es/desafio canonical, with no English alternate", async () => {
     const { generateMetadata } = await import("@/app/[locale]/desafio/page");
-    const md = await generateMetadata(params(locale));
+    const md = await generateMetadata();
 
     // Without it the page inherits `/${locale}` from the locale layout and
     // tells search engines the homepage is its canonical URL.
-    expect(md.alternates?.canonical).toBe(`/${locale}/desafio`);
-    expect(md.alternates?.languages).toMatchObject({
-      es: "/es/desafio",
-      en: "/en/desafio",
-    });
+    expect(md.alternates?.canonical).toBe("/es/desafio");
+    expect(md.alternates?.languages).toEqual({ es: "/es/desafio" });
   });
 
-  it.each(locales)("is indexable in %s", async (locale) => {
+  it("is indexable", async () => {
     const { generateMetadata } = await import("@/app/[locale]/desafio/page");
-    const md = await generateMetadata(params(locale));
+    const md = await generateMetadata();
     expect(isIndexable(md.robots)).toBe(true);
   });
 
@@ -70,9 +69,9 @@ describe("desafío landing metadata", () => {
     ).toBe(false);
   });
 
-  it.each(locales)("carries a complete openGraph block in %s", async (locale) => {
+  it("carries a complete openGraph block", async () => {
     const { generateMetadata } = await import("@/app/[locale]/desafio/page");
-    const md = await generateMetadata(params(locale));
+    const md = await generateMetadata();
 
     // A child openGraph REPLACES the layout's rather than merging, so a
     // partial block would drop siteName/type/images.
@@ -80,10 +79,21 @@ describe("desafío landing metadata", () => {
     expect(md.openGraph?.description).toBeTruthy();
     expect(md.openGraph?.siteName).toBeTruthy();
     expect(md.openGraph?.type).toBeTruthy();
-    expect(md.openGraph?.url).toBe(`/${locale}/desafio`);
+    expect(md.openGraph?.url).toBe("/es/desafio");
     const images = md.openGraph?.images as Array<{ url: string }>;
     expect(images?.[0]?.url.startsWith("/")).toBe(true);
     expect(existsSync(resolve(process.cwd(), "public", images[0].url.slice(1)))).toBe(true);
+  });
+
+  it("/en/desafio redirects to the Spanish page", async () => {
+    const { default: config } = await import("../../next.config");
+    const redirects = await config.redirects!();
+    expect(redirects).toContainEqual(
+      expect.objectContaining({
+        source: "/en/desafio",
+        destination: "/es/desafio",
+      }),
+    );
   });
 });
 
@@ -144,18 +154,11 @@ describe("desafío page data", () => {
 });
 
 describe("sitemap", () => {
-  it("lists both desafío locales with mutual hreflang alternates", async () => {
+  it("lists only the Spanish desafío (the English URL is a redirect)", async () => {
     const { default: sitemap } = await import("@/app/sitemap");
-    const entries = sitemap();
-    const urls = entries.map((e) => e.url);
+    const urls = sitemap().map((e) => e.url);
 
     expect(urls).toContain(`${CANONICAL_HOST}/es/desafio`);
-    expect(urls).toContain(`${CANONICAL_HOST}/en/desafio`);
-
-    const es = entries.find((e) => e.url.endsWith("/es/desafio"));
-    expect(es?.alternates?.languages).toMatchObject({
-      es: `${CANONICAL_HOST}/es/desafio`,
-      en: `${CANONICAL_HOST}/en/desafio`,
-    });
+    expect(urls).not.toContain(`${CANONICAL_HOST}/en/desafio`);
   });
 });

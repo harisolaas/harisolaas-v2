@@ -16,11 +16,6 @@ const broteAlternates = {
   es: `${BASE}/es/brote`,
 };
 
-const desafioAlternates = {
-  en: `${BASE}/en/desafio`,
-  es: `${BASE}/es/desafio`,
-};
-
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
 
@@ -58,19 +53,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: broteAlternates },
     },
     // The 15-day challenge. `daily`: new days get published as it goes.
+    // Spanish-only — `/en/desafio` redirects here, so it isn't listed.
     {
       url: `${BASE}/es/desafio`,
       lastModified,
       changeFrequency: "daily",
       priority: 0.8,
-      alternates: { languages: desafioAlternates },
-    },
-    {
-      url: `${BASE}/en/desafio`,
-      lastModified,
-      changeFrequency: "daily",
-      priority: 0.8,
-      alternates: { languages: desafioAlternates },
     },
   ];
 }
