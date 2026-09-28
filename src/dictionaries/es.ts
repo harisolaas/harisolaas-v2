@@ -1329,7 +1329,7 @@ const es: Dictionary = {
       closedHeading: "Las inscripciones cerraron",
       closedMessage:
         "El desafío ya terminó, pero las prácticas siguen abiertas acá abajo.",
-      micro: "Nada de spam: solo lo del desafío.",
+      micro: "Nada de spam: únicamente lo del desafío.",
     },
     path: {
       heading: "El recorrido",
