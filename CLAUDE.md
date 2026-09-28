@@ -496,6 +496,7 @@ A free online challenge: one short practice per day for 15 days. Registrants sig
 - `desafioConfig` holds `startDate`, `totalDays` (15), `landingPath`, `whatsappGroupUrl` ("" hides the group button in the confirmation email). Read dates from here, not from this file.
 - Day N unlocks at **00:00 Argentina time** (fixed `-03:00`) on `startDate + (N-1)`. Registration closes when day 15 ends (`isRegistrationOpen`); the path stays visible afterwards.
 - Every helper takes `now`/`start` as params. None may read `DESAFIO_EVENT_ID` — tests partially mock it.
+- Sign-ups stay open mid-challenge, so user-facing copy is phase-aware: the landing hero/success message, the confirmation email ("arranca el…" vs "empezó el…", from `now`), and the home "Ahora" card (`desafioPhases` in the dictionaries, resolved by `resolveDesafioNowItem`). The home page is static, so that card's phase is the build-time one — it moves with each deploy.
 
 ### Pages & routes
 
@@ -517,9 +518,15 @@ A free online challenge: one short practice per day for 15 days. Registrants sig
 - Registrants are ordinary `participations` rows (role `participant`) on the desafío `events` row.
 - The `events` row is created lazily and idempotently by `ensureDesafioEvent()` (`src/lib/desafio-server.ts`) on the first admin panel open, day save or registration. **No manual data insert.** Open `/admin/desafio` once after deploy — that also surfaces `/es/desafio` in the link builder.
 
+### Day content prefill (`src/data/desafio-prefill.ts`)
+
+Starting content for all 15 days — one YouTube meditation from Hari's playlist, a title and a short text each. It's a first draft: once loaded, `challenge_days` is the source of truth and Hari edits it in `/admin/desafio`.
+
+`npx tsx scripts/prefill-desafio.ts [--env-file=.env.prod.local] [--execute]` — dry run by default (read-only: lists would-insert / would-skip). `--execute` creates the event row if missing and inserts every day as published with `ON CONFLICT DO NOTHING`: **a day that already has a row is never overwritten**, so it's safe to re-run after edits. Validates each day with the admin's `validateDayInput` first.
+
 ### Manual migration
 
-Migration `0007` (`CREATE TABLE challenge_days` + FK) is purely additive: apply it to prod **right before merging**, with `docs/ops/0007-prod.sql` (`psql "$PROD_URL" --single-transaction -f docs/ops/0007-prod.sql`). Verify with `SELECT to_regclass('public.challenge_days')`.
+Migration `0007` (`CREATE TABLE challenge_days` + FK) is purely additive: apply it to prod **right before merging**, with `docs/ops/0007-prod.sql` (`psql "$PROD_URL" --single-transaction -f docs/ops/0007-prod.sql`). Verify with `SELECT to_regclass('public.challenge_days')`. Then, with Hari's go-ahead, load the day content: `npx tsx scripts/prefill-desafio.ts --env-file=.env.prod.local` (dry run), then the same with `--execute`.
 
 ### Env vars
 
@@ -530,4 +537,4 @@ Migration `0007` (`CREATE TABLE challenge_days` + FK) is purely additive: apply 
 
 ### Preview
 
-`scripts/seed-preview.ts` seeds the real-id event, days 1–3 published (YouTube / audio / link), a day-4 draft, days 5–15 empty, and four registrants (one without phone). Set `DESAFIO_START_DATE_OVERRIDE` to a few days ago in the Preview env to see open days.
+`scripts/seed-preview.ts` seeds the real-id event, days 1–3 published from the prefill (YouTube), day 4's prefill as a draft, day 5 published with audio, day 6 with a plain link, days 7–15 empty, and four registrants (one without phone). Set `DESAFIO_START_DATE_OVERRIDE` to an earlier date in the Preview env to see more days open.
