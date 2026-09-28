@@ -20,7 +20,7 @@
 --
 -- Es puramente aditiva: CREATE TABLE + FK hacia events. No toca filas
 -- existentes. La fila de events `desafio-15-dias-2026` NO se inserta acá: la
--- crea `ensureDesafioEvent()` en el primer request al panel o a la inscripción.
+-- crea `ensureDesafioEvent()` en el primer request al panel (o el prefill).
 
 SET lock_timeout = '3s';
 
