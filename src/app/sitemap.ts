@@ -16,6 +16,11 @@ const broteAlternates = {
   es: `${BASE}/es/brote`,
 };
 
+const desafioAlternates = {
+  en: `${BASE}/en/desafio`,
+  es: `${BASE}/es/desafio`,
+};
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
 
@@ -51,6 +56,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 0.9,
       alternates: { languages: broteAlternates },
+    },
+    // The 15-day challenge. `daily`: a new practice unlocks every day while
+    // it runs.
+    {
+      url: `${BASE}/es/desafio`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.8,
+      alternates: { languages: desafioAlternates },
+    },
+    {
+      url: `${BASE}/en/desafio`,
+      lastModified,
+      changeFrequency: "daily",
+      priority: 0.8,
+      alternates: { languages: desafioAlternates },
     },
   ];
 }
