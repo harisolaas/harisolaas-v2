@@ -222,7 +222,7 @@ const EVENTS: EventFixture[] = [
     type: "desafio",
     series: "desafio",
     name: "Desafío 15 días meditando (preview)",
-    date: "2026-10-12T00:00:00-03:00",
+    date: `${desafioConfig.startDate}T00:00:00-03:00`,
     capacity: null,
     status: "upcoming",
     landingPath: "/es/desafio",
