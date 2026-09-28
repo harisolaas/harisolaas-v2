@@ -1,58 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { desafioConfig } from "./desafio";
+import { DESAFIO_TOTAL_DAYS } from "./desafio";
 import { DESAFIO_PREFILL } from "./desafio-prefill";
-import {
-  DAY_BODY_MAX,
-  DAY_TITLE_MAX,
-  parseDesafioMedia,
-  validateDayInput,
-} from "@/lib/desafio";
+import { buildDesafioDays, parseYouTube, validateDayInput } from "@/lib/desafio";
 
 // Pure: no DB. Guards the content `scripts/prefill-desafio.ts` loads into
 // prod and `scripts/seed-preview.ts` uses as fixtures.
 
 describe("desafío prefill", () => {
-  it("has exactly one entry per day, 1..totalDays, in order", () => {
-    expect(DESAFIO_PREFILL.map((d) => d.dayNumber)).toEqual(
-      Array.from({ length: desafioConfig.totalDays }, (_, i) => i + 1),
+  it("has exactly one entry per day, 1..15, in order", () => {
+    expect(DESAFIO_PREFILL.map((d) => d.dia)).toEqual(
+      Array.from({ length: DESAFIO_TOTAL_DAYS }, (_, i) => i + 1),
     );
   });
 
   it("opens with the full-moon meditation", () => {
-    expect(DESAFIO_PREFILL[0].mediaUrl).toBe(
+    expect(DESAFIO_PREFILL[0].meditacionVideo).toBe(
       "https://www.youtube.com/watch?v=sq9Ug1hrqW4",
     );
   });
 
   it("uses a different video every day", () => {
-    const urls = DESAFIO_PREFILL.map((d) => d.mediaUrl);
-    expect(new Set(urls).size).toBe(urls.length);
+    const ids = DESAFIO_PREFILL.map((d) => parseYouTube(d.meditacionVideo)?.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it.each(DESAFIO_PREFILL.map((d) => [d.dayNumber, d] as const))(
-    "day %i embeds as YouTube and passes the admin validation",
+  it.each(DESAFIO_PREFILL.map((d) => [d.dia, d] as const))(
+    "day %i passes the admin validation as a published day, unchanged",
     (_n, d) => {
-      const media = parseDesafioMedia(d.mediaUrl);
-      expect(media?.kind).toBe("youtube");
-      expect(media && "embedUrl" in media && media.embedUrl).toMatch(
-        /^https:\/\/www\.youtube-nocookie\.com\/embed\/[\w-]{11}$/,
-      );
-
-      const res = validateDayInput({ ...d, published: true });
+      const fields = { ...d } as Partial<typeof d>;
+      delete fields.dia;
+      const res = validateDayInput({ ...fields, publicado: true });
+      // Only the empty optional videos normalize (to null); every text field
+      // is already trimmed and within its cap.
       expect(res).toEqual({
         ok: true,
-        value: { title: d.title, body: d.body, mediaUrl: d.mediaUrl, published: true },
+        value: { ...fields, introVideo: null, reflexionVideo: null, publicado: true },
       });
-      expect(d.title.length).toBeLessThanOrEqual(DAY_TITLE_MAX);
-      expect(d.body.length).toBeLessThanOrEqual(DAY_BODY_MAX);
-      expect(d.title.trim()).toBe(d.title);
-      expect(d.body.trim()).not.toBe("");
+      expect(parseYouTube(d.meditacionVideo)?.isShort).toBe(false);
+      for (const f of ["titulo", "intro", "meditacion", "reflexion"] as const) {
+        expect(d[f].trim(), `${f} must be filled`).not.toBe("");
+      }
+      expect(d.duracion).toMatch(/^\d{1,2} min$/);
     },
   );
 
+  it("renders all 15 days as published once loaded", () => {
+    const rows = DESAFIO_PREFILL.map((d) => ({
+      dayNumber: d.dia,
+      title: d.titulo,
+      body: d.intro,
+      introVideoUrl: d.introVideo || null,
+      meditationTitle: d.meditacion,
+      mediaUrl: d.meditacionVideo,
+      durationLabel: d.duracion,
+      reflection: d.reflexion,
+      reflectionVideoUrl: d.reflexionVideo || null,
+      published: true,
+    }));
+    const days = buildDesafioDays(rows);
+    expect(days.every((d) => d.publicado)).toBe(true);
+  });
+
   // CLAUDE.md: Spanish copy is gender agnostic and voseo. Whole words, so
   // "solos" is caught but "consola" isn't.
-  const text = DESAFIO_PREFILL.map((d) => `${d.title}\n${d.body}`)
+  const text = DESAFIO_PREFILL.map((d) =>
+    [d.titulo, d.intro, d.meditacion, d.reflexion].join("\n"),
+  )
     .join("\n")
     .toLowerCase();
   const hasWord = (w: string) =>
@@ -72,6 +85,7 @@ describe("desafío prefill", () => {
     ]) {
       expect(hasWord(w), `gendered: ${w}`).toBe(false);
     }
+    expect(text).not.toMatch(/\p{L}\/a\b/u);
   });
 
   it("uses voseo, not tuteo", () => {
@@ -80,8 +94,14 @@ describe("desafío prefill", () => {
     }
   });
 
+  // The page shows "Gurudev Sri Sri Ravi Shankar" as its own tag.
   it("doesn't carry YouTube-title noise", () => {
     expect(text).not.toContain("sri sri");
-    expect(text).not.toContain("traducido");
+    expect(text).not.toContain("traducid");
+    expect(text).not.toContain("en español");
+  });
+
+  it("has no date-bound copy (the challenge is self-paced)", () => {
+    expect(text).not.toMatch(/\d{1,2} de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/);
   });
 });
