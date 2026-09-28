@@ -1,0 +1,686 @@
+/*
+ * Desafío "15 días meditando juntos" — the Organic design system of the
+ * Claude Design handoff, scoped to `.desafio` so none of it leaks into the
+ * rest of the site. Tokens and component classes are ported from the
+ * handoff's `_ds/organic-…/styles.css` (only what the page uses); the layout
+ * classes mirror the inline styles of `DesafioMeditacion.dc.html`.
+ *
+ * Fonts come from next/font (Caprasimo + Figtree) as
+ * --font-desafio-heading / --font-desafio-body, set on the root element.
+ */
+
+.desafio {
+  --color-bg: #f5ead8;
+  --color-surface: #ebddc5;
+  --color-text: #201e1d;
+  --color-accent: #c67139;
+  --color-accent-2: #7a8a5e;
+  --color-divider: color-mix(in srgb, #201e1d 16%, transparent);
+
+  --color-neutral-100: #f9f4ed;
+  --color-neutral-300: #dcd3c4;
+  --color-neutral-400: #c0b6a5;
+  --color-neutral-800: #474238;
+
+  --color-accent-100: #fff2eb;
+  --color-accent-200: #ffe1d0;
+  --color-accent-300: #ffc6a5;
+  --color-accent-600: #b2622d;
+  --color-accent-700: #8c491a;
+  --color-accent-800: #643312;
+
+  --color-accent-2-100: #f0fae1;
+  --color-accent-2-200: #e1eecc;
+  --color-accent-2-700: #56633f;
+  --color-accent-2-800: #3d472b;
+
+  --font-heading: var(--font-desafio-heading), system-ui, sans-serif;
+  --font-body: var(--font-desafio-body), system-ui, sans-serif;
+
+  --space-1: 4.4px;
+  --space-2: 8.8px;
+  --space-3: 13.2px;
+
+  --radius-md: 16px;
+  --radius-lg: 28px;
+
+  --shadow-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
+
+  --ink-55: color-mix(in srgb, var(--color-text) 55%, transparent);
+  --ink-70: color-mix(in srgb, var(--color-text) 70%, transparent);
+  --ink-75: color-mix(in srgb, var(--color-text) 75%, transparent);
+  --ink-78: color-mix(in srgb, var(--color-text) 78%, transparent);
+  --ink-80: color-mix(in srgb, var(--color-text) 80%, transparent);
+
+  /* Root layout (design: min-height 100%, column, sticky bar at the end). */
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: clip;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-wrap: pretty;
+}
+
+/* Edge to edge: the site body is cream (#FAF6F1); on this page it takes the
+   design's bg so overscroll and short screens never show a seam. */
+body:has(.desafio) {
+  background: #f5ead8;
+}
+
+.desafio *,
+.desafio *::before,
+.desafio *::after {
+  box-sizing: border-box;
+}
+
+/* — base type (DS) — */
+.desafio :is(h1, h2) {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 var(--space-2);
+}
+.desafio p {
+  margin: 0 0 var(--space-3);
+}
+.desafio a {
+  color: var(--color-accent-700);
+}
+.desafio a:hover {
+  color: var(--color-accent-800);
+}
+.desafio :focus {
+  outline: none;
+}
+.desafio :focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.desafio ::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+/* — buttons (DS, "rounded frame": pills) — */
+.desafio .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: 999px;
+}
+.desafio .btn svg {
+  display: block;
+}
+.desafio .btn-primary {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.desafio .btn-primary:hover {
+  background: var(--color-accent-600);
+}
+.desafio .btn-primary:active {
+  background: var(--color-accent-700);
+}
+.desafio .btn-secondary {
+  border-color: var(--color-divider);
+}
+.desafio .btn-secondary:hover {
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+}
+.desafio .btn-secondary:active {
+  background: color-mix(in srgb, var(--color-text) 14%, transparent);
+}
+.desafio .btn-ghost {
+  color: var(--color-accent);
+  padding-inline: var(--space-1);
+}
+.desafio .btn-ghost:hover {
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.desafio .btn-ghost:active {
+  background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+.desafio .btn-block {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+/* — tags (DS) — */
+.desafio .tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.desafio .tag-accent {
+  background: var(--color-accent-100);
+  color: var(--color-accent-800);
+}
+.desafio .tag-accent-2 {
+  background: var(--color-accent-2-100);
+  color: var(--color-accent-2-800);
+}
+.desafio .tag-neutral {
+  background: var(--color-neutral-100);
+  color: var(--color-neutral-800);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Page layout — mirrors the design's inline styles
+   ══════════════════════════════════════════════════════════════════════ */
+
+.desafio-main {
+  flex: 1;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 18px 22px 24px;
+  position: relative;
+}
+.desafio-main--home {
+  padding-top: 28px;
+}
+
+.desafio-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.desafio-kicker {
+  display: block;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-accent-700);
+}
+
+/* Figtree label headings: "Para arrancar", "Para después de meditar". */
+.desafio .desafio-label {
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ink-70);
+}
+
+.desafio-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 10px;
+  min-height: 44px;
+}
+
+/* — home — */
+.desafio .desafio-h1-home {
+  font-size: 40px;
+  line-height: 1.05;
+  margin: 22px 0 0;
+  letter-spacing: 0;
+}
+.desafio .desafio-welcome {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 16px 0 0;
+  color: var(--ink-78);
+  max-width: 34ch;
+}
+.desafio .desafio-progress-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.desafio-progress-num {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 26px;
+  color: var(--color-accent-2-700);
+}
+
+.desafio-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
+.desafio-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+.desafio-dot--done {
+  background: var(--color-accent-2);
+}
+.desafio-dot--next {
+  border: 2.5px solid var(--color-accent);
+  background: var(--color-accent-200);
+}
+.desafio-dot--open {
+  border: 2px solid var(--color-neutral-400);
+}
+.desafio-dot--soon {
+  background: var(--color-surface);
+}
+
+.desafio-card {
+  margin-top: 32px;
+  border-radius: 44px;
+  padding: 26px;
+}
+.desafio-card--next {
+  background: var(--color-accent-100);
+  padding: 28px 26px 26px;
+  position: relative;
+  overflow: hidden;
+}
+.desafio-card--sage {
+  background: var(--color-accent-2-100);
+}
+.desafio .desafio-card-h2 {
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 0;
+}
+.desafio .desafio-card-text {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--ink-78);
+}
+.desafio .desafio-next-h2 {
+  font-size: 30px;
+  line-height: 1.1;
+  margin: 10px 0 0;
+}
+.desafio .desafio-next-meta {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-75);
+}
+.desafio .desafio-next-cta {
+  margin-top: 20px;
+  min-height: 52px;
+  padding: 0 26px;
+  font-size: 16px;
+  gap: 10px;
+}
+
+.desafio .desafio-days-h2 {
+  font-size: 24px;
+  margin: 0 0 12px;
+}
+.desafio-days {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.desafio-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 16px 10px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+button.desafio-row {
+  cursor: pointer;
+}
+.desafio-row--done:hover,
+.desafio-row--open:hover {
+  background: var(--color-surface);
+}
+.desafio-row--next {
+  border: 2px solid var(--color-accent);
+  background: var(--color-accent-100);
+}
+.desafio-row--next:hover {
+  background: var(--color-accent-200);
+}
+.desafio-row-circle {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-size: 19px;
+}
+.desafio-row--done .desafio-row-circle {
+  background: var(--color-accent-2);
+  color: var(--color-bg);
+}
+.desafio-row--next .desafio-row-circle {
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+.desafio-row--open .desafio-row-circle {
+  border: 2px solid var(--color-neutral-400);
+}
+.desafio-row--soon .desafio-row-circle {
+  background: var(--color-surface);
+  color: var(--ink-55);
+}
+.desafio-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.desafio-row-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+.desafio-row-sub {
+  font-size: 13.5px;
+}
+.desafio-row--done .desafio-row-sub {
+  color: var(--color-accent-2-800);
+}
+.desafio-row--next .desafio-row-sub {
+  font-weight: 600;
+  color: var(--color-accent-700);
+}
+.desafio-row--open .desafio-row-sub,
+.desafio-row--soon .desafio-row-sub,
+.desafio-row--soon .desafio-row-title {
+  color: var(--ink-70);
+}
+.desafio-row--next .desafio-chevron {
+  color: var(--color-accent-700);
+}
+.desafio-row--open .desafio-chevron {
+  opacity: 0.5;
+}
+
+/* — day — */
+.desafio-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.desafio-muted-14 {
+  font-size: 14px;
+  color: var(--ink-70);
+}
+.desafio .desafio-day-h1 {
+  font-size: 38px;
+  line-height: 1.08;
+  margin: 10px 0 0;
+}
+.desafio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.desafio .desafio-intro-text {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.desafio-video {
+  width: 100%;
+  overflow: hidden;
+}
+.desafio-video iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.desafio-video--plain {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.desafio-video--med {
+  margin: 0 auto;
+  border-radius: 24px;
+  background: var(--color-neutral-300);
+}
+
+.desafio-med {
+  margin-top: 36px;
+  background: var(--color-surface);
+  border-radius: 36px;
+  padding: 14px 14px 22px;
+}
+.desafio .desafio-med-h2 {
+  font-size: 24px;
+  line-height: 1.15;
+  margin: 8px 0 0;
+}
+.desafio-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.desafio .desafio-reflection-text {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.35;
+  color: var(--color-accent-2-800);
+  white-space: pre-line;
+}
+
+.desafio .desafio-mark {
+  min-height: 64px;
+  font-size: 18px;
+  font-weight: 700;
+  width: 100%;
+}
+.desafio-done {
+  background: var(--color-accent-2-100);
+  border-radius: 44px;
+  padding: 26px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.desafio .desafio-done-h2 {
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 14px 0 0;
+}
+.desafio .desafio-done-text {
+  margin: 6px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+}
+.desafio .desafio-cta-48 {
+  margin-top: 16px;
+  min-height: 48px;
+}
+.desafio-unmark {
+  margin-top: 12px;
+  margin-left: -8px;
+  padding: 10px 8px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-accent-2-800);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.desafio-daynav {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+.desafio .desafio-daynav-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+}
+.desafio-daynav-soon {
+  min-height: 52px;
+  border-radius: 999px;
+  border: 2px dashed var(--color-neutral-300);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  text-align: center;
+  color: var(--ink-70);
+}
+
+/* — celebration — */
+.desafio-cel {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+}
+.desafio-cel-check {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-accent-2);
+  color: var(--color-bg);
+  display: grid;
+  place-items: center;
+}
+.desafio-cel--animate .desafio-cel-check {
+  animation: desafioPop 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.desafio-cel-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--color-accent-2);
+  opacity: 0;
+  animation: desafioRipple 1.8s ease-out both;
+}
+.desafio-cel-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -4px;
+  margin-top: -4px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: desafioFly 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* — cierre — */
+.desafio .desafio-closing-h1 {
+  font-size: 42px;
+  line-height: 1.05;
+  margin: 12px 0 0;
+}
+.desafio .desafio-closing-text {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 18px 0 0;
+  max-width: 34ch;
+  color: var(--ink-80);
+}
+.desafio-patch {
+  margin-top: 40px;
+  background: var(--color-accent-2-100);
+  border-radius: 44px;
+  padding: 28px 24px;
+}
+.desafio .desafio-patch-h2 {
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 14px 0 0;
+}
+.desafio .desafio-patch-text {
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* — sticky WhatsApp bar — */
+.desafio-wa {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  padding: 14px 22px 18px;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-bg) 0%, transparent),
+    var(--color-bg) 40%
+  );
+}
+.desafio-wa-inner {
+  max-width: 516px;
+  margin: 0 auto;
+}
+.desafio .desafio-wa-btn {
+  min-height: 50px;
+  display: flex;
+  gap: 10px;
+  box-shadow: var(--shadow-md);
+  background: var(--color-bg);
+}
+
+@keyframes desafioRipple {
+  0% { transform: scale(0.5); opacity: 0.9; }
+  100% { transform: scale(1.7); opacity: 0; }
+}
+@keyframes desafioPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes desafioFly {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desafio * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+  }
+}

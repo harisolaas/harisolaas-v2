@@ -1,20 +1,39 @@
 import type { Metadata } from "next";
+import { Caprasimo, Figtree } from "next/font/google";
 import { getDictionary } from "@/i18n/getDictionary";
-import type { Locale } from "@/i18n/config";
 import { loadDesafio } from "@/lib/desafio-server";
+import DesafioApp from "@/components/desafio/DesafioApp";
+
+// The design's type (Organic design system), loaded for this page only.
+const caprasimo = Caprasimo({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-desafio-heading",
+  display: "swap",
+});
+
+const figtree = Figtree({
+  weight: ["400", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-desafio-body",
+  display: "swap",
+});
+
+/**
+ * The desafío is Spanish-only: its practices, day content and event copy
+ * are all in Spanish. `/en/desafio` redirects here (next.config.ts), so the
+ * page always renders — and declares itself — as `/es/desafio`.
+ */
+const LOCALE = "es";
 
 // Content comes from the DB and a day appears the moment it's published, so
 // this page is rendered per request. Unpublished days reach the page as
 // `{ dia, publicado: false }` only — `buildDesafioDays` strips their content.
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale } = await params;
-  const dict = await getDictionary(locale as Locale);
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = LOCALE;
+  const dict = await getDictionary(locale);
   const { meta } = dict.desafio;
 
   return {
@@ -24,7 +43,8 @@ export async function generateMetadata({
     // layout and points search engines at the homepage.
     alternates: {
       canonical: `/${locale}/desafio`,
-      languages: { es: "/es/desafio", en: "/en/desafio" },
+      // Only one language: override the layout's es/en home alternates.
+      languages: { es: "/es/desafio" },
     },
     // A child openGraph REPLACES the layout's, so it carries the full block.
     // The personal-site card is a stand-in until the desafío has its own.
@@ -33,7 +53,7 @@ export async function generateMetadata({
       description: meta.ogDescription,
       url: `/${locale}/desafio`,
       siteName: "Harald Solaas",
-      locale: locale === "es" ? "es_AR" : "en_US",
+      locale: "es_AR",
       type: "website",
       images: [
         { url: "/og-image.jpg", width: 1200, height: 630, alt: meta.title },
@@ -49,29 +69,12 @@ export async function generateMetadata({
 }
 
 export default async function DesafioPage() {
-  // PLACEHOLDER: the design-driven UI (home / día / cierre, localStorage
-  // progress) replaces this. `loadDesafio()` never throws.
-  const { config, dias } = await loadDesafio();
+  const [data, dict] = await Promise.all([loadDesafio(), getDictionary(LOCALE)]);
   return (
-    <main className="mx-auto max-w-[560px] px-[22px] py-16">
-      <h1 className="font-serif text-4xl">{config.nombre}</h1>
-      <p className="mt-4">{config.bienvenida}</p>
-      <ol className="mt-8 space-y-1">
-        {dias.map((d) => (
-          <li key={d.dia}>
-            Día {d.dia}
-            {d.publicado ? ` · ${d.titulo}` : ""}
-          </li>
-        ))}
-      </ol>
-      <a
-        className="mt-8 inline-block underline"
-        href={config.whatsapp}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        WhatsApp
-      </a>
-    </main>
+    <DesafioApp
+      data={data}
+      dict={dict.desafio}
+      fontClassName={`${caprasimo.variable} ${figtree.variable}`}
+    />
   );
 }
