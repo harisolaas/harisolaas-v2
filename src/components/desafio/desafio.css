@@ -92,11 +92,11 @@ body:has(.desafio) {
 .desafio p {
   margin: 0 0 var(--space-3);
 }
-.desafio a {
-  color: var(--color-accent-700);
-}
-.desafio a:hover {
-  color: var(--color-accent-800);
+/* Plain links only (DS: `a { color: accent }`). Excluding `.btn` keeps the
+   WhatsApp pill's text color on hover, as in the design. */
+.desafio a:not(.btn) {
+  color: var(--color-accent);
+  text-underline-offset: 3px;
 }
 .desafio :focus {
   outline: none;
@@ -228,7 +228,9 @@ body:has(.desafio) {
   color: var(--ink-70);
 }
 
-.desafio-back {
+/* `.desafio` prefix: must beat `.desafio .btn-ghost`'s padding-inline so the
+   design's padding-left: 10px applies. */
+.desafio .desafio-back {
   display: inline-flex;
   align-items: center;
   gap: 6px;
