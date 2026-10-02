@@ -29,6 +29,22 @@ Skip the review cycle only if the requester explicitly says so ("don't review" /
 
 ---
 
+## WORKFLOW FOR DESIGN COLLABORATORS
+
+If you're working with someone other than the repo owner (Hari) — e.g. a design collaborator iterating on the landing — these rules apply on top of everything above:
+
+1. **Never commit to `main`.** It's blocked by branch protection anyway, but don't even try. Start every piece of work on a fresh branch named `design/<short-description>` (e.g. `design/hero-colors`), created from the latest `main` (`git fetch origin && git checkout -b design/... origin/main`).
+2. **Scope: design and copy iteration only.** Safe to touch: `src/components/`, `src/dictionaries/`, `src/app/globals.css` and style files, `public/` assets, copy-level values in `src/data/`. **Off-limits:** `src/app/api/`, `src/db/`, `src/lib/` (payments, email, redis), `scripts/`, `.github/`, `package.json` dependencies, env/config files. If a design change seems to require touching an off-limits file, stop, leave that part undone, and flag it clearly in the PR description for Hari instead.
+3. **Open a PR early, as a draft.** As soon as there's a coherent visual iteration worth showing, push the branch and open a **draft** PR. Vercel builds a preview URL on every push — use it to see the design live on a real deployment and to share it. Mark "Ready for review" when the iteration feels done.
+4. **Only Hari merges.** A green CI check is not approval. Never merge, never force-push, never try to bypass protection — hand off the PR and wait for his review.
+5. **Follow the site's conventions:** gender-agnostic Argentine-voseo Spanish copy, keep `es.ts`/`en.ts` dictionaries in sync, warm-earthy design language per this file.
+
+When to open a PR vs. keep iterating locally: if the change is visible and you'd want feedback on it, open the draft PR — small, frequent PRs beat one giant one. Keep iterating on the same branch/PR until that idea is complete; start a new `design/...` branch for the next idea.
+
+Onboarding doc for the collaborator (human-facing, in Spanish): [`docs/ops/design-collab.md`](docs/ops/design-collab.md).
+
+---
+
 ## COPY & LANGUAGE CONVENTIONS
 
 ### Spanish copy must be gender agnostic
