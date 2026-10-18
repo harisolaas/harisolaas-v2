@@ -753,10 +753,25 @@ export interface HackeaDict {
     body: string;
     back: string;
   };
+  /**
+   * Once the talk has started (`isHackeaSalesOpen` false): the CTAs scroll
+   * to a closed card that replaces the form.
+   */
+  closed: {
+    /** Header + hero CTA label. */
+    cta: string;
+    /** Purchase section title. */
+    sectionTitle: string;
+    cardTitle: string;
+    body: string;
+    whatsappCta: string;
+  };
   footer: { left: string };
   /** /hackea-tu-mente/success — `?state=pending` swaps heading + body. */
   successPage: {
     title: string;
+    /** `<title>` for `?state=pending`. */
+    pendingTitle: string;
     eyebrowLead: string;
     eyebrowRest: string;
     heading: string;

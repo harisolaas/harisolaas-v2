@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
 import { hackeaConfig } from "@/data/hackea";
-import { hackeaDisplay } from "@/lib/hackea-display";
+import { hackeaDisplay, isHackeaSalesOpen } from "@/lib/hackea-display";
 import HackeaLanding from "@/components/hackea/HackeaLanding";
 import { hackeaFontClassName } from "@/components/hackea/fonts";
 
@@ -12,6 +12,10 @@ import { hackeaFontClassName } from "@/components/hackea/fonts";
  */
 const LOCALE = "es";
 const PATH = `/${LOCALE}/hackea-tu-mente`;
+
+// Re-rendered at most a minute after the talk starts, so the form gives way
+// to the closed card without a deploy (the checkout 410s on its own).
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = await getDictionary(LOCALE);
@@ -51,6 +55,7 @@ export default async function HackeaPage() {
       priceLabel={hackeaConfig.ticketPriceLabel}
       locale={LOCALE}
       fontClassName={hackeaFontClassName}
+      salesOpen={isHackeaSalesOpen()}
     />
   );
 }

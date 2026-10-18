@@ -8,10 +8,15 @@ import { buttonClass } from "@/components/hackea/ui";
 // Spanish-only, like the landing (`/en/...` redirects here).
 const LOCALE = "es";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const dict = await getDictionary(LOCALE);
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ state?: string | string[] }>;
+}): Promise<Metadata> {
+  const [dict, { state }] = await Promise.all([getDictionary(LOCALE), searchParams]);
+  const copy = dict.hackea.successPage;
   return {
-    title: dict.hackea.successPage.title,
+    title: state === "pending" ? copy.pendingTitle : copy.title,
     robots: { index: false, follow: false },
   };
 }

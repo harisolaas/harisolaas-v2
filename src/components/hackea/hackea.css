@@ -330,6 +330,13 @@
   font-family: var(--font-text);
 }
 
+/* iOS overscroll / rubber-banding shows the body behind the page: keep it
+   void instead of the site's cream. Scoped by :has(), so other pages keep
+   their background. */
+body:has(.hackea) {
+  background: #07081a;
+}
+
 /* ---------- layout (Landing.dc.html) ---------- */
 
 .hackea .htm-header {
@@ -342,6 +349,9 @@
   border-bottom: 1px solid rgba(173, 92, 255, 0.22);
 }
 .hackea .htm-header__inner {
+  /* The prototype is content-box (1200 + 2×24 = 1248 wide); the site's
+     preflight is border-box, so opt back in to match the design. */
+  box-sizing: content-box;
   max-width: 1200px;
   margin: 0 auto;
   padding: 14px 24px;
@@ -373,6 +383,7 @@
 }
 .hackea .htm-hero__grid {
   position: relative;
+  box-sizing: content-box; /* see .htm-header__inner */
   max-width: 1200px;
   margin: 0 auto;
   padding: 64px 24px 80px;

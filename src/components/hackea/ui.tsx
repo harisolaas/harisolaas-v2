@@ -10,6 +10,9 @@ import type { ReactNode } from "react";
  */
 export const HACKEA_FORM_ANCHOR = "entrada";
 
+/** Same number the Sinergia landings use for questions. */
+export const HACKEA_WHATSAPP_HREF = "https://wa.me/5491122555110";
+
 export function GlitchText({
   as: Tag = "div",
   fill = "chrome",

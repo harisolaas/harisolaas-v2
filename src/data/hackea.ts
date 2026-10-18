@@ -1,6 +1,18 @@
 // Hackeá tu mente — charla presencial de Hari, entrada paga (MercadoPago).
 // Single source of truth for the event: the landing renders from here and
 // the checkout charges from here, so the two cannot drift.
+
+// Price in ARS cents. $21.300 ARS.
+const TICKET_PRICE_CENTS = 2_130_000;
+
+/** "$21.300" — es-AR thousands separator, no decimals (whole pesos). */
+export function formatArsLabel(cents: number): string {
+  // Grouped by hand rather than Intl: es locales skip the separator on
+  // 4-digit numbers, and the output must not depend on the runtime's ICU.
+  const pesos = String(Math.round(cents / 100));
+  return `$${pesos.replace(/\B(?=(\d{3})+(?!\d))/g, ".")}`;
+}
+
 export const hackeaConfig = {
   // Stable event id used by the API + webhook + admin. Encodes the date so
   // a future edition gets a new row without colliding with this one.
@@ -20,9 +32,9 @@ export const hackeaConfig = {
   // room size is confirmed and recordParticipation enforces it.
   capacity: null as number | null,
 
-  // Price in ARS cents. $21.300 ARS.
-  ticketPriceCents: 2_130_000,
-  ticketPriceLabel: "$21.300",
+  ticketPriceCents: TICKET_PRICE_CENTS,
+  // Derived from the cents so the label can't drift from what MP charges.
+  ticketPriceLabel: formatArsLabel(TICKET_PRICE_CENTS),
   currency: "ARS",
 
   neighborhood: "Palermo, Buenos Aires",

@@ -5,7 +5,14 @@ import Image from "next/image";
 import type { HackeaDict } from "@/dictionaries/types";
 import type { HackeaDisplay } from "@/lib/hackea-display";
 import { validateHackeaLead, type HackeaField } from "@/lib/hackea-validation";
-import { Badge, Eyebrow, GlitchText, HACKEA_FORM_ANCHOR, buttonClass } from "./ui";
+import {
+  Badge,
+  Eyebrow,
+  GlitchText,
+  HACKEA_FORM_ANCHOR,
+  HACKEA_WHATSAPP_HREF,
+  buttonClass,
+} from "./ui";
 import "./hackea.css";
 
 /** Sticky header height the scroll leaves room for (design: −60px). */
@@ -14,6 +21,14 @@ const SCROLL_OFFSET = 60;
 const REDIRECT_DELAY_MS = 1400;
 
 const FIELDS: HackeaField[] = ["name", "phone", "email"];
+
+const inputId = (f: HackeaField) => `hackea-${f}`;
+
+/** Moves focus to the first field (in form order) that failed validation. */
+function focusFirstInvalid(errors: HackeaField[]) {
+  const first = FIELDS.find((f) => errors.includes(f));
+  if (first) document.getElementById(inputId(first))?.focus();
+}
 
 function prefersReducedMotion() {
   return (
@@ -28,12 +43,15 @@ export default function HackeaLanding({
   priceLabel,
   locale,
   fontClassName,
+  salesOpen,
 }: {
   dict: HackeaDict;
   display: HackeaDisplay;
   priceLabel: string;
   locale: string;
   fontClassName: string;
+  /** False once the talk has started: a closed card replaces the form. */
+  salesOpen: boolean;
 }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -67,6 +85,7 @@ export default function HackeaLanding({
     setFormError(null);
     if (!result.ok) {
       setErrors(result.errors);
+      focusFirstInvalid(result.errors);
       return;
     }
     setErrors([]);
@@ -96,6 +115,9 @@ export default function HackeaLanding({
         FIELDS.includes(data.error as HackeaField)
       ) {
         setErrors([data.error as HackeaField]);
+        // Focus after the re-render that re-enables the inputs.
+        const invalid = data.error as HackeaField;
+        setTimeout(() => focusFirstInvalid([invalid]), 0);
       } else if (res.status === 409) {
         setFormError(dict.form.errors.alreadyPaid);
       } else if (res.status === 410) {
@@ -141,11 +163,17 @@ export default function HackeaLanding({
   ) => {
     const error = err(f);
     const note = error ?? props.hint;
-    const noteId = `hackea-${f}-note`;
+    const id = inputId(f);
+    const noteId = `${id}-note`;
+    // The note sits outside the <label> so it is the input's description
+    // (aria-describedby), not part of its accessible name.
     return (
-      <label className="htm-field">
-        <span className="htm-field__label">{props.label}</span>
+      <div className="htm-field">
+        <label htmlFor={id} className="htm-field__label">
+          {props.label}
+        </label>
         <input
+          id={id}
           className="htm-field__input"
           name={f}
           type={props.type}
@@ -167,7 +195,7 @@ export default function HackeaLanding({
             {note}
           </span>
         )}
-      </label>
+      </div>
     );
   };
 
@@ -191,7 +219,7 @@ export default function HackeaLanding({
             onClick={goForm}
             className={buttonClass({ size: "sm" })}
           >
-            {dict.header.cta}
+            {salesOpen ? dict.header.cta : dict.closed.cta}
           </a>
         </div>
       </header>
@@ -220,9 +248,9 @@ export default function HackeaLanding({
                   onClick={goForm}
                   className={buttonClass({ size: "lg" })}
                 >
-                  {dict.hero.cta}
+                  {salesOpen ? dict.hero.cta : dict.closed.cta}
                 </a>
-                <Badge tone="outline">{dict.hero.scarcity}</Badge>
+                {salesOpen && <Badge tone="outline">{dict.hero.scarcity}</Badge>}
               </div>
             </div>
             <div className="htm-hero__portrait">
@@ -280,7 +308,9 @@ export default function HackeaLanding({
         <section id={HACKEA_FORM_ANCHOR} className="htm-section htm-section--page">
           <div className="htm-section__grid htm-buy-grid">
             <div className="htm-buy-col">
-              <h2 className="htm-h2">{dict.purchase.title}</h2>
+              <h2 className="htm-h2">
+                {salesOpen ? dict.purchase.title : dict.closed.sectionTitle}
+              </h2>
               <dl className="htm-details">
                 {details.map(([label, value]) => (
                   <div key={label} className="htm-details__row">
@@ -289,13 +319,28 @@ export default function HackeaLanding({
                   </div>
                 ))}
               </dl>
-              <div style={{ display: "flex" }}>
-                <Badge tone="outline">{dict.purchase.scarcity}</Badge>
-              </div>
+              {salesOpen && (
+                <div style={{ display: "flex" }}>
+                  <Badge tone="outline">{dict.purchase.scarcity}</Badge>
+                </div>
+              )}
             </div>
 
             <div className="htm-card">
-              {done ? (
+              {!salesOpen ? (
+                <div className="htm-done">
+                  <GlitchText fill="violet">{dict.closed.cardTitle}</GlitchText>
+                  <p>{dict.closed.body}</p>
+                  <div>
+                    <a
+                      href={HACKEA_WHATSAPP_HREF}
+                      className={buttonClass({ variant: "secondary", size: "sm" })}
+                    >
+                      {dict.closed.whatsappCta}
+                    </a>
+                  </div>
+                </div>
+              ) : done ? (
                 <div className="htm-done" role="status">
                   <GlitchText fill="violet" animated>
                     {doneTitle}

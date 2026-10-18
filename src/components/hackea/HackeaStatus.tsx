@@ -5,8 +5,7 @@ import { hackeaFontClassName } from "./fonts";
 import { Eyebrow, GlitchText } from "./ui";
 import "./hackea.css";
 
-/** Same number the Sinergia landings use for questions. */
-export const HACKEA_WHATSAPP_HREF = "https://wa.me/5491122555110";
+export { HACKEA_WHATSAPP_HREF } from "./ui";
 
 export default function HackeaStatus({
   eyebrowLead,
