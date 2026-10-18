@@ -27,6 +27,11 @@ export const hackeaConfig = {
   // ISO with -03:00 (Argentina) so the events.date column stores the
   // intended local moment regardless of where the server runs.
   startIso: "2026-10-29T19:00:00-03:00",
+  // Estimate (~2h charla), used only for the JSON-LD `endDate` — nothing
+  // user-facing or transactional reads it.
+  endIso: "2026-10-29T21:00:00-03:00",
+  // When ticket sales opened — the JSON-LD offer's `validFrom`.
+  salesOpenIso: "2026-10-18T00:00:00-03:00",
 
   // null = sin tope. "Cupos limitados" in the copy; set a number once the
   // room size is confirmed and recordParticipation enforces it.
@@ -48,3 +53,9 @@ export const hackeaConfig = {
 export const HACKEA_PAYMENT_TYPE = "hackea-ticket";
 // participations.id prefix: HTM-XXXXXXXX.
 export const HACKEA_PARTICIPATION_PREFIX = "HTM-";
+
+// Share card (OG + Twitter + JSON-LD image), relative to /public. Same rule
+// as BROTE_OG_IMAGE: bump the filename when the artwork changes, never
+// overwrite in place — Facebook, WhatsApp and X cache OG images by URL.
+// Carries date, time and barrio, never the price (it can change).
+export const HACKEA_OG_IMAGE = "hackea/og-hackea-v1.png";

@@ -540,6 +540,8 @@ In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at 
 
 `hackeaConfig`: `eventId = "hackea-tu-mente-2026-10-29"` (never change once there are sales), `eventType = "hackea"` (the admin special-cases the drawer on it), `startIso` (with `-03:00`), `capacity` (`null` = sin tope), `ticketPriceCents = 2_130_000` ($21.300) + `ticketPriceLabel` derived via `formatArsLabel`, venue. `HACKEA_PAYMENT_TYPE = "hackea-ticket"` (MP `metadata.type` — all MP flows share one token, so the Hackeá and BROTE webhooks skip payments without their own type; Sinergia has no type guard and just logs "rsvp not found" with a 200), `HACKEA_PARTICIPATION_PREFIX = "HTM-"`. Date/time/venue strings come from `hackeaDisplay()` (`src/lib/hackea-display.ts`); never hardcode them in copy. Dict key `hackea` in `es.ts`/`en.ts`.
 
+**Share card + structured data**: `HACKEA_OG_IMAGE` (`hackea/og-hackea-v1.png`, 1200×630, date/time/barrio but no price) feeds the landing's OG, Twitter and JSON-LD image — same rule as BROTE's: bump the filename when the artwork changes, never overwrite. The landing emits an `Event` JSON-LD from `buildHackeaEventJsonLd()` (`src/lib/hackea-jsonld.ts`); its offer reads `isHackeaSalesOpen` (InStock → SoldOut).
+
 **Sales close at `startIso`**: `isHackeaSalesOpen(now)` swaps the form for a closed card on the landing (`revalidate = 60`) and makes the checkout answer 410.
 
 ### Flow (Sinergia-style: persist the lead first)

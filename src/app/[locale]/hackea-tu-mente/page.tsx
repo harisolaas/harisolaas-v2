@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
-import { hackeaConfig } from "@/data/hackea";
+import { HACKEA_OG_IMAGE, hackeaConfig } from "@/data/hackea";
 import { hackeaDisplay, isHackeaSalesOpen } from "@/lib/hackea-display";
+import { buildHackeaEventJsonLd } from "@/lib/hackea-jsonld";
 import HackeaLanding from "@/components/hackea/HackeaLanding";
 import { hackeaFontClassName } from "@/components/hackea/fonts";
 
@@ -27,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     // Without this the page inherits `canonical: /es` from the locale layout.
     alternates: { canonical: PATH, languages: { es: PATH } },
     // A child openGraph REPLACES the layout's, so it carries the full block.
-    // The personal-site card stands in until the charla has its own.
+    // Relative image: `metadataBase` owns the host.
     openGraph: {
       title: meta.title,
       description: meta.ogDescription,
@@ -35,27 +36,47 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: "Harald Solaas",
       locale: "es_AR",
       type: "website",
-      images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: meta.title }],
+      images: [
+        { url: `/${HACKEA_OG_IMAGE}`, width: 1200, height: 630, alt: meta.title },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: meta.title,
       description: meta.ogDescription,
-      images: ["/og-image.jpg"],
+      images: [`/${HACKEA_OG_IMAGE}`],
     },
   };
 }
 
 export default async function HackeaPage() {
   const dict = await getDictionary(LOCALE);
+  // One clock read, so the markup and the form can't disagree on open/closed.
+  const now = new Date();
+  const jsonLd = buildHackeaEventJsonLd(
+    { name: dict.hackea.meta.title, description: dict.hackea.meta.description },
+    now,
+  );
   return (
-    <HackeaLanding
-      dict={dict.hackea}
-      display={hackeaDisplay()}
-      priceLabel={hackeaConfig.ticketPriceLabel}
-      locale={LOCALE}
-      fontClassName={hackeaFontClassName}
-      salesOpen={isHackeaSalesOpen()}
-    />
+    <>
+      {/* Event structured data — eligibility for Google's event rich results
+          (date, venue and price in the result). The locale layout emits a
+          Person node; this adds the event. */}
+      <script
+        type="application/ld+json"
+        // `<` escaped so copy containing "</script>" can't close the tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <HackeaLanding
+        dict={dict.hackea}
+        display={hackeaDisplay()}
+        priceLabel={hackeaConfig.ticketPriceLabel}
+        locale={LOCALE}
+        fontClassName={hackeaFontClassName}
+        salesOpen={isHackeaSalesOpen(now)}
+      />
+    </>
   );
 }
