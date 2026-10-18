@@ -61,6 +61,8 @@ describe("the Hackeá page", () => {
     expect(node.description).toBeTruthy();
     expect(node.location?.["@type"]).toBe("Place");
     expect(node.offers?.price).toBeGreaterThan(0);
+    // `<` is escaped so copy can never close the <script> tag early.
+    expect(raw).not.toContain("<");
   });
 
   it("shares its own card, not the personal-site one", async () => {

@@ -28,6 +28,14 @@ describe("the Hackeá Event node", () => {
     expect(jsonLd.startDate).toMatch(/-03:00$/);
   });
 
+  it("ends at the config's endIso, after it starts", () => {
+    expect(jsonLd.endDate).toBe(hackeaConfig.endIso);
+    expect(jsonLd.endDate).toMatch(/-03:00$/);
+    expect(Date.parse(jsonLd.endDate)).toBeGreaterThan(
+      Date.parse(jsonLd.startDate),
+    );
+  });
+
   it("derives the venue from the config's address", () => {
     expect(jsonLd.location["@type"]).toBe("Place");
     expect(jsonLd.location.address).toEqual({
@@ -64,6 +72,14 @@ describe("the offer", () => {
     expect(jsonLd.offers.price).toBe(21300);
     expect(jsonLd.offers.priceCurrency).toBe("ARS");
     expect(jsonLd.offers.url).toBe(jsonLd.url);
+  });
+
+  it("declares validFrom as the sales-open date, before the event", () => {
+    expect(jsonLd.offers.validFrom).toBe(hackeaConfig.salesOpenIso);
+    expect(jsonLd.offers.validFrom).toMatch(/-03:00$/);
+    expect(Date.parse(jsonLd.offers.validFrom)).toBeLessThan(
+      Date.parse(jsonLd.startDate),
+    );
   });
 
   it("is InStock while sales are open", () => {

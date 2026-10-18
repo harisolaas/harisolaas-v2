@@ -27,6 +27,11 @@ export const hackeaConfig = {
   // ISO with -03:00 (Argentina) so the events.date column stores the
   // intended local moment regardless of where the server runs.
   startIso: "2026-10-29T19:00:00-03:00",
+  // Estimate (~2h charla), used only for the JSON-LD `endDate` — nothing
+  // user-facing or transactional reads it.
+  endIso: "2026-10-29T21:00:00-03:00",
+  // When ticket sales opened — the JSON-LD offer's `validFrom`.
+  salesOpenIso: "2026-10-18T00:00:00-03:00",
 
   // null = sin tope. "Cupos limitados" in the copy; set a number once the
   // room size is confirmed and recordParticipation enforces it.

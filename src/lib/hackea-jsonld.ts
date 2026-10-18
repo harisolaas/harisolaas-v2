@@ -9,6 +9,7 @@ export interface HackeaEventJsonLd {
   name: string;
   description: string;
   startDate: string;
+  endDate: string;
   eventStatus: string;
   eventAttendanceMode: string;
   inLanguage: "es";
@@ -33,6 +34,7 @@ export interface HackeaEventJsonLd {
     priceCurrency: string;
     availability: string;
     url: string;
+    validFrom: string;
   };
 }
 
@@ -69,6 +71,7 @@ export function buildHackeaEventJsonLd(
     name: copy.name,
     description: copy.description,
     startDate: hackeaConfig.startIso,
+    endDate: hackeaConfig.endIso,
     eventStatus: "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     inLanguage: "es",
@@ -97,6 +100,8 @@ export function buildHackeaEventJsonLd(
         ? "https://schema.org/InStock"
         : "https://schema.org/SoldOut",
       url,
+      // Google flags an Offer without `validFrom` (same as BROTE's tiers).
+      validFrom: hackeaConfig.salesOpenIso,
     },
   };
 }

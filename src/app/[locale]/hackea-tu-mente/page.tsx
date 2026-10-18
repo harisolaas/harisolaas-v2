@@ -64,7 +64,10 @@ export default async function HackeaPage() {
           Person node; this adds the event. */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        // `<` escaped so copy containing "</script>" can't close the tag.
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
       />
       <HackeaLanding
         dict={dict.hackea}
