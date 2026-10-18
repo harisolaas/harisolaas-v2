@@ -69,7 +69,9 @@ export async function GET(req: Request) {
       .at(-1) ?? null;
 
     return {
+      id: p.id,
       email: p.email,
+      phone: p.phone,
       name: p.name,
       firstSeen: p.firstSeen.toISOString(),
       participations: summary,

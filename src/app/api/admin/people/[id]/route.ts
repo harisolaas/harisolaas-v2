@@ -86,7 +86,7 @@ export async function PATCH(
     notes?: string | null;
     communicationOptIns?: string[];
     optedOutAt?: string | null;
-    email?: string;
+    email?: string | null;
   };
 
   const update: Record<string, unknown> = { updatedAt: sql`NOW()` };
@@ -102,7 +102,9 @@ export async function PATCH(
   if (body.optedOutAt !== undefined) {
     update.optedOutAt = body.optedOutAt ? new Date(body.optedOutAt) : null;
   }
-  if (body.email !== undefined) update.email = body.email;
+  // Blank → NULL: email is unique, so two people saved with "" would
+  // collide, and phone-only people legitimately have none.
+  if (body.email !== undefined) update.email = body.email?.trim() || null;
 
   const res = await db
     .update(schema.people)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import WhatsAppLink from "./WhatsAppLink";
 
 interface PersonDetail {
   person: {
@@ -181,8 +182,17 @@ export default function PersonDrawer({
                 Contacto
               </p>
               <dl className="space-y-2 text-sm">
-                <Row label="Email" value={data.person.email ?? "—"} mono />
-                <Row label="Teléfono" value={data.person.phone ?? "—"} />
+                <Row label="Email" value={data.person.email ?? "sin email"} mono />
+                <Row
+                  label="WhatsApp"
+                  value={
+                    data.person.phone ? (
+                      <WhatsAppLink phone={data.person.phone} />
+                    ) : (
+                      "—"
+                    )
+                  }
+                />
                 <Row label="Instagram" value={data.person.instagram ?? "—"} />
                 <Row label="Idioma" value={data.person.language} />
                 <Row
@@ -381,7 +391,7 @@ function Row({
   mono,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   mono?: boolean;
 }) {
   return (

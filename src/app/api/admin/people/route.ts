@@ -5,12 +5,14 @@ import {
   assertFullAccess,
   requireAdminSession,
 } from "@/lib/admin-api-auth";
+import { phoneSearchClause } from "@/lib/admin-phone-search";
 
 export const dynamic = "force-dynamic";
 
 interface PersonaRow {
   id: number;
   email: string | null;
+  phone: string | null;
   name: string;
   firstSeen: string;
   firstTouch: Record<string, unknown> | null;
@@ -28,6 +30,7 @@ interface PersonaRow {
     brote: boolean;
     plant: boolean;
     sinergiaCount: number;
+    hackea: boolean;
   };
 }
 
@@ -50,6 +53,8 @@ export async function GET(req: Request) {
   const tagFilter = url.searchParams.get("tag") ?? "";
 
   const searchPattern = search.length > 0 ? `%${search}%` : null;
+  // Phone-only people (no email) are found by their WhatsApp digits.
+  const phoneClause = phoneSearchClause(sql`p.phone`, search);
 
   // We fetch people matching the filter predicates, then join in their
   // participations in a second query. Keeps the SQL readable and avoids
@@ -57,12 +62,13 @@ export async function GET(req: Request) {
   const peopleRes = await db.execute<{
     id: number;
     email: string | null;
+    phone: string | null;
     name: string;
     first_seen: string;
     first_touch: Record<string, unknown> | null;
     tags: string[];
   }>(sql`
-    SELECT DISTINCT p.id, p.email, p.name, p.first_seen, p.first_touch, p.tags
+    SELECT DISTINCT p.id, p.email, p.phone, p.name, p.first_seen, p.first_touch, p.tags
     FROM people p
     ${
       eventFilter
@@ -72,7 +78,9 @@ export async function GET(req: Request) {
     WHERE 1 = 1
       ${
         searchPattern
-          ? sql`AND (p.name ILIKE ${searchPattern} OR p.email::text ILIKE ${searchPattern})`
+          ? sql`AND (p.name ILIKE ${searchPattern} OR p.email::text ILIKE ${searchPattern}${
+              phoneClause ? sql` OR ${phoneClause}` : sql``
+            })`
           : sql``
       }
       ${
@@ -133,6 +141,7 @@ export async function GET(req: Request) {
     const parts = partsByPerson.get(Number(p.id)) ?? [];
     const hasBrote = parts.some((r) => r.event_type === "brote");
     const hasPlant = parts.some((r) => r.event_type === "plant");
+    const hasHackea = parts.some((r) => r.event_type === "hackea");
     const sinergiaCount = parts.filter(
       (r) => r.event_type === "sinergia" || r.event_series === "sinergia",
     ).length;
@@ -140,6 +149,7 @@ export async function GET(req: Request) {
     return {
       id: Number(p.id),
       email: p.email,
+      phone: p.phone,
       name: p.name,
       firstSeen: p.first_seen,
       firstTouch: p.first_touch,
@@ -157,6 +167,7 @@ export async function GET(req: Request) {
         brote: hasBrote,
         plant: hasPlant,
         sinergiaCount,
+        hackea: hasHackea,
       },
     };
   });

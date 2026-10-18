@@ -89,6 +89,7 @@ export async function GET(
     person_id: number;
     person_name: string;
     person_email: string | null;
+    person_phone: string | null;
     event_id: string;
     event_name: string;
     event_type: string;
@@ -101,6 +102,7 @@ export async function GET(
       p.person_id,
       people.name AS person_name,
       people.email AS person_email,
+      people.phone AS person_phone,
       p.event_id,
       e.name AS event_name,
       e.type AS event_type,
@@ -146,6 +148,7 @@ export async function GET(
       personId: Number(r.person_id),
       personName: r.person_name,
       personEmail: r.person_email,
+      personPhone: r.person_phone,
       eventId: r.event_id,
       eventName: r.event_name,
       eventType: r.event_type,

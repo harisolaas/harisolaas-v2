@@ -497,11 +497,13 @@ function CommunityContent({ data }: { data: Person[] | null }) {
         <tbody>
           {data.map((p) => (
             <tr
-              key={p.email}
+              key={p.id}
               className="border-b border-sage/10 last:border-0 hover:bg-sage/5"
             >
               <td className="px-4 py-3 font-medium text-forest">{p.name}</td>
-              <td className="px-4 py-3 text-charcoal/60">{p.email}</td>
+              <td className="px-4 py-3 text-charcoal/60">
+                {p.email ?? p.phone ?? "sin email"}
+              </td>
               <td className="px-4 py-3">
                 <div className="flex flex-wrap gap-1.5">
                   {p.hasBrote && (
