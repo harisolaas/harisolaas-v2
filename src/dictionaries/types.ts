@@ -669,6 +669,117 @@ export interface DesafioDict {
   };
 }
 
+// ============================================================
+// Hackeá tu mente — charla paga (/[locale]/hackea-tu-mente)
+// ============================================================
+// Copy of the Claude Design handoff, verbatim in es. Price, date, time and
+// venue are NOT here: they come from `hackeaConfig` (src/data/hackea.ts) via
+// `hackeaDisplay()`, so the landing can't advertise what the checkout won't
+// charge. Headlines/labels are written in sentence case and uppercased by CSS.
+// Tokens (fillTokens): {nombre} first name · {phone} the WhatsApp typed.
+export interface HackeaDict {
+  meta: { title: string; description: string; ogDescription: string };
+  header: { wordmarkLead: string; wordmarkAccent: string; cta: string };
+  hero: {
+    eyebrowLead: string;
+    eyebrowRest: string;
+    titleLine1: string;
+    titleLine2: string;
+    body: string;
+    cta: string;
+    scarcity: string;
+    speakerPrefix: string;
+    speakerFirst: string;
+    speakerLast: string;
+    imageAlt: string;
+  };
+  ebook: {
+    badge: string;
+    titleLead: string;
+    titleAccent: string;
+    body: string;
+    cover: {
+      kicker: string;
+      number: string;
+      title: string;
+      subtitle: string;
+      author: string;
+    };
+  };
+  purchase: {
+    title: string;
+    labels: {
+      date: string;
+      time: string;
+      place: string;
+      with: string;
+      includes: string;
+    };
+    withValue: string;
+    includesValue: string;
+    scarcity: string;
+    cardTitle: string;
+  };
+  form: {
+    nameLabel: string;
+    namePlaceholder: string;
+    phoneLabel: string;
+    phonePlaceholder: string;
+    phoneHint: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    submit: string;
+    submitting: string;
+    errors: {
+      name: string;
+      phone: string;
+      email: string;
+      /** 409 — this WhatsApp/email already has a paid entrada. */
+      alreadyPaid: string;
+      /** 410 — the talk already started. */
+      closed: string;
+      /** 429 */
+      rateLimited: string;
+      generic: string;
+    };
+  };
+  /** Success state inside the card, shown briefly before the MP redirect. */
+  done: {
+    /** "Listo, {nombre}" */
+    title: string;
+    /** When the name has no usable first word. */
+    titleNoName: string;
+    /** Contains {phone}, rendered bold. */
+    body: string;
+    back: string;
+  };
+  footer: { left: string };
+  /** /hackea-tu-mente/success — `?state=pending` swaps heading + body. */
+  successPage: {
+    title: string;
+    eyebrowLead: string;
+    eyebrowRest: string;
+    heading: string;
+    body: string;
+    pendingEyebrowLead: string;
+    pendingEyebrowRest: string;
+    pendingHeading: string;
+    pendingBody: string;
+    emailNote: string;
+    whatsappCta: string;
+    backLink: string;
+  };
+  failurePage: {
+    title: string;
+    eyebrowLead: string;
+    eyebrowRest: string;
+    heading: string;
+    body: string;
+    retryCta: string;
+    whatsappCta: string;
+  };
+}
+
 export interface Dictionary {
   metadata: {
     title: string;
@@ -735,4 +846,5 @@ export interface Dictionary {
   sinergiaParrafo: SinergiaParrafoDict;
   mentoria: MentoriaDict;
   desafio: DesafioDict;
+  hackea: HackeaDict;
 }

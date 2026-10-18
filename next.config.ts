@@ -27,6 +27,13 @@ const nextConfig: NextConfig = {
         destination: "/es/desafio",
         permanent: false,
       },
+      // Hackeá tu mente is Spanish-only too. `:path*` also covers the
+      // post-MercadoPago /success and /failure pages.
+      {
+        source: "/en/hackea-tu-mente/:path*",
+        destination: "/es/hackea-tu-mente/:path*",
+        permanent: false,
+      },
     ];
   },
   async headers() {

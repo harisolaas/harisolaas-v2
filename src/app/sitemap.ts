@@ -60,5 +60,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
       priority: 0.8,
     },
+    // Hackeá tu mente — paid talk. Spanish-only, like the desafío.
+    {
+      url: `${BASE}/es/hackea-tu-mente`,
+      lastModified,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
   ];
 }
