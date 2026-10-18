@@ -538,7 +538,7 @@ In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at 
 
 ### Config (`src/data/hackea.ts`) — single source of truth
 
-`hackeaConfig`: `eventId = "hackea-tu-mente-2026-10-29"` (never change once there are sales), `eventType = "hackea"` (the admin special-cases the drawer on it), `startIso` (with `-03:00`), `capacity` (`null` = sin tope), `ticketPriceCents = 2_130_000` ($21.300) + `ticketPriceLabel` derived via `formatArsLabel`, venue. `HACKEA_PAYMENT_TYPE = "hackea-ticket"` (MP `metadata.type` — every MP webhook ignores payments that aren't its own), `HACKEA_PARTICIPATION_PREFIX = "HTM-"`. Date/time/venue strings come from `hackeaDisplay()` (`src/lib/hackea-display.ts`); never hardcode them in copy. Dict key `hackea` in `es.ts`/`en.ts`.
+`hackeaConfig`: `eventId = "hackea-tu-mente-2026-10-29"` (never change once there are sales), `eventType = "hackea"` (the admin special-cases the drawer on it), `startIso` (with `-03:00`), `capacity` (`null` = sin tope), `ticketPriceCents = 2_130_000` ($21.300) + `ticketPriceLabel` derived via `formatArsLabel`, venue. `HACKEA_PAYMENT_TYPE = "hackea-ticket"` (MP `metadata.type` — all MP flows share one token, so the Hackeá and BROTE webhooks skip payments without their own type; Sinergia has no type guard and just logs "rsvp not found" with a 200), `HACKEA_PARTICIPATION_PREFIX = "HTM-"`. Date/time/venue strings come from `hackeaDisplay()` (`src/lib/hackea-display.ts`); never hardcode them in copy. Dict key `hackea` in `es.ts`/`en.ts`.
 
 **Sales close at `startIso`**: `isHackeaSalesOpen(now)` swaps the form for a closed card on the landing (`revalidate = 60`) and makes the checkout answer 410.
 
@@ -588,5 +588,6 @@ Shares `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `RESEND_*`, `META_*` with the oth
 
 - Register `https://www.harisolaas.com/api/hackea/webhook` in the MercadoPago dashboard (same signing secret as BROTE/Sinergia).
 - Set `HACKEA_NOTIFY_EMAILS` in Vercel.
+- `NEXT_PUBLIC_BASE_URL` must be the www host (see BROTE's env table): the Preference's `notification_url` and back URLs are built from it.
 - **No schema migration** — everything lives in existing columns + `participations.metadata`.
 - Set capacity once the room is confirmed: change `hackeaConfig.capacity` **and** `UPDATE events SET capacity = N WHERE id = 'hackea-tu-mente-2026-10-29'` on prod — `ensureHackeaEvent` never updates an existing row, and the webhook reads capacity from the row.
