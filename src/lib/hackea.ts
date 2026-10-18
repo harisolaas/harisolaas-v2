@@ -2,6 +2,7 @@ import { customAlphabet } from "nanoid";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  canonicalPhoneDigits,
   findPersonIdByPhone,
   lockPhoneNumber,
   phoneMatchCandidates,
@@ -9,7 +10,6 @@ import {
   type AttributionTouch,
   type ParticipationStatus,
 } from "@/lib/community";
-import { phoneToWaMe } from "@/lib/plant-types";
 import { hackeaConfig, HACKEA_PARTICIPATION_PREFIX } from "@/data/hackea";
 
 // Hackeá tu mente — server-side lead + payment lifecycle.
@@ -22,11 +22,15 @@ import { hackeaConfig, HACKEA_PARTICIPATION_PREFIX } from "@/data/hackea";
 const idSuffix = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
 
 /**
- * Canonical storage form for phones in this flow: `+` + wa.me digits.
- * "11 1234-5678" → "+5491112345678".
+ * Canonical storage form for phones in this flow: `+` + canonical digits.
+ * AR spellings with the area code — local ("11 1234-5678", "0351 …"),
+ * with the 54/9/0054 prefixes, and for area 11 the mobile 15 ("011 15 …",
+ * "11 15 …", "+54 11 15 …") — → "+5491112345678". Another country's number
+ * keeps its digits ("+34 612…" → "+34612…"); anything else (e.g. 8 digits
+ * without area) is stored as `+` + wa.me digits, unchanged.
  */
 export function normalizeArPhone(raw: string): string {
-  return `+${phoneToWaMe(raw)}`;
+  return `+${canonicalPhoneDigits(raw)}`;
 }
 
 /** Idempotently create the `events` row from hackeaConfig. */
