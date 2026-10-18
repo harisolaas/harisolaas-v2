@@ -35,6 +35,17 @@ export function normalizeArPhone(raw: string): string {
   return parseHackeaWhatsApp(raw) ?? `+${canonicalPhoneDigits(raw)}`;
 }
 
+/**
+ * Digits a lead typed as `raw` may have been stored under before
+ * `normalizeArPhone` moved to libphonenumber (`+` + canonicalPhoneDigits).
+ * Same as the new form for the common spellings; differs only for the ones
+ * the old helper mangled. Empty when there are no digits to match.
+ */
+export function legacyPhoneDigits(raw: string): string[] {
+  const digits = canonicalPhoneDigits(raw);
+  return digits ? [digits] : [];
+}
+
 /** Idempotently create the `events` row from hackeaConfig. */
 export async function ensureHackeaEvent(): Promise<void> {
   await db.execute(sql`
@@ -120,14 +131,23 @@ async function findEventLead(
   eventId: string,
   phone: string,
   email: string | null,
+  /** As typed — also matched in its pre-libphonenumber stored form. */
+  rawPhone: string = phone,
 ): Promise<{
   id: string;
   status: ParticipationStatus;
   paid: boolean;
   personId: number;
 } | null> {
+  // Before libphonenumber, some spellings were stored mangled
+  // (`0351 15 612-3456` → `+0351156123456`). Matching the typed number's
+  // old form too keeps those leads deduped — a paid one still answers 409.
+  const candidates = new Set([
+    ...phoneMatchCandidates(phone),
+    ...legacyPhoneDigits(rawPhone),
+  ]);
   const digits = sql.join(
-    phoneMatchCandidates(phone).map((c) => sql`${c}`),
+    [...candidates].map((c) => sql`${c}`),
     sql`, `,
   );
   const phoneHit = sql`(
@@ -225,7 +245,7 @@ export async function createHackeaLead(
   return db.transaction(async (tx) => {
     await lockPhoneNumber(tx, phone);
 
-    const existing = await findEventLead(tx, eventId, phone, email);
+    const existing = await findEventLead(tx, eventId, phone, email, params.phone);
     if (existing) {
       let { status, paid } = existing;
       if (!paid) {
