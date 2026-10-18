@@ -143,6 +143,10 @@ describe("normalizeArPhone", () => {
     ["+5491112345678", "+5491112345678"],
     ["0351 412-3456", "+5493514123456"],
     ["351 412 3456", "+5493514123456"],
+    ["11 15 1234-5678", "+5491112345678"],
+    ["+54 11 15 1234-5678", "+5491112345678"],
+    ["0054 9 11 1234-5678", "+5491112345678"],
+    ["0054 11 1234-5678", "+5491112345678"],
   ])("AR %s → %s", (raw, expected) => {
     expect(normalizeArPhone(raw)).toBe(expected);
   });
@@ -172,6 +176,10 @@ describe("normalizeArPhone", () => {
     "+54 11 1234-5678",
     "0351 412-3456",
     "+34 612 34 56 78",
+    "11 15 1234-5678",
+    "+54 11 15 1234-5678",
+    "0054 9 11 1234-5678",
+    "0054 11 1234-5678",
   ])("round-trips through phoneMatchCandidates for %s", (raw) => {
     const stored = normalizeArPhone(raw);
     expect(phoneMatchCandidates(raw)).toContain(stored.slice(1));

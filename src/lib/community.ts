@@ -733,7 +733,8 @@ type QueryRunner = Pick<typeof db, "execute">;
  * internationalized digits, the raw digits and — for an AR number — every
  * spelling of its 10-digit national form covers both directions:
  * `549N`, `54N` (no mobile 9), `N`, `0N` (trunk prefix) and, for Buenos
- * Aires, `01115…` (the legacy "011 15" mobile form).
+ * Aires, the legacy mobile `15` forms (`01115…`, `1115…`, `541115…`);
+ * plus the `0054`/`00549` international-dialling spellings.
  *
  * Only the 11 area gets the `15` form: AR area codes are prefix-free, so
  * `0 11 15 xxxxxxxx` can only be that one number, while for 3–4 digit
@@ -751,7 +752,14 @@ export function phoneMatchCandidates(phone: string): string[] {
     out.add(`54${national}`);
     out.add(national);
     out.add(`0${national}`);
-    if (national.startsWith("11")) out.add(`01115${national.slice(2)}`);
+    out.add(`0054${national}`);
+    out.add(`00549${national}`);
+    if (national.startsWith("11")) {
+      const sub = national.slice(2);
+      out.add(`01115${sub}`);
+      out.add(`1115${sub}`);
+      out.add(`541115${sub}`);
+    }
   }
   return [...out].filter((d) => d.length > 0);
 }
@@ -762,11 +770,18 @@ export function phoneMatchCandidates(phone: string): string[] {
  */
 function arNationalNumber(phone: string): string | null {
   const trimmed = phone.trim();
-  const d = phoneDigits(trimmed);
+  let d = phoneDigits(trimmed);
+  // `00` is the international dialling prefix, same as `+` — only for 54,
+  // so other countries' `00…` spellings keep their current lock key.
+  const dialled = d.startsWith("0054");
+  if (dialled) d = d.slice(2);
   if (d.length === 13 && d.startsWith("549")) return d.slice(3);
   if (d.length === 12 && d.startsWith("54")) return d.slice(2);
-  if (trimmed.startsWith("+")) return null; // another country code
+  // `+54 11 15 xxxxxxxx`: the mobile 15 after the 11 area (see above).
+  if (d.length === 14 && d.startsWith("541115")) return `11${d.slice(6)}`;
+  if (dialled || trimmed.startsWith("+")) return null; // another country code
   if (d.length === 13 && d.startsWith("01115")) return `11${d.slice(5)}`;
+  if (d.length === 12 && d.startsWith("1115")) return `11${d.slice(4)}`;
   if (d.length === 11 && d.startsWith("0")) return d.slice(1);
   if (d.length === 10 && !d.startsWith("0")) return d;
   return null;
