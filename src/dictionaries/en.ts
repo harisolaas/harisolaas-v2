@@ -1303,6 +1303,123 @@ const en: Dictionary = {
       comingSoonTag: "Coming soon",
     },
   },
+  hackea: {
+    // Mirrors es.hackea for type parity. The page itself is Spanish-only
+    // (/en/hackea-tu-mente redirects to /es/hackea-tu-mente), so these
+    // strings are unused except by tests.
+    meta: {
+      title: "Hack your mind — a talk with Hari Solaas",
+      description:
+        "An in-person talk with Hari Solaas. An experience to rethink your patterns, your attention and the way you inhabit the present.",
+      ogDescription:
+        "Step out of autopilot. An in-person talk with Hari Solaas, ebook included.",
+    },
+    header: {
+      wordmarkLead: "Hack",
+      wordmarkAccent: "your mind",
+      cta: "Get a ticket",
+    },
+    hero: {
+      eyebrowLead: "Step out",
+      eyebrowRest: "of autopilot",
+      titleLine1: "Hack",
+      titleLine2: "Your mind",
+      body: "An experience to rethink your patterns, your attention and the way you inhabit the present.",
+      cta: "Get your ticket",
+      scarcity: "Limited spots",
+      speakerPrefix: "With",
+      speakerFirst: "Hari",
+      speakerLast: "Solaas",
+      imageAlt: "Hari Solaas",
+    },
+    ebook: {
+      badge: "Included with your ticket",
+      titleLead: "Get the ebook",
+      titleAccent: "the same day",
+      body: "With your ticket we send you, over WhatsApp, the 5 most common patterns that keep you from reaching your goals. So you keep hacking after the talk.",
+      cover: {
+        kicker: "Ebook · Hack your mind",
+        number: "5",
+        title: "Patterns that hold you back",
+        subtitle: "The most common ones between you and your goals.",
+        author: "Hari Solaas",
+      },
+    },
+    purchase: {
+      title: "Get your ticket",
+      labels: {
+        date: "Date",
+        time: "Time",
+        place: "Venue",
+        with: "With",
+        includes: "Includes",
+      },
+      withValue: "Hari Solaas",
+      includesValue: "Ticket + ebook",
+      scarcity: "Limited spots",
+      cardTitle: "Your ticket",
+    },
+    form: {
+      nameLabel: "Name",
+      namePlaceholder: "Your name",
+      phoneLabel: "WhatsApp",
+      phonePlaceholder: "+54 9 11 1234 5678",
+      phoneHint: "That's where we send your ticket and the ebook",
+      emailLabel: "Email (optional)",
+      emailPlaceholder: "you@mail.com",
+      submit: "I'm in →",
+      submitting: "One moment…",
+      errors: {
+        name: "Tell us your name",
+        phone: "Check your WhatsApp number",
+        email: "Check your email",
+        alreadyPaid:
+          "This WhatsApp or email already has a paid ticket. If that's a mistake, message us on WhatsApp.",
+        closed: "Ticket sales are closed.",
+        rateLimited: "Too many attempts in a row. Wait a minute and try again.",
+        generic: "We couldn't start the payment. Try again in a moment.",
+      },
+    },
+    done: {
+      title: "Done, {nombre}",
+      titleNoName: "Done",
+      body: "Taking you to payment. As soon as it's confirmed, we'll send your ticket and the ebook over WhatsApp to {phone}.",
+      back: "Back",
+    },
+    closed: {
+      cta: "Sales closed",
+      sectionTitle: "Sales are closed",
+      cardTitle: "The talk has started",
+      body: "Ticket sales are closed. If you'd like to hear about the next date, message us on WhatsApp.",
+      whatsappCta: "Message us on WhatsApp",
+    },
+    footer: { left: "Hack your mind · Hari Solaas" },
+    successPage: {
+      title: "Payment received — Hack your mind",
+      pendingTitle: "Payment processing — Hack your mind",
+      eyebrowLead: "Done",
+      eyebrowRest: "your spot is saved",
+      heading: "See you at the talk",
+      body: "We got your payment. We'll message you on WhatsApp with your ticket and the ebook.",
+      pendingEyebrowLead: "Almost",
+      pendingEyebrowRest: "waiting for confirmation",
+      pendingHeading: "We're confirming your payment",
+      pendingBody:
+        "MercadoPago is still processing the payment. As soon as it clears, we'll message you on WhatsApp. No need to pay again.",
+      emailNote: "If you left your email, the confirmation goes there too.",
+      whatsappCta: "Questions? Message us on WhatsApp",
+      backLink: "Back to the talk",
+    },
+    failurePage: {
+      title: "Payment not completed — Hack your mind",
+      eyebrowLead: "Oops",
+      eyebrowRest: "something broke",
+      heading: "The payment didn't go through",
+      body: "If the payment didn't go through, you can try again whenever you like.",
+      retryCta: "Try again",
+      whatsappCta: "Need help? Message us",
+    },
+  },
 };
 
 export default en;

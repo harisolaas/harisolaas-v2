@@ -347,3 +347,77 @@ describe("desafio dictionary — es/en parity", () => {
     expect(untranslated).toEqual([]);
   });
 });
+
+describe.each(dicts)("$locale dictionary — hackea", ({ dict }) => {
+  const hackea = dict.hackea;
+
+  it("has no empty copy strings", () => {
+    for (const s of collectStrings(hackea)) {
+      expect(s.trim(), "no empty copy strings in hackea").not.toBe("");
+    }
+  });
+
+  it("never hardcodes the price, date or venue — those come from hackeaConfig", () => {
+    // A price or date in the copy would drift from what the checkout charges.
+    for (const s of collectStrings(hackea)) {
+      expect(s).not.toMatch(
+        /\$|\b\d{1,2}[./]\d{1,2}\b|\b\d{1,2}[:Hh]\d{2}\b|Costa Rica|Palermo/,
+      );
+    }
+  });
+
+  it("carries the tokens the landing fills", () => {
+    expect(hackea.done.title).toContain("{nombre}");
+    expect(hackea.done.body.split("{phone}")).toHaveLength(2);
+    expect(hackea.done.titleNoName).not.toMatch(/\{\w+\}/);
+  });
+
+  it("links nowhere: no internal hrefs to cross a locale", () => {
+    expect(internalHrefs(hackea)).toEqual([]);
+  });
+});
+
+describe("hackea dictionary — es", () => {
+  // Spot-check the handoff's copy stays verbatim (Landing.dc.html).
+  it("keeps the design's key strings verbatim", () => {
+    expect(es.hackea.hero.body).toBe(
+      "Una experiencia para repensar tus patrones, tu atención y tu forma de habitar el presente.",
+    );
+    expect(es.hackea.form.phoneHint).toBe("Ahí te mandamos la entrada y el ebook");
+    expect(es.hackea.form.errors.name).toBe("Contanos tu nombre");
+    expect(es.hackea.form.errors.phone).toBe("Revisá el número de WhatsApp");
+    expect(es.hackea.form.errors.email).toBe("Revisá el email");
+    expect(es.hackea.form.submit).toBe("Quiero ser parte →");
+  });
+
+  it("follows the handoff's copy rules: no exclamation marks", () => {
+    for (const s of collectStrings(es.hackea)) expect(s).not.toMatch(/[¡!]/);
+  });
+});
+
+describe("hackea dictionary — es/en parity", () => {
+  const esLeaves = leafPaths(es.hackea);
+  const enLeaves = leafPaths(en.hackea);
+
+  it("has the same shape in both locales", () => {
+    expect(Object.keys(enLeaves).sort()).toEqual(Object.keys(esLeaves).sort());
+  });
+
+  it("translates every copy field", () => {
+    // Proper nouns, numerals and the phone example are legitimately identical.
+    const sameOnPurpose = new Set([
+      "hero.speakerFirst",
+      "hero.speakerLast",
+      "hero.imageAlt",
+      "ebook.cover.number",
+      "ebook.cover.author",
+      "purchase.withValue",
+      "form.phoneLabel",
+      "form.phonePlaceholder",
+    ]);
+    const untranslated = Object.keys(esLeaves).filter(
+      (path) => esLeaves[path] === enLeaves[path] && !sameOnPurpose.has(path),
+    );
+    expect(untranslated).toEqual([]);
+  });
+});
