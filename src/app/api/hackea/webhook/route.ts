@@ -119,8 +119,9 @@ async function sendMail(params: {
 // alternative — never reclaiming — loses the mail for good.
 //
 // A claim is owned by a payment (`${flag}SendingFor`) and only taken while
-// the row is active and still holds that payment: a delivery for a refunded
-// payment, or for an entrada cancelled by hand, mails nothing ("inactive",
+// the row is active and still holds that payment: a delivery for a payment a
+// repurchase has replaced, or for an entrada cancelled by hand, mails nothing
+// ("inactive",
 // answered 200 — retrying won't change it). Mark and release are conditioned
 // on the owner, so an old send finishing after a repurchase can't mark or
 // free the new purchase's mail.
