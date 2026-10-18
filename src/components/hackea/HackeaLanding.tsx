@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "re
 import Image from "next/image";
 import type { HackeaDict } from "@/dictionaries/types";
 import type { HackeaDisplay } from "@/lib/hackea-display";
+import { readBrowserAttribution } from "@/lib/attribution";
 import {
   HACKEA_MAX_LENGTH,
   validateHackeaLead,
@@ -99,7 +100,14 @@ export default function HackeaLanding({
       const res = await fetch("/api/hackea/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...result.value, locale }),
+        // UTMs from the URL + the /go/[slug] cookie: buildAttribution only
+        // sees `utm` through the body, so without this an ?utm_source=…
+        // link reaches the CRM unattributed.
+        body: JSON.stringify({
+          ...result.value,
+          locale,
+          ...readBrowserAttribution(window.location.search, document.cookie),
+        }),
       });
       const data: { initPoint?: unknown; error?: unknown } = await res
         .json()

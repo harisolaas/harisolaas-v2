@@ -293,6 +293,9 @@ function resolveContact(r: {
   return {
     name: str(c.name) ?? r.person_name,
     phone: str(c.phone) ?? r.person_phone,
-    email: str(c.email) ?? r.person_email,
+    // A snapshot `email: null` means the buyer left it blank on this flow —
+    // the webhook doesn't mail the person's older address, so the drawer
+    // mustn't show it as the contact either (confirmHackeaPayment's rule).
+    email: "email" in c ? str(c.email) : r.person_email,
   };
 }

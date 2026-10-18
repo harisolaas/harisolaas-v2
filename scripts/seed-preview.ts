@@ -1060,6 +1060,21 @@ async function main() {
     if (p.seq !== undefined) meta.seq = p.seq;
     if (p.buyerEmailSent) meta.buyerEmailSent = true;
     if (p.hostNotified) meta.hostNotified = true;
+    // Every real Hackeá row carries the typed-contact snapshot that
+    // createHackeaLead writes; the drawer and the webhook read it first.
+    if (p.eventId === hackeaConfig.eventId) {
+      const person = PEOPLE.find((x) =>
+        p.personEmail
+          ? x.email === p.personEmail
+          : x.email === undefined &&
+            phoneDigits(x.phone) === phoneDigits(p.personPhone!),
+      )!;
+      meta.contact = {
+        name: person.name,
+        phone: person.phone ?? null,
+        email: person.email ?? null,
+      };
+    }
     const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
 
     // `attribution` is the typed touch the admin reads; `link_slug` is the
