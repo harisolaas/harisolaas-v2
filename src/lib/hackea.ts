@@ -190,19 +190,32 @@ export async function createHackeaLead(
 
     const existing = await findEventLead(tx, eventId, phone, email);
     if (existing) {
-      if (existing.status === "pending") {
-        await tx.execute(sql`
+      let status = existing.status;
+      if (status === "pending") {
+        // The phone lock doesn't cover the webhook, which locks the row
+        // instead. Re-checking `pending` inside the UPDATE waits on that
+        // row lock and re-reads it after the webhook commits: a lead paid
+        // meanwhile keeps the snapshot its mails were built from, and the
+        // caller sees `confirmed` (409) instead of opening a second checkout.
+        const refreshed = await tx.execute<{ id: string }>(sql`
           UPDATE participations SET
             metadata = COALESCE(metadata, '{}'::jsonb)
               || jsonb_build_object('contact', ${JSON.stringify(contact)}::jsonb),
             updated_at = NOW()
-          WHERE id = ${existing.id}
+          WHERE id = ${existing.id} AND status = 'pending'
+          RETURNING id
         `);
+        if (!refreshed.rows?.length) {
+          const cur = await tx.execute<{ status: ParticipationStatus }>(sql`
+            SELECT status FROM participations WHERE id = ${existing.id}
+          `);
+          status = cur.rows?.[0]?.status ?? status;
+        }
       }
       await fillInPerson(tx, existing.personId, phone, email);
       return {
         participationId: existing.id,
-        status: existing.status,
+        status,
         created: false,
       };
     }
@@ -330,7 +343,14 @@ export async function confirmHackeaPayment(params: {
         }
       : { id: row.id, name: row.name, phone: row.phone, email: row.email };
 
-    if (row.status === "confirmed" || row.status === "used") {
+    // A recorded payment means this entrada was paid, whatever its status
+    // now: a row the operator cancelled ("No vendrá") must not flip back to
+    // `confirmed` on an MP redelivery, nor have its payment id overwritten.
+    if (
+      row.status === "confirmed" ||
+      row.status === "used" ||
+      row.external_payment_id != null
+    ) {
       if (row.external_payment_id !== params.paymentId) {
         // A second approved payment for an already-paid entrada (two tabs,
         // two checkouts). Don't overwrite the first; keep a trail for a

@@ -282,6 +282,33 @@ describe("Event drawer for type hackea", () => {
     expect(byId["HTM-D1CRM002"].contact.email).toBe(EMAIL_PAID);
   });
 
+  it("a snapshot email of null hides the person's older email", async () => {
+    // Same rule as confirmHackeaPayment: blank on this flow = no email,
+    // even when the person row holds one from another flow.
+    await db.execute(sql`
+      UPDATE participations
+      SET metadata = jsonb_set(metadata, '{contact,email}', 'null'::jsonb)
+      WHERE id = 'HTM-D1CRM002'
+    `);
+    try {
+      const res = await eventDetail(req(`/api/admin/events/${EVENT}`), {
+        params: Promise.resolve({ id: EVENT }),
+      });
+      const body = await res.json();
+      const p = body.participants.find(
+        (x: { participationId: string }) => x.participationId === "HTM-D1CRM002",
+      );
+      expect(p.personEmail).toBe(EMAIL_PAID);
+      expect(p.contact.email).toBeNull();
+    } finally {
+      await db.execute(sql`
+        UPDATE participations
+        SET metadata = jsonb_set(metadata, '{contact,email}', ${JSON.stringify(EMAIL_PAID)}::jsonb)
+        WHERE id = 'HTM-D1CRM002'
+      `);
+    }
+  });
+
   it("non-hackea events get hackea: null", async () => {
     await db.execute(sql`UPDATE events SET type = 'sinergia' WHERE id = ${EVENT}`);
     try {

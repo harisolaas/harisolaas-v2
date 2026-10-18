@@ -582,7 +582,7 @@ Shares `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `RESEND_*`, `META_*` with the oth
 
 ### Preview
 
-`scripts/seed-preview.ts` seeds the real-id event (type `hackea`) with `HTM-PREVIEW1..5`: 3 confirmed at $21.300 (one phone-only, PREVIEW1 with `buyerEmailSent` + `hostNotified`), 2 pending leads (one phone-only). Phones in `+549…`. The seeder supports phone-only people via `personPhone`.
+`scripts/seed-preview.ts` seeds the real-id event (type `hackea`) with `HTM-PREVIEW1..5`, each with its `metadata.contact` snapshot: 3 confirmed at $21.300 (one phone-only, PREVIEW1 with `buyerEmailSent` + `hostNotified`), 2 pending leads (one phone-only). Phones in `+549…`. The seeder supports phone-only people via `personPhone`.
 
 ### Ops checklist
 
