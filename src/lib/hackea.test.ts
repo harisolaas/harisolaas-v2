@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { findPersonIdByPhone, recordParticipation } from "./community";
+import {
+  findPersonIdByPhone,
+  phoneMatchCandidates,
+  recordParticipation,
+} from "./community";
 import {
   confirmHackeaPayment,
   createHackeaLead,
@@ -125,14 +129,53 @@ async function participation(id: string) {
 // ============================================================
 
 describe("normalizeArPhone", () => {
-  it("internationalizes an AR local mobile", () => {
-    expect(normalizeArPhone("11 1234-5678")).toBe("+5491112345678");
+  // Every spelling isValidWhatsApp lets through for one AR number must land
+  // on the same `+549` + 10-digit national form — it's stored on the lead
+  // and turned into the host's wa.me link.
+  it.each([
+    ["11 1234-5678", "+5491112345678"],
+    ["011 1234-5678", "+5491112345678"],
+    ["011 15 1234-5678", "+5491112345678"],
+    ["+54 9 11 1234-5678", "+5491112345678"],
+    ["+54 11 1234-5678", "+5491112345678"],
+    ["54 11 1234 5678", "+5491112345678"],
+    ["5491112345678", "+5491112345678"],
+    ["+5491112345678", "+5491112345678"],
+    ["0351 412-3456", "+5493514123456"],
+    ["351 412 3456", "+5493514123456"],
+  ])("AR %s → %s", (raw, expected) => {
+    expect(normalizeArPhone(raw)).toBe(expected);
   });
-  it("keeps an already-international number", () => {
-    expect(normalizeArPhone("+54 9 11 1234-5678")).toBe("+5491112345678");
+
+  it.each([
+    ["+1 415 555 0123", "+14155550123"],
+    ["+34 612 34 56 78", "+34612345678"],
+    ["+598 99 123 456", "+59899123456"],
+  ])("foreign %s keeps its digits → %s", (raw, expected) => {
+    expect(normalizeArPhone(raw)).toBe(expected);
   });
-  it("adds the + to bare international digits", () => {
-    expect(normalizeArPhone("5491112345678")).toBe("+5491112345678");
+
+  it.each([
+    "011 15 1234-5678",
+    "+54 11 1234-5678",
+    "+1 415 555 0123",
+  ])("is idempotent for %s", (raw) => {
+    const once = normalizeArPhone(raw);
+    expect(normalizeArPhone(once)).toBe(once);
+  });
+
+  // Stored form and typed form must still find each other in people.phone.
+  it.each([
+    "11 1234-5678",
+    "011 1234-5678",
+    "011 15 1234-5678",
+    "+54 11 1234-5678",
+    "0351 412-3456",
+    "+34 612 34 56 78",
+  ])("round-trips through phoneMatchCandidates for %s", (raw) => {
+    const stored = normalizeArPhone(raw);
+    expect(phoneMatchCandidates(raw)).toContain(stored.slice(1));
+    expect(phoneMatchCandidates(stored)).toContain(raw.replace(/[+\s\-().]/g, ""));
   });
 });
 

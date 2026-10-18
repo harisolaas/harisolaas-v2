@@ -775,8 +775,9 @@ function arNationalNumber(phone: string): string | null {
 /**
  * Canonical digits for one number — what the advisory lock keys on, so
  * `11 1234-5678` and `+54 9 11 1234-5678` serialize against each other.
+ * Hackeá's `normalizeArPhone` stores `+` + this, so the two can't drift.
  */
-function canonicalPhoneDigits(phone: string): string {
+export function canonicalPhoneDigits(phone: string): string {
   const national = arNationalNumber(phone);
   return national ? `549${national}` : phoneToWaMe(phone);
 }
