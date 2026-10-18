@@ -42,21 +42,60 @@ vi.mock("resend", () => ({
   },
 }));
 
-// ── DB: only the two reads the route does itself ─────────────────────
-let deliveryRow: Record<string, unknown> | null = null;
+// ── DB: the route's reads + its per-mail claim/release/refund writes,
+// applied to deliveryRow.metadata so the claim semantics are real ──────
+let deliveryRow: {
+  status: string;
+  external_payment_id: string | null;
+  metadata: Record<string, unknown>;
+} | null = null;
 let confirmedCount = 3;
+function isText(c: unknown): c is { value: string[] } {
+  return Boolean(c && typeof c === "object" && "value" in c);
+}
 function sqlText(q: { queryChunks?: unknown[] }): string {
   return (q.queryChunks ?? [])
-    .map((c) =>
-      c && typeof c === "object" && "value" in c
-        ? (c as { value: string[] }).value.join("")
-        : "?",
-    )
+    .map((c) => (isText(c) ? c.value.join("") : "?"))
     .join("");
+}
+function sqlParams(q: { queryChunks?: unknown[] }): unknown[] {
+  return (q.queryChunks ?? []).filter((c) => !isText(c));
 }
 const dbExecute = vi.fn(async (q: { queryChunks?: unknown[] }) => {
   const text = sqlText(q);
+  const params = sqlParams(q);
+  const meta = deliveryRow?.metadata;
   if (text.includes("COUNT(*)")) return { rows: [{ n: confirmedCount }] };
+  if (text.includes("RETURNING id")) {
+    // claimMail: flag, "sending", atKey, now, id, flag, flag, "sending", atKey, staleBefore
+    const [flag, sending, atKey, now] = params as [string, string, string, number];
+    const staleBefore = params[params.length - 1] as number;
+    if (!meta) return { rows: [] };
+    const cur = meta[flag];
+    const claimable =
+      cur == null || (cur === sending && Number(meta[atKey] ?? 0) < staleBefore);
+    if (!claimable) return { rows: [] };
+    meta[flag] = sending;
+    meta[atKey] = now;
+    return { rows: [{ id: "claimed" }] };
+  }
+  if (text.includes("AS v FROM participations")) {
+    const v = meta?.[params[0] as string];
+    return { rows: deliveryRow ? [{ v: v == null ? null : String(v) }] : [] };
+  }
+  if (text.includes("metadata = metadata -")) {
+    const [flag, atKey] = params as [string, string];
+    if (meta && meta[flag] === "sending") {
+      delete meta[flag];
+      delete meta[atKey];
+    }
+    return { rows: [] };
+  }
+  if (text.includes("'refund'")) {
+    const [status, paymentId, at] = params as [string, string, string];
+    if (meta) meta.refund = { status, paymentId, at };
+    return { rows: [] };
+  }
   if (text.includes("FROM participations WHERE id")) {
     return { rows: deliveryRow ? [deliveryRow] : [] };
   }
@@ -66,23 +105,31 @@ vi.mock("@/db", () => ({ db: { execute: (q: never) => dbExecute(q) } }));
 
 // ── The lib boundary ─────────────────────────────────────────────────
 const confirmHackeaPayment = vi.fn();
-const markHackeaFlag = vi.fn(async () => {});
+const markHackeaFlag = vi.fn(async (_id: string, flag: string) => {
+  if (deliveryRow) deliveryRow.metadata[flag] = true;
+});
 vi.mock("@/lib/hackea", () => ({
   confirmHackeaPayment: (...a: unknown[]) => confirmHackeaPayment(...a),
-  markHackeaFlag: (...a: unknown[]) => markHackeaFlag(...(a as [])),
+  markHackeaFlag: (...a: unknown[]) =>
+    markHackeaFlag(...(a as [string, string])),
 }));
 
-const notifyAdminOfIncident = vi.fn(async () => ({ notified: true }));
+const notifyAdminOfIncident = vi.fn<
+  (i: unknown) => Promise<{ notified: boolean; reason?: string }>
+>(async () => ({ notified: true }));
 vi.mock("@/lib/admin-alert", () => ({
   notifyAdminOfIncident: (...a: unknown[]) =>
     notifyAdminOfIncident(...(a as [])),
 }));
-const sendMetaEvent = vi.fn(async () => ({ ok: true }));
+const sendMetaEvent = vi.fn<(e: unknown) => Promise<{ ok: boolean }>>(
+  async () => ({ ok: true }),
+);
 vi.mock("@/lib/meta-capi", () => ({
   sendMetaEvent: (...a: unknown[]) => sendMetaEvent(...(a as [])),
 }));
 
 const { POST } = await import("./route");
+const { HACKEA_BUYER_SUBJECT: BUYER_SUBJECT } = await import("@/lib/hackea-email");
 
 // ── Helpers ──────────────────────────────────────────────────────────
 const PID = "HTM-ABCD1234";
@@ -123,6 +170,20 @@ const participant = {
 
 function confirmed(over: Record<string, unknown> = {}) {
   return { outcome: "confirmed", participant, underpaid: false, ...over };
+}
+
+/** What the checkout route stashes for CAPI. */
+function stash() {
+  redisStore.set(
+    `hackea:checkout:${PID}`,
+    JSON.stringify({
+      ip: "190.0.0.1",
+      ua: "Mozilla/5.0",
+      fbp: "fb.1.1.abc",
+      fbc: "fb.1.1.click",
+      eventId: `hackea-checkout-${PID}`,
+    }),
+  );
 }
 
 function subjects(): string[] {
@@ -173,6 +234,7 @@ describe("POST /api/hackea/webhook", () => {
   });
 
   it("confirmed: confirms with the paid amount, sends both mails, sets both flags", async () => {
+    stash();
     const res = await POST(signed());
     expect(res.status).toBe(200);
     expect(confirmHackeaPayment).toHaveBeenCalledWith({
@@ -193,6 +255,44 @@ describe("POST /api/hackea/webhook", () => {
     expect(redisStore.get(`hackea:payment:${PAY}`)).toBe(PID);
     expect(notifyAdminOfIncident).not.toHaveBeenCalled();
     expect(sendMetaEvent).toHaveBeenCalledTimes(1);
+    expect(sendMetaEvent.mock.calls[0][0]).toMatchObject({
+      event_name: "Purchase",
+      user_data: {
+        client_ip_address: "190.0.0.1",
+        client_user_agent: "Mozilla/5.0",
+        fbp: "fb.1.1.abc",
+        fbc: "fb.1.1.click",
+      },
+      custom_data: { value: 21300, currency: "ARS" },
+    });
+  });
+
+  it("CAPI Purchase: not sent without a checkout stash (Meta rejects empty user_data)", async () => {
+    await POST(signed());
+    expect(sendMetaEvent).not.toHaveBeenCalled();
+  });
+
+  it("CAPI Purchase goes out on a retry after a crash, and only once per payment", async () => {
+    stash();
+    // Crash after confirm, before anything else: MP retries.
+    dbExecute.mockRejectedValueOnce(new Error("db blip"));
+    expect((await POST(signed())).status).toBe(500);
+    expect(sendMetaEvent).not.toHaveBeenCalled();
+
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "already" }));
+    expect((await POST(signed())).status).toBe(200);
+    expect(sendMetaEvent).toHaveBeenCalledTimes(1);
+
+    await POST(signed());
+    expect(sendMetaEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("host mail shows what MP charged, not the list price", async () => {
+    paymentGet.mockResolvedValue(payment({ transaction_amount: 18000 }));
+    await POST(signed());
+    const host = emailsSend.mock.calls[1][0];
+    expect(host.html).toContain("$18.000");
+    expect(host.html).not.toContain("$21.300");
   });
 
   it("falls back to metadata.participation_id when external_reference is missing", async () => {
@@ -242,14 +342,70 @@ describe("POST /api/hackea/webhook", () => {
     expect(markHackeaFlag).toHaveBeenCalledWith(PID, "hostNotified");
   });
 
-  it("a failed send leaves its flag unset so the next delivery retries", async () => {
+  it("a failed send releases its claim and answers 500 so MP retries just that mail", async () => {
     emailsSend
       .mockResolvedValueOnce({ data: null, error: { message: "rate limited" } })
       .mockResolvedValueOnce({ data: { id: "re_2" }, error: null });
     const res = await POST(signed());
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(500);
     expect(markHackeaFlag).toHaveBeenCalledTimes(1);
     expect(markHackeaFlag).toHaveBeenCalledWith(PID, "hostNotified");
+    expect(deliveryRow?.metadata.buyerEmailSent).toBeUndefined();
+
+    emailsSend.mockClear();
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "already" }));
+    expect((await POST(signed())).status).toBe(200);
+    expect(subjects()).toEqual([BUYER_SUBJECT]);
+    expect(deliveryRow?.metadata.buyerEmailSent).toBe(true);
+  });
+
+  it("a delivery arriving mid-send (Redis key already final) doesn't resend the same mails", async () => {
+    // payment.created + payment.updated: the first delivery is inside
+    // Resend when the second one lands.
+    let releaseSend: () => void = () => {};
+    emailsSend.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseSend = () => resolve({ data: { id: "re_1" }, error: null });
+        }),
+    );
+    const first = POST(signed());
+    await vi.waitFor(() => expect(emailsSend).toHaveBeenCalledTimes(1));
+    expect(redisStore.get(`hackea:payment:${PAY}`)).toBe(PID);
+
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "already" }));
+    const second = await POST(signed());
+    // The buyer mail is claimed by the first delivery: the second asks MP
+    // to come back instead of sending it again.
+    expect(second.status).toBe(500);
+    releaseSend();
+    expect((await first).status).toBe(200);
+
+    const sent = subjects();
+    expect(sent).toHaveLength(2);
+    expect(new Set(sent).size).toBe(2);
+  });
+
+  it("a stale 'sending' claim (process died mid-send) is reclaimed", async () => {
+    deliveryRow!.metadata = {
+      buyerEmailSent: "sending",
+      buyerEmailSentSendingAt: Date.now() - 10 * 60 * 1000,
+      hostNotified: true,
+    };
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "already" }));
+    expect((await POST(signed())).status).toBe(200);
+    expect(subjects()).toEqual([BUYER_SUBJECT]);
+  });
+
+  it("a fresh 'sending' claim held elsewhere is left alone (500, MP retries)", async () => {
+    deliveryRow!.metadata = {
+      buyerEmailSent: "sending",
+      buyerEmailSentSendingAt: Date.now(),
+      hostNotified: true,
+    };
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "already" }));
+    expect((await POST(signed())).status).toBe(500);
+    expect(emailsSend).not.toHaveBeenCalled();
   });
 
   it("capacity: admin alert, no mails", async () => {
@@ -294,7 +450,9 @@ describe("POST /api/hackea/webhook", () => {
     deliveryRow = {
       status: "confirmed",
       external_payment_id: "999-FIRST",
-      metadata: { buyerEmailSent: true, hostNotified: true },
+      // Flags unset on purpose: only the second-payment guard keeps the
+      // buyer from getting a second confirmation for the same entrada.
+      metadata: {},
     };
     await POST(signed());
     expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
@@ -307,11 +465,97 @@ describe("POST /api/hackea/webhook", () => {
     expect(emailsSend).not.toHaveBeenCalled();
   });
 
-  it("a duplicate delivery of an already-processed payment does not re-alert", async () => {
-    redisStore.set(`hackea:payment:${PAY}`, PID);
+  it("a duplicate delivery of an already-alerted payment does not re-alert", async () => {
     confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "capacity" }));
     await POST(signed());
-    expect(notifyAdminOfIncident).not.toHaveBeenCalled();
+    await POST(signed());
+    expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
+  });
+
+  it("an alert that didn't go out answers 500 and MP's retry alerts again", async () => {
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "capacity" }));
+    notifyAdminOfIncident.mockResolvedValueOnce({
+      notified: false,
+      reason: "RESEND_API_KEY missing",
+    });
+    expect((await POST(signed())).status).toBe(500);
+
+    // The retry may find the Redis key final (non-fresh path) — it must
+    // still alert.
+    redisStore.set(`hackea:payment:${PAY}`, PID);
+    expect((await POST(signed())).status).toBe(200);
+    expect(notifyAdminOfIncident).toHaveBeenCalledTimes(2);
+
+    await POST(signed());
+    expect(notifyAdminOfIncident).toHaveBeenCalledTimes(2);
+  });
+
+  it("second-payment alert is retried too when it fails", async () => {
+    confirmHackeaPayment.mockResolvedValue(confirmed({ outcome: "already" }));
+    deliveryRow = {
+      status: "confirmed",
+      external_payment_id: "999-FIRST",
+      metadata: { buyerEmailSent: true, hostNotified: true },
+    };
+    notifyAdminOfIncident.mockRejectedValueOnce(new Error("resend down"));
+    expect((await POST(signed())).status).toBe(500);
+    expect((await POST(signed())).status).toBe(200);
+    expect(notifyAdminOfIncident).toHaveBeenCalledTimes(2);
+  });
+
+  describe("refunds / chargebacks", () => {
+    beforeEach(() => {
+      // The approval was processed earlier: the key holds the participation.
+      redisStore.set(`hackea:payment:${PAY}`, PID);
+    });
+
+    it.each(["refunded", "charged_back"])(
+      "%s on the entrada's payment: records metadata.refund and alerts once, no cancel",
+      async (status) => {
+        paymentGet.mockResolvedValue(payment({ status }));
+        const res = await POST(signed());
+        expect(res.status).toBe(200);
+        expect(confirmHackeaPayment).not.toHaveBeenCalled();
+        expect(deliveryRow?.metadata.refund).toMatchObject({
+          status,
+          paymentId: PAY,
+        });
+        expect(deliveryRow?.status).toBe("confirmed");
+        expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
+        expect(
+          (notifyAdminOfIncident.mock.calls[0][0] as { subject: string }).subject,
+        ).toContain(status);
+
+        await POST(signed());
+        expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
+        expect(emailsSend).not.toHaveBeenCalled();
+      },
+    );
+
+    it("refund alert that fails answers 500 so MP retries it", async () => {
+      paymentGet.mockResolvedValue(payment({ status: "refunded" }));
+      notifyAdminOfIncident.mockResolvedValueOnce({ notified: false });
+      expect((await POST(signed())).status).toBe(500);
+      expect((await POST(signed())).status).toBe(200);
+      expect(notifyAdminOfIncident).toHaveBeenCalledTimes(2);
+    });
+
+    it("a cancelled payment that never paid the entrada is ignored", async () => {
+      redisStore.clear();
+      deliveryRow = { status: "pending", external_payment_id: null, metadata: {} };
+      paymentGet.mockResolvedValue(payment({ status: "cancelled" }));
+      expect((await POST(signed())).status).toBe(200);
+      expect(notifyAdminOfIncident).not.toHaveBeenCalled();
+      expect(deliveryRow.metadata.refund).toBeUndefined();
+    });
+
+    it("refund of another flow's payment is ignored", async () => {
+      paymentGet.mockResolvedValue(
+        payment({ status: "refunded", metadata: { type: "ticket" } }),
+      );
+      await POST(signed());
+      expect(notifyAdminOfIncident).not.toHaveBeenCalled();
+    });
   });
 
   it("releases the claim when a step throws, so MP's retry gets a clean run", async () => {

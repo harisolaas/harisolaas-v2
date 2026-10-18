@@ -6,6 +6,7 @@ import {
   buildHackeaHostNotificationHtml,
   hackeaDateLabel,
   hackeaGreetingWaMeUrl,
+  hackeaHostSubject,
 } from "./hackea-email";
 
 /**
@@ -111,5 +112,11 @@ describe("hackea emails", () => {
   it("date label is derived from the config date", () => {
     expect(hackeaDateLabel("2026-10-29")).toBe("Jueves 29 de octubre");
     expect(hackeaDateLabel("2026-03-28")).toBe("Sábado 28 de marzo");
+  });
+
+  it("host subject collapses buyer-typed whitespace (no newlines in a header)", () => {
+    expect(hackeaHostSubject("  Lucía \r\n  Fernández\t ")).toBe(
+      "Nueva entrada Hackeá tu mente — Lucía Fernández",
+    );
   });
 });

@@ -52,6 +52,16 @@ vi.mock("@/lib/meta-capi", () => ({
   sendMetaEvent: (e: Record<string, unknown>) => sendMetaEvent(e),
 }));
 
+// ── Redis (CAPI stash for the webhook's Purchase) ────────────────────
+const redisSet = vi.fn<
+  (k: string, v: string, o?: { EX?: number }) => Promise<string | null>
+>(async () => "OK");
+vi.mock("@/lib/redis", () => ({
+  getRedis: async () => ({
+    set: (k: string, v: string, o?: { EX?: number }) => redisSet(k, v, o),
+  }),
+}));
+
 // ── Helpers ──────────────────────────────────────────────────────────
 let ipCounter = 0;
 /** A fresh IP per request unless given: the rate limiter is module state. */
@@ -93,6 +103,7 @@ beforeEach(() => {
   preferenceCreate.mockClear();
   createHackeaLead.mockClear();
   sendMetaEvent.mockClear();
+  redisSet.mockClear();
 });
 
 afterEach(() => {
@@ -188,6 +199,45 @@ describe("POST /api/hackea/checkout", () => {
       user_data: { client_ip_address: "203.0.113.9" },
       custom_data: { currency: "ARS", value: 21300, num_items: 1 },
     });
+  });
+
+  it("stashes ip/ua/fbp/fbc for the webhook's Purchase, 7 days, keyed by participation", async () => {
+    await post(VALID, {
+      ip: "203.0.113.9",
+      headers: { cookie: "_fbp=fb.1.111.abc; _fbc=fb.1.222.click" },
+    });
+    expect(redisSet).toHaveBeenCalledTimes(1);
+    const [key, value, opts] = redisSet.mock.calls[0];
+    expect(key).toBe("hackea:checkout:HTM-ABCD1234");
+    expect(opts).toEqual({ EX: 60 * 60 * 24 * 7 });
+    expect(JSON.parse(value)).toEqual({
+      ip: "203.0.113.9",
+      ua: "vitest",
+      fbp: "fb.1.111.abc",
+      fbc: "fb.1.222.click",
+      eventId: "hackea-checkout-HTM-ABCD1234",
+    });
+    // The cookies feed InitiateCheckout too.
+    expect(sendMetaEvent.mock.calls[0][0]).toMatchObject({
+      user_data: { fbp: "fb.1.111.abc", fbc: "fb.1.222.click" },
+    });
+  });
+
+  it("body fbp/fbc win over the cookies", async () => {
+    await post(
+      { ...VALID, fbp: "fb.body", fbc: "fbc.body" },
+      { headers: { cookie: "_fbp=fb.cookie" } },
+    );
+    expect(JSON.parse(redisSet.mock.calls[0][1])).toMatchObject({
+      fbp: "fb.body",
+      fbc: "fbc.body",
+    });
+  });
+
+  it("still answers 200 when the stash write fails", async () => {
+    redisSet.mockRejectedValueOnce(new Error("redis down"));
+    const { status } = await post(VALID);
+    expect(status).toBe(200);
   });
 
   it("still answers 200 when Meta CAPI rejects", async () => {

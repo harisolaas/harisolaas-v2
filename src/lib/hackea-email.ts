@@ -154,7 +154,9 @@ export interface HackeaHostNotificationParams {
 }
 
 export function hackeaHostSubject(name: string): string {
-  return `Nueva entrada Hackeá tu mente — ${name.trim()}`;
+  // Buyer-typed: collapse every whitespace run (CR/LF included) so the
+  // name can't break the header line.
+  return `Nueva entrada Hackeá tu mente — ${name.replace(/\s+/g, " ").trim()}`;
 }
 
 // Internal mail so the host can reach the buyer on WhatsApp by hand (the
