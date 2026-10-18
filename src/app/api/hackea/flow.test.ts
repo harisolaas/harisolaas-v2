@@ -412,6 +412,9 @@ describe("underpaid approval", () => {
     expect(r.status).toBe("confirmed");
     expect(r.external_payment_id).toBe("e1flow-pay-104");
     expect(hostMails()).toHaveLength(1);
+    // What MP charged, not the list price.
+    expect(hostMails()[0].html).toContain("$10.000");
+    expect(hostMails()[0].html).not.toContain("$21.300");
 
     // Retry: the Redis marker keeps the alert from repeating.
     await webhook(signedWebhook("e1flow-pay-104"));
