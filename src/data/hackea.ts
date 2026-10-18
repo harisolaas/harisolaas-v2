@@ -48,3 +48,9 @@ export const hackeaConfig = {
 export const HACKEA_PAYMENT_TYPE = "hackea-ticket";
 // participations.id prefix: HTM-XXXXXXXX.
 export const HACKEA_PARTICIPATION_PREFIX = "HTM-";
+
+// Share card (OG + Twitter + JSON-LD image), relative to /public. Same rule
+// as BROTE_OG_IMAGE: bump the filename when the artwork changes, never
+// overwrite in place — Facebook, WhatsApp and X cache OG images by URL.
+// Carries date, time and barrio, never the price (it can change).
+export const HACKEA_OG_IMAGE = "hackea/og-hackea-v1.png";
