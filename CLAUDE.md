@@ -67,13 +67,14 @@ Mirror the pattern in `src/components/SinergiaLanding.tsx`:
 - Validate phone with `isValidWhatsApp` from `src/lib/plant-types.ts` (re-exported from `src/lib/sinergia-types.ts` for convenience) — lenient: strips `+`, space, `-`, `(`, `)`, `.`, requires 8–15 digits.
 - Display helper copy (`dict.rsvp.phoneHelper` or equivalent) directly under the input so the user knows why we're asking.
 - Pass `phone` into `recordParticipation()` — it already accepts `phone?: string` and writes it to `people.phone`, no schema work.
-- In the host-notification email, render the phone as a tappable `wa.me` link using `phoneDigits()` so the recipient can tap-to-chat from their inbox. Use `buildSinergiaHostNotificationHtml` as the reference implementation.
+- In the host-notification email, render the phone as a tappable `wa.me` link using `phoneToWaMe()` (prepends `549` to a 10-digit AR local; `phoneDigits()` only strips separators) so the recipient can tap-to-chat from their inbox. Use `buildSinergiaHostNotificationHtml` as the reference implementation.
 
 ### Exceptions
 
 - **Payment-gated flows** (e.g. BROTE ticket checkout via MercadoPago): MP's payer object doesn't carry phone by default. Either add a pre-checkout identity form or extend MP Preference metadata — call this out in the PR. Don't silently skip.
 - **Code-only inputs** (discount-code redemption pages without identity capture): no form to extend.
 - **Admin / internal forms**: out of scope for this convention.
+- **Hackeá tu mente**: email is *optional* (Hari's call on the design) — WhatsApp is the required identifier and people can exist phone-only. See the HACKEÁ section.
 
 ---
 
@@ -528,3 +529,67 @@ Non-prod branches that already have 0007 (the `.env.local` preview branch, CI's 
 ### Preview
 
 `scripts/seed-preview.ts` seeds the real-id event and days 1–9 published (day 1 with intro video + a Shorts reflection video, day 2 without reflection), day 10 as a draft and 11–15 without a row. Unlike the rest of the seeder it upserts these rows, so a branch holding older fixtures gets refreshed.
+
+---
+
+## HACKEÁ TU MENTE — charla paga (MercadoPago + CRM)
+
+In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at `/es/hackea-tu-mente` (`/en/hackea-tu-mente/*` → `/es/…` in `next.config.ts`; in the sitemap). Ebook delivery is **manual and out of scope**: no PDF, no automated send — Hari writes each buyer on WhatsApp from the host-notification mail.
+
+### Config (`src/data/hackea.ts`) — single source of truth
+
+`hackeaConfig`: `eventId = "hackea-tu-mente-2026-10-29"` (never change once there are sales), `eventType = "hackea"` (the admin special-cases the drawer on it), `startIso` (with `-03:00`), `capacity` (`null` = sin tope), `ticketPriceCents = 2_130_000` ($21.300) + `ticketPriceLabel` derived via `formatArsLabel`, venue. `HACKEA_PAYMENT_TYPE = "hackea-ticket"` (MP `metadata.type` — all MP flows share one token, so the Hackeá and BROTE webhooks skip payments without their own type; Sinergia has no type guard and just logs "rsvp not found" with a 200), `HACKEA_PARTICIPATION_PREFIX = "HTM-"`. Date/time/venue strings come from `hackeaDisplay()` (`src/lib/hackea-display.ts`); never hardcode them in copy. Dict key `hackea` in `es.ts`/`en.ts`.
+
+**Share card + structured data**: `HACKEA_OG_IMAGE` (`hackea/og-hackea-v1.png`, 1200×630, date/time/barrio but no price) feeds the landing's OG, Twitter and JSON-LD image — same rule as BROTE's: bump the filename when the artwork changes, never overwrite. The landing emits an `Event` JSON-LD from `buildHackeaEventJsonLd()` (`src/lib/hackea-jsonld.ts`); its offer reads `isHackeaSalesOpen` (InStock → SoldOut).
+
+**Sales close at `startIso`**: `isHackeaSalesOpen(now)` swaps the form for a closed card on the landing (`revalidate = 60`) and makes the checkout answer 410.
+
+### Flow (Sinergia-style: persist the lead first)
+
+1. Form (name + WhatsApp required, email optional) runs `validateHackeaLead()` (`src/lib/hackea-validation.ts`, shared client/server, with `HACKEA_MAX_LENGTH`).
+2. `POST /api/hackea/checkout` → `createHackeaLead()` writes person + participation `HTM-XXXXXXXX` with status **`pending`** *before* the Preference exists, so abandoned checkouts are leads in the CRM. Then a Preference with `external_reference = participationId` (+ `metadata.participation_id` backup); `payer.email` only if given. Responses: 200 `{initPoint, participationId}` · 400 `{error: "name"|"phone"|"email"|"invalid_body"}` · 409 `already_paid` · 410 `closed` · 429 (5/IP/60s) · 500 `server` (the pending lead stays).
+3. MP → `/[locale]/hackea-tu-mente/success` (`?state=pending` for cash) or `/failure`. Both noindex.
+4. `POST /api/hackea/webhook` (`verifyMpSignature` from `src/lib/mp-server.ts`, strict: rejects when the secret is unset outside dev) → `confirmHackeaPayment()` in one tx with the `events` row `FOR UPDATE`: capacity check on `confirmed`+`used`, then `confirmed` + `external_payment_id` + `price_cents` + `currency`. Then CAPI `Purchase` (once per payment, needs the checkout stash) and the mails — only while the row is `confirmed`/`used`. **Admin status wins over webhook redeliveries**: a paid row cancelled or set back to `pending` in the admin is never re-confirmed or re-mailed by MP (outcome `already`).
+
+### Identity: phone-only people, dedupe, normalisation
+
+- **Email is optional** — the deliberate exception to "Building a new registration landing". `recordParticipation()` accepts phone-only (`throw "email or phone required"` if neither, phone needs ≥8 digits) and goes through `upsertPersonByPhone` (match by digits, else INSERT with `email = NULL`). With an email its behaviour is unchanged. Takes an optional `outerTx`.
+- **Phones are stored `+` + `canonicalPhoneDigits()`** via `normalizeArPhone()` (`"11 1234-5678"`, `"011 15 …"`, `"+54 9 11 …"` → `+5491112345678`; foreign numbers keep their digits). Matching uses `phoneMatchCandidates()` — every safe AR spelling, so older rows typed by hand still match.
+- **Dedupe per event + advisory lock**: `createHackeaLead` runs in one tx under `lockPhoneNumber()` (`pg_advisory_xact_lock(hashtext('people-phone:<canonical digits>'))`). An existing lead for the event matched by phone (wins) or email is reused — a **paid** one → 409, otherwise its snapshot is refreshed. Paid = holds a payment not refunded (`metadata.refund` on that payment id), whatever the status (a cancelled entrada keeps its money); with no payment, `confirmed`/`used`. A refunded entrada can buy again: the new payment confirms the same row as a fresh purchase (mail flags reset, no second-payment alert). Existing person values are never overwritten.
+- **`metadata.contact = { name, phone, email | null }`** = what the buyer typed on the latest submit. Source of truth for delivery and for what the CRM shows (person row may hold older data from other flows); `null` email means "don't mail".
+
+### Mails (`src/lib/hackea-email.ts`, sent from the webhook)
+
+Buyer confirmation (only when the snapshot has an email) + host notification to `HACKEA_NOTIFY_EMAILS` with a `hackeaGreetingWaMeUrl()` link (`phoneToWaMe`, greeting prefilled). Each mail is **claimed per participation** in `metadata.{buyerEmailSent,hostNotified}` (`"sending"` + `…SendingAt`, stale after 5 min; released on failure, `true` via `markHackeaFlag` on success) — so concurrent MP deliveries can't double-send, and a failed send makes the webhook answer 500 so MP retries.
+
+**Admin alerts** (`notifyAdminOfIncident` → `ADMIN_ALERT_EMAIL`, once per marker, marker dropped if the alert didn't go out): approved without reference, `not_found`, `capacity` (lead stays `pending` with `metadata.overflowPaymentId` — refund or make room by hand), `underpaid` (amount < price; still confirmed), second payment for a paid entrada (`metadata.extraPaymentIds`, no mails), refund/chargeback/cancel (`metadata.refund` on the primary payment; participation is **not** cancelled — Hari decides). `paid` is decided by the primary payment (`external_payment_id`) only — when handling a double payment, refund the one in `extraPaymentIds`, not the primary, or the entrada reads unpaid.
+
+### Redis keys
+
+| Key | Value |
+|---|---|
+| `hackea:payment:{mpPaymentId}` | participationId (idempotency; `__processing__` 5 min while in flight, 90d TTL) |
+| `hackea:checkout:{participationId}` | JSON `{ip, ua, fbp, fbc, eventId}` for the CAPI Purchase (7d TTL) |
+| `hackea:capi:{mpPaymentId}` | Purchase sent once |
+| `hackea:alert:{mpPaymentId}:{kind}` | alert sent — `no_reference` · `not_found` · `capacity` · `underpaid` · `second_payment` |
+| `hackea:refund:{mpPaymentId}:{status}` | reversal alert sent |
+
+### Env vars
+
+Shares `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `RESEND_*`, `META_*` with the other flows. `HACKEA_NOTIFY_EMAILS` (comma-separated) — falls back to `SINERGIA_NOTIFY_EMAILS`; with neither, the host isn't notified (warn only).
+
+### CRM
+
+`GET /api/admin/events` calls `ensureHackeaEvent()` (idempotent `INSERT … ON CONFLICT DO NOTHING`; desafío pattern) so the event shows before the first sale. EventDrawer hackea block: pagadas vs leads pendientes (checkout abandonado), revenue (confirmed/used only), per-participant contact from `metadata.contact` (`resolveContact`) with a tappable WhatsApp link. Personas list/search/detail work with null email; search matches phone digits (`phoneSearchClause`, `src/lib/admin-phone-search.ts`).
+
+### Preview
+
+`scripts/seed-preview.ts` seeds the real-id event (type `hackea`) with `HTM-PREVIEW1..5`, each with its `metadata.contact` snapshot: 3 confirmed at $21.300 (one phone-only, PREVIEW1 with `buyerEmailSent` + `hostNotified`), 2 pending leads (one phone-only). Phones in `+549…`. The seeder supports phone-only people via `personPhone`.
+
+### Ops checklist
+
+- No webhook registration in the MercadoPago dashboard: each Preference carries its own `notification_url` (`/api/hackea/webhook`). Signatures still use `MP_WEBHOOK_SECRET`.
+- `HACKEA_NOTIFY_EMAILS` in Vercel is optional — without it the host mail goes to `SINERGIA_NOTIFY_EMAILS` (already set in prod).
+- `NEXT_PUBLIC_BASE_URL` must be the www host (see BROTE's env table): the Preference's `notification_url` and back URLs are built from it.
+- **No schema migration** — everything lives in existing columns + `participations.metadata`.
+- Set capacity once the room is confirmed: change `hackeaConfig.capacity` **and** `UPDATE events SET capacity = N WHERE id = 'hackea-tu-mente-2026-10-29'` on prod — `ensureHackeaEvent` never updates an existing row, and the webhook reads capacity from the row.

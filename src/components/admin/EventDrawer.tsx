@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import WhatsAppLink from "./WhatsAppLink";
 
 interface EventDetail {
   event: {
@@ -20,6 +21,7 @@ interface EventDetail {
     waitlist: number;
     used: number;
     cancelled: number;
+    pending: number;
     total: number;
   };
   timeline: { day: string; count: number; cumulative: number }[];
@@ -35,6 +37,9 @@ interface EventDetail {
     personId: number;
     personName: string;
     personEmail: string | null;
+    personPhone: string | null;
+    /** metadata.contact snapshot when the flow stores one, else the person. */
+    contact: { name: string; phone: string | null; email: string | null };
     role: string;
     status: string;
     createdAt: string;
@@ -52,6 +57,13 @@ interface EventDetail {
     avgCents: number;
     maxCents: number;
   }[];
+  /** Only for `type === "hackea"`; revenue counts confirmed/used only. */
+  hackea: {
+    paid: number;
+    pendingLeads: number;
+    revenueCents: number;
+    currency: string;
+  } | null;
 }
 
 // Statuses where it makes sense to toggle attendance from the drawer.
@@ -285,8 +297,13 @@ export default function EventDrawer({
               />
             )}
 
-            {/* Contributions (BROTE tickets, Sinergia donations, etc.) */}
-            {data.contributions.length > 0 && (
+            {data.event.type === "hackea" && data.hackea && (
+              <HackeaSalesSummary summary={data.hackea} />
+            )}
+
+            {/* Contributions (BROTE tickets, Sinergia donations, etc.).
+                Hackeá tu mente has its own sales block above. */}
+            {data.event.type !== "hackea" && data.contributions.length > 0 && (
               <section className="rounded-xl border border-sage/20 bg-white p-4">
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-charcoal/60">
                   Aportes recaudados
@@ -422,20 +439,34 @@ export default function EventDrawer({
                       <li key={p.participationId} className="px-4 py-3">
                         <div className="flex items-center justify-between gap-4">
                         <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-forest">
-                            {p.personName}
+                          <p className="flex items-center gap-2 truncate font-medium text-forest">
+                            <span className="truncate">{p.contact.name}</span>
+                            {data.event.type === "hackea" && (
+                              <HackeaStatusChip status={p.status} />
+                            )}
                           </p>
+                          {/* Email can be null (phone-only people); the
+                              WhatsApp number is the default channel. */}
                           <p className="truncate text-[10px] text-charcoal/50">
-                            {p.personEmail ?? "—"}
+                            {p.contact.email ?? "sin email"}
+                            {p.contact.phone && (
+                              <>
+                                {" · "}
+                                <WhatsAppLink phone={p.contact.phone} />
+                              </>
+                            )}
                           </p>
                           {attended && p.usedAt && (
                             <p className="mt-0.5 text-[10px] text-forest/70">
                               Asistió {formatDateTimeArg(p.usedAt)}
                             </p>
                           )}
+                          {/* Pending rows (unpaid checkouts) carry the
+                              price too — they haven't paid anything. */}
                           {p.priceCents != null &&
                             p.priceCents > 0 &&
-                            p.status !== "cancelled" && (
+                            p.status !== "cancelled" &&
+                            p.status !== "pending" && (
                               <p className="mt-0.5 text-[10px] text-terracotta">
                                 Aportó{" "}
                                 {formatMoney(
@@ -609,6 +640,57 @@ function SinergiaDinnerSummary({
         )}
       </p>
     </section>
+  );
+}
+
+function HackeaSalesSummary({
+  summary,
+}: {
+  summary: NonNullable<EventDetail["hackea"]>;
+}) {
+  return (
+    <section className="rounded-xl border border-sage/20 bg-white p-4">
+      <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-charcoal/60">
+        Entradas
+      </p>
+      <div className="grid grid-cols-3 gap-3">
+        <StatBox label="Pagadas" value={summary.paid} />
+        <StatBox label="Leads pendientes" value={summary.pendingLeads} />
+        <StatBox
+          label="Recaudado"
+          value={formatMoney(summary.revenueCents, summary.currency)}
+        />
+      </div>
+      <p className="mt-2 text-[11px] text-charcoal/50">
+        Leads pendientes: completaron el formulario y no terminaron el pago
+        en MercadoPago. Lo recaudado cuenta solo entradas pagadas.
+      </p>
+    </section>
+  );
+}
+
+const HACKEA_STATUS_LABELS: Record<string, string> = {
+  confirmed: "Pagada",
+  used: "Pagada",
+  pending: "Pendiente",
+  cancelled: "Cancelada",
+};
+
+function HackeaStatusChip({ status }: { status: string }) {
+  const paid = status === "confirmed" || status === "used";
+  return (
+    <span
+      className={
+        "flex-shrink-0 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider " +
+        (paid
+          ? "bg-forest/10 text-forest"
+          : status === "pending"
+            ? "bg-terracotta/10 text-terracotta"
+            : "bg-charcoal/5 text-charcoal/50")
+      }
+    >
+      {HACKEA_STATUS_LABELS[status] ?? status}
+    </span>
   );
 }
 

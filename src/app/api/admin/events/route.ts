@@ -5,6 +5,7 @@ import {
   requireAdminSession,
   scopeEventIdsClause,
 } from "@/lib/admin-api-auth";
+import { ensureHackeaEvent } from "@/lib/hackea";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,15 @@ interface EventListRow {
 export async function GET(req: Request) {
   const session = await requireAdminSession(req);
   if (session instanceof NextResponse) return session;
+
+  // Idempotent side effect (desafío pattern): the Hackeá tu mente row is
+  // otherwise only created by the first checkout, and the operator wants
+  // to see the event before the first sale. Never let it break the list.
+  try {
+    await ensureHackeaEvent();
+  } catch (err) {
+    console.error("[admin/events] ensureHackeaEvent failed", err);
+  }
 
   const url = new URL(req.url);
   const typeFilter = url.searchParams.get("type") ?? "";

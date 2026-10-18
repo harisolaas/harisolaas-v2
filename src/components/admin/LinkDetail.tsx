@@ -46,6 +46,7 @@ interface SignupRow {
   personId: number;
   personName: string;
   personEmail: string | null;
+  personPhone: string | null;
   eventId: string;
   eventName: string;
   eventType: string;
@@ -320,7 +321,7 @@ export default function LinkDetail({
                             {s.personName}
                           </Link>
                           <div className="text-[11px] text-charcoal/50">
-                            {s.personEmail ?? "—"}
+                            {s.personEmail ?? s.personPhone ?? "sin email"}
                           </div>
                         </div>
                         <div className="text-right">

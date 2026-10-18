@@ -1,5 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { phoneDigits, phoneToWaMe } from "@/lib/plant-types";
 import type {
   Event,
   NewParticipation,
@@ -30,8 +31,12 @@ export type ParticipationStatus =
   | "used";
 
 export interface RecordParticipationParams {
-  /** Primary identifier. Trimmed; CITEXT handles case-insensitive uniqueness. */
-  email: string;
+  /**
+   * Primary identifier. Trimmed; CITEXT handles case-insensitive uniqueness.
+   * Optional only when `phone` is given: the person is then matched by phone
+   * digits (see `findPersonIdByPhone`) and created with a NULL email.
+   */
+  email?: string;
   name: string;
   phone?: string;
   instagram?: string;
@@ -88,6 +93,8 @@ export class CapacityReachedError extends Error {
  * Single transactional entry point for every signup/ticket/RSVP.
  *
  * - Upserts person by email (preserves first_seen / first_touch on existing).
+ *   Without an email, matches by phone digits instead and inserts a
+ *   phone-only person when nothing matches.
  * - Enforces event capacity via row-level lock on the events row.
  * - Inserts or promotes the participation with ON CONFLICT semantics.
  *
@@ -96,15 +103,26 @@ export class CapacityReachedError extends Error {
  */
 export async function recordParticipation(
   params: RecordParticipationParams,
+  /**
+   * Run inside the caller's transaction instead of opening one. For flows
+   * that must hold a lock across their own lookup and this write (Hackeá).
+   * Omitted → behaviour unchanged: one transaction of its own.
+   */
+  outerTx?: DbTransaction,
 ): Promise<RecordParticipationResult> {
-  const email = params.email.trim();
+  const email = params.email?.trim() ?? "";
+  const phone = params.phone?.trim() ?? "";
   const name = params.name.trim();
-  if (!email) throw new Error("email required");
+  // Phone-only identity needs a real number: "+" or "-" would otherwise
+  // reduce to empty digits and match/insert garbage.
+  if (!email && phoneDigits(phone).length < 8) {
+    throw new Error("email or phone required");
+  }
   if (!name) throw new Error("name required");
 
   const status: ParticipationStatus = params.status ?? "confirmed";
 
-  return db.transaction(async (tx) => {
+  const run = async (tx: DbTransaction): Promise<RecordParticipationResult> => {
     // A cookie-provided linkSlug can reference a link that was later deleted.
     // Rather than failing the whole signup on FK violation, drop the slug
     // (and its mirror on attribution) if the target row no longer exists.
@@ -138,7 +156,17 @@ export async function recordParticipation(
 
     // 1. Upsert person. Uses the xmax trick: xmax = 0 iff this row was
     //    freshly INSERTed (ON CONFLICT DO UPDATE sets xmax to the txn id).
-    const personResult = await tx.execute<{
+    //    No email → the phone-only path, which has no unique key to
+    //    conflict on and so does its own match-or-insert.
+    const personResult = !email
+      ? await upsertPersonByPhone(tx, {
+          name,
+          phone,
+          instagram: params.instagram,
+          attribution,
+          communicationOptIns: params.communicationOptIns,
+        })
+      : await tx.execute<{
       id: number;
       was_inserted: boolean;
     }>(sql`
@@ -295,7 +323,9 @@ export async function recordParticipation(
       promoted: false,
       personCreated: personCreated && created,
     };
-  });
+  };
+
+  return outerTx ? run(outerTx) : db.transaction(run);
 }
 
 export interface AddCompanionTicketsParams {
@@ -693,6 +723,175 @@ function toPgArrayLiteral(values: readonly string[]): string {
  * it referenced.
  */
 type QueryRunner = Pick<typeof db, "execute">;
+
+/**
+ * Digit strings an existing `people.phone` may reduce to for this number.
+ *
+ * Phones are stored as the user typed them (Sinergia, plant) or normalized
+ * to `+549…` (Hackeá), so one WhatsApp number shows up as `5491122334455`
+ * or `1122334455` once separators are stripped. Comparing against the
+ * internationalized digits, the raw digits and — for an AR number — every
+ * spelling of its 10-digit national form covers both directions:
+ * `549N`, `54N` (no mobile 9), `N`, `0N` (trunk prefix) and, for Buenos
+ * Aires, the legacy mobile `15` forms (`01115…`, `1115…`, `541115…`);
+ * plus the `0054`/`00549` international-dialling spellings.
+ *
+ * Only the 11 area gets the `15` form: AR area codes are prefix-free, so
+ * `0 11 15 xxxxxxxx` can only be that one number, while for 3–4 digit
+ * areas we'd have to guess where the area ends — and a wrong guess could
+ * match somebody else. A missed match is a duplicate person; a false one
+ * merges two people, so we only add spellings that can't collide.
+ */
+export function phoneMatchCandidates(phone: string): string[] {
+  const waMe = phoneToWaMe(phone);
+  const raw = phoneDigits(phone.trim());
+  const out = new Set([waMe, raw]);
+  const national = arNationalNumber(phone);
+  if (national) {
+    out.add(`549${national}`);
+    out.add(`54${national}`);
+    out.add(national);
+    out.add(`0${national}`);
+    out.add(`0054${national}`);
+    out.add(`00549${national}`);
+    if (national.startsWith("11")) {
+      const sub = national.slice(2);
+      out.add(`01115${sub}`);
+      out.add(`1115${sub}`);
+      out.add(`541115${sub}`);
+    }
+  }
+  return [...out].filter((d) => d.length > 0);
+}
+
+/**
+ * The 10-digit AR national number (area + subscriber, no 0 / 15 / 54 / 9)
+ * when the input unambiguously spells one, else null.
+ */
+function arNationalNumber(phone: string): string | null {
+  const trimmed = phone.trim();
+  let d = phoneDigits(trimmed);
+  // `00` is the international dialling prefix, same as `+` — only for 54,
+  // so other countries' `00…` spellings keep their current lock key.
+  const dialled = d.startsWith("0054");
+  if (dialled) d = d.slice(2);
+  if (d.length === 13 && d.startsWith("549")) return d.slice(3);
+  if (d.length === 12 && d.startsWith("54")) return d.slice(2);
+  // `+54 11 15 xxxxxxxx`: the mobile 15 after the 11 area (see above).
+  if (d.length === 14 && d.startsWith("541115")) return `11${d.slice(6)}`;
+  if (dialled || trimmed.startsWith("+")) return null; // another country code
+  if (d.length === 13 && d.startsWith("01115")) return `11${d.slice(5)}`;
+  if (d.length === 12 && d.startsWith("1115")) return `11${d.slice(4)}`;
+  if (d.length === 11 && d.startsWith("0")) return d.slice(1);
+  if (d.length === 10 && !d.startsWith("0")) return d;
+  return null;
+}
+
+/**
+ * Canonical digits for one number — what the advisory lock keys on, so
+ * `11 1234-5678` and `+54 9 11 1234-5678` serialize against each other.
+ * Hackeá's `normalizeArPhone` stores `+` + this, so the two can't drift.
+ */
+export function canonicalPhoneDigits(phone: string): string {
+  const national = arNationalNumber(phone);
+  return national ? `549${national}` : phoneToWaMe(phone);
+}
+
+/** Transaction handle as drizzle passes it to `db.transaction`. */
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Transaction-scoped advisory lock on a phone number. Re-entrant within
+ * one transaction, so a caller holding it can still go through
+ * `recordParticipation`'s phone path (which takes it too).
+ */
+export async function lockPhoneNumber(
+  tx: QueryRunner,
+  phone: string,
+): Promise<void> {
+  const lockKey = `people-phone:${canonicalPhoneDigits(phone)}`;
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+}
+
+/**
+ * Oldest person whose phone reduces to the same number, or null. Exported
+ * for flows that key on WhatsApp first (Hackeá) and need to know who a
+ * number belongs to before deciding how to write.
+ */
+export async function findPersonIdByPhone(
+  runner: QueryRunner,
+  phone: string,
+): Promise<number | null> {
+  const candidates = phoneMatchCandidates(phone);
+  if (candidates.length === 0) return null;
+  const res = await runner.execute<{ id: number }>(sql`
+    SELECT id FROM people
+    WHERE phone IS NOT NULL
+      AND regexp_replace(phone, '\\D', '', 'g') IN (${sql.join(
+        candidates.map((c) => sql`${c}`),
+        sql`, `,
+      )})
+    ORDER BY id
+    LIMIT 1
+  `);
+  const row = res.rows?.[0];
+  return row ? Number(row.id) : null;
+}
+
+/**
+ * Phone-only counterpart of the email upsert in `recordParticipation`.
+ * `people.phone` has no unique index, so two concurrent signups for one
+ * number would both miss the lookup and insert twice; the transaction-scoped
+ * advisory lock on the number serializes them. Same stickiness rules as the
+ * email path: an existing name/phone/instagram is never overwritten.
+ */
+async function upsertPersonByPhone(
+  tx: QueryRunner,
+  params: {
+    name: string;
+    phone: string;
+    instagram?: string;
+    attribution?: AttributionTouch;
+    communicationOptIns?: string[];
+  },
+): Promise<{ rows: { id: number; was_inserted: boolean }[] }> {
+  await lockPhoneNumber(tx, params.phone);
+
+  const existingId = await findPersonIdByPhone(tx, params.phone);
+  if (existingId != null) {
+    const res = await tx.execute<{ id: number; was_inserted: boolean }>(sql`
+      UPDATE people SET
+        name = CASE
+          WHEN (name IS NULL OR name = '' OR name = 'Asistente')
+            THEN ${params.name}
+          ELSE name
+        END,
+        instagram = COALESCE(instagram, ${params.instagram ?? null}),
+        updated_at = NOW()
+      WHERE id = ${existingId}
+      RETURNING id, false AS was_inserted
+    `);
+    return { rows: res.rows ?? [] };
+  }
+
+  const res = await tx.execute<{ id: number; was_inserted: boolean }>(sql`
+    INSERT INTO people (email, name, phone, instagram, first_touch, communication_opt_ins)
+    VALUES (
+      NULL,
+      ${params.name},
+      ${params.phone},
+      ${params.instagram ?? null},
+      ${params.attribution ? JSON.stringify(params.attribution) : null}::jsonb,
+      ${
+        params.communicationOptIns
+          ? sql`${toPgArrayLiteral(params.communicationOptIns)}::text[]`
+          : sql`ARRAY['email:transactional','email:marketing']::text[]`
+      }
+    )
+    RETURNING id, true AS was_inserted
+  `);
+  return { rows: res.rows ?? [] };
+}
 
 async function sanitizeAttribution(
   runner: QueryRunner,

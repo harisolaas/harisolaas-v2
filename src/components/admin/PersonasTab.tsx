@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PersonDrawer from "./PersonDrawer";
+import WhatsAppLink from "./WhatsAppLink";
 
 interface Persona {
   id: number;
   email: string | null;
+  phone: string | null;
   name: string;
   firstSeen: string;
   firstTouch: Record<string, unknown> | null;
@@ -23,6 +25,7 @@ interface Persona {
     brote: boolean;
     plant: boolean;
     sinergiaCount: number;
+    hackea: boolean;
   };
 }
 
@@ -100,7 +103,7 @@ export default function PersonasTab() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nombre o email"
+          placeholder="Buscar por nombre, email o WhatsApp"
           className="flex-1 min-w-60 rounded-lg border border-sage/30 bg-white px-3 py-1.5 text-sm text-charcoal placeholder-charcoal/30"
         />
         <select
@@ -154,7 +157,7 @@ export default function PersonasTab() {
             <thead className="bg-sage/10 text-xs uppercase tracking-wider text-charcoal/60">
               <tr>
                 <th className="px-4 py-3 text-left">Nombre</th>
-                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Contacto</th>
                 <th className="px-4 py-3 text-left">Eventos</th>
                 <th className="px-4 py-3 text-left">Primera fuente</th>
                 <th className="px-4 py-3 text-left">Tags</th>
@@ -172,7 +175,15 @@ export default function PersonasTab() {
                     {p.name}
                   </td>
                   <td className="px-4 py-3 text-charcoal/70">
-                    {p.email ?? <span className="text-charcoal/30">—</span>}
+                    {/* Phone-only people (Hackeá tu mente) have no
+                        email: the WhatsApp number is how to reach them. */}
+                    {p.email ? (
+                      p.email
+                    ) : p.phone ? (
+                      <WhatsAppLink phone={p.phone} />
+                    ) : (
+                      <span className="text-charcoal/30">sin email</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <EventChips summary={p.eventSummary} />
@@ -228,6 +239,7 @@ function EventChips({ summary }: { summary: Persona["eventSummary"] }) {
   const chips: string[] = [];
   if (summary.brote) chips.push("BROTE");
   if (summary.plant) chips.push("Plantación");
+  if (summary.hackea) chips.push("Hackeá tu mente");
   if (summary.sinergiaCount > 0) {
     chips.push(
       summary.sinergiaCount === 1
