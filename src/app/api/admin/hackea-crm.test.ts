@@ -16,6 +16,7 @@ const NAME_PREFIX = "D1CRM Test";
 const PHONE_PAID = "+5491190017701";
 const PHONE_LEAD = "+5491190017702";
 const EMAIL_PAID = "d1crm-paid@example.com";
+const EMAIL_ONLY = "d1crm-email-only@example.com";
 const PRICE = 2_130_000;
 
 vi.mock("@/data/hackea", async (orig) => {
@@ -46,7 +47,9 @@ vi.mock("@/lib/admin-api-auth", async (importOriginal) => {
 
 const { GET: listPeople } = await import("./people/route");
 const { GET: searchPeople } = await import("./people/search/route");
-const { GET: personDetail } = await import("./people/[id]/route");
+const { GET: personDetail, PATCH: patchPerson } = await import(
+  "./people/[id]/route"
+);
 const { GET: eventDetail } = await import("./events/[id]/route");
 const { GET: listEvents } = await import("./events/route");
 const { GET: community } = await import("./community/route");
@@ -59,16 +62,22 @@ async function sweep() {
   );
 }
 
-const ids: { phoneOnly: number; withEmail: number; lead: number } = {
+const ids: {
+  phoneOnly: number;
+  withEmail: number;
+  lead: number;
+  emailOnly: number;
+} = {
   phoneOnly: 0,
   withEmail: 0,
   lead: 0,
+  emailOnly: 0,
 };
 
 async function insertPerson(
   name: string,
   email: string | null,
-  phone: string,
+  phone: string | null,
 ): Promise<number> {
   const res = await db.execute<{ id: number }>(sql`
     INSERT INTO people (name, email, phone)
@@ -103,6 +112,7 @@ beforeAll(async () => {
   ids.phoneOnly = await insertPerson(`${NAME_PREFIX} Solo Tel`, null, PHONE_PAID);
   ids.withEmail = await insertPerson(`${NAME_PREFIX} Con Mail`, EMAIL_PAID, "+5491190017703");
   ids.lead = await insertPerson(`${NAME_PREFIX} Lead`, null, PHONE_LEAD);
+  ids.emailOnly = await insertPerson(`${NAME_PREFIX} Solo Mail`, EMAIL_ONLY, null);
   // The contact snapshot differs from the person row on purpose: the
   // drawer must show what the buyer typed on this flow.
   await insertParticipation("HTM-D1CRM001", ids.phoneOnly, "confirmed", {
@@ -147,14 +157,19 @@ describe("Personas with null email", () => {
     expect(found).not.toContain(ids.lead);
   });
 
-  it("search endpoint finds a stored +549 number from the local form", async () => {
-    const res = await searchPeople(
-      req(`/api/admin/people/search?q=${encodeURIComponent("1190017702")}`),
-    );
-    const body = await res.json();
-    const found = body.people.map((x: { id: number }) => Number(x.id));
-    expect(found).toEqual([ids.lead]);
-  });
+  // Spelled with spaces/dashes/011 15 so a plain `phone ILIKE` can't
+  // match — only the digit clause finds the stored +549 form.
+  it.each(["11 9001-7702", "011 15 9001-7702"])(
+    "search endpoint finds a stored +549 number from the local form %s",
+    async (q) => {
+      const res = await searchPeople(
+        req(`/api/admin/people/search?q=${encodeURIComponent(q)}`),
+      );
+      const body = await res.json();
+      const found = body.people.map((x: { id: number }) => Number(x.id));
+      expect(found).toEqual([ids.lead]);
+    },
+  );
 
   it("only phone-shaped queries become digit searches", () => {
     expect(phoneSearchFragments("Sala 9001")).toEqual([]);
@@ -181,6 +196,54 @@ describe("Personas with null email", () => {
       (x: { id: number }) => Number(x.id) === ids.phoneOnly,
     );
     expect(p).toMatchObject({ email: null, phone: PHONE_PAID });
+  });
+});
+
+describe("PATCH /api/admin/people/:id contact fields", () => {
+  const patch = (id: number, body: unknown) =>
+    patchPerson(
+      new Request(`http://localhost/api/admin/people/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id: String(id) }) },
+    );
+  const row = async (id: number) =>
+    (
+      await db.execute<{ email: string | null; phone: string | null }>(
+        sql`SELECT email, phone FROM people WHERE id = ${id}`,
+      )
+    ).rows[0];
+
+  it("blank email on an email-only person → 400, row unchanged", async () => {
+    const res = await patch(ids.emailOnly, { email: "  " });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/contacto/);
+    expect(await row(ids.emailOnly)).toMatchObject({ email: EMAIL_ONLY });
+  });
+
+  it("clearing the only phone of an email-less person → 400", async () => {
+    const res = await patch(ids.lead, { phone: null });
+    expect(res.status).toBe(400);
+    expect(await row(ids.lead)).toMatchObject({ phone: PHONE_LEAD });
+  });
+
+  it("blank email on a person with phone → 200, email NULL", async () => {
+    const tmp = await insertPerson(
+      `${NAME_PREFIX} Mail Borrable`,
+      "d1crm-erasable@example.com",
+      "+5491190017704",
+    );
+    const res = await patch(tmp, { email: "" });
+    expect(res.status).toBe(200);
+    expect((await res.json()).person.email).toBeNull();
+    expect(await row(tmp)).toMatchObject({ email: null });
+  });
+
+  it("non-string email / phone → 400, row unchanged", async () => {
+    expect((await patch(ids.withEmail, { email: 42 })).status).toBe(400);
+    expect((await patch(ids.withEmail, { phone: { n: 1 } })).status).toBe(400);
+    expect(await row(ids.withEmail)).toMatchObject({ email: EMAIL_PAID });
   });
 });
 
