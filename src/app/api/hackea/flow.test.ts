@@ -122,8 +122,18 @@ async function sweep() {
   `);
   await db.execute(sql`DELETE FROM events WHERE id = ${EVENT}`);
 }
-beforeAll(sweep);
-afterAll(sweep);
+// Sales close at hackeaConfig.startIso: freeze Date (only Date — the DB
+// driver's timers stay real) before any setup checkout, nested beforeAll
+// included, so the suite doesn't turn into 410s once the talk has passed.
+beforeAll(async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T12:00:00-03:00"));
+  await sweep();
+});
+afterAll(async () => {
+  await sweep();
+  vi.useRealTimers();
+});
 
 beforeEach(() => {
   sent.length = 0;

@@ -100,6 +100,11 @@ function prefBody() {
 }
 
 beforeEach(() => {
+  // Sales close at hackeaConfig.startIso: without a frozen clock every case
+  // below would start answering 410 once the real date passes the talk.
+  // Boundary tests re-set it; afterEach restores real timers.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T12:00:00-03:00"));
   preferenceCreate.mockClear();
   createHackeaLead.mockClear();
   sendMetaEvent.mockClear();

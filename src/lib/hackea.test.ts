@@ -482,6 +482,69 @@ describe("confirmHackeaPayment", () => {
     expect(again.participant?.phone).toBe("+5491100000110");
   });
 
+  it("keeps a cancelled paid entrada cancelled on a redelivery", async () => {
+    const lead = await createHackeaLead({
+      name: N("cancelada"),
+      phone: "+5491100000190",
+      eventId: EVT_OPEN,
+    });
+    const args = {
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-190",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    };
+    expect((await confirmHackeaPayment(args)).outcome).toBe("confirmed");
+    // The drawer's "No vendrá".
+    await db.execute(sql`
+      UPDATE participations SET status = 'cancelled'
+      WHERE id = ${lead.participationId}
+    `);
+
+    expect((await confirmHackeaPayment(args)).outcome).toBe("already");
+    const second = await confirmHackeaPayment({
+      ...args,
+      paymentId: "hackea-test-pay-191",
+    });
+    expect(second.outcome).toBe("already");
+
+    const row = await participation(lead.participationId);
+    expect(row.status).toBe("cancelled");
+    expect(row.external_payment_id).toBe("hackea-test-pay-190");
+  });
+
+  it("a resubmit after the payment landed sees confirmed and keeps the snapshot", async () => {
+    const lead = await createHackeaLead({
+      name: N("pagó"),
+      phone: "+5491100000192",
+      eventId: EVT_OPEN,
+    });
+    await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-192",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    const again = await createHackeaLead({
+      name: N("pagó otra vez"),
+      phone: "+5491100000192",
+      email: E("pago-otra"),
+      eventId: EVT_OPEN,
+    });
+    expect(again).toMatchObject({
+      participationId: lead.participationId,
+      status: "confirmed",
+      created: false,
+    });
+    const res = await db.execute<{ contact: { name: string } }>(sql`
+      SELECT metadata->'contact' AS contact FROM participations
+      WHERE id = ${lead.participationId}
+    `);
+    expect(res.rows[0].contact.name).toBe(N("pagó"));
+  });
+
   it("returns not_found for an unknown participation", async () => {
     const res = await confirmHackeaPayment({
       participationId: "HTM-NOPE0000",
