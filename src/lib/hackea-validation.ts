@@ -16,6 +16,18 @@ export type HackeaValidation =
   | { ok: true; value: HackeaLeadInput }
   | { ok: false; errors: HackeaField[] };
 
+/**
+ * Upper bounds, in characters after trimming. The landing sets the same
+ * values as `maxLength` on its inputs. Email: RFC 5321's 254. Phone: the
+ * digit count is already capped at 15; this bounds the separators around
+ * them so a padded string can't reach the DB.
+ */
+export const HACKEA_MAX_LENGTH: Record<HackeaField, number> = {
+  name: 120,
+  phone: 40,
+  email: 254,
+};
+
 const asTrimmed = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 /**
@@ -33,9 +45,13 @@ export function validateHackeaLead(raw: {
   const email = asTrimmed(raw.email);
 
   const errors: HackeaField[] = [];
-  if (!name) errors.push("name");
-  if (!isValidWhatsApp(phone)) errors.push("phone");
-  if (email && !isValidEmail(email)) errors.push("email");
+  if (!name || name.length > HACKEA_MAX_LENGTH.name) errors.push("name");
+  if (phone.length > HACKEA_MAX_LENGTH.phone || !isValidWhatsApp(phone)) {
+    errors.push("phone");
+  }
+  if (email && (email.length > HACKEA_MAX_LENGTH.email || !isValidEmail(email))) {
+    errors.push("email");
+  }
 
   if (errors.length > 0) return { ok: false, errors };
   return { ok: true, value: email ? { name, phone, email } : { name, phone } };
