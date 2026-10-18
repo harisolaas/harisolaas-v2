@@ -93,7 +93,10 @@ const dbExecute = vi.fn(async (q: { queryChunks?: unknown[] }) => {
   }
   if (text.includes("'refund'")) {
     const [status, paymentId, at] = params as [string, string, string];
-    if (meta) meta.refund = { status, paymentId, at };
+    // Honour the route's guard: only while the row still holds the payment.
+    const guarded = text.includes("AND external_payment_id =");
+    const heldNow = deliveryRow?.external_payment_id === params[params.length - 1];
+    if (meta && (!guarded || heldNow)) meta.refund = { status, paymentId, at };
     return { rows: [] };
   }
   if (text.includes("FROM participations WHERE id")) {
@@ -285,6 +288,16 @@ describe("POST /api/hackea/webhook", () => {
 
     await POST(signed());
     expect(sendMetaEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it("CAPI Purchase event_id is per payment, so a repurchase on the same row isn't deduped", async () => {
+    stash();
+    await POST(signed());
+    expect(sendMetaEvent).toHaveBeenCalledTimes(1);
+    expect(sendMetaEvent.mock.calls[0][0]).toMatchObject({
+      event_name: "Purchase",
+      event_id: `hackea-purchase-${PID}-${PAY}`,
+    });
   });
 
   it("host mail shows what MP charged, not the list price", async () => {
@@ -531,6 +544,23 @@ describe("POST /api/hackea/webhook", () => {
         expect(emailsSend).not.toHaveBeenCalled();
       },
     );
+
+    it("a late refund of an old payment doesn't overwrite a newer purchase's refund", async () => {
+      // The row was repurchased with a newer payment, itself refunded. The
+      // read snapshot is stale (taken before the repurchase landed), so the
+      // old payment still looks primary: only the UPDATE's guard stops it.
+      const newerRefund = { status: "refunded", paymentId: "999", at: "x" };
+      deliveryRow = {
+        status: "confirmed",
+        external_payment_id: "999",
+        metadata: { refund: { ...newerRefund } },
+      };
+      const stale = { status: "confirmed", external_payment_id: PAY, metadata: {} };
+      dbExecute.mockImplementationOnce(async () => ({ rows: [stale] }));
+      paymentGet.mockResolvedValue(payment({ status: "refunded" }));
+      expect((await POST(signed())).status).toBe(200);
+      expect(deliveryRow.metadata.refund).toEqual(newerRefund);
+    });
 
     it("refund alert that fails answers 500 so MP retries it", async () => {
       paymentGet.mockResolvedValue(payment({ status: "refunded" }));

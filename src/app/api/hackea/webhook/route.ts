@@ -302,6 +302,9 @@ async function handleReversal(
         ),
         updated_at = NOW()
       WHERE id = ${params.participationId}
+        -- Only while the row still holds this payment: a late redelivery
+        -- of an old refund must not overwrite a newer purchase's refund.
+        AND external_payment_id = ${params.mpPaymentId}
     `);
   }
 
@@ -355,7 +358,9 @@ async function sendPurchaseOnce(
   if (!claimed) return;
   sendMetaEvent({
     event_name: "Purchase",
-    event_id: `hackea-purchase-${params.participationId}`,
+    // Per payment, not per row: a repurchase after a refund is a new
+    // Purchase and must not be deduped against the first one.
+    event_id: `hackea-purchase-${params.participationId}-${params.mpPaymentId}`,
     event_source_url: `https://www.harisolaas.com${hackeaConfig.landingPath}`,
     user_data: {
       client_ip_address: stash.ip || undefined,

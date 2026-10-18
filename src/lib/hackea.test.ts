@@ -734,6 +734,46 @@ describe("confirmHackeaPayment", () => {
     expect(row.external_payment_id).toBeNull();
     expect(row.metadata.overflowPaymentId).toBe("hackea-test-pay-113");
   });
+
+  it("a refunded entrada in a full event repurchases into its own seat", async () => {
+    // Capacity 1, filled by this very row. The webhook never cancels on a
+    // refund, so the row is still `confirmed` when the repurchase lands —
+    // the capacity count must not count it against itself.
+    const lead = await createHackeaLead({
+      name: N("lleno-reintegro"),
+      phone: "+5491100000114",
+      eventId: EVT_CAPPED,
+    });
+    const first = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-114",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_CAPPED,
+    });
+    expect(first.outcome).toBe("confirmed");
+    await db.execute(sql`
+      UPDATE participations SET
+        metadata = metadata || jsonb_build_object(
+          'refund', jsonb_build_object('status', 'refunded', 'paymentId', 'hackea-test-pay-114')
+        )
+      WHERE id = ${lead.participationId}
+    `);
+    expect((await participation(lead.participationId)).status).toBe("confirmed");
+
+    const again = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-115",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_CAPPED,
+    });
+    expect(again.outcome).toBe("confirmed");
+    const row = await participation(lead.participationId);
+    expect(row.status).toBe("confirmed");
+    expect(row.external_payment_id).toBe("hackea-test-pay-115");
+    expect(row.metadata.overflowPaymentId).toBeUndefined();
+  });
 });
 
 describe("markHackeaFlag", () => {
