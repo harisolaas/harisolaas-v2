@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import { db, schema } from "@/db";
-import { recordParticipation } from "./community";
+import { findPersonIdByPhone, recordParticipation } from "./community";
 import {
   confirmHackeaPayment,
   createHackeaLead,
@@ -61,8 +61,29 @@ beforeAll(async () => {
   ]);
 });
 
+// ensureHackeaEvent writes the REAL event row. Only remove it afterwards if
+// this suite is the one that created it — on a branch where the admin or the
+// seeder already made it, it stays.
+let realEventExisted = true;
+
+beforeAll(async () => {
+  const res = await db.execute<{ id: string }>(
+    sql`SELECT id FROM events WHERE id = ${hackeaConfig.eventId}`,
+  );
+  realEventExisted = (res.rows?.length ?? 0) > 0;
+});
+
 afterAll(async () => {
   await sweep();
+  if (!realEventExisted) {
+    await db.execute(sql`
+      DELETE FROM events
+      WHERE id = ${hackeaConfig.eventId}
+        AND NOT EXISTS (
+          SELECT 1 FROM participations WHERE event_id = ${hackeaConfig.eventId}
+        )
+    `);
+  }
 });
 
 beforeEach(async () => {
@@ -129,6 +150,21 @@ describe("recordParticipation phone-only", () => {
         role: "attendee",
       }),
     ).rejects.toThrow("email or phone required");
+  });
+
+  it("rejects a phone with fewer than 8 digits when there is no email", async () => {
+    for (const junk of ["+", " - ", "1234567"]) {
+      await expect(
+        recordParticipation({
+          name: N("junk"),
+          phone: junk,
+          eventId: EVT_OPEN,
+          participationId: "hackea-test-pjunk",
+          role: "attendee",
+          status: "pending",
+        }),
+      ).rejects.toThrow("email or phone required");
+    }
   });
 
   it("creates a person with a null email", async () => {
@@ -475,10 +511,303 @@ describe("markHackeaFlag", () => {
     await markHackeaFlag(lead.participationId, "buyerEmailSent");
     await markHackeaFlag(lead.participationId, "hostNotified");
     const row = await participation(lead.participationId);
-    expect(row.metadata).toEqual({
+    expect(row.metadata).toMatchObject({
       keep: "me",
       buyerEmailSent: true,
       hostNotified: true,
     });
+  });
+});
+
+// ============================================================
+// Phone matching variants
+// ============================================================
+
+describe("findPersonIdByPhone variants", () => {
+  async function phoneOnly(tag: string, phone: string) {
+    const res = await recordParticipation({
+      name: N(tag),
+      phone,
+      eventId: EVT_OPEN,
+      participationId: `hackea-test-v-${tag}`,
+      role: "attendee",
+      status: "pending",
+    });
+    return res.personId;
+  }
+
+  it("matches +54 without the mobile 9", async () => {
+    const id = await phoneOnly("v1", "+54 11 0000-0201");
+    expect(await findPersonIdByPhone(db, "11 0000-0201")).toBe(id);
+    expect(await findPersonIdByPhone(db, "+5491100000201")).toBe(id);
+  });
+
+  it("matches the 011 15 form in both directions", async () => {
+    const stored15 = await phoneOnly("v2", "011 15 0000-0202");
+    expect(await findPersonIdByPhone(db, "+54 9 11 0000-0202")).toBe(stored15);
+    const storedIntl = await phoneOnly("v3", "+5491100000203");
+    expect(await findPersonIdByPhone(db, "011 15 0000-0203")).toBe(storedIntl);
+    expect(await findPersonIdByPhone(db, "011 0000-0203")).toBe(storedIntl);
+  });
+
+  it("matches on the raw digits as typed", async () => {
+    const id = await phoneOnly("v4", "(11) 0000.0204");
+    expect(await findPersonIdByPhone(db, "1100000204")).toBe(id);
+  });
+
+  it("does not match a different number", async () => {
+    await phoneOnly("v5", "+54 9 11 0000-0205");
+    expect(await findPersonIdByPhone(db, "11 0000-0206")).toBeNull();
+    expect(await findPersonIdByPhone(db, "011 15 0000-0206")).toBeNull();
+    expect(await findPersonIdByPhone(db, "+54 11 0000-0206")).toBeNull();
+  });
+});
+
+// ============================================================
+// Contact snapshot + per-event dedupe
+// ============================================================
+
+async function eventLeads(eventId: string) {
+  const res = await db.execute<{ id: string; person_id: number }>(sql`
+    SELECT id, person_id FROM participations WHERE event_id = ${eventId}
+  `);
+  return res.rows;
+}
+
+async function peopleNamed(prefix: string) {
+  const res = await db.execute<{ n: number }>(sql`
+    SELECT COUNT(*)::int AS n FROM people WHERE name LIKE ${`${prefix}%`}
+  `);
+  return Number(res.rows[0].n);
+}
+
+describe("createHackeaLead contact snapshot", () => {
+  it("delivers to the typed WhatsApp, not a stale stored one, and dedupes on it", async () => {
+    // Known by email from another flow, with an older number.
+    await recordParticipation({
+      email: E("olga"),
+      name: N("olga"),
+      phone: "+5491100000301",
+      eventId: EVT_CAPPED,
+      participationId: "hackea-test-p-olga",
+      role: "attendee",
+      status: "pending",
+    });
+    const lead = await createHackeaLead({
+      name: N("olga"),
+      phone: "11 0000-0302",
+      email: E("olga"),
+      eventId: EVT_OPEN,
+    });
+    const row = await participation(lead.participationId);
+    expect(row.metadata.contact).toEqual({
+      name: N("olga"),
+      phone: "+5491100000302",
+      email: E("olga"),
+    });
+    // The person row keeps what the other flow stored.
+    expect((await personById(Number(row.person_id))).phone).toBe("+5491100000301");
+
+    const paid = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-302",
+      amountCents: hackeaConfig.ticketPriceCents,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(paid.participant?.phone).toBe("+5491100000302");
+
+    // Same WhatsApp alone → the paid lead (caller answers 409), no new person.
+    const again = await createHackeaLead({
+      name: N("olga"),
+      phone: "+54 9 11 0000-0302",
+      eventId: EVT_OPEN,
+    });
+    expect(again.participationId).toBe(lead.participationId);
+    expect(again.status).toBe("confirmed");
+    expect(again.created).toBe(false);
+    expect(await eventLeads(EVT_OPEN)).toHaveLength(1);
+    expect(await peopleNamed(N("olga"))).toBe(1);
+  });
+
+  it("delivers to a typed email that belongs to another person row", async () => {
+    await recordParticipation({
+      name: N("pato"),
+      phone: "+5491100000303",
+      eventId: EVT_CAPPED,
+      participationId: "hackea-test-p-pato",
+      role: "attendee",
+      status: "pending",
+    });
+    await recordParticipation({
+      email: E("pato-mail"),
+      name: N("pato-mail"),
+      eventId: EVT_CAPPED,
+      participationId: "hackea-test-p-pato-mail",
+      role: "attendee",
+      status: "pending",
+    });
+    const lead = await createHackeaLead({
+      name: N("pato"),
+      phone: "+5491100000303",
+      email: E("pato-mail"),
+      eventId: EVT_OPEN,
+    });
+    const res = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-303",
+      amountCents: hackeaConfig.ticketPriceCents,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(res.participant).toEqual({
+      id: lead.participationId,
+      name: N("pato"),
+      phone: "+5491100000303",
+      email: E("pato-mail"),
+    });
+  });
+
+  it("refreshes the snapshot when a pending lead is resubmitted", async () => {
+    const a = await createHackeaLead({
+      name: N("quique"),
+      phone: "+5491100000304",
+      eventId: EVT_OPEN,
+    });
+    const b = await createHackeaLead({
+      name: N("quique-nuevo"),
+      phone: "11 0000-0304",
+      email: E("quique"),
+      eventId: EVT_OPEN,
+    });
+    expect(b.participationId).toBe(a.participationId);
+    expect((await participation(a.participationId)).metadata.contact).toEqual({
+      name: N("quique-nuevo"),
+      phone: "+5491100000304",
+      email: E("quique"),
+    });
+  });
+
+  it("dedupes on the email (case-insensitive) when the WhatsApp changed", async () => {
+    const a = await createHackeaLead({
+      name: N("rita"),
+      phone: "+5491100000305",
+      email: E("rita"),
+      eventId: EVT_OPEN,
+    });
+    const b = await createHackeaLead({
+      name: N("rita"),
+      phone: "+5491100000306",
+      email: "Hackea-Test-Rita@Example.com",
+      eventId: EVT_OPEN,
+    });
+    expect(b.participationId).toBe(a.participationId);
+    expect(await eventLeads(EVT_OPEN)).toHaveLength(1);
+  });
+
+  it("prefers the phone match over the email match", async () => {
+    const byPhone = await createHackeaLead({
+      name: N("sofi"),
+      phone: "+5491100000307",
+      eventId: EVT_OPEN,
+    });
+    await createHackeaLead({
+      name: N("sofi-mail"),
+      phone: "+5491100000308",
+      email: E("sofi"),
+      eventId: EVT_OPEN,
+    });
+    const c = await createHackeaLead({
+      name: N("sofi"),
+      phone: "+5491100000307",
+      email: E("sofi"),
+      eventId: EVT_OPEN,
+    });
+    expect(c.participationId).toBe(byPhone.participationId);
+  });
+
+  it("serializes concurrent submits for one new number", async () => {
+    // Open several pool connections first; otherwise the second call waits
+    // on a fresh websocket handshake and the race never actually happens.
+    await Promise.all(
+      Array.from({ length: 4 }, () =>
+        db.transaction(async (tx) => {
+          await tx.execute(sql`SELECT pg_sleep(0.2)`);
+        }),
+      ),
+    );
+    const [a, b] = await Promise.all([
+      createHackeaLead({
+        name: N("tomi"),
+        phone: "+5491100000309",
+        email: E("tomi"),
+        eventId: EVT_OPEN,
+      }),
+      createHackeaLead({
+        name: N("tomi"),
+        phone: "11 0000-0309",
+        eventId: EVT_OPEN,
+      }),
+    ]);
+    expect(a.participationId).toBe(b.participationId);
+    expect(await eventLeads(EVT_OPEN)).toHaveLength(1);
+    expect(await peopleNamed(N("tomi"))).toBe(1);
+  });
+});
+
+describe("confirmHackeaPayment extra payments", () => {
+  it("records a second distinct payment once, without overwriting the first", async () => {
+    const lead = await createHackeaLead({
+      name: N("uma"),
+      phone: "+5491100000310",
+      eventId: EVT_OPEN,
+    });
+    const base = {
+      participationId: lead.participationId,
+      amountCents: hackeaConfig.ticketPriceCents,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    };
+    await confirmHackeaPayment({ ...base, paymentId: "hackea-test-pay-310a" });
+    const second = await confirmHackeaPayment({
+      ...base,
+      paymentId: "hackea-test-pay-310b",
+    });
+    expect(second.outcome).toBe("already");
+    await confirmHackeaPayment({ ...base, paymentId: "hackea-test-pay-310b" });
+    const row = await participation(lead.participationId);
+    expect(row.external_payment_id).toBe("hackea-test-pay-310a");
+    expect(row.metadata.extraPaymentIds).toEqual(["hackea-test-pay-310b"]);
+  });
+
+  it("flags an underpaid confirmation", async () => {
+    const lead = await createHackeaLead({
+      name: N("vale"),
+      phone: "+5491100000311",
+      eventId: EVT_OPEN,
+    });
+    const low = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-311",
+      amountCents: 100,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(low.outcome).toBe("confirmed");
+    expect(low.underpaid).toBe(true);
+
+    const lead2 = await createHackeaLead({
+      name: N("walter"),
+      phone: "+5491100000312",
+      eventId: EVT_OPEN,
+    });
+    const full = await confirmHackeaPayment({
+      participationId: lead2.participationId,
+      paymentId: "hackea-test-pay-312",
+      amountCents: hackeaConfig.ticketPriceCents,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(full.underpaid).toBe(false);
   });
 });

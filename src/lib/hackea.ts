@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   findPersonIdByPhone,
+  lockPhoneNumber,
+  phoneMatchCandidates,
   recordParticipation,
   type AttributionTouch,
   type ParticipationStatus,
@@ -63,13 +65,110 @@ export interface CreateHackeaLeadResult {
 }
 
 /**
- * Persist the lead before checkout. Identity is WhatsApp-first: if the
- * number already belongs to someone, that person is reused (and gets the
- * email if they had none); otherwise the email path matches by email and
- * fills in the phone. Existing values are never overwritten.
+ * What the buyer typed on their latest submit, stored on the participation
+ * as `metadata.contact`. Delivery (buyer mail, host wa.me link) and the CRM
+ * read this, not the person row — the person may carry older data from
+ * other flows that this flow deliberately doesn't overwrite.
+ */
+export interface HackeaContact {
+  name: string;
+  /** `+549…` form (normalizeArPhone). */
+  phone: string;
+  email: string | null;
+}
+
+type Runner = Pick<typeof db, "execute">;
+
+/**
+ * This event's existing lead for the number or the email, or null.
+ * Matches on the participation's contact snapshot and on the person row;
+ * a phone match wins over an email match when they point at different
+ * rows, then paid rows before pending ones, then oldest.
+ */
+async function findEventLead(
+  tx: Runner,
+  eventId: string,
+  phone: string,
+  email: string | null,
+): Promise<{ id: string; status: ParticipationStatus; personId: number } | null> {
+  const digits = sql.join(
+    phoneMatchCandidates(phone).map((c) => sql`${c}`),
+    sql`, `,
+  );
+  const phoneHit = sql`(
+    regexp_replace(COALESCE(pa.metadata->'contact'->>'phone', ''), '\\D', '', 'g') IN (${digits})
+    OR regexp_replace(COALESCE(pe.phone, ''), '\\D', '', 'g') IN (${digits})
+  )`;
+  const emailHit = email
+    ? sql`(
+        lower(pa.metadata->'contact'->>'email') = lower(${email})
+        OR lower(pe.email) = lower(${email})
+      )`
+    : sql`false`;
+  const res = await tx.execute<{
+    id: string;
+    status: ParticipationStatus;
+    person_id: number;
+  }>(sql`
+    SELECT pa.id, pa.status, pa.person_id
+    FROM participations pa
+    JOIN people pe ON pe.id = pa.person_id
+    WHERE pa.event_id = ${eventId}
+      AND pa.role = 'attendee'
+      AND (${phoneHit} OR ${emailHit})
+    ORDER BY
+      CASE WHEN ${phoneHit} THEN 0 ELSE 1 END,
+      CASE WHEN pa.status IN ('confirmed', 'used') THEN 0 ELSE 1 END,
+      pa.created_at,
+      pa.id
+    LIMIT 1
+  `);
+  const row = res.rows?.[0];
+  return row
+    ? { id: row.id, status: row.status, personId: Number(row.person_id) }
+    : null;
+}
+
+/**
+ * Fill empty phone/email slots on the person. Never overwrites, and skips
+ * an email another person already owns (people.email is unique).
+ */
+async function fillInPerson(
+  tx: Runner,
+  personId: number,
+  phone: string,
+  email: string | null,
+): Promise<void> {
+  await tx.execute(sql`
+    UPDATE people SET
+      phone = COALESCE(phone, ${phone}),
+      email = CASE
+        WHEN email IS NULL
+          AND ${email}::text IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM people p2 WHERE p2.email = ${email})
+          THEN ${email}
+        ELSE email
+      END,
+      updated_at = NOW()
+    WHERE id = ${personId}
+  `);
+}
+
+/**
+ * Persist the lead before checkout.
  *
- * Returns the existing row when the person already has one for the event —
- * the caller answers 409 when its status is `confirmed` / `used`.
+ * One transaction holding an advisory lock on the WhatsApp number, so two
+ * submits for one number (double click, two tabs, one with email and one
+ * without) can't both miss the lookup and write two people / two leads:
+ *
+ * 1. Dedupe per event first — an existing lead whose snapshot or person
+ *    matches the number (or, failing that, the email) is reused. Its
+ *    status comes back so the caller answers 409 when it is `confirmed` /
+ *    `used`; a pending one gets its contact snapshot refreshed.
+ * 2. Otherwise resolve the person WhatsApp-first: a known number lands on
+ *    that person, else the email path matches by email. Existing person
+ *    values are never overwritten — what the buyer typed this time lives
+ *    in `metadata.contact`.
  */
 export async function createHackeaLead(
   params: CreateHackeaLeadParams,
@@ -79,50 +178,67 @@ export async function createHackeaLead(
 
   const name = params.name.trim();
   const phone = normalizeArPhone(params.phone);
-  const email = params.email?.trim() || undefined;
+  const email = params.email?.trim() || null;
+  const contact: HackeaContact = { name, phone, email };
 
-  const phonePersonId = await findPersonIdByPhone(db, phone);
+  return db.transaction(async (tx) => {
+    await lockPhoneNumber(tx, phone);
 
-  const common = {
-    name,
-    phone,
-    eventId,
-    participationId: `${HACKEA_PARTICIPATION_PREFIX}${idSuffix()}`,
-    role: "attendee",
-    status: "pending" as const,
-    attribution: params.attribution,
-    bypassLinkSlug: params.linkSlug,
-    priceCents: hackeaConfig.ticketPriceCents,
-    currency: hackeaConfig.currency,
-  };
+    const existing = await findEventLead(tx, eventId, phone, email);
+    if (existing) {
+      if (existing.status === "pending") {
+        await tx.execute(sql`
+          UPDATE participations SET
+            metadata = COALESCE(metadata, '{}'::jsonb)
+              || jsonb_build_object('contact', ${JSON.stringify(contact)}::jsonb),
+            updated_at = NOW()
+          WHERE id = ${existing.id}
+        `);
+      }
+      await fillInPerson(tx, existing.personId, phone, email);
+      return {
+        participationId: existing.id,
+        status: existing.status,
+        created: false,
+      };
+    }
 
-  // Number already known → write through the phone path so it lands on
-  // that person, then attach the email only if the slot is empty and no
-  // other person owns the address (people.email is unique).
-  const result =
-    phonePersonId != null
-      ? await recordParticipation(common)
-      : await recordParticipation({ ...common, email });
+    const phonePersonId = await findPersonIdByPhone(tx, phone);
 
-  if (phonePersonId != null && email) {
-    await db.execute(sql`
-      UPDATE people SET email = ${email}, updated_at = NOW()
-      WHERE id = ${result.personId}
-        AND email IS NULL
-        AND NOT EXISTS (SELECT 1 FROM people WHERE email = ${email})
+    const common = {
+      name,
+      phone,
+      eventId,
+      participationId: `${HACKEA_PARTICIPATION_PREFIX}${idSuffix()}`,
+      role: "attendee",
+      status: "pending" as const,
+      attribution: params.attribution,
+      bypassLinkSlug: params.linkSlug,
+      priceCents: hackeaConfig.ticketPriceCents,
+      currency: hackeaConfig.currency,
+      metadata: { contact },
+    };
+
+    // Number already known → write through the phone path so it lands on
+    // that person; otherwise the email (when given) picks the person.
+    const result =
+      phonePersonId != null || !email
+        ? await recordParticipation(common, tx)
+        : await recordParticipation({ ...common, email }, tx);
+
+    await fillInPerson(tx, result.personId, phone, email);
+
+    // Defensive: recordParticipation returns an existing (person, event)
+    // row untouched, so read the real status rather than assume pending.
+    const statusRes = await tx.execute<{ status: ParticipationStatus }>(sql`
+      SELECT status FROM participations WHERE id = ${result.participationId}
     `);
-  }
-
-  const statusRes = await db.execute<{ status: ParticipationStatus }>(sql`
-    SELECT status FROM participations WHERE id = ${result.participationId}
-  `);
-  const status = statusRes.rows?.[0]?.status ?? "pending";
-
-  return {
-    participationId: result.participationId,
-    status,
-    created: result.created,
-  };
+    return {
+      participationId: result.participationId,
+      status: statusRes.rows?.[0]?.status ?? "pending",
+      created: result.created,
+    };
+  });
 }
 
 export interface HackeaParticipant {
@@ -135,6 +251,11 @@ export interface HackeaParticipant {
 export interface ConfirmHackeaPaymentResult {
   outcome: "confirmed" | "already" | "not_found" | "capacity";
   participant?: HackeaParticipant;
+  /**
+   * The approved amount is below the configured ticket price (a tampered or
+   * stale preference). The outcome is unchanged — the caller alerts.
+   */
+  underpaid: boolean;
 }
 
 /**
@@ -155,12 +276,21 @@ export async function confirmHackeaPayment(params: {
   eventId?: string;
 }): Promise<ConfirmHackeaPaymentResult> {
   const eventId = params.eventId ?? hackeaConfig.eventId;
+  const underpaid = params.amountCents < hackeaConfig.ticketPriceCents;
+  if (underpaid) {
+    console.warn("Hackea: approved amount below ticket price", {
+      participationId: params.participationId,
+      paymentId: params.paymentId,
+      amountCents: params.amountCents,
+      expected: hackeaConfig.ticketPriceCents,
+    });
+  }
 
-  return db.transaction(async (tx) => {
+  return db.transaction(async (tx): Promise<ConfirmHackeaPaymentResult> => {
     const eventRes = await tx.execute<{ capacity: number | null }>(
       sql`SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE`,
     );
-    if (!eventRes.rows?.[0]) return { outcome: "not_found" };
+    if (!eventRes.rows?.[0]) return { outcome: "not_found", underpaid };
     const capacity = eventRes.rows[0].capacity ?? null;
 
     const rowRes = await tx.execute<{
@@ -170,22 +300,31 @@ export async function confirmHackeaPayment(params: {
       name: string;
       phone: string | null;
       email: string | null;
+      contact: Partial<HackeaContact> | null;
     }>(sql`
-      SELECT pa.id, pa.status, pa.external_payment_id, pe.name, pe.phone, pe.email
+      SELECT pa.id, pa.status, pa.external_payment_id, pe.name, pe.phone, pe.email,
+        pa.metadata->'contact' AS contact
       FROM participations pa
       JOIN people pe ON pe.id = pa.person_id
       WHERE pa.id = ${params.participationId} AND pa.event_id = ${eventId}
       FOR UPDATE OF pa
     `);
     const row = rowRes.rows?.[0];
-    if (!row) return { outcome: "not_found" };
+    if (!row) return { outcome: "not_found", underpaid };
 
-    const participant: HackeaParticipant = {
-      id: row.id,
-      name: row.name,
-      phone: row.phone,
-      email: row.email,
-    };
+    // The snapshot of what the buyer typed wins; the person row is the
+    // fallback for rows written before the snapshot existed (and per field
+    // if one is somehow missing). A snapshot email of null means the buyer
+    // left it blank — don't mail an address they didn't give this time.
+    const c = row.contact;
+    const participant: HackeaParticipant = c
+      ? {
+          id: row.id,
+          name: c.name || row.name,
+          phone: c.phone || row.phone,
+          email: "email" in c ? (c.email ?? null) : row.email,
+        }
+      : { id: row.id, name: row.name, phone: row.phone, email: row.email };
 
     if (row.status === "confirmed" || row.status === "used") {
       if (row.external_payment_id !== params.paymentId) {
@@ -210,7 +349,7 @@ export async function confirmHackeaPayment(params: {
                      ? ${params.paymentId})
         `);
       }
-      return { outcome: "already", participant };
+      return { outcome: "already", participant, underpaid };
     }
 
     if (capacity != null) {
@@ -226,7 +365,7 @@ export async function confirmHackeaPayment(params: {
             updated_at = NOW()
           WHERE id = ${row.id}
         `);
-        return { outcome: "capacity", participant };
+        return { outcome: "capacity", participant, underpaid };
       }
     }
 
@@ -239,7 +378,7 @@ export async function confirmHackeaPayment(params: {
         updated_at = NOW()
       WHERE id = ${row.id}
     `);
-    return { outcome: "confirmed", participant };
+    return { outcome: "confirmed", participant, underpaid };
   });
 }
 

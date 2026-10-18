@@ -103,16 +103,26 @@ export class CapacityReachedError extends Error {
  */
 export async function recordParticipation(
   params: RecordParticipationParams,
+  /**
+   * Run inside the caller's transaction instead of opening one. For flows
+   * that must hold a lock across their own lookup and this write (Hackeá).
+   * Omitted → behaviour unchanged: one transaction of its own.
+   */
+  outerTx?: DbTransaction,
 ): Promise<RecordParticipationResult> {
   const email = params.email?.trim() ?? "";
   const phone = params.phone?.trim() ?? "";
   const name = params.name.trim();
-  if (!email && !phone) throw new Error("email or phone required");
+  // Phone-only identity needs a real number: "+" or "-" would otherwise
+  // reduce to empty digits and match/insert garbage.
+  if (!email && phoneDigits(phone).length < 8) {
+    throw new Error("email or phone required");
+  }
   if (!name) throw new Error("name required");
 
   const status: ParticipationStatus = params.status ?? "confirmed";
 
-  return db.transaction(async (tx) => {
+  const run = async (tx: DbTransaction): Promise<RecordParticipationResult> => {
     // A cookie-provided linkSlug can reference a link that was later deleted.
     // Rather than failing the whole signup on FK violation, drop the slug
     // (and its mirror on attribution) if the target row no longer exists.
@@ -313,7 +323,9 @@ export async function recordParticipation(
       promoted: false,
       personCreated: personCreated && created,
     };
-  });
+  };
+
+  return outerTx ? run(outerTx) : db.transaction(run);
 }
 
 export interface AddCompanionTicketsParams {
@@ -718,15 +730,71 @@ type QueryRunner = Pick<typeof db, "execute">;
  * Phones are stored as the user typed them (Sinergia, plant) or normalized
  * to `+549…` (Hackeá), so one WhatsApp number shows up as `5491122334455`
  * or `1122334455` once separators are stripped. Comparing against the
- * internationalized digits, the raw digits and — for an AR mobile — the
- * 10-digit local form covers both directions.
+ * internationalized digits, the raw digits and — for an AR number — every
+ * spelling of its 10-digit national form covers both directions:
+ * `549N`, `54N` (no mobile 9), `N`, `0N` (trunk prefix) and, for Buenos
+ * Aires, `01115…` (the legacy "011 15" mobile form).
+ *
+ * Only the 11 area gets the `15` form: AR area codes are prefix-free, so
+ * `0 11 15 xxxxxxxx` can only be that one number, while for 3–4 digit
+ * areas we'd have to guess where the area ends — and a wrong guess could
+ * match somebody else. A missed match is a duplicate person; a false one
+ * merges two people, so we only add spellings that can't collide.
  */
-function phoneMatchCandidates(phone: string): string[] {
+export function phoneMatchCandidates(phone: string): string[] {
   const waMe = phoneToWaMe(phone);
   const raw = phoneDigits(phone.trim());
   const out = new Set([waMe, raw]);
-  if (waMe.length === 13 && waMe.startsWith("549")) out.add(waMe.slice(3));
+  const national = arNationalNumber(phone);
+  if (national) {
+    out.add(`549${national}`);
+    out.add(`54${national}`);
+    out.add(national);
+    out.add(`0${national}`);
+    if (national.startsWith("11")) out.add(`01115${national.slice(2)}`);
+  }
   return [...out].filter((d) => d.length > 0);
+}
+
+/**
+ * The 10-digit AR national number (area + subscriber, no 0 / 15 / 54 / 9)
+ * when the input unambiguously spells one, else null.
+ */
+function arNationalNumber(phone: string): string | null {
+  const trimmed = phone.trim();
+  const d = phoneDigits(trimmed);
+  if (d.length === 13 && d.startsWith("549")) return d.slice(3);
+  if (d.length === 12 && d.startsWith("54")) return d.slice(2);
+  if (trimmed.startsWith("+")) return null; // another country code
+  if (d.length === 13 && d.startsWith("01115")) return `11${d.slice(5)}`;
+  if (d.length === 11 && d.startsWith("0")) return d.slice(1);
+  if (d.length === 10 && !d.startsWith("0")) return d;
+  return null;
+}
+
+/**
+ * Canonical digits for one number — what the advisory lock keys on, so
+ * `11 1234-5678` and `+54 9 11 1234-5678` serialize against each other.
+ */
+function canonicalPhoneDigits(phone: string): string {
+  const national = arNationalNumber(phone);
+  return national ? `549${national}` : phoneToWaMe(phone);
+}
+
+/** Transaction handle as drizzle passes it to `db.transaction`. */
+export type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Transaction-scoped advisory lock on a phone number. Re-entrant within
+ * one transaction, so a caller holding it can still go through
+ * `recordParticipation`'s phone path (which takes it too).
+ */
+export async function lockPhoneNumber(
+  tx: QueryRunner,
+  phone: string,
+): Promise<void> {
+  const lockKey = `people-phone:${canonicalPhoneDigits(phone)}`;
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
 }
 
 /**
@@ -771,8 +839,7 @@ async function upsertPersonByPhone(
     communicationOptIns?: string[];
   },
 ): Promise<{ rows: { id: number; was_inserted: boolean }[] }> {
-  const lockKey = `people-phone:${phoneToWaMe(params.phone)}`;
-  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+  await lockPhoneNumber(tx, params.phone);
 
   const existingId = await findPersonIdByPhone(tx, params.phone);
   if (existingId != null) {
