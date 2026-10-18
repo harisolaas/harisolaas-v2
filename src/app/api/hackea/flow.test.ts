@@ -560,20 +560,26 @@ describe("resubmit while the payment confirms (#99 fix 1)", () => {
     });
     await lockedP;
 
-    const resubmit = checkout(
-      checkoutReq({ name: `${NAME_PREFIX} Carrera Pago`, phone: "11 9007-0108" }),
-    );
-
+    let resubmit: Promise<Response> | undefined;
     let blocked = false;
-    for (let i = 0; i < 100 && !blocked; i++) {
-      const w = await db.execute<{ n: number }>(sql`
-        SELECT COUNT(*)::int AS n FROM pg_stat_activity
-        WHERE ${holderPid}::int = ANY(pg_blocking_pids(pid))
-      `);
-      blocked = Number(w.rows[0].n) > 0;
-      if (!blocked) await new Promise((r) => setTimeout(r, 100));
+    try {
+      resubmit = checkout(
+        checkoutReq({ name: `${NAME_PREFIX} Carrera Pago`, phone: "11 9007-0108" }),
+      );
+      for (let i = 0; i < 100 && !blocked; i++) {
+        const w = await db.execute<{ n: number }>(sql`
+          SELECT COUNT(*)::int AS n FROM pg_stat_activity
+          WHERE ${holderPid}::int = ANY(pg_blocking_pids(pid))
+        `);
+        blocked = Number(w.rows[0].n) > 0;
+        if (!blocked) await new Promise((r) => setTimeout(r, 100));
+      }
+    } finally {
+      // Even if a poll throws: let the holder commit and the checkout
+      // finish, so no row lock outlives the test and wedges afterAll.
+      commit();
+      await Promise.allSettled([holder, resubmit]);
     }
-    commit();
     await holder;
     const res = await resubmit;
 
@@ -583,5 +589,84 @@ describe("resubmit while the payment confirms (#99 fix 1)", () => {
     expect(preferenceCreate).not.toHaveBeenCalled();
     const r = await row(pid);
     expect(r.status).toBe("confirmed");
+  });
+});
+
+describe("an old payment's send finishing after a repurchase", () => {
+  // Real interleaving: the first payment's delivery is parked inside the
+  // buyer-mail send (claim taken) while the refund lands and a new payment
+  // confirms the row as a fresh purchase. When the old send then finishes,
+  // its mark must not count as the new purchase's mail, and the rest of the
+  // old delivery must not claim anything.
+  it("the new purchase still gets its own buyer and host mails", async () => {
+    const { confirmHackeaPayment } = await import("@/lib/hackea");
+    const OLD = "e1flow-pay-109";
+    const NEW = "e1flow-pay-110";
+    const pid = await startCheckout({
+      name: `${NAME_PREFIX} Carrera Reintegro`,
+      phone: "11 9007-0109",
+      email: `${EMAIL_PREFIX}carrera-reintegro@example.com`,
+    });
+    mpApproved(OLD, pid);
+
+    let entered!: () => void;
+    const enteredP = new Promise<void>((r) => (entered = r));
+    let finish!: () => void;
+    const gate = new Promise<void>((r) => (finish = r));
+    let first = true;
+    sendImpl = async () => {
+      if (first) {
+        first = false;
+        entered();
+        await gate;
+      }
+      return {};
+    };
+
+    const oldDelivery = webhook(signedWebhook(OLD));
+    let oldStatus = 0;
+    try {
+      await enteredP;
+      expect((await row(pid)).metadata).toMatchObject({
+        buyerEmailSent: "sending",
+        buyerEmailSentSendingFor: OLD,
+      });
+      // Refunded (what handleReversal writes), then bought again.
+      await db.execute(sql`
+        UPDATE participations SET metadata = metadata || jsonb_build_object(
+          'refund', jsonb_build_object('status', 'refunded', 'paymentId', ${OLD}::text))
+        WHERE id = ${pid}
+      `);
+      const fresh = await confirmHackeaPayment({
+        participationId: pid,
+        paymentId: NEW,
+        amountCents: PRICE_CENTS,
+        currency: "ARS",
+      });
+      expect(fresh.outcome).toBe("confirmed");
+    } finally {
+      finish();
+      oldStatus = (await oldDelivery).status;
+    }
+
+    // The old delivery mailed the buyer once (it was mid-send) and nothing
+    // else; the new purchase's flags are untouched.
+    expect(oldStatus).toBe(200);
+    expect(buyerMails()).toHaveLength(1);
+    expect(hostMails()).toHaveLength(0);
+    let r = await row(pid);
+    expect(r.metadata).not.toHaveProperty("buyerEmailSent");
+    expect(r.metadata).not.toHaveProperty("hostNotified");
+
+    mpApproved(NEW, pid);
+    const res = await webhook(signedWebhook(NEW));
+    expect(res.status).toBe(200);
+    expect(buyerMails()).toHaveLength(2);
+    expect(hostMails()).toHaveLength(1);
+    r = await row(pid);
+    expect(r.external_payment_id).toBe(NEW);
+    expect(r.metadata.buyerEmailSent).toBe(true);
+    expect(r.metadata.hostNotified).toBe(true);
+    expect(r.metadata.refundedPaymentIds).toEqual([OLD]);
   });
 });

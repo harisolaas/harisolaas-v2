@@ -117,25 +117,37 @@ async function sendMail(params: {
 // process died between the claim and the flag (crash, timeout). The cost is
 // a possible duplicate if it died AFTER Resend accepted the mail; the
 // alternative — never reclaiming — loses the mail for good.
+//
+// A claim is owned by a payment (`${flag}SendingFor`) and only taken while
+// the row is active and still holds that payment: a delivery for a refunded
+// payment, or for an entrada cancelled by hand, mails nothing ("inactive",
+// answered 200 — retrying won't change it). Mark and release are conditioned
+// on the owner, so an old send finishing after a repurchase can't mark or
+// free the new purchase's mail.
 
 type MailFlag = "buyerEmailSent" | "hostNotified";
 const SENDING = "sending";
 const STALE_SENDING_MS = 5 * 60 * 1000;
 
-type ClaimResult = "claimed" | "done" | "busy";
+type ClaimResult = "claimed" | "done" | "busy" | "inactive";
 
 async function claimMail(
   participationId: string,
   flag: MailFlag,
+  paymentId: string,
 ): Promise<ClaimResult> {
   const atKey = `${flag}SendingAt`;
+  const forKey = `${flag}SendingFor`;
   const now = Date.now();
   const res = await db.execute<{ id: string }>(sql`
     UPDATE participations SET
       metadata = COALESCE(metadata, '{}'::jsonb)
-        || jsonb_build_object(${flag}::text, ${SENDING}::text, ${atKey}::text, ${now}::bigint),
+        || jsonb_build_object(${flag}::text, ${SENDING}::text, ${atKey}::text, ${now}::bigint,
+                              ${forKey}::text, ${paymentId}::text),
       updated_at = NOW()
     WHERE id = ${participationId}
+      AND status IN ('confirmed', 'used')
+      AND external_payment_id = ${paymentId}
       AND (
         metadata->>${flag} IS NULL
         OR (
@@ -146,23 +158,39 @@ async function claimMail(
     RETURNING id
   `);
   if (res.rows?.length) return "claimed";
-  const cur = await db.execute<{ v: string | null }>(sql`
-    SELECT metadata->>${flag} AS v FROM participations WHERE id = ${participationId}
+  const cur = await db.execute<{
+    status: string;
+    external_payment_id: string | null;
+    v: string | null;
+  }>(sql`
+    SELECT status, external_payment_id, metadata->>${flag} AS v
+    FROM participations WHERE id = ${participationId}
   `);
-  return cur.rows?.[0]?.v === SENDING ? "busy" : "done";
+  const c = cur.rows?.[0];
+  if (
+    !c ||
+    (c.status !== "confirmed" && c.status !== "used") ||
+    c.external_payment_id !== paymentId
+  ) {
+    return "inactive";
+  }
+  return c.v === SENDING ? "busy" : "done";
 }
 
 /** Undo a claim whose send failed, so the next delivery can take it. */
 async function releaseMail(
   participationId: string,
   flag: MailFlag,
+  paymentId: string,
 ): Promise<void> {
   const atKey = `${flag}SendingAt`;
+  const forKey = `${flag}SendingFor`;
   await db.execute(sql`
     UPDATE participations SET
-      metadata = metadata - ${flag}::text - ${atKey}::text,
+      metadata = metadata - ${flag}::text - ${atKey}::text - ${forKey}::text,
       updated_at = NOW()
     WHERE id = ${participationId} AND metadata->>${flag} = ${SENDING}
+      AND metadata->>${forKey} = ${paymentId}
   `);
 }
 
@@ -170,31 +198,33 @@ async function releaseMail(
 async function sendClaimed(
   participationId: string,
   flag: MailFlag,
+  paymentId: string,
   mail: () => Promise<{ to: string | string[]; subject: string; html: string }>,
 ): Promise<"ok" | "retry"> {
-  const claim = await claimMail(participationId, flag);
-  if (claim === "done") return "ok";
+  const claim = await claimMail(participationId, flag, paymentId);
+  if (claim === "done" || claim === "inactive") return "ok";
   // Another delivery holds it. Answer non-2xx so MP comes back: if that
   // delivery dies, its claim goes stale and a later retry picks it up.
   if (claim === "busy") return "retry";
   const sent = await sendMail(await mail());
   if (!sent) {
-    await releaseMail(participationId, flag);
+    await releaseMail(participationId, flag, paymentId);
     return "retry";
   }
-  await markHackeaFlag(participationId, flag);
+  await markHackeaFlag(participationId, flag, paymentId);
   return "ok";
 }
 
 async function deliver(
   participant: HackeaParticipant,
   amountCents: number,
+  paymentId: string,
 ): Promise<"ok" | "retry"> {
   let outcome: "ok" | "retry" = "ok";
 
   if (participant.email) {
     const email = participant.email;
-    const r = await sendClaimed(participant.id, "buyerEmailSent", async () => ({
+    const r = await sendClaimed(participant.id, "buyerEmailSent", paymentId, async () => ({
       to: email,
       subject: HACKEA_BUYER_SUBJECT,
       html: buildHackeaBuyerConfirmationHtml({
@@ -210,7 +240,7 @@ async function deliver(
     console.warn("Hackea: no HACKEA_NOTIFY_EMAILS, host not notified");
     return outcome;
   }
-  const r = await sendClaimed(participant.id, "hostNotified", async () => ({
+  const r = await sendClaimed(participant.id, "hostNotified", paymentId, async () => ({
     to,
     subject: hackeaHostSubject(participant.name),
     html: buildHackeaHostNotificationHtml({
@@ -284,8 +314,15 @@ async function handleReversal(
     ? (row.metadata.extraPaymentIds as unknown[]).map(String)
     : [];
   const isPrimary = row.externalPaymentId === params.mpPaymentId;
+  // A refunded payment a repurchase replaced: its refund alert may still be
+  // pending a retry.
+  const replaced = Array.isArray(row.metadata.refundedPaymentIds)
+    ? (row.metadata.refundedPaymentIds as unknown[]).map(String)
+    : [];
+  const isReplaced = !isPrimary && replaced.includes(params.mpPaymentId);
   const linked =
     isPrimary ||
+    isReplaced ||
     extra.includes(params.mpPaymentId) ||
     row.metadata.overflowPaymentId === params.mpPaymentId;
   if (!linked) return false;
@@ -318,7 +355,9 @@ async function handleReversal(
         `Estado de la participación: ${row.status}`,
         isPrimary
           ? "Es el pago de la entrada. Quedó en metadata.refund; la participación NO se canceló, decidí a mano."
-          : "Era un pago extra o sin cupo, no el de la entrada.",
+          : isReplaced
+            ? "Era el pago de una compra anterior, ya reintegrada; la entrada tiene un pago nuevo."
+            : "Era un pago extra o sin cupo, no el de la entrada.",
       ],
     },
   );
@@ -537,10 +576,13 @@ export async function POST(req: Request) {
       });
       // Admin status wins: an entrada cancelled or set back to `pending`
       // by hand gets no "confirmada" mail from a redelivery, and no claim.
+      // This snapshot is only a shortcut — claimMail re-checks the status
+      // atomically, in case the admin changes it during the awaits below.
       const active = row.status === "confirmed" || row.status === "used";
       if (
         active &&
-        (await deliver(result.participant, amountCents)) === "retry"
+        (await deliver(result.participant, amountCents, mpPaymentId)) ===
+          "retry"
       ) {
         // A mail is still unsent: non-2xx so MP delivers again. Everything
         // above is idempotent or marker-guarded on that retry.

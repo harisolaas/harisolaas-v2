@@ -561,10 +561,11 @@ describe("confirmHackeaPayment", () => {
       eventId: EVT_OPEN,
     });
     // What the webhook writes on a refund, the first purchase's mail
-    // flags, and the drawer's "No vendrá".
+    // flags, and a door check-in left over (the refund doesn't touch it).
     await db.execute(sql`
       UPDATE participations SET
-        status = 'cancelled',
+        status = 'used',
+        used_at = NOW(),
         metadata = metadata || jsonb_build_object(
           'refund', jsonb_build_object('status', 'refunded', 'paymentId', 'hackea-test-pay-194'),
           'buyerEmailSent', true,
@@ -580,7 +581,7 @@ describe("confirmHackeaPayment", () => {
     });
     expect(again).toMatchObject({
       participationId: lead.participationId,
-      status: "cancelled",
+      status: "used",
       paid: false,
     });
 
@@ -604,6 +605,13 @@ describe("confirmHackeaPayment", () => {
     expect(row.metadata.refund).toMatchObject({
       paymentId: "hackea-test-pay-194",
     });
+    // The refunded payment stays recognisable for a pending refund alert.
+    expect(row.metadata.refundedPaymentIds).toEqual(["hackea-test-pay-194"]);
+    // The new purchase hasn't checked in.
+    const usedAt = await db.execute<{ used_at: Date | null }>(
+      sql`SELECT used_at FROM participations WHERE id = ${lead.participationId}`,
+    );
+    expect(usedAt.rows[0].used_at).toBeNull();
 
     // And it is paid again.
     const third = await createHackeaLead({
@@ -785,17 +793,33 @@ describe("markHackeaFlag", () => {
     });
     await db.execute(sql`
       UPDATE participations
-      SET metadata = '{"keep":"me"}'::jsonb
+      SET metadata = '{"keep":"me","buyerEmailSentSendingFor":"pay-1","hostNotifiedSendingFor":"pay-1"}'::jsonb
       WHERE id = ${lead.participationId}
     `);
-    await markHackeaFlag(lead.participationId, "buyerEmailSent");
-    await markHackeaFlag(lead.participationId, "hostNotified");
+    await markHackeaFlag(lead.participationId, "buyerEmailSent", "pay-1");
+    await markHackeaFlag(lead.participationId, "hostNotified", "pay-1");
     const row = await participation(lead.participationId);
     expect(row.metadata).toMatchObject({
       keep: "me",
       buyerEmailSent: true,
       hostNotified: true,
     });
+  });
+
+  it("doesn't mark a flag whose claim belongs to another payment", async () => {
+    const lead = await createHackeaLead({
+      name: N("nico otro pago"),
+      phone: "+5491100000115",
+      eventId: EVT_OPEN,
+    });
+    await db.execute(sql`
+      UPDATE participations
+      SET metadata = '{"buyerEmailSent":"sending","buyerEmailSentSendingFor":"pay-new"}'::jsonb
+      WHERE id = ${lead.participationId}
+    `);
+    await markHackeaFlag(lead.participationId, "buyerEmailSent", "pay-old");
+    const row = await participation(lead.participationId);
+    expect(row.metadata.buyerEmailSent).toBe("sending");
   });
 });
 

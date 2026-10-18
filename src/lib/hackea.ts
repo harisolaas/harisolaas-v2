@@ -427,16 +427,26 @@ export async function confirmHackeaPayment(params: {
     }
 
     // A repurchase after a refund mails again: drop the first purchase's
-    // delivery flags. A never-paid lead has none.
+    // delivery flags and check-in. A never-paid lead has none. The refunded
+    // payment id moves to refundedPaymentIds so a refund alert still
+    // pending for it stays retryable (handleReversal looks there).
+    const prev = row.external_payment_id;
     await tx.execute(sql`
       UPDATE participations SET
         status = 'confirmed',
+        used_at = NULL,
         external_payment_id = ${params.paymentId},
         price_cents = ${params.amountCents},
         currency = ${params.currency},
-        metadata = COALESCE(metadata, '{}'::jsonb)
-          - 'buyerEmailSent' - 'buyerEmailSentSendingAt'
-          - 'hostNotified' - 'hostNotifiedSendingAt',
+        metadata = (COALESCE(metadata, '{}'::jsonb)
+          - 'buyerEmailSent' - 'buyerEmailSentSendingAt' - 'buyerEmailSentSendingFor'
+          - 'hostNotified' - 'hostNotifiedSendingAt' - 'hostNotifiedSendingFor')
+          || CASE WHEN ${prev}::text IS NULL THEN '{}'::jsonb
+             ELSE jsonb_build_object(
+               'refundedPaymentIds',
+               COALESCE(metadata->'refundedPaymentIds', '[]'::jsonb)
+                 || to_jsonb(${prev}::text)
+             ) END,
         updated_at = NOW()
       WHERE id = ${row.id}
     `);
@@ -444,15 +454,22 @@ export async function confirmHackeaPayment(params: {
   });
 }
 
-/** jsonb-merge a delivery flag into participations.metadata. */
+/**
+ * jsonb-merge a delivery flag into participations.metadata — only while the
+ * claim still belongs to `paymentId` (`${flag}SendingFor`, written by the
+ * webhook's claim). A send for a refunded payment that finishes after a
+ * repurchase reset the flags must not mark the new purchase as delivered.
+ */
 export async function markHackeaFlag(
   participationId: string,
   flag: "buyerEmailSent" | "hostNotified",
+  paymentId: string,
 ): Promise<void> {
+  const forKey = `${flag}SendingFor`;
   await db.execute(sql`
     UPDATE participations SET
       metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(${flag}::text, true),
       updated_at = NOW()
-    WHERE id = ${participationId}
+    WHERE id = ${participationId} AND metadata->>${forKey} = ${paymentId}
   `);
 }
