@@ -1363,7 +1363,7 @@ const en: Dictionary = {
       nameLabel: "Name",
       namePlaceholder: "Your name",
       phoneLabel: "WhatsApp",
-      phonePlaceholder: "+54 9 11 1234 5678",
+      phonePlaceholder: "11 2345 6789",
       phoneHint: "That's where we'll message you with the details of the talk",
       emailLabel: "Email (optional)",
       emailPlaceholder: "you@mail.com",
@@ -1371,7 +1371,8 @@ const en: Dictionary = {
       submitting: "One moment…",
       errors: {
         name: "Tell us your name",
-        phone: "Check your WhatsApp number",
+        phone:
+          "Check the number: include the area code, e.g. 11 2345 6789. Outside Argentina, start with + and the country code.",
         email: "Check your email",
         alreadyPaid:
           "This WhatsApp or email already has a paid ticket. If that's a mistake, message us on WhatsApp.",

@@ -11,6 +11,7 @@ import {
   type ParticipationStatus,
 } from "@/lib/community";
 import { hackeaConfig, HACKEA_PARTICIPATION_PREFIX } from "@/data/hackea";
+import { parseHackeaWhatsApp } from "@/lib/hackea-phone";
 
 // Hackeá tu mente — server-side lead + payment lifecycle.
 //
@@ -22,15 +23,16 @@ import { hackeaConfig, HACKEA_PARTICIPATION_PREFIX } from "@/data/hackea";
 const idSuffix = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
 
 /**
- * Canonical storage form for phones in this flow: `+` + canonical digits.
- * AR spellings with the area code — local ("11 1234-5678", "0351 …"),
- * with the 54/9/0054 prefixes, and for area 11 the mobile 15 ("011 15 …",
- * "11 15 …", "+54 11 15 …") — → "+5491112345678". Another country's number
- * keeps its digits ("+34 612…" → "+34612…"); anything else (e.g. 8 digits
- * without area) is stored as `+` + wa.me digits, unchanged.
+ * Canonical storage form for phones in this flow: the E.164 WhatsApp number
+ * from `parseHackeaWhatsApp` — the same parser the form validates with, so
+ * every accepted spelling of one AR mobile ("11 1234-5678", "011 15 …",
+ * "0351 15 …", "+54 9 …", "0054 …") lands on "+549" + the 10-digit national
+ * number, and a foreign mobile on its own E.164 ("0034 612…" → "+34612…").
+ * Only input the validator rejects (never reaches the checkout) falls back
+ * to `+` + `canonicalPhoneDigits`, the shared helper's old behaviour.
  */
 export function normalizeArPhone(raw: string): string {
-  return `+${canonicalPhoneDigits(raw)}`;
+  return parseHackeaWhatsApp(raw) ?? `+${canonicalPhoneDigits(raw)}`;
 }
 
 /** Idempotently create the `events` row from hackeaConfig. */

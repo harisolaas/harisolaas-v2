@@ -221,7 +221,7 @@ describe("checkout → webhook, phone only", () => {
   it("checkout writes a pending lead with metadata.contact before MP", async () => {
     pid = await startCheckout({
       name: `${NAME_PREFIX} Solo Tel`,
-      phone: "11 9007-0101",
+      phone: "11 6007-0101",
     });
     const r = await row(pid);
     expect(r.status).toBe("pending");
@@ -229,10 +229,10 @@ describe("checkout → webhook, phone only", () => {
     expect(r.currency).toBe("ARS");
     expect(r.external_payment_id).toBeNull();
     expect(r.person_email).toBeNull();
-    expect(r.person_phone).toBe("+5491190070101");
+    expect(r.person_phone).toBe("+5491160070101");
     expect(r.metadata.contact).toEqual({
       name: `${NAME_PREFIX} Solo Tel`,
-      phone: "+5491190070101",
+      phone: "+5491160070101",
       email: null,
     });
     const body = preferenceCreate.mock.calls[0][0].body;
@@ -255,7 +255,7 @@ describe("checkout → webhook, phone only", () => {
 
     expect(buyerMails()).toHaveLength(0);
     expect(hostMails()).toHaveLength(1);
-    expect(hostMails()[0].html).toContain("wa.me/5491190070101");
+    expect(hostMails()[0].html).toContain("wa.me/5491160070101");
     expect(notifyAdminOfIncident).not.toHaveBeenCalled();
   });
 
@@ -270,7 +270,7 @@ describe("checkout → webhook, phone only", () => {
       checkoutReq({
         name: `${NAME_PREFIX} Solo Tel otra vez`,
         // Same number, international form.
-        phone: "+54 9 11 9007-0101",
+        phone: "+54 9 11 6007-0101",
       }),
     );
     expect(res.status).toBe(409);
@@ -284,7 +284,7 @@ describe("checkout → webhook, with email", () => {
     const email = `${EMAIL_PREFIX}mail@example.com`;
     const pid = await startCheckout({
       name: `${NAME_PREFIX} Con Mail`,
-      phone: "11 9007-0102",
+      phone: "11 6007-0102",
       email,
     });
     const before = await row(pid);
@@ -316,7 +316,7 @@ describe("per-mail claims against real Postgres", () => {
   beforeAll(async () => {
     pid = await startCheckout({
       name: `${NAME_PREFIX} Carrera`,
-      phone: "11 9007-0103",
+      phone: "11 6007-0103",
       email: `${EMAIL_PREFIX}carrera@example.com`,
     });
     mpApproved(PAY, pid);
@@ -408,7 +408,7 @@ describe("underpaid approval", () => {
   it("confirms, alerts the admin once, and the host mail shows the real amount", async () => {
     const pid = await startCheckout({
       name: `${NAME_PREFIX} Pago Corto`,
-      phone: "11 9007-0104",
+      phone: "11 6007-0104",
     });
     mpApproved("e1flow-pay-104", pid, 10_000);
     const res = await webhook(signedWebhook("e1flow-pay-104"));
@@ -439,7 +439,7 @@ describe("admin status wins over webhook redeliveries", () => {
   beforeAll(async () => {
     pid = await startCheckout({
       name: `${NAME_PREFIX} Cancelada`,
-      phone: "11 9007-0105",
+      phone: "11 6007-0105",
       email: `${EMAIL_PREFIX}cancelada@example.com`,
     });
     mpApproved(PAY, pid);
@@ -464,7 +464,7 @@ describe("admin status wins over webhook redeliveries", () => {
 
   it("the cancelled buyer can't pay again while the payment stands → 409", async () => {
     const res = await checkout(
-      checkoutReq({ name: `${NAME_PREFIX} Cancelada`, phone: "11 9007-0105" }),
+      checkoutReq({ name: `${NAME_PREFIX} Cancelada`, phone: "11 6007-0105" }),
     );
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ error: "already_paid" });
@@ -489,7 +489,7 @@ describe("refund, then buying again", () => {
     const email = `${EMAIL_PREFIX}reintegro@example.com`;
     const pid = await startCheckout({
       name: `${NAME_PREFIX} Reintegro`,
-      phone: "11 9007-0106",
+      phone: "11 6007-0106",
       email,
     });
     mpApproved("e1flow-pay-106", pid);
@@ -507,7 +507,7 @@ describe("refund, then buying again", () => {
 
     sent.length = 0;
     expect(
-      await startCheckout({ name: `${NAME_PREFIX} Reintegro`, phone: "11 9007-0106", email }),
+      await startCheckout({ name: `${NAME_PREFIX} Reintegro`, phone: "11 6007-0106", email }),
     ).toBe(pid);
     mpApproved("e1flow-pay-107", pid);
     const res = await webhook(signedWebhook("e1flow-pay-107"));
@@ -537,7 +537,7 @@ describe("resubmit while the payment confirms (#99 fix 1)", () => {
   it("sees the payment and answers 409 instead of opening a second checkout", async () => {
     const pid = await startCheckout({
       name: `${NAME_PREFIX} Carrera Pago`,
-      phone: "11 9007-0108",
+      phone: "11 6007-0108",
     });
     preferenceCreate.mockClear();
 
@@ -564,7 +564,7 @@ describe("resubmit while the payment confirms (#99 fix 1)", () => {
     let blocked = false;
     try {
       resubmit = checkout(
-        checkoutReq({ name: `${NAME_PREFIX} Carrera Pago`, phone: "11 9007-0108" }),
+        checkoutReq({ name: `${NAME_PREFIX} Carrera Pago`, phone: "11 6007-0108" }),
       );
       for (let i = 0; i < 100 && !blocked; i++) {
         const w = await db.execute<{ n: number }>(sql`
@@ -604,7 +604,7 @@ describe("an old payment's send finishing after a repurchase", () => {
     const NEW = "e1flow-pay-110";
     const pid = await startCheckout({
       name: `${NAME_PREFIX} Carrera Reintegro`,
-      phone: "11 9007-0109",
+      phone: "11 6007-0109",
       email: `${EMAIL_PREFIX}carrera-reintegro@example.com`,
     });
     mpApproved(OLD, pid);
