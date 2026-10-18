@@ -7,8 +7,15 @@ import { isHackeaSalesOpen } from "@/lib/hackea-display";
 // what a valid form is.
 import { validateHackeaLead } from "@/lib/hackea-validation";
 import { getMp } from "@/lib/mp-server";
-import { buildAttribution, type AttributionInput } from "@/lib/attribution";
+import {
+  buildAttribution,
+  readCookie,
+  type AttributionInput,
+} from "@/lib/attribution";
 import { sendMetaEvent } from "@/lib/meta-capi";
+import { getRedis } from "@/lib/redis";
+
+const CHECKOUT_STASH_TTL = 60 * 60 * 24 * 7;
 
 // In-process rate limit. Same envelope the BROTE / Sinergia checkouts use.
 const rateMap = new Map<string, { count: number; resetAt: number }>();
@@ -31,8 +38,8 @@ function isRateLimited(ip: string): boolean {
  *
  * The participation is written as `pending` BEFORE the Preference exists:
  * whoever fills the form is in the CRM even if they never pay. The webhook
- * resolves the payment back to it through `external_reference`, so nothing
- * needs stashing in Redis.
+ * resolves the payment back to it through `external_reference`. The only
+ * Redis stash is the CAPI user_data for the webhook's Purchase event.
  */
 export async function POST(req: Request) {
   try {
@@ -136,21 +143,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "server" }, { status: 500 });
     }
 
-    const fbp = typeof body.fbp === "string" ? body.fbp : undefined;
-    const fbc = typeof body.fbc === "string" ? body.fbc : undefined;
+    // Body first (a client that reads them itself), the pixel's cookies
+    // otherwise.
+    const fbp =
+      (typeof body.fbp === "string" && body.fbp) ||
+      readCookie(req, "_fbp") ||
+      undefined;
+    const fbc =
+      (typeof body.fbc === "string" && body.fbc) ||
+      readCookie(req, "_fbc") ||
+      undefined;
+    const ua = req.headers.get("user-agent") || undefined;
     // The landing fires no browser pixel today, so there's nothing to dedup
     // against unless the client sends its own event id.
     const metaEventId =
       typeof body.eventId === "string" && body.eventId
         ? body.eventId
         : `hackea-checkout-${lead.participationId}`;
+
+    // The webhook has no browser in front of it: without this stash its
+    // CAPI Purchase would go out with empty user_data, which Meta rejects.
+    // 7 days so a cash payment that clears late still finds it. Best
+    // effort — a Redis failure never blocks the sale.
+    try {
+      const redis = await getRedis();
+      await redis.set(
+        `hackea:checkout:${lead.participationId}`,
+        JSON.stringify({ ip: ipHeader, ua, fbp, fbc, eventId: metaEventId }),
+        { EX: CHECKOUT_STASH_TTL },
+      );
+    } catch (err) {
+      console.error("hackea/checkout: CAPI stash failed:", err);
+    }
     sendMetaEvent({
       event_name: "InitiateCheckout",
       event_id: metaEventId,
       event_source_url: `${baseUrl}${hackeaConfig.landingPath}`,
       user_data: {
         client_ip_address: ipHeader,
-        client_user_agent: req.headers.get("user-agent") || undefined,
+        client_user_agent: ua,
         fbp,
         fbc,
       },
