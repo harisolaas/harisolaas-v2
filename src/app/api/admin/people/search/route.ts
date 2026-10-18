@@ -5,6 +5,7 @@ import {
   assertFullAccess,
   requireAdminSession,
 } from "@/lib/admin-api-auth";
+import { phoneSearchClause } from "@/lib/admin-phone-search";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export async function GET(req: Request) {
   }
 
   const pattern = `%${q}%`;
+  // Digit match so "11 1234-5678" finds "+5491112345678" (phone-only people).
+  const phoneClause = phoneSearchClause(sql`phone`, q);
   const res = await db.execute<{
     id: number;
     email: string | null;
@@ -39,6 +42,7 @@ export async function GET(req: Request) {
       OR email::text ILIKE ${pattern}
       OR phone ILIKE ${pattern}
       OR instagram ILIKE ${pattern}
+      ${phoneClause ? sql`OR ${phoneClause}` : sql``}
     ORDER BY
       CASE
         WHEN LOWER(name) = LOWER(${q}) THEN 0

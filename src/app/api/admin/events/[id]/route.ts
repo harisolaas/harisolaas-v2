@@ -36,6 +36,7 @@ export async function GET(
     waitlist: number;
     used: number;
     cancelled: number;
+    pending: number;
     total: number;
   }>(sql`
     SELECT
@@ -43,6 +44,7 @@ export async function GET(
       COUNT(*) FILTER (WHERE status = 'waitlist')::int AS waitlist,
       COUNT(*) FILTER (WHERE status = 'used')::int AS used,
       COUNT(*) FILTER (WHERE status = 'cancelled')::int AS cancelled,
+      COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
       COUNT(*)::int AS total
     FROM participations
     WHERE event_id = ${id}
@@ -52,6 +54,7 @@ export async function GET(
     waitlist: 0,
     used: 0,
     cancelled: 0,
+    pending: 0,
     total: 0,
   };
 
@@ -127,6 +130,7 @@ export async function GET(
     person_id: number;
     person_name: string;
     person_email: string | null;
+    person_phone: string | null;
     role: string;
     status: string;
     created_at: string;
@@ -142,6 +146,7 @@ export async function GET(
       p.person_id,
       people.name AS person_name,
       people.email AS person_email,
+      people.phone AS person_phone,
       p.role,
       p.status,
       p.created_at,
@@ -161,6 +166,8 @@ export async function GET(
     personId: Number(r.person_id),
     personName: r.person_name,
     personEmail: r.person_email,
+    personPhone: r.person_phone,
+    contact: resolveContact(r),
     role: r.role,
     status: r.status,
     createdAt: r.created_at,
@@ -209,6 +216,41 @@ export async function GET(
     };
   });
 
+  // Hackeá tu mente: paid entradas vs checkout-abandoned leads. Pending
+  // leads carry price_cents from the moment they submit the form, so the
+  // revenue sum is restricted to confirmed/used — same population as
+  // `contributions`, but kept as one explicit figure for the drawer.
+  let hackea: {
+    paid: number;
+    pendingLeads: number;
+    revenueCents: number;
+    currency: string;
+  } | null = null;
+  if (event.type === "hackea") {
+    const hackeaRes = await db.execute<{
+      paid: number;
+      pending_leads: number;
+      revenue_cents: string | number;
+    }>(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('confirmed', 'used'))::int AS paid,
+        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_leads,
+        COALESCE(
+          SUM(price_cents) FILTER (WHERE status IN ('confirmed', 'used')),
+          0
+        )::bigint AS revenue_cents
+      FROM participations
+      WHERE event_id = ${id}
+    `);
+    const h = hackeaRes.rows?.[0];
+    hackea = {
+      paid: Number(h?.paid ?? 0),
+      pendingLeads: Number(h?.pending_leads ?? 0),
+      revenueCents: Number(h?.revenue_cents ?? 0),
+      currency: "ARS",
+    };
+  }
+
   return NextResponse.json({
     event: {
       ...event,
@@ -221,6 +263,7 @@ export async function GET(
       waitlist: Number(counts.waitlist),
       used: Number(counts.used),
       cancelled: Number(counts.cancelled),
+      pending: Number(counts.pending),
       total: Number(counts.total),
     },
     timeline,
@@ -228,5 +271,28 @@ export async function GET(
     linkBreakdown,
     participants,
     contributions,
+    hackea,
   });
+}
+
+// What the operator should use to reach this participant. Flows that
+// snapshot the typed contact on the participation (`metadata.contact`,
+// Hackeá tu mente) win over the person row, which may hold older data
+// from other flows; everything else falls back to the person.
+function resolveContact(r: {
+  person_name: string;
+  person_email: string | null;
+  person_phone: string | null;
+  metadata: Record<string, unknown> | null;
+}): { name: string; phone: string | null; email: string | null } {
+  const raw = r.metadata?.contact;
+  const c =
+    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const str = (v: unknown) =>
+    typeof v === "string" && v.trim() !== "" ? v.trim() : null;
+  return {
+    name: str(c.name) ?? r.person_name,
+    phone: str(c.phone) ?? r.person_phone,
+    email: str(c.email) ?? r.person_email,
+  };
 }
