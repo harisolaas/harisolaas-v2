@@ -4,7 +4,11 @@ import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "re
 import Image from "next/image";
 import type { HackeaDict } from "@/dictionaries/types";
 import type { HackeaDisplay } from "@/lib/hackea-display";
-import { validateHackeaLead, type HackeaField } from "@/lib/hackea-validation";
+import {
+  HACKEA_MAX_LENGTH,
+  validateHackeaLead,
+  type HackeaField,
+} from "@/lib/hackea-validation";
 import {
   Badge,
   Eyebrow,
@@ -180,6 +184,7 @@ export default function HackeaLanding({
           autoComplete={props.autoComplete}
           inputMode={f === "phone" ? "tel" : undefined}
           placeholder={props.placeholder}
+          maxLength={HACKEA_MAX_LENGTH[f]}
           value={props.value}
           required={props.required}
           disabled={submitting}

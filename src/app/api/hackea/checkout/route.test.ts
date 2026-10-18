@@ -219,6 +219,14 @@ describe("POST /api/hackea/checkout", () => {
     expect(preferenceCreate).not.toHaveBeenCalled();
   });
 
+  it("400 on an over-long name, and writes nothing", async () => {
+    const { status, json } = await post({ ...VALID, name: "a".repeat(121) });
+    expect(status).toBe(400);
+    expect(json).toEqual({ error: "name" });
+    expect(createHackeaLead).not.toHaveBeenCalled();
+    expect(preferenceCreate).not.toHaveBeenCalled();
+  });
+
   it("400 reports the first invalid field in form order", async () => {
     const { json } = await post({ name: "", phone: "", email: "x" });
     expect(json).toEqual({ error: "name" });
