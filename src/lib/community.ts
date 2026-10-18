@@ -1,5 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { phoneDigits, phoneToWaMe } from "@/lib/plant-types";
 import type {
   Event,
   NewParticipation,
@@ -30,8 +31,12 @@ export type ParticipationStatus =
   | "used";
 
 export interface RecordParticipationParams {
-  /** Primary identifier. Trimmed; CITEXT handles case-insensitive uniqueness. */
-  email: string;
+  /**
+   * Primary identifier. Trimmed; CITEXT handles case-insensitive uniqueness.
+   * Optional only when `phone` is given: the person is then matched by phone
+   * digits (see `findPersonIdByPhone`) and created with a NULL email.
+   */
+  email?: string;
   name: string;
   phone?: string;
   instagram?: string;
@@ -88,6 +93,8 @@ export class CapacityReachedError extends Error {
  * Single transactional entry point for every signup/ticket/RSVP.
  *
  * - Upserts person by email (preserves first_seen / first_touch on existing).
+ *   Without an email, matches by phone digits instead and inserts a
+ *   phone-only person when nothing matches.
  * - Enforces event capacity via row-level lock on the events row.
  * - Inserts or promotes the participation with ON CONFLICT semantics.
  *
@@ -97,9 +104,10 @@ export class CapacityReachedError extends Error {
 export async function recordParticipation(
   params: RecordParticipationParams,
 ): Promise<RecordParticipationResult> {
-  const email = params.email.trim();
+  const email = params.email?.trim() ?? "";
+  const phone = params.phone?.trim() ?? "";
   const name = params.name.trim();
-  if (!email) throw new Error("email required");
+  if (!email && !phone) throw new Error("email or phone required");
   if (!name) throw new Error("name required");
 
   const status: ParticipationStatus = params.status ?? "confirmed";
@@ -138,7 +146,17 @@ export async function recordParticipation(
 
     // 1. Upsert person. Uses the xmax trick: xmax = 0 iff this row was
     //    freshly INSERTed (ON CONFLICT DO UPDATE sets xmax to the txn id).
-    const personResult = await tx.execute<{
+    //    No email → the phone-only path, which has no unique key to
+    //    conflict on and so does its own match-or-insert.
+    const personResult = !email
+      ? await upsertPersonByPhone(tx, {
+          name,
+          phone,
+          instagram: params.instagram,
+          attribution,
+          communicationOptIns: params.communicationOptIns,
+        })
+      : await tx.execute<{
       id: number;
       was_inserted: boolean;
     }>(sql`
@@ -693,6 +711,104 @@ function toPgArrayLiteral(values: readonly string[]): string {
  * it referenced.
  */
 type QueryRunner = Pick<typeof db, "execute">;
+
+/**
+ * Digit strings an existing `people.phone` may reduce to for this number.
+ *
+ * Phones are stored as the user typed them (Sinergia, plant) or normalized
+ * to `+549…` (Hackeá), so one WhatsApp number shows up as `5491122334455`
+ * or `1122334455` once separators are stripped. Comparing against the
+ * internationalized digits, the raw digits and — for an AR mobile — the
+ * 10-digit local form covers both directions.
+ */
+function phoneMatchCandidates(phone: string): string[] {
+  const waMe = phoneToWaMe(phone);
+  const raw = phoneDigits(phone.trim());
+  const out = new Set([waMe, raw]);
+  if (waMe.length === 13 && waMe.startsWith("549")) out.add(waMe.slice(3));
+  return [...out].filter((d) => d.length > 0);
+}
+
+/**
+ * Oldest person whose phone reduces to the same number, or null. Exported
+ * for flows that key on WhatsApp first (Hackeá) and need to know who a
+ * number belongs to before deciding how to write.
+ */
+export async function findPersonIdByPhone(
+  runner: QueryRunner,
+  phone: string,
+): Promise<number | null> {
+  const candidates = phoneMatchCandidates(phone);
+  if (candidates.length === 0) return null;
+  const res = await runner.execute<{ id: number }>(sql`
+    SELECT id FROM people
+    WHERE phone IS NOT NULL
+      AND regexp_replace(phone, '\\D', '', 'g') IN (${sql.join(
+        candidates.map((c) => sql`${c}`),
+        sql`, `,
+      )})
+    ORDER BY id
+    LIMIT 1
+  `);
+  const row = res.rows?.[0];
+  return row ? Number(row.id) : null;
+}
+
+/**
+ * Phone-only counterpart of the email upsert in `recordParticipation`.
+ * `people.phone` has no unique index, so two concurrent signups for one
+ * number would both miss the lookup and insert twice; the transaction-scoped
+ * advisory lock on the number serializes them. Same stickiness rules as the
+ * email path: an existing name/phone/instagram is never overwritten.
+ */
+async function upsertPersonByPhone(
+  tx: QueryRunner,
+  params: {
+    name: string;
+    phone: string;
+    instagram?: string;
+    attribution?: AttributionTouch;
+    communicationOptIns?: string[];
+  },
+): Promise<{ rows: { id: number; was_inserted: boolean }[] }> {
+  const lockKey = `people-phone:${phoneToWaMe(params.phone)}`;
+  await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`);
+
+  const existingId = await findPersonIdByPhone(tx, params.phone);
+  if (existingId != null) {
+    const res = await tx.execute<{ id: number; was_inserted: boolean }>(sql`
+      UPDATE people SET
+        name = CASE
+          WHEN (name IS NULL OR name = '' OR name = 'Asistente')
+            THEN ${params.name}
+          ELSE name
+        END,
+        instagram = COALESCE(instagram, ${params.instagram ?? null}),
+        updated_at = NOW()
+      WHERE id = ${existingId}
+      RETURNING id, false AS was_inserted
+    `);
+    return { rows: res.rows ?? [] };
+  }
+
+  const res = await tx.execute<{ id: number; was_inserted: boolean }>(sql`
+    INSERT INTO people (email, name, phone, instagram, first_touch, communication_opt_ins)
+    VALUES (
+      NULL,
+      ${params.name},
+      ${params.phone},
+      ${params.instagram ?? null},
+      ${params.attribution ? JSON.stringify(params.attribution) : null}::jsonb,
+      ${
+        params.communicationOptIns
+          ? sql`${toPgArrayLiteral(params.communicationOptIns)}::text[]`
+          : sql`ARRAY['email:transactional','email:marketing']::text[]`
+      }
+    )
+    RETURNING id, true AS was_inserted
+  `);
+  return { rows: res.rows ?? [] };
+}
 
 async function sanitizeAttribution(
   runner: QueryRunner,
