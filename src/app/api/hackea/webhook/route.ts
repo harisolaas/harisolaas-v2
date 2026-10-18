@@ -530,7 +530,13 @@ export async function POST(req: Request) {
         amountCents,
         currency,
       });
-      if ((await deliver(result.participant, amountCents)) === "retry") {
+      // Admin status wins: an entrada cancelled or set back to `pending`
+      // by hand gets no "confirmada" mail from a redelivery, and no claim.
+      const active = row.status === "confirmed" || row.status === "used";
+      if (
+        active &&
+        (await deliver(result.participant, amountCents)) === "retry"
+      ) {
         // A mail is still unsent: non-2xx so MP delivers again. Everything
         // above is idempotent or marker-guarded on that retry.
         await release();

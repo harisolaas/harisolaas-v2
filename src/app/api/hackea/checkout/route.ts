@@ -33,6 +33,30 @@ function isRateLimited(ip: string): boolean {
   return entry.count > RATE_LIMIT;
 }
 
+const str = (v: unknown): string | undefined =>
+  typeof v === "string" ? v : undefined;
+
+/**
+ * Only the string fields of the body's attribution: buildAttribution trims
+ * them, so a number or object there (a hand-made request) would throw and
+ * turn a valid sale into a 500. Anything else counts as absent.
+ */
+function attributionBody(body: Record<string, unknown>): AttributionInput["body"] {
+  const utm =
+    body.utm && typeof body.utm === "object" && !Array.isArray(body.utm)
+      ? (body.utm as Record<string, unknown>)
+      : {};
+  return {
+    utm: {
+      source: str(utm.source),
+      medium: str(utm.medium),
+      campaign: str(utm.campaign),
+      content: str(utm.content),
+    },
+    linkSlug: str(body.linkSlug),
+  };
+}
+
 /**
  * Hackeá tu mente — persist the lead, then hand off to MercadoPago.
  *
@@ -83,7 +107,7 @@ export async function POST(req: Request) {
     // undefined when there's nothing to attribute.
     const attribution = buildAttribution({
       req,
-      body: body as AttributionInput["body"],
+      body: attributionBody(body),
     });
 
     const lead = await createHackeaLead({
@@ -93,7 +117,10 @@ export async function POST(req: Request) {
       attribution,
       linkSlug: attribution?.linkSlug,
     });
-    if (lead.status === "confirmed" || lead.status === "used") {
+    // Paid = a payment on the row that wasn't refunded, whatever the admin
+    // status (a cancelled entrada keeps its money). A refunded one can buy
+    // again; the webhook confirms that payment as a fresh purchase.
+    if (lead.paid) {
       return NextResponse.json({ error: "already_paid" }, { status: 409 });
     }
 

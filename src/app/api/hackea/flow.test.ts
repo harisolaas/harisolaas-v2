@@ -431,3 +431,157 @@ describe("underpaid approval", () => {
     expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("admin status wins over webhook redeliveries", () => {
+  let pid = "";
+  const PAY = "e1flow-pay-105";
+
+  beforeAll(async () => {
+    pid = await startCheckout({
+      name: `${NAME_PREFIX} Cancelada`,
+      phone: "11 9007-0105",
+      email: `${EMAIL_PREFIX}cancelada@example.com`,
+    });
+    mpApproved(PAY, pid);
+  });
+
+  it("a retry after the entrada was cancelled mails nothing and claims nothing", async () => {
+    // First delivery confirms but Resend is down: flags released, 500.
+    sendImpl = async () => ({ error: { message: "resend down" } });
+    expect((await webhook(signedWebhook(PAY))).status).toBe(500);
+    // Hari marks "No vendrá" before MP retries.
+    await db.execute(sql`UPDATE participations SET status = 'cancelled' WHERE id = ${pid}`);
+
+    sendImpl = async () => ({});
+    const res = await webhook(signedWebhook(PAY));
+    expect(res.status).toBe(200);
+    expect(sent).toHaveLength(0);
+    const r = await row(pid);
+    expect(r.status).toBe("cancelled");
+    expect(r.metadata).not.toHaveProperty("buyerEmailSent");
+    expect(r.metadata).not.toHaveProperty("hostNotified");
+  });
+
+  it("the cancelled buyer can't pay again while the payment stands → 409", async () => {
+    const res = await checkout(
+      checkoutReq({ name: `${NAME_PREFIX} Cancelada`, phone: "11 9007-0105" }),
+    );
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "already_paid" });
+    expect(preferenceCreate).not.toHaveBeenCalled();
+  });
+
+  it("a row set back to pending stays pending on a redelivery, no mails", async () => {
+    await db.execute(sql`UPDATE participations SET status = 'pending' WHERE id = ${pid}`);
+    const res = await webhook(signedWebhook(PAY));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ outcome: "already" });
+    expect(sent).toHaveLength(0);
+    const r = await row(pid);
+    expect(r.status).toBe("pending");
+    expect(r.external_payment_id).toBe(PAY);
+    expect(notifyAdminOfIncident).not.toHaveBeenCalled();
+  });
+});
+
+describe("refund, then buying again", () => {
+  it("the new payment confirms the row as a fresh purchase and mails again", async () => {
+    const email = `${EMAIL_PREFIX}reintegro@example.com`;
+    const pid = await startCheckout({
+      name: `${NAME_PREFIX} Reintegro`,
+      phone: "11 9007-0106",
+      email,
+    });
+    mpApproved("e1flow-pay-106", pid);
+    expect((await webhook(signedWebhook("e1flow-pay-106"))).status).toBe(200);
+    expect(sent).toHaveLength(2);
+
+    // MP refunds it; Hari cancels the entrada.
+    mpPayments.set("e1flow-pay-106", {
+      ...mpPayments.get("e1flow-pay-106"),
+      status: "refunded",
+    });
+    expect((await webhook(signedWebhook("e1flow-pay-106"))).status).toBe(200);
+    await db.execute(sql`UPDATE participations SET status = 'cancelled' WHERE id = ${pid}`);
+    expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
+
+    sent.length = 0;
+    expect(
+      await startCheckout({ name: `${NAME_PREFIX} Reintegro`, phone: "11 9007-0106", email }),
+    ).toBe(pid);
+    mpApproved("e1flow-pay-107", pid);
+    const res = await webhook(signedWebhook("e1flow-pay-107"));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ outcome: "confirmed" });
+
+    const r = await row(pid);
+    expect(r.status).toBe("confirmed");
+    expect(r.external_payment_id).toBe("e1flow-pay-107");
+    expect(r.metadata.extraPaymentIds).toBeUndefined();
+    expect(buyerMails()).toHaveLength(1);
+    expect(hostMails()).toHaveLength(1);
+    // Only the refund alerted — no "segundo pago".
+    expect(notifyAdminOfIncident).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("resubmit while the payment confirms (#99 fix 1)", () => {
+  // Real Postgres interleaving, not a mock: a transaction stands in for the
+  // webhook's confirmHackeaPayment — row locked FOR UPDATE, flipped to
+  // confirmed, not yet committed — while a resubmit runs the real
+  // checkout. The test waits until Postgres reports the checkout blocked
+  // on that transaction (pg_blocking_pids), so the checkout has already
+  // read the row as pending, and only then commits. Before the fix the
+  // checkout's snapshot UPDATE didn't re-check the row, came back with the
+  // stale `pending` and opened a second Preference.
+  it("sees the payment and answers 409 instead of opening a second checkout", async () => {
+    const pid = await startCheckout({
+      name: `${NAME_PREFIX} Carrera Pago`,
+      phone: "11 9007-0108",
+    });
+    preferenceCreate.mockClear();
+
+    let commit!: () => void;
+    const gate = new Promise<void>((r) => (commit = r));
+    let holderPid = 0;
+    let locked!: () => void;
+    const lockedP = new Promise<void>((r) => (locked = r));
+    const holder = db.transaction(async (tx) => {
+      const me = await tx.execute<{ pid: number }>(sql`SELECT pg_backend_pid() AS pid`);
+      holderPid = Number(me.rows[0].pid);
+      await tx.execute(sql`SELECT id FROM participations WHERE id = ${pid} FOR UPDATE`);
+      await tx.execute(sql`
+        UPDATE participations
+        SET status = 'confirmed', external_payment_id = 'e1flow-pay-108'
+        WHERE id = ${pid}
+      `);
+      locked();
+      await gate;
+    });
+    await lockedP;
+
+    const resubmit = checkout(
+      checkoutReq({ name: `${NAME_PREFIX} Carrera Pago`, phone: "11 9007-0108" }),
+    );
+
+    let blocked = false;
+    for (let i = 0; i < 100 && !blocked; i++) {
+      const w = await db.execute<{ n: number }>(sql`
+        SELECT COUNT(*)::int AS n FROM pg_stat_activity
+        WHERE ${holderPid}::int = ANY(pg_blocking_pids(pid))
+      `);
+      blocked = Number(w.rows[0].n) > 0;
+      if (!blocked) await new Promise((r) => setTimeout(r, 100));
+    }
+    commit();
+    await holder;
+    const res = await resubmit;
+
+    expect(blocked).toBe(true);
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "already_paid" });
+    expect(preferenceCreate).not.toHaveBeenCalled();
+    const r = await row(pid);
+    expect(r.status).toBe("confirmed");
+  });
+});

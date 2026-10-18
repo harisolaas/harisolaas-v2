@@ -514,6 +514,132 @@ describe("confirmHackeaPayment", () => {
     expect(row.external_payment_id).toBe("hackea-test-pay-190");
   });
 
+  it("a cancelled paid entrada is still paid for a resubmit", async () => {
+    const lead = await createHackeaLead({
+      name: N("cancelada-reenvia"),
+      phone: "+5491100000193",
+      eventId: EVT_OPEN,
+    });
+    await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-193",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    await db.execute(sql`
+      UPDATE participations SET status = 'cancelled'
+      WHERE id = ${lead.participationId}
+    `);
+    const again = await createHackeaLead({
+      name: N("cancelada-reenvia otra"),
+      phone: "+5491100000193",
+      eventId: EVT_OPEN,
+    });
+    expect(again).toMatchObject({
+      participationId: lead.participationId,
+      status: "cancelled",
+      paid: true,
+    });
+    const row = await participation(lead.participationId);
+    expect((row.metadata.contact as { name: string }).name).toBe(
+      N("cancelada-reenvia"),
+    );
+  });
+
+  it("a refunded entrada can be bought again as a fresh purchase", async () => {
+    const lead = await createHackeaLead({
+      name: N("reintegro"),
+      phone: "+5491100000194",
+      eventId: EVT_OPEN,
+    });
+    await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-194",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    // What the webhook writes on a refund, the first purchase's mail
+    // flags, and the drawer's "No vendrá".
+    await db.execute(sql`
+      UPDATE participations SET
+        status = 'cancelled',
+        metadata = metadata || jsonb_build_object(
+          'refund', jsonb_build_object('status', 'refunded', 'paymentId', 'hackea-test-pay-194'),
+          'buyerEmailSent', true,
+          'hostNotified', true
+        )
+      WHERE id = ${lead.participationId}
+    `);
+
+    const again = await createHackeaLead({
+      name: N("reintegro vuelve"),
+      phone: "+5491100000194",
+      eventId: EVT_OPEN,
+    });
+    expect(again).toMatchObject({
+      participationId: lead.participationId,
+      status: "cancelled",
+      paid: false,
+    });
+
+    const fresh = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-195",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(fresh.outcome).toBe("confirmed");
+    expect(fresh.participant?.name).toBe(N("reintegro vuelve"));
+
+    const row = await participation(lead.participationId);
+    expect(row.status).toBe("confirmed");
+    expect(row.external_payment_id).toBe("hackea-test-pay-195");
+    expect(row.metadata.extraPaymentIds).toBeUndefined();
+    // The new purchase mails again; the old refund stays as a trail.
+    expect(row.metadata.buyerEmailSent).toBeUndefined();
+    expect(row.metadata.hostNotified).toBeUndefined();
+    expect(row.metadata.refund).toMatchObject({
+      paymentId: "hackea-test-pay-194",
+    });
+
+    // And it is paid again.
+    const third = await createHackeaLead({
+      name: N("reintegro vuelve"),
+      phone: "+5491100000194",
+      eventId: EVT_OPEN,
+    });
+    expect(third.paid).toBe(true);
+  });
+
+  it("a paid row set back to pending in the admin stays pending on a redelivery", async () => {
+    const lead = await createHackeaLead({
+      name: N("vuelta-pending"),
+      phone: "+5491100000196",
+      eventId: EVT_OPEN,
+    });
+    const args = {
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-196",
+      amountCents: 2_130_000,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    };
+    await confirmHackeaPayment(args);
+    await db.execute(sql`
+      UPDATE participations SET status = 'pending'
+      WHERE id = ${lead.participationId}
+    `);
+
+    expect((await confirmHackeaPayment(args)).outcome).toBe("already");
+    const row = await participation(lead.participationId);
+    expect(row.status).toBe("pending");
+    expect(row.external_payment_id).toBe("hackea-test-pay-196");
+    expect(row.metadata.extraPaymentIds).toBeUndefined();
+  });
+
   it("a resubmit after the payment landed sees confirmed and keeps the snapshot", async () => {
     const lead = await createHackeaLead({
       name: N("pagó"),
