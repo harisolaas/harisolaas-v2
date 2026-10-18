@@ -29,6 +29,7 @@ import {
 import { DESAFIO_EVENT_ID, DESAFIO_TOTAL_DAYS } from "../src/data/desafio";
 import { DESAFIO_PREFILL } from "../src/data/desafio-prefill";
 import { validateDayInput, type DesafioDayFields } from "../src/lib/desafio";
+import { hackeaConfig } from "../src/data/hackea";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -65,7 +66,13 @@ function dbHost(): string {
 // collide with real people.
 interface EventFixture {
   id: string;
-  type: "brote" | "plant" | "sinergia" | "sinergia-parrafo" | "desafio";
+  type:
+    | "brote"
+    | "plant"
+    | "sinergia"
+    | "sinergia-parrafo"
+    | "desafio"
+    | "hackea";
   series: string | null;
   name: string;
   date: string; // ISO
@@ -76,14 +83,20 @@ interface EventFixture {
   landingPath: string | null;
 }
 
-interface PersonFixture {
-  email: string;
-  name: string;
-}
+// A person is keyed by email, or — for the Hackeá tu mente checkout, where
+// email is optional — by phone alone. Phone-only people are written with
+// email NULL and matched on their digits, the same way the checkout's
+// `recordParticipation` finds them.
+type PersonFixture =
+  | { email: string; name: string; phone?: string }
+  | { email?: undefined; name: string; phone: string };
 
 interface ParticipationFixture {
   id: string;
-  personEmail: string;
+  /** Exactly one of `personEmail` / `personPhone` names the person. */
+  personEmail?: string;
+  /** For phone-only people. Matched on digits, like the checkout does. */
+  personPhone?: string;
   eventId: string;
   role: string;
   status: "pending" | "confirmed" | "waitlist" | "cancelled" | "no_show" | "used";
@@ -126,6 +139,13 @@ interface ParticipationFixture {
    * production actually produces.
    */
   seq?: number;
+  /**
+   * Hackeá tu mente webhook bookkeeping. Mirrors what `markHackeaFlag`
+   * merges into `metadata` once each email has gone out, so preview has a
+   * row the webhook would skip on a retry next to rows it would not.
+   */
+  buyerEmailSent?: boolean;
+  hostNotified?: boolean;
 }
 
 interface ChallengeDayFixture extends DesafioDayFields {
@@ -225,6 +245,18 @@ const EVENTS: EventFixture[] = [
     status: "live",
     landingPath: "/es/desafio",
   },
+  // Hackeá tu mente. Real id from hackeaConfig, same reasoning as desafío:
+  // the checkout, webhook and admin all read hackeaConfig.eventId.
+  {
+    id: hackeaConfig.eventId,
+    type: "hackea",
+    series: null,
+    name: `${hackeaConfig.eventName} (preview)`,
+    date: hackeaConfig.startIso,
+    capacity: hackeaConfig.capacity,
+    status: "upcoming",
+    landingPath: hackeaConfig.landingPath,
+  },
 ];
 
 const PEOPLE: PersonFixture[] = [
@@ -264,6 +296,26 @@ const PEOPLE: PersonFixture[] = [
   // / `recordParticipation` and the backfill script's filter
   // (`name='Asistente' AND external_payment_id IS NOT NULL`).
   { email: "preview-asistente@example.com", name: "Asistente" },
+  // Hackeá tu mente buyers. Phones in the `+549…` form the checkout stores
+  // (normalizeArPhone). Email is optional on that form, so two people exist
+  // by phone alone — one paid, one an abandoned checkout.
+  {
+    email: "preview-martina@example.com",
+    name: "Martina Sosa",
+    phone: "+5491155501001",
+  },
+  {
+    email: "preview-julian@example.com",
+    name: "Julián Ledesma",
+    phone: "+5491155501002",
+  },
+  { name: "Camila Ortiz", phone: "+5491155501003" },
+  {
+    email: "preview-lucas@example.com",
+    name: "Lucas Benítez",
+    phone: "+5491155501004",
+  },
+  { name: "Agustina Paz", phone: "+5491155501005" },
 ];
 
 const PARTICIPATIONS: ParticipationFixture[] = [
@@ -600,6 +652,69 @@ const PARTICIPATIONS: ParticipationFixture[] = [
   })),
 ];
 
+// Hackeá tu mente: 3 paid at $21.300 (one phone-only, one whose buyer and
+// host emails both already went out) and 2 pending leads — checkout
+// abandoned after the lead was persisted, one of them phone-only. Pending
+// rows carry the ticket price + currency but no payment id, the way
+// `createHackeaLead` leaves them.
+const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
+  {
+    id: "HTM-PREVIEW1",
+    personEmail: "preview-martina@example.com",
+    eventId: hackeaConfig.eventId,
+    role: "attendee",
+    status: "confirmed",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
+    paymentId: "PREVIEW-MP-HTM-001",
+    buyerEmailSent: true,
+    hostNotified: true,
+  },
+  {
+    id: "HTM-PREVIEW2",
+    personEmail: "preview-julian@example.com",
+    eventId: hackeaConfig.eventId,
+    role: "attendee",
+    status: "confirmed",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
+    paymentId: "PREVIEW-MP-HTM-002",
+  },
+  {
+    id: "HTM-PREVIEW3",
+    personPhone: "+5491155501003",
+    eventId: hackeaConfig.eventId,
+    role: "attendee",
+    status: "confirmed",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
+    paymentId: "PREVIEW-MP-HTM-003",
+    // No email to send a confirmation to — only the host was told.
+    hostNotified: true,
+  },
+  {
+    id: "HTM-PREVIEW4",
+    personEmail: "preview-lucas@example.com",
+    eventId: hackeaConfig.eventId,
+    role: "attendee",
+    status: "pending",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
+  },
+  {
+    id: "HTM-PREVIEW5",
+    personPhone: "+5491155501005",
+    eventId: hackeaConfig.eventId,
+    role: "attendee",
+    status: "pending",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
+  },
+];
+PARTICIPATIONS.push(...HACKEA_PARTICIPATIONS);
+
+const phoneDigits = (phone: string) => phone.replace(/\D/g, "");
+
 // Desafío day content, built on the real prefill (src/data/desafio-prefill.ts)
 // so the preview reads like prod will. Prod gets all 15 published; the
 // preview deliberately mixes states so every UI branch is reachable:
@@ -715,12 +830,46 @@ async function main() {
   // isn't there when you go looking for it in the admin. Same for a
   // `link_slug` with no LINKS entry, except that one fails on the foreign
   // key with a message that doesn't name the fixture.
-  const knownEmails = new Set(PEOPLE.map((p) => p.email));
+  const knownEmails = new Set(
+    PEOPLE.flatMap((p) => (p.email ? [p.email] : [])),
+  );
+  // Phone-only people are the ones a `personPhone` can name; a person with an
+  // email is always referenced by it, so its phone isn't a valid key here.
+  const knownPhones = new Set(
+    PEOPLE.flatMap((p) =>
+      p.email === undefined ? [phoneDigits(p.phone)] : [],
+    ),
+  );
   const knownSlugs = new Set(LINKS.map((l) => l.slug));
   const problems: string[] = [];
+  const seenPhones = new Set<string>();
+  for (const p of PEOPLE) {
+    if (p.phone === undefined) continue;
+    // The checkout stores `+549…` (normalizeArPhone); anything else would
+    // seed a row prod can't produce.
+    if (!/^\+549\d{10}$/.test(p.phone)) {
+      problems.push(`${p.name}: phone ${p.phone} is not in +549XXXXXXXXXX form`);
+    }
+    // Phone-only rows are deduped on digits, so two fixtures sharing a
+    // number would silently collapse into one person.
+    const digits = phoneDigits(p.phone);
+    if (seenPhones.has(digits)) {
+      problems.push(`${p.name}: phone ${p.phone} is used by another person`);
+    }
+    seenPhones.add(digits);
+  }
   for (const p of PARTICIPATIONS) {
-    if (!knownEmails.has(p.personEmail)) {
+    if ((p.personEmail === undefined) === (p.personPhone === undefined)) {
+      problems.push(`${p.id}: needs exactly one of personEmail / personPhone`);
+    } else if (p.personEmail !== undefined && !knownEmails.has(p.personEmail)) {
       problems.push(`${p.id}: personEmail ${p.personEmail} is not in PEOPLE`);
+    } else if (
+      p.personPhone !== undefined &&
+      !knownPhones.has(phoneDigits(p.personPhone))
+    ) {
+      problems.push(
+        `${p.id}: personPhone ${p.personPhone} is not a phone-only PEOPLE entry`,
+      );
     }
     if (p.referrerEmail && !knownEmails.has(p.referrerEmail)) {
       problems.push(`${p.id}: referrerEmail ${p.referrerEmail} is not in PEOPLE`);
@@ -756,6 +905,26 @@ async function main() {
   console.log(`  ${LINKS.length} links`);
   console.log(`  ${CHALLENGE_DAYS.length} challenge_days`);
   if (ADMIN_EMAIL) console.log(`  1 admin_users row (${ADMIN_EMAIL})`);
+
+  console.log(`\nHackeá tu mente (${hackeaConfig.eventId}):`);
+  for (const p of HACKEA_PARTICIPATIONS) {
+    const person = PEOPLE.find((x) =>
+      p.personEmail
+        ? x.email === p.personEmail
+        : x.email === undefined &&
+          phoneDigits(x.phone) === phoneDigits(p.personPhone!),
+    )!;
+    const flags = [
+      p.buyerEmailSent && "buyerEmailSent",
+      p.hostNotified && "hostNotified",
+    ].filter(Boolean);
+    console.log(
+      `  ${p.id}  ${p.status.padEnd(9)} ${person.name.padEnd(15)} ` +
+        `${(person.phone ?? "").padEnd(15)} ${(person.email ?? "(sin email)").padEnd(28)} ` +
+        `${p.priceCents ? `${p.priceCents} ${p.currency} ${p.paymentId ?? "(sin pago)"}` : "—"}` +
+        `${flags.length ? `  [${flags.join(", ")}]` : ""}`,
+    );
+  }
 
   if (DRY_RUN) {
     console.log("\nDry run — no writes. Pass --execute to apply.");
@@ -820,11 +989,31 @@ async function main() {
 
   // People.
   for (const p of PEOPLE) {
-    await db.execute(sql`
-      INSERT INTO people (email, name)
-      VALUES (${p.email}, ${p.name})
-      ON CONFLICT (email) DO NOTHING
-    `);
+    if (p.email === undefined) {
+      // Phone-only: there's no unique key to ON CONFLICT on, so match on
+      // digits first — the same comparison the checkout uses — and only
+      // insert when nobody holds the number yet. Re-running is a no-op.
+      await db.execute(sql`
+        INSERT INTO people (email, name, phone)
+        SELECT NULL, ${p.name}, ${p.phone}
+        WHERE NOT EXISTS (
+          SELECT 1 FROM people
+          WHERE regexp_replace(phone, '\\D', '', 'g') = ${phoneDigits(p.phone)}
+        )
+      `);
+    } else if (p.phone !== undefined) {
+      await db.execute(sql`
+        INSERT INTO people (email, name, phone)
+        VALUES (${p.email}, ${p.name}, ${p.phone})
+        ON CONFLICT (email) DO NOTHING
+      `);
+    } else {
+      await db.execute(sql`
+        INSERT INTO people (email, name)
+        VALUES (${p.email}, ${p.name})
+        ON CONFLICT (email) DO NOTHING
+      `);
+    }
   }
   console.log(`✓ people`);
 
@@ -869,6 +1058,8 @@ async function main() {
     if (p.invite) meta.invite = p.invite;
     if (p.guestName) meta.guestName = p.guestName;
     if (p.seq !== undefined) meta.seq = p.seq;
+    if (p.buyerEmailSent) meta.buyerEmailSent = true;
+    if (p.hostNotified) meta.hostNotified = true;
     const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
 
     // `attribution` is the typed touch the admin reads; `link_slug` is the
@@ -884,6 +1075,18 @@ async function main() {
           capturedAt: new Date().toISOString(),
         })}::jsonb`
       : sql`NULL`;
+
+    // Phone-only people resolve on digits. LIMIT 1 (oldest first) so a
+    // branch where a test or a real checkout left a second row with the
+    // same number still yields one participation, not a duplicate-key error.
+    const personWhereSql = p.personEmail
+      ? sql`email = ${p.personEmail}`
+      : sql`id = (
+          SELECT id FROM people
+          WHERE regexp_replace(phone, '\\D', '', 'g') = ${phoneDigits(p.personPhone!)}
+          ORDER BY created_at, id
+          LIMIT 1
+        )`;
 
     await db.execute(sql`
       INSERT INTO participations (
@@ -906,7 +1109,7 @@ async function main() {
         ${attributionSql},
         ${p.referrerEmail ? sql`(SELECT id FROM people ref WHERE ref.email = ${p.referrerEmail})` : sql`NULL`},
         ${p.buyerEmail ? sql`(SELECT id FROM people buyer WHERE buyer.email = ${p.buyerEmail})` : sql`NULL`}
-      FROM people WHERE email = ${p.personEmail}
+      FROM people WHERE ${personWhereSql}
       ON CONFLICT DO NOTHING
     `);
   }
@@ -923,6 +1126,9 @@ async function main() {
   }
 
   console.log("\nDone. Log into the preview admin and start poking.");
+  console.log(
+    `Hackeá tu mente: ${hackeaConfig.eventId} has 3 paid (one phone-only) and 2 pending leads (one phone-only) in the admin EventDrawer.`,
+  );
   console.log(
     "Desafío: /es/desafio shows days 1–9 published (day 1 with intro + shorts reflection video, day 2 without reflection), day 10 as a draft and 11–15 without a row. Edit them at /admin/desafio.",
   );
