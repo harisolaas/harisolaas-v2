@@ -655,7 +655,8 @@ const PARTICIPATIONS: ParticipationFixture[] = [
 // Hackeá tu mente: 3 paid at $21.300 (one phone-only, one whose buyer and
 // host emails both already went out) and 2 pending leads — checkout
 // abandoned after the lead was persisted, one of them phone-only. Pending
-// rows carry no payment, the way `createHackeaLead` leaves them.
+// rows carry the ticket price + currency but no payment id, the way
+// `createHackeaLead` leaves them.
 const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
   {
     id: "HTM-PREVIEW1",
@@ -697,6 +698,8 @@ const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
     eventId: hackeaConfig.eventId,
     role: "attendee",
     status: "pending",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
   },
   {
     id: "HTM-PREVIEW5",
@@ -704,6 +707,8 @@ const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
     eventId: hackeaConfig.eventId,
     role: "attendee",
     status: "pending",
+    priceCents: hackeaConfig.ticketPriceCents,
+    currency: hackeaConfig.currency,
   },
 ];
 PARTICIPATIONS.push(...HACKEA_PARTICIPATIONS);
@@ -916,7 +921,7 @@ async function main() {
     console.log(
       `  ${p.id}  ${p.status.padEnd(9)} ${person.name.padEnd(15)} ` +
         `${(person.phone ?? "").padEnd(15)} ${(person.email ?? "(sin email)").padEnd(28)} ` +
-        `${p.priceCents ? `${p.priceCents} ${p.currency} ${p.paymentId}` : "—"}` +
+        `${p.priceCents ? `${p.priceCents} ${p.currency} ${p.paymentId ?? "(sin pago)"}` : "—"}` +
         `${flags.length ? `  [${flags.join(", ")}]` : ""}`,
     );
   }
