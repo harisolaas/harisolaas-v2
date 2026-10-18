@@ -1335,8 +1335,8 @@ const en: Dictionary = {
     ebook: {
       badge: "Included with your ticket",
       titleLead: "Get the ebook",
-      titleAccent: "the same day",
-      body: "With your ticket we send you, over WhatsApp, the 5 most common patterns that keep you from reaching your goals. So you keep hacking after the talk.",
+      titleAccent: "to keep hacking",
+      body: "Your ticket includes an ebook with the 5 most common patterns that keep you from reaching your goals, so the work goes on after the talk.",
       cover: {
         kicker: "Ebook · Hack your mind",
         number: "5",
@@ -1364,7 +1364,7 @@ const en: Dictionary = {
       namePlaceholder: "Your name",
       phoneLabel: "WhatsApp",
       phonePlaceholder: "+54 9 11 1234 5678",
-      phoneHint: "That's where we send your ticket and the ebook",
+      phoneHint: "That's where we'll message you with the details of the talk",
       emailLabel: "Email (optional)",
       emailPlaceholder: "you@mail.com",
       submit: "I'm in →",
@@ -1383,7 +1383,7 @@ const en: Dictionary = {
     done: {
       title: "Done, {nombre}",
       titleNoName: "Done",
-      body: "Taking you to payment. As soon as it's confirmed, we'll send your ticket and the ebook over WhatsApp to {phone}.",
+      body: "Taking you to payment. Once it's confirmed, we'll message you on WhatsApp at {phone} with the details of the talk.",
       back: "Back",
     },
     closed: {
@@ -1400,7 +1400,7 @@ const en: Dictionary = {
       eyebrowLead: "Done",
       eyebrowRest: "your spot is saved",
       heading: "See you at the talk",
-      body: "We got your payment. We'll message you on WhatsApp with your ticket and the ebook.",
+      body: "We got your payment. We'll message you on WhatsApp with the details of the talk.",
       pendingEyebrowLead: "Almost",
       pendingEyebrowRest: "waiting for confirmation",
       pendingHeading: "We're confirming your payment",
