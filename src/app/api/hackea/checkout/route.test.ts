@@ -35,11 +35,13 @@ const createHackeaLead = vi.fn<
     participationId: string;
     status: string;
     created: boolean;
+    paid: boolean;
   }>
 >(async () => ({
   participationId: "HTM-ABCD1234",
   status: "pending",
   created: true,
+  paid: false,
 }));
 vi.mock("@/lib/hackea", () => ({
   createHackeaLead: (p: Record<string, unknown>) => createHackeaLead(p),
@@ -299,13 +301,14 @@ describe("POST /api/hackea/checkout", () => {
     expect(createHackeaLead).not.toHaveBeenCalled();
   });
 
-  it.each(["confirmed", "used"])(
-    "409 already_paid when the lead is %s — no Preference",
+  it.each(["confirmed", "used", "cancelled", "pending"])(
+    "409 already_paid when the lead is paid (status %s) — no Preference",
     async (leadStatus) => {
       createHackeaLead.mockResolvedValueOnce({
         participationId: "HTM-PAID0001",
         status: leadStatus,
         created: false,
+        paid: true,
       });
       const { status, json } = await post(VALID);
       expect(status).toBe(409);
@@ -314,11 +317,58 @@ describe("POST /api/hackea/checkout", () => {
     },
   );
 
+  it("a refunded entrada (not paid, whatever its status) can buy again", async () => {
+    createHackeaLead.mockResolvedValueOnce({
+      participationId: "HTM-REFUND01",
+      status: "cancelled",
+      created: false,
+      paid: false,
+    });
+    const { status, json } = await post(VALID);
+    expect(status).toBe(200);
+    expect(prefBody().external_reference).toBe("HTM-REFUND01");
+    expect(json.participationId).toBe("HTM-REFUND01");
+  });
+
+  it("ignores non-string UTM / link fields instead of failing the sale", async () => {
+    const { status } = await post({
+      ...VALID,
+      utm: { source: 123, medium: ["ig"], campaign: { x: 1 }, content: null },
+      linkSlug: 42,
+    });
+    expect(status).toBe(200);
+    expect(prefBody().external_reference).toBe("HTM-ABCD1234");
+    const params = createHackeaLead.mock.calls[0][0] as {
+      attribution?: unknown;
+      linkSlug?: unknown;
+    };
+    expect(params.attribution).toBeUndefined();
+    expect(params.linkSlug).toBeUndefined();
+  });
+
+  it("keeps the string UTM fields next to non-string ones", async () => {
+    await post({ ...VALID, utm: { source: "instagram", medium: 5 }, linkSlug: "htm-bio" });
+    const params = createHackeaLead.mock.calls[0][0] as {
+      attribution?: { source?: string; medium?: string; linkSlug?: string };
+    };
+    expect(params.attribution).toMatchObject({
+      source: "instagram",
+      medium: undefined,
+      linkSlug: "htm-bio",
+    });
+  });
+
+  it("a non-object utm counts as absent", async () => {
+    const { status } = await post({ ...VALID, utm: "instagram" });
+    expect(status).toBe(200);
+  });
+
   it("an existing pending lead gets a fresh Preference on its own id", async () => {
     createHackeaLead.mockResolvedValueOnce({
       participationId: "HTM-OLDLEAD1",
       status: "pending",
       created: false,
+      paid: false,
     });
     const { status, json } = await post(VALID);
     expect(status).toBe(200);

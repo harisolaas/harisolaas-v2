@@ -66,6 +66,8 @@ export interface CreateHackeaLeadResult {
   status: ParticipationStatus;
   /** False when this person already had a row for the event. */
   created: boolean;
+  /** The entrada is paid (see `paidSql`) — the checkout answers 409. */
+  paid: boolean;
 }
 
 /**
@@ -84,6 +86,28 @@ export interface HackeaContact {
 type Runner = Pick<typeof db, "execute">;
 
 /**
+ * Whether a participation (aliased `pa`) holds a paid entrada: a recorded
+ * payment that wasn't refunded / charged back (`metadata.refund` on that
+ * same payment id), whatever the status — "No vendrá" doesn't give the
+ * money back. With no payment on record, `confirmed`/`used` (a comp set by
+ * hand) counts as paid. A refunded entrada can be bought again.
+ */
+const paidSql = sql`(CASE WHEN pa.external_payment_id IS NOT NULL
+  THEN pa.external_payment_id IS DISTINCT FROM pa.metadata->'refund'->>'paymentId'
+  ELSE pa.status IN ('confirmed', 'used') END)`;
+
+async function readLeadState(
+  tx: Runner,
+  id: string,
+): Promise<{ status: ParticipationStatus; paid: boolean } | null> {
+  const res = await tx.execute<{ status: ParticipationStatus; paid: boolean }>(
+    sql`SELECT pa.status, ${paidSql} AS paid FROM participations pa WHERE pa.id = ${id}`,
+  );
+  const row = res.rows?.[0];
+  return row ? { status: row.status, paid: Boolean(row.paid) } : null;
+}
+
+/**
  * This event's existing lead for the number or the email, or null.
  * Matches on the participation's contact snapshot and on the person row;
  * a phone match wins over an email match when they point at different
@@ -94,7 +118,12 @@ async function findEventLead(
   eventId: string,
   phone: string,
   email: string | null,
-): Promise<{ id: string; status: ParticipationStatus; personId: number } | null> {
+): Promise<{
+  id: string;
+  status: ParticipationStatus;
+  paid: boolean;
+  personId: number;
+} | null> {
   const digits = sql.join(
     phoneMatchCandidates(phone).map((c) => sql`${c}`),
     sql`, `,
@@ -112,9 +141,10 @@ async function findEventLead(
   const res = await tx.execute<{
     id: string;
     status: ParticipationStatus;
+    paid: boolean;
     person_id: number;
   }>(sql`
-    SELECT pa.id, pa.status, pa.person_id
+    SELECT pa.id, pa.status, ${paidSql} AS paid, pa.person_id
     FROM participations pa
     JOIN people pe ON pe.id = pa.person_id
     WHERE pa.event_id = ${eventId}
@@ -129,7 +159,12 @@ async function findEventLead(
   `);
   const row = res.rows?.[0];
   return row
-    ? { id: row.id, status: row.status, personId: Number(row.person_id) }
+    ? {
+        id: row.id,
+        status: row.status,
+        paid: Boolean(row.paid),
+        personId: Number(row.person_id),
+      }
     : null;
 }
 
@@ -190,26 +225,24 @@ export async function createHackeaLead(
 
     const existing = await findEventLead(tx, eventId, phone, email);
     if (existing) {
-      let status = existing.status;
-      if (status === "pending") {
+      let { status, paid } = existing;
+      if (!paid) {
         // The phone lock doesn't cover the webhook, which locks the row
-        // instead. Re-checking `pending` inside the UPDATE waits on that
+        // instead. Re-checking "not paid" inside the UPDATE waits on that
         // row lock and re-reads it after the webhook commits: a lead paid
         // meanwhile keeps the snapshot its mails were built from, and the
-        // caller sees `confirmed` (409) instead of opening a second checkout.
+        // caller sees it paid (409) instead of opening a second checkout.
         const refreshed = await tx.execute<{ id: string }>(sql`
-          UPDATE participations SET
-            metadata = COALESCE(metadata, '{}'::jsonb)
+          UPDATE participations pa SET
+            metadata = COALESCE(pa.metadata, '{}'::jsonb)
               || jsonb_build_object('contact', ${JSON.stringify(contact)}::jsonb),
             updated_at = NOW()
-          WHERE id = ${existing.id} AND status = 'pending'
-          RETURNING id
+          WHERE pa.id = ${existing.id} AND NOT ${paidSql}
+          RETURNING pa.id
         `);
         if (!refreshed.rows?.length) {
-          const cur = await tx.execute<{ status: ParticipationStatus }>(sql`
-            SELECT status FROM participations WHERE id = ${existing.id}
-          `);
-          status = cur.rows?.[0]?.status ?? status;
+          const cur = await readLeadState(tx, existing.id);
+          if (cur) ({ status, paid } = cur);
         }
       }
       await fillInPerson(tx, existing.personId, phone, email);
@@ -217,6 +250,7 @@ export async function createHackeaLead(
         participationId: existing.id,
         status,
         created: false,
+        paid,
       };
     }
 
@@ -247,13 +281,12 @@ export async function createHackeaLead(
 
     // Defensive: recordParticipation returns an existing (person, event)
     // row untouched, so read the real status rather than assume pending.
-    const statusRes = await tx.execute<{ status: ParticipationStatus }>(sql`
-      SELECT status FROM participations WHERE id = ${result.participationId}
-    `);
+    const cur = await readLeadState(tx, result.participationId);
     return {
       participationId: result.participationId,
-      status: statusRes.rows?.[0]?.status ?? "pending",
+      status: cur?.status ?? "pending",
       created: result.created,
+      paid: cur?.paid ?? false,
     };
   });
 }
@@ -318,9 +351,10 @@ export async function confirmHackeaPayment(params: {
       phone: string | null;
       email: string | null;
       contact: Partial<HackeaContact> | null;
+      paid: boolean;
     }>(sql`
       SELECT pa.id, pa.status, pa.external_payment_id, pe.name, pe.phone, pe.email,
-        pa.metadata->'contact' AS contact
+        pa.metadata->'contact' AS contact, ${paidSql} AS paid
       FROM participations pa
       JOIN people pe ON pe.id = pa.person_id
       WHERE pa.id = ${params.participationId} AND pa.event_id = ${eventId}
@@ -343,14 +377,12 @@ export async function confirmHackeaPayment(params: {
         }
       : { id: row.id, name: row.name, phone: row.phone, email: row.email };
 
-    // A recorded payment means this entrada was paid, whatever its status
-    // now: a row the operator cancelled ("No vendrá") must not flip back to
-    // `confirmed` on an MP redelivery, nor have its payment id overwritten.
-    if (
-      row.status === "confirmed" ||
-      row.status === "used" ||
-      row.external_payment_id != null
-    ) {
+    // A paid entrada (paidSql) stays as the operator left it: a row
+    // cancelled ("No vendrá") or set back to `pending` in the admin must not
+    // flip to `confirmed` on an MP redelivery — admin status wins — nor have
+    // its payment id overwritten. Only a refunded payment frees the row for
+    // a fresh purchase, which confirms below like a first one.
+    if (row.paid || row.external_payment_id === params.paymentId) {
       if (row.external_payment_id !== params.paymentId) {
         // A second approved payment for an already-paid entrada (two tabs,
         // two checkouts). Don't overwrite the first; keep a trail for a
@@ -380,6 +412,7 @@ export async function confirmHackeaPayment(params: {
       const countRes = await tx.execute<{ n: number }>(sql`
         SELECT COUNT(*)::int AS n FROM participations
         WHERE event_id = ${eventId} AND status IN ('confirmed', 'used')
+          AND id <> ${row.id}
       `);
       if (Number(countRes.rows?.[0]?.n ?? 0) >= capacity) {
         await tx.execute(sql`
@@ -393,12 +426,27 @@ export async function confirmHackeaPayment(params: {
       }
     }
 
+    // A repurchase after a refund mails again: drop the first purchase's
+    // delivery flags and check-in. A never-paid lead has none. The refunded
+    // payment id moves to refundedPaymentIds so a refund alert still
+    // pending for it stays retryable (handleReversal looks there).
+    const prev = row.external_payment_id;
     await tx.execute(sql`
       UPDATE participations SET
         status = 'confirmed',
+        used_at = NULL,
         external_payment_id = ${params.paymentId},
         price_cents = ${params.amountCents},
         currency = ${params.currency},
+        metadata = (COALESCE(metadata, '{}'::jsonb)
+          - 'buyerEmailSent' - 'buyerEmailSentSendingAt' - 'buyerEmailSentSendingFor'
+          - 'hostNotified' - 'hostNotifiedSendingAt' - 'hostNotifiedSendingFor')
+          || CASE WHEN ${prev}::text IS NULL THEN '{}'::jsonb
+             ELSE jsonb_build_object(
+               'refundedPaymentIds',
+               COALESCE(metadata->'refundedPaymentIds', '[]'::jsonb)
+                 || to_jsonb(${prev}::text)
+             ) END,
         updated_at = NOW()
       WHERE id = ${row.id}
     `);
@@ -406,15 +454,22 @@ export async function confirmHackeaPayment(params: {
   });
 }
 
-/** jsonb-merge a delivery flag into participations.metadata. */
+/**
+ * jsonb-merge a delivery flag into participations.metadata — only while the
+ * claim still belongs to `paymentId` (`${flag}SendingFor`, written by the
+ * webhook's claim). A send for a refunded payment that finishes after a
+ * repurchase reset the flags must not mark the new purchase as delivered.
+ */
 export async function markHackeaFlag(
   participationId: string,
   flag: "buyerEmailSent" | "hostNotified",
+  paymentId: string,
 ): Promise<void> {
+  const forKey = `${flag}SendingFor`;
   await db.execute(sql`
     UPDATE participations SET
       metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object(${flag}::text, true),
       updated_at = NOW()
-    WHERE id = ${participationId}
+    WHERE id = ${participationId} AND metadata->>${forKey} = ${paymentId}
   `);
 }
