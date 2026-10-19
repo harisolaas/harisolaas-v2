@@ -534,7 +534,7 @@ Non-prod branches that already have 0007 (the `.env.local` preview branch, CI's 
 
 ## HACKEÁ TU MENTE — charla paga (MercadoPago + CRM)
 
-In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at `/es/hackea-tu-mente` (`/en/hackea-tu-mente/*` → `/es/…` in `next.config.ts`; in the sitemap). Ebook delivery is **manual and out of scope**: no PDF, no automated send — Hari writes each buyer on WhatsApp from the host-notification mail.
+In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at `/es/hackea-tu-mente` (`/en/hackea-tu-mente/*` → `/es/…` in `next.config.ts`; in the sitemap). The ebook is included with the entrada, but **the site never promises when or how it's delivered** (no "el mismo día", no "te lo mandamos por WhatsApp" — landing, success pages, mails and the wa.me greeting alike): Hari hands it out at the talk. No PDF, no automated send; the host-notification mail's wa.me link only opens a chat with a greeting.
 
 ### Config (`src/data/hackea.ts`) — single source of truth
 

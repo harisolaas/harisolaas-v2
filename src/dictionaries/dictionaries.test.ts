@@ -383,7 +383,7 @@ describe("hackea dictionary — es", () => {
     expect(es.hackea.hero.body).toBe(
       "Una experiencia para repensar tus patrones, tu atención y tu forma de habitar el presente.",
     );
-    expect(es.hackea.form.phoneHint).toBe("Ahí te mandamos la entrada y el ebook");
+    expect(es.hackea.form.phoneHint).toBe("Ahí te escribimos con los detalles del encuentro");
     expect(es.hackea.form.errors.name).toBe("Contanos tu nombre");
     expect(es.hackea.form.errors.phone).toBe("Revisá el número de WhatsApp");
     expect(es.hackea.form.errors.email).toBe("Revisá el email");

@@ -47,7 +47,7 @@ describe("hackea emails", () => {
     );
   });
 
-  it("buyer mail carries entrada, date, address, maps link and the WhatsApp ebook line", () => {
+  it("buyer mail carries entrada, date, address, maps link and the WhatsApp line, with no ebook delivery promise", () => {
     const html = buildHackeaBuyerConfirmationHtml({
       name: "Lucía",
       participationId: "HTM-ABCD1234",
@@ -57,7 +57,8 @@ describe("hackea emails", () => {
     expect(html).toContain("19:00");
     expect(html).toContain("Costa Rica 5644");
     expect(html).toContain("https://www.google.com/maps/search/");
-    expect(html).toContain("El ebook te lo mandamos por WhatsApp");
+    expect(html).toContain("Te escribimos por WhatsApp");
+    expect(html).not.toMatch(/ebook/i);
     expect(html).toContain("https://wa.me/5491122555110");
     // House rules: no exclamation marks in the copy.
     expect(html.replace("<!DOCTYPE html>", "")).not.toMatch(/[!¡]/);
@@ -104,7 +105,7 @@ describe("hackea emails", () => {
     expect(url.startsWith("https://wa.me/5491122334455?text=")).toBe(true);
     const text = decodeURIComponent(url.split("?text=")[1]);
     expect(text).toBe(
-      "Hola Lucía, soy Hari. Gracias por sumarte a Hackeá tu mente. Te escribo para mandarte el ebook y lo que necesitás para el jueves 29 de octubre.",
+      "Hola Lucía, soy Hari. Gracias por sumarte a Hackeá tu mente. Te escribo para pasarte los detalles del jueves 29 de octubre.",
     );
     expect(url).not.toContain(" ");
   });

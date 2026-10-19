@@ -67,7 +67,7 @@ export function hackeaDateLabel(date: string = hackeaConfig.date): string {
  */
 export function hackeaGreetingWaMeUrl(phone: string, name: string): string {
   const firstName = name.trim().split(/\s+/)[0] || name.trim();
-  const text = `Hola ${firstName}, soy Hari. Gracias por sumarte a Hackeá tu mente. Te escribo para mandarte el ebook y lo que necesitás para el ${hackeaDateLabel().toLowerCase()}.`;
+  const text = `Hola ${firstName}, soy Hari. Gracias por sumarte a Hackeá tu mente. Te escribo para pasarte los detalles del ${hackeaDateLabel().toLowerCase()}.`;
   return `https://wa.me/${phoneToWaMe(phone)}?text=${encodeURIComponent(text)}`;
 }
 
@@ -125,8 +125,8 @@ export function buildHackeaBuyerConfirmationHtml({
 
 <tr><td style="padding:0 24px 24px">
   <div style="padding:18px 20px;background:${VIOLET_SOFT};border-radius:12px">
-    <p style="margin:0 0 8px;color:${VIOLET};font-size:14px;font-weight:700">El ebook te lo mandamos por WhatsApp</p>
-    <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.7">Te escribimos al número que dejaste con el ebook y los detalles del encuentro. Si tenés alguna duda, escribinos cuando quieras.</p>
+    <p style="margin:0 0 8px;color:${VIOLET};font-size:14px;font-weight:700">Te escribimos por WhatsApp</p>
+    <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.7">Te escribimos al número que dejaste con los detalles del encuentro. Si tenés alguna duda, escribinos cuando quieras.</p>
     <p style="margin:14px 0 0"><a href="${contactHref}" style="color:${VIOLET};font-size:13px;font-weight:600;text-decoration:none">Escribir por WhatsApp</a></p>
   </div>
 </td></tr>
@@ -159,8 +159,9 @@ export function hackeaHostSubject(name: string): string {
   return `Nueva entrada Hackeá tu mente — ${name.replace(/\s+/g, " ").trim()}`;
 }
 
-// Internal mail so the host can reach the buyer on WhatsApp by hand (the
-// ebook goes out that way) — the wa.me link carries a prefilled greeting.
+// Internal mail so the host can reach the buyer on WhatsApp by hand — the
+// wa.me link carries a prefilled greeting. It never promises the ebook's
+// delivery: Hari hands it out at the talk.
 export function buildHackeaHostNotificationHtml({
   name,
   phone,
@@ -193,7 +194,7 @@ export function buildHackeaHostNotificationHtml({
     <tr><td style="padding:6px 0;color:${MUTED}">Entrada</td><td style="padding:6px 0;font-family:${MONO_STACK}">${escapeHtml(participationId)} &middot; ${formatArsLabel(amountCents)}</td></tr>
     <tr><td style="padding:6px 0;color:${MUTED}">Confirmadas</td><td style="padding:6px 0">${totalConfirmed}</td></tr>
   </table>
-  <p style="margin:18px 0 0;color:${MUTED};font-size:13px;line-height:1.6">Tocá el número para abrir el chat con el saludo ya escrito y mandarle el ebook.</p>
+  <p style="margin:18px 0 0;color:${MUTED};font-size:13px;line-height:1.6">Tocá el número para abrir el chat con el saludo ya escrito.</p>
 </td></tr>
 </table>
 </body>
