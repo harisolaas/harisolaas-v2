@@ -1381,7 +1381,7 @@ const es: Dictionary = {
       nameLabel: "Nombre",
       namePlaceholder: "Tu nombre",
       phoneLabel: "WhatsApp",
-      phonePlaceholder: "+54 9 11 1234 5678",
+      phonePlaceholder: "11 2345 6789",
       phoneHint: "Ahí te escribimos con los detalles del encuentro",
       emailLabel: "Email (opcional)",
       emailPlaceholder: "vos@mail.com",
@@ -1389,7 +1389,8 @@ const es: Dictionary = {
       submitting: "Un momento…",
       errors: {
         name: "Contanos tu nombre",
-        phone: "Revisá el número de WhatsApp",
+        phone:
+          "Revisá el número: poné el código de área, por ejemplo 11 2345 6789. Si es de otro país, empezá con + y el código del país.",
         email: "Revisá el email",
         alreadyPaid:
           "Este WhatsApp o email ya tiene una entrada paga. Si es un error, escribinos por WhatsApp.",

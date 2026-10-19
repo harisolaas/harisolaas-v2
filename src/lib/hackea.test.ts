@@ -344,6 +344,43 @@ describe("createHackeaLead", () => {
     expect(p.email).toBeNull();
   });
 
+  // Before libphonenumber, `0351 15 600-0107` was stored mangled as
+  // `+0351156000107`. Typing it again must still find that paid lead.
+  it("finds a paid lead stored in the pre-libphonenumber form (409, no new row)", async () => {
+    const legacy = "+0351156000107";
+    const old = await recordParticipation({
+      name: N("legacy"),
+      phone: legacy,
+      eventId: EVT_OPEN,
+      participationId: "hackea-test-p-legacy",
+      role: "attendee",
+      status: "pending",
+      metadata: { contact: { name: N("legacy"), phone: legacy, email: null } },
+    });
+    await confirmHackeaPayment({
+      participationId: "hackea-test-p-legacy",
+      paymentId: "hackea-test-pay-legacy",
+      amountCents: hackeaConfig.ticketPriceCents,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(normalizeArPhone("0351 15 600-0107")).toBe("+5493516000107");
+
+    const again = await createHackeaLead({
+      name: N("legacy"),
+      phone: "0351 15 600-0107",
+      eventId: EVT_OPEN,
+    });
+    expect(again.created).toBe(false);
+    expect(again.participationId).toBe("hackea-test-p-legacy");
+    expect(again.paid).toBe(true);
+    const count = await db.execute<{ n: number }>(sql`
+      SELECT COUNT(*)::int AS n FROM participations WHERE event_id = ${EVT_OPEN}
+    `);
+    expect(Number(count.rows[0].n)).toBe(1);
+    expect(old.created).toBe(true);
+  });
+
   it("is idempotent and returns the existing row's status", async () => {
     const a = await createHackeaLead({
       name: N("fede"),

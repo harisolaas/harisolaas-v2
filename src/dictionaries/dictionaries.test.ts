@@ -385,7 +385,12 @@ describe("hackea dictionary — es", () => {
     );
     expect(es.hackea.form.phoneHint).toBe("Ahí te escribimos con los detalles del encuentro");
     expect(es.hackea.form.errors.name).toBe("Contanos tu nombre");
-    expect(es.hackea.form.errors.phone).toBe("Revisá el número de WhatsApp");
+    // Departs from the handoff on purpose: the phone check is strict now,
+    // so the message says how to fix the number.
+    expect(es.hackea.form.errors.phone).toBe(
+      "Revisá el número: poné el código de área, por ejemplo 11 2345 6789. Si es de otro país, empezá con + y el código del país.",
+    );
+    expect(es.hackea.form.phonePlaceholder).toBe("11 2345 6789");
     expect(es.hackea.form.errors.email).toBe("Revisá el email");
     expect(es.hackea.form.submit).toBe("Quiero ser parte →");
   });

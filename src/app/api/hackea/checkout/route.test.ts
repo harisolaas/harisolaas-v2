@@ -276,6 +276,18 @@ describe("POST /api/hackea/checkout", () => {
     expect(preferenceCreate).not.toHaveBeenCalled();
   });
 
+  // 8–15 digits used to be enough; these all passed the old check.
+  it.each(["12345678", "1111111111", "+54 9 999 123 4567", "15 2345 6789", "0800 222 1234"])(
+    "400 { error: phone } for a number that isn't a real WhatsApp: %s",
+    async (phone) => {
+      const { status, json } = await post({ ...VALID, phone });
+      expect(status).toBe(400);
+      expect(json).toEqual({ error: "phone" });
+      expect(createHackeaLead).not.toHaveBeenCalled();
+      expect(preferenceCreate).not.toHaveBeenCalled();
+    },
+  );
+
   it("400 on an over-long name, and writes nothing", async () => {
     const { status, json } = await post({ ...VALID, name: "a".repeat(121) });
     expect(status).toBe(400);
