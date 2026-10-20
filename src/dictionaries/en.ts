@@ -1358,8 +1358,16 @@ const en: Dictionary = {
       includesValue: "Ticket + ebook",
       scarcity: "Limited spots",
       cardTitle: "Your ticket",
+      cardTitleGroup: "Your {n} tickets",
+      groupBadge: "Come as a group: up to {pct}% off",
     },
     form: {
+      quantityLabel: "How many tickets?",
+      quantityOptionSingle: "1 ticket · {precio}",
+      quantityOption: "{n} tickets · {precio} each · -{pct}%",
+      quantityHint: "Bring your people: the more tickets, the less each person pays.",
+      perPerson: "each",
+      totalLine: "Total: {total} · you save {ahorro}",
       nameLabel: "Name",
       namePlaceholder: "Your name",
       phoneLabel: "WhatsApp",
@@ -1370,6 +1378,7 @@ const en: Dictionary = {
       submit: "I'm in →",
       submitting: "One moment…",
       errors: {
+        quantity: "Pick how many tickets you want (1 to 4).",
         name: "Tell us your name",
         phone:
           "Check the number: include the area code, e.g. 11 2345 6789. Outside Argentina, start with + and the country code.",

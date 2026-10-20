@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
+import { quantitySql } from "@/lib/hackea-quantity";
 import {
   assertEventAccess,
   requireAdminSession,
@@ -220,8 +221,11 @@ export async function GET(
   // leads carry price_cents from the moment they submit the form, so the
   // revenue sum is restricted to confirmed/used — same population as
   // `contributions`, but kept as one explicit figure for the drawer.
+  // A group purchase is one row with `metadata.quantity`: `paid` counts
+  // entradas (seats), `paidPurchases` counts checkouts.
   let hackea: {
     paid: number;
+    paidPurchases: number;
     pendingLeads: number;
     revenueCents: number;
     currency: string;
@@ -229,22 +233,28 @@ export async function GET(
   if (event.type === "hackea") {
     const hackeaRes = await db.execute<{
       paid: number;
+      paid_purchases: number;
       pending_leads: number;
       revenue_cents: string | number;
     }>(sql`
       SELECT
-        COUNT(*) FILTER (WHERE status IN ('confirmed', 'used'))::int AS paid,
-        COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_leads,
         COALESCE(
-          SUM(price_cents) FILTER (WHERE status IN ('confirmed', 'used')),
+          SUM(${quantitySql}) FILTER (WHERE pa.status IN ('confirmed', 'used')),
+          0
+        )::int AS paid,
+        COUNT(*) FILTER (WHERE pa.status IN ('confirmed', 'used'))::int AS paid_purchases,
+        COUNT(*) FILTER (WHERE pa.status = 'pending')::int AS pending_leads,
+        COALESCE(
+          SUM(pa.price_cents) FILTER (WHERE pa.status IN ('confirmed', 'used')),
           0
         )::bigint AS revenue_cents
-      FROM participations
-      WHERE event_id = ${id}
+      FROM participations pa
+      WHERE pa.event_id = ${id}
     `);
     const h = hackeaRes.rows?.[0];
     hackea = {
       paid: Number(h?.paid ?? 0),
+      paidPurchases: Number(h?.paid_purchases ?? 0),
       pendingLeads: Number(h?.pending_leads ?? 0),
       revenueCents: Number(h?.revenue_cents ?? 0),
       currency: "ARS",

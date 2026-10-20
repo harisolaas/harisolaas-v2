@@ -540,6 +540,8 @@ In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at 
 
 `hackeaConfig`: `eventId = "hackea-tu-mente-2026-10-29"` (never change once there are sales), `eventType = "hackea"` (the admin special-cases the drawer on it), `startIso` (with `-03:00`), `capacity` (`null` = sin tope), `ticketPriceCents = 2_130_000` ($21.300) + `ticketPriceLabel` derived via `formatArsLabel`, venue. `HACKEA_PAYMENT_TYPE = "hackea-ticket"` (MP `metadata.type` — all MP flows share one token, so the Hackeá and BROTE webhooks skip payments without their own type; Sinergia has no type guard and just logs "rsvp not found" with a 200), `HACKEA_PARTICIPATION_PREFIX = "HTM-"`. Date/time/venue strings come from `hackeaDisplay()` (`src/lib/hackea-display.ts`); never hardcode them in copy. Dict key `hackea` in `es.ts`/`en.ts`.
 
+**Group purchase (1–4 entradas)**: `HACKEA_GROUP_TIERS` in `src/data/hackea.ts` — $21.300 · $16.900 c/u (2, −20%) · $15.300 c/u (3, −28%) · $13.900 c/u (4, −34%); helpers `hackeaGroupPriceCents` / `hackeaPerPersonCents` / `hackeaGroupSavingsCents` / `hackeaGroupDiscountPercent` (rounded down). One participation per purchase with `metadata.quantity` (absent = 1) and `price_cents` = the group total; the MP Preference is one line at that total. Landing shows per-person price first, the % second, the total small above the submit. Anything that counts entradas (capacity, host mail "Confirmadas", the CRM's `paid`) sums `quantitySql` (`src/lib/hackea-quantity.ts`) instead of counting rows; `underpaid` compares against the row's group price.
+
 **Share card + structured data**: `HACKEA_OG_IMAGE` (`hackea/og-hackea-v1.png`, 1200×630, date/time/barrio but no price) feeds the landing's OG, Twitter and JSON-LD image — same rule as BROTE's: bump the filename when the artwork changes, never overwrite. The landing emits an `Event` JSON-LD from `buildHackeaEventJsonLd()` (`src/lib/hackea-jsonld.ts`); its offer reads `isHackeaSalesOpen` (InStock → SoldOut).
 
 **Sales close at `startIso`**: `isHackeaSalesOpen(now)` swaps the form for a closed card on the landing (`revalidate = 60`) and makes the checkout answer 410.
@@ -585,7 +587,7 @@ Shares `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `RESEND_*`, `META_*` with the oth
 
 ### Preview
 
-`scripts/seed-preview.ts` seeds the real-id event (type `hackea`) with `HTM-PREVIEW1..5`, each with its `metadata.contact` snapshot: 3 confirmed at $21.300 (one phone-only, PREVIEW1 with `buyerEmailSent` + `hostNotified`), 2 pending leads (one phone-only). Phones in `+549…`. The seeder supports phone-only people via `personPhone`.
+`scripts/seed-preview.ts` seeds the real-id event (type `hackea`) with `HTM-PREVIEW1..5`, each with its `metadata.contact` snapshot and `metadata.quantity`: 3 confirmed (PREVIEW2 a group of 3 at $45.900, the rest $21.300; one phone-only, PREVIEW1 with `buyerEmailSent` + `hostNotified`), 2 pending leads (one phone-only, PREVIEW5 a group of 4 at $55.600). Phones in `+549…`. The seeder supports phone-only people via `personPhone`.
 
 ### Ops checklist
 

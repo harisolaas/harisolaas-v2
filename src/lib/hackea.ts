@@ -10,8 +10,14 @@ import {
   type AttributionTouch,
   type ParticipationStatus,
 } from "@/lib/community";
-import { hackeaConfig, HACKEA_PARTICIPATION_PREFIX } from "@/data/hackea";
+import {
+  hackeaConfig,
+  hackeaGroupPriceCents,
+  isHackeaQuantity,
+  HACKEA_PARTICIPATION_PREFIX,
+} from "@/data/hackea";
 import { parseHackeaWhatsApp } from "@/lib/hackea-phone";
+import { quantitySql } from "@/lib/hackea-quantity";
 
 // Hackeá tu mente — server-side lead + payment lifecycle.
 //
@@ -67,6 +73,8 @@ export interface CreateHackeaLeadParams {
   name: string;
   phone: string;
   email?: string;
+  /** Entradas in this purchase (group price). Defaults to 1. */
+  quantity?: number;
   attribution?: AttributionTouch;
   /** Link slug from attribution; resolved by recordParticipation (bypass). */
   linkSlug?: string;
@@ -97,6 +105,11 @@ export interface HackeaContact {
 }
 
 type Runner = Pick<typeof db, "execute">;
+
+function toQuantity(raw: unknown): number {
+  const n = Number(raw);
+  return isHackeaQuantity(n) ? n : 1;
+}
 
 /**
  * Whether a participation (aliased `pa`) holds a paid entrada: a recorded
@@ -241,6 +254,8 @@ export async function createHackeaLead(
   const phone = normalizeArPhone(params.phone);
   const email = params.email?.trim() || null;
   const contact: HackeaContact = { name, phone, email };
+  const quantity = toQuantity(params.quantity ?? 1);
+  const priceCents = hackeaGroupPriceCents(quantity);
 
   return db.transaction(async (tx) => {
     await lockPhoneNumber(tx, phone);
@@ -254,10 +269,16 @@ export async function createHackeaLead(
         // row lock and re-reads it after the webhook commits: a lead paid
         // meanwhile keeps the snapshot its mails were built from, and the
         // caller sees it paid (409) instead of opening a second checkout.
+        // The quantity and its group price follow the latest submit too:
+        // someone who started a checkout for one can come back for three.
         const refreshed = await tx.execute<{ id: string }>(sql`
           UPDATE participations pa SET
             metadata = COALESCE(pa.metadata, '{}'::jsonb)
-              || jsonb_build_object('contact', ${JSON.stringify(contact)}::jsonb),
+              || jsonb_build_object(
+                'contact', ${JSON.stringify(contact)}::jsonb,
+                'quantity', ${quantity}::int
+              ),
+            price_cents = ${priceCents},
             updated_at = NOW()
           WHERE pa.id = ${existing.id} AND NOT ${paidSql}
           RETURNING pa.id
@@ -287,9 +308,9 @@ export async function createHackeaLead(
       status: "pending" as const,
       attribution: params.attribution,
       bypassLinkSlug: params.linkSlug,
-      priceCents: hackeaConfig.ticketPriceCents,
+      priceCents,
       currency: hackeaConfig.currency,
-      metadata: { contact },
+      metadata: { contact, quantity },
     };
 
     // Number already known → write through the phone path so it lands on
@@ -318,16 +339,21 @@ export interface HackeaParticipant {
   name: string;
   phone: string | null;
   email: string | null;
+  /** Entradas in the purchase (`metadata.quantity`, 1 when absent). */
+  quantity: number;
 }
 
 export interface ConfirmHackeaPaymentResult {
   outcome: "confirmed" | "already" | "not_found" | "capacity";
   participant?: HackeaParticipant;
   /**
-   * The approved amount is below the configured ticket price (a tampered or
-   * stale preference). The outcome is unchanged — the caller alerts.
+   * The approved amount is below the group price for the row's quantity
+   * (a tampered or stale preference). The outcome is unchanged — the
+   * caller alerts.
    */
   underpaid: boolean;
+  /** Group price the amount was checked against; null when no row was read. */
+  expectedCents: number | null;
 }
 
 /**
@@ -348,21 +374,17 @@ export async function confirmHackeaPayment(params: {
   eventId?: string;
 }): Promise<ConfirmHackeaPaymentResult> {
   const eventId = params.eventId ?? hackeaConfig.eventId;
-  const underpaid = params.amountCents < hackeaConfig.ticketPriceCents;
-  if (underpaid) {
-    console.warn("Hackea: approved amount below ticket price", {
-      participationId: params.participationId,
-      paymentId: params.paymentId,
-      amountCents: params.amountCents,
-      expected: hackeaConfig.ticketPriceCents,
-    });
-  }
+  // Before the row is read, the cheapest thing it could have cost.
+  let underpaid = params.amountCents < hackeaConfig.ticketPriceCents;
+  let expectedCents: number | null = null;
 
   return db.transaction(async (tx): Promise<ConfirmHackeaPaymentResult> => {
     const eventRes = await tx.execute<{ capacity: number | null }>(
       sql`SELECT capacity FROM events WHERE id = ${eventId} FOR UPDATE`,
     );
-    if (!eventRes.rows?.[0]) return { outcome: "not_found", underpaid };
+    if (!eventRes.rows?.[0]) {
+      return { outcome: "not_found", underpaid, expectedCents };
+    }
     const capacity = eventRes.rows[0].capacity ?? null;
 
     const rowRes = await tx.execute<{
@@ -374,16 +396,32 @@ export async function confirmHackeaPayment(params: {
       email: string | null;
       contact: Partial<HackeaContact> | null;
       paid: boolean;
+      quantity: number;
     }>(sql`
       SELECT pa.id, pa.status, pa.external_payment_id, pe.name, pe.phone, pe.email,
-        pa.metadata->'contact' AS contact, ${paidSql} AS paid
+        pa.metadata->'contact' AS contact, ${paidSql} AS paid,
+        ${quantitySql} AS quantity
       FROM participations pa
       JOIN people pe ON pe.id = pa.person_id
       WHERE pa.id = ${params.participationId} AND pa.event_id = ${eventId}
       FOR UPDATE OF pa
     `);
     const row = rowRes.rows?.[0];
-    if (!row) return { outcome: "not_found", underpaid };
+    if (!row) return { outcome: "not_found", underpaid, expectedCents };
+
+    // The group price for the quantity the buyer checked out with.
+    const quantity = toQuantity(row.quantity);
+    expectedCents = hackeaGroupPriceCents(quantity);
+    underpaid = params.amountCents < expectedCents;
+    if (underpaid) {
+      console.warn("Hackea: approved amount below the group price", {
+        participationId: params.participationId,
+        paymentId: params.paymentId,
+        amountCents: params.amountCents,
+        quantity,
+        expected: expectedCents,
+      });
+    }
 
     // The snapshot of what the buyer typed wins; the person row is the
     // fallback for rows written before the snapshot existed (and per field
@@ -396,8 +434,15 @@ export async function confirmHackeaPayment(params: {
           name: c.name || row.name,
           phone: c.phone || row.phone,
           email: "email" in c ? (c.email ?? null) : row.email,
+          quantity,
         }
-      : { id: row.id, name: row.name, phone: row.phone, email: row.email };
+      : {
+          id: row.id,
+          name: row.name,
+          phone: row.phone,
+          email: row.email,
+          quantity,
+        };
 
     // A paid entrada (paidSql) stays as the operator left it: a row
     // cancelled ("No vendrá") or set back to `pending` in the admin must not
@@ -427,16 +472,17 @@ export async function confirmHackeaPayment(params: {
                      ? ${params.paymentId})
         `);
       }
-      return { outcome: "already", participant, underpaid };
+      return { outcome: "already", participant, underpaid, expectedCents };
     }
 
     if (capacity != null) {
+      // Capacity counts entradas, not purchases: a group of 3 takes 3 seats.
       const countRes = await tx.execute<{ n: number }>(sql`
-        SELECT COUNT(*)::int AS n FROM participations
-        WHERE event_id = ${eventId} AND status IN ('confirmed', 'used')
-          AND id <> ${row.id}
+        SELECT COALESCE(SUM(${quantitySql}), 0)::int AS n FROM participations pa
+        WHERE pa.event_id = ${eventId} AND pa.status IN ('confirmed', 'used')
+          AND pa.id <> ${row.id}
       `);
-      if (Number(countRes.rows?.[0]?.n ?? 0) >= capacity) {
+      if (Number(countRes.rows?.[0]?.n ?? 0) + quantity > capacity) {
         await tx.execute(sql`
           UPDATE participations SET
             metadata = COALESCE(metadata, '{}'::jsonb)
@@ -444,7 +490,7 @@ export async function confirmHackeaPayment(params: {
             updated_at = NOW()
           WHERE id = ${row.id}
         `);
-        return { outcome: "capacity", participant, underpaid };
+        return { outcome: "capacity", participant, underpaid, expectedCents };
       }
     }
 
@@ -472,7 +518,7 @@ export async function confirmHackeaPayment(params: {
         updated_at = NOW()
       WHERE id = ${row.id}
     `);
-    return { outcome: "confirmed", participant, underpaid };
+    return { outcome: "confirmed", participant, underpaid, expectedCents };
   });
 }
 

@@ -29,7 +29,7 @@ import {
 import { DESAFIO_EVENT_ID, DESAFIO_TOTAL_DAYS } from "../src/data/desafio";
 import { DESAFIO_PREFILL } from "../src/data/desafio-prefill";
 import { validateDayInput, type DesafioDayFields } from "../src/lib/desafio";
-import { hackeaConfig } from "../src/data/hackea";
+import { hackeaConfig, hackeaGroupPriceCents } from "../src/data/hackea";
 
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(name);
@@ -146,6 +146,11 @@ interface ParticipationFixture {
    */
   buyerEmailSent?: boolean;
   hostNotified?: boolean;
+  /**
+   * Hackeá group purchase: entradas in this one row (`metadata.quantity`).
+   * Pair it with `hackeaGroupPriceCents(quantity)` as the price.
+   */
+  quantity?: number;
 }
 
 interface ChallengeDayFixture extends DesafioDayFields {
@@ -652,11 +657,13 @@ const PARTICIPATIONS: ParticipationFixture[] = [
   })),
 ];
 
-// Hackeá tu mente: 3 paid at $21.300 (one phone-only, one whose buyer and
-// host emails both already went out) and 2 pending leads — checkout
-// abandoned after the lead was persisted, one of them phone-only. Pending
-// rows carry the ticket price + currency but no payment id, the way
-// `createHackeaLead` leaves them.
+// Hackeá tu mente: 3 paid purchases (one phone-only, one whose buyer and
+// host emails both already went out, one a group of 3 at $45.900) and 2
+// pending leads — checkout abandoned after the lead was persisted, one of
+// them phone-only and a group of 4 at $55.600. Pending rows carry the
+// price + currency but no payment id, the way `createHackeaLead` leaves
+// them. The rest are single entradas at $21.300, so the drawer shows both
+// the ×N chip and its absence.
 const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
   {
     id: "HTM-PREVIEW1",
@@ -676,7 +683,8 @@ const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
     eventId: hackeaConfig.eventId,
     role: "attendee",
     status: "confirmed",
-    priceCents: hackeaConfig.ticketPriceCents,
+    quantity: 3,
+    priceCents: hackeaGroupPriceCents(3),
     currency: hackeaConfig.currency,
     paymentId: "PREVIEW-MP-HTM-002",
   },
@@ -707,7 +715,8 @@ const HACKEA_PARTICIPATIONS: ParticipationFixture[] = [
     eventId: hackeaConfig.eventId,
     role: "attendee",
     status: "pending",
-    priceCents: hackeaConfig.ticketPriceCents,
+    quantity: 4,
+    priceCents: hackeaGroupPriceCents(4),
     currency: hackeaConfig.currency,
   },
 ];
@@ -917,6 +926,7 @@ async function main() {
     const flags = [
       p.buyerEmailSent && "buyerEmailSent",
       p.hostNotified && "hostNotified",
+      p.quantity && p.quantity > 1 && `×${p.quantity} entradas`,
     ].filter(Boolean);
     console.log(
       `  ${p.id}  ${p.status.padEnd(9)} ${person.name.padEnd(15)} ` +
@@ -1074,6 +1084,7 @@ async function main() {
         phone: person.phone ?? null,
         email: person.email ?? null,
       };
+      meta.quantity = p.quantity ?? 1;
     }
     const metadataSql = sql`${JSON.stringify(meta)}::jsonb`;
 

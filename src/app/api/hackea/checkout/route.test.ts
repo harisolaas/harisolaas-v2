@@ -145,6 +145,7 @@ describe("POST /api/hackea/checkout", () => {
     expect(body.metadata).toEqual({
       type: "hackea-ticket",
       participation_id: "HTM-ABCD1234",
+      quantity: 1,
     });
     expect(body.items).toHaveLength(1);
     expect(body.items[0]).toMatchObject({
@@ -164,6 +165,38 @@ describe("POST /api/hackea/checkout", () => {
       name: "Lucía Fernández",
       email: "lucia@example.com",
     });
+  });
+
+  it("charges the group tier as one line for a group purchase", async () => {
+    await post({ ...VALID, quantity: 3 }, { ip: "203.0.113.10" });
+    expect(createHackeaLead).toHaveBeenCalledWith(
+      expect.objectContaining({ quantity: 3 }),
+    );
+    const body = prefBody();
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0]).toMatchObject({
+      title: "Hackeá tu mente — 3 entradas",
+      quantity: 1,
+      unit_price: 45900,
+      currency_id: "ARS",
+    });
+    expect(body.metadata).toMatchObject({ quantity: 3 });
+    expect(sendMetaEvent.mock.calls[0][0]).toMatchObject({
+      custom_data: { currency: "ARS", value: 45900, num_items: 3 },
+    });
+  });
+
+  it("ignores a client-sent amount — the price comes from the tier", async () => {
+    await post({ ...VALID, quantity: 4, amount: 1, unit_price: 1 });
+    expect(prefBody().items[0].unit_price).toBe(55600);
+  });
+
+  it("400 quantity on an out-of-range quantity, and writes nothing", async () => {
+    const { status, json } = await post({ ...VALID, quantity: 5 });
+    expect(status).toBe(400);
+    expect(json).toEqual({ error: "quantity" });
+    expect(createHackeaLead).not.toHaveBeenCalled();
+    expect(preferenceCreate).not.toHaveBeenCalled();
   });
 
   it("uses the requested locale in back_urls", async () => {

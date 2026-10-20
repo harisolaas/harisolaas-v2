@@ -76,12 +76,16 @@ export const HACKEA_BUYER_SUBJECT = "Tu entrada para Hackeá tu mente";
 export interface HackeaBuyerEmailParams {
   name: string;
   participationId: string;
+  /** Entradas in the purchase. 1 (or absent) renders the single-entrada mail. */
+  quantity?: number;
 }
 
 export function buildHackeaBuyerConfirmationHtml({
   name,
   participationId,
+  quantity = 1,
 }: HackeaBuyerEmailParams): string {
+  const group = quantity > 1;
   const { startTime, exactAddress, exactAddressMapLink } = hackeaConfig;
   const safeName = escapeHtml(name.trim());
   const safeId = escapeHtml(participationId);
@@ -104,15 +108,17 @@ export function buildHackeaBuyerConfirmationHtml({
 </td></tr>
 
 <tr><td style="padding:32px 24px 0">
-  <h2 style="margin:0 0 8px;color:${VIOLET};font-size:20px;font-weight:700">Hola ${safeName}, tu lugar está confirmado.</h2>
-  <p style="margin:0;color:${MUTED};font-size:15px;line-height:1.6">Recibimos tu pago. Guardá este mail: es el comprobante de tu entrada.</p>
+  <h2 style="margin:0 0 8px;color:${VIOLET};font-size:20px;font-weight:700">Hola ${safeName}, ${group ? `tus ${quantity} lugares están confirmados.` : "tu lugar está confirmado."}</h2>
+  <p style="margin:0;color:${MUTED};font-size:15px;line-height:1.6">${group ? `Recibimos tu pago. Guardá este mail: es el comprobante de las ${quantity} entradas. Mostralo en la puerta y entra todo el grupo.` : "Recibimos tu pago. Guardá este mail: es el comprobante de tu entrada."}</p>
 </td></tr>
 
 <tr><td style="padding:24px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;color:${INK}">
     <tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};width:90px;vertical-align:top"><strong style="color:${VIOLET}">Entrada</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid ${LINE};text-align:right;font-family:${MONO_STACK};letter-spacing:1px">${safeId}</td></tr>
-    <tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};vertical-align:top"><strong style="color:${VIOLET}">Cuándo</strong></td>
+${group ? `    <tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};vertical-align:top"><strong style="color:${VIOLET}">Lugares</strong></td>
+        <td style="padding:10px 0;border-bottom:1px solid ${LINE};text-align:right">${quantity} entradas</td></tr>
+` : ""}    <tr><td style="padding:10px 0;border-bottom:1px solid ${LINE};vertical-align:top"><strong style="color:${VIOLET}">Cuándo</strong></td>
         <td style="padding:10px 0;border-bottom:1px solid ${LINE};text-align:right">${hackeaDateLabel()} &middot; ${startTime} h</td></tr>
     <tr><td style="padding:10px 0;vertical-align:top"><strong style="color:${VIOLET}">Dónde</strong></td>
         <td style="padding:10px 0;text-align:right;line-height:1.5">${exactAddress}</td></tr>
@@ -148,15 +154,20 @@ export interface HackeaHostNotificationParams {
   phone: string | null;
   email: string | null;
   participationId: string;
+  /** Entradas in the purchase; defaults to 1. */
+  quantity?: number;
   amountCents: number;
   /** Confirmed + used entradas for the event, this one included. */
   totalConfirmed: number;
 }
 
-export function hackeaHostSubject(name: string): string {
+export function hackeaHostSubject(name: string, quantity = 1): string {
   // Buyer-typed: collapse every whitespace run (CR/LF included) so the
   // name can't break the header line.
-  return `Nueva entrada Hackeá tu mente — ${name.replace(/\s+/g, " ").trim()}`;
+  const who = name.replace(/\s+/g, " ").trim();
+  return quantity > 1
+    ? `Nuevas entradas Hackeá tu mente — ${who} (${quantity} entradas)`
+    : `Nueva entrada Hackeá tu mente — ${who}`;
 }
 
 // Internal mail so the host can reach the buyer on WhatsApp by hand — the
@@ -167,6 +178,7 @@ export function buildHackeaHostNotificationHtml({
   phone,
   email,
   participationId,
+  quantity = 1,
   amountCents,
   totalConfirmed,
 }: HackeaHostNotificationParams): string {
@@ -192,7 +204,8 @@ export function buildHackeaHostNotificationHtml({
     <tr><td style="padding:6px 0;color:${MUTED};width:110px">WhatsApp</td><td style="padding:6px 0">${phoneCell}</td></tr>
     <tr><td style="padding:6px 0;color:${MUTED}">Email</td><td style="padding:6px 0">${emailCell}</td></tr>
     <tr><td style="padding:6px 0;color:${MUTED}">Entrada</td><td style="padding:6px 0;font-family:${MONO_STACK}">${escapeHtml(participationId)} &middot; ${formatArsLabel(amountCents)}</td></tr>
-    <tr><td style="padding:6px 0;color:${MUTED}">Confirmadas</td><td style="padding:6px 0">${totalConfirmed}</td></tr>
+${quantity > 1 ? `    <tr><td style="padding:6px 0;color:${MUTED}">Lugares</td><td style="padding:6px 0;font-weight:600">${quantity} entradas (compra grupal)</td></tr>
+` : ""}    <tr><td style="padding:6px 0;color:${MUTED}">Confirmadas</td><td style="padding:6px 0">${totalConfirmed}</td></tr>
   </table>
   <p style="margin:18px 0 0;color:${MUTED};font-size:13px;line-height:1.6">Tocá el número para abrir el chat con el saludo ya escrito.</p>
 </td></tr>

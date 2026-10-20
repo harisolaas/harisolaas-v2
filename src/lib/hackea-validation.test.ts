@@ -5,7 +5,7 @@ describe("validateHackeaLead", () => {
   it("accepts name + WhatsApp without email, and trims", () => {
     expect(
       validateHackeaLead({ name: "  Lucía  ", phone: " +54 9 11 1234-5678 ", email: "  " }),
-    ).toEqual({ ok: true, value: { name: "Lucía", phone: "+54 9 11 1234-5678" } });
+    ).toEqual({ ok: true, value: { name: "Lucía", phone: "+54 9 11 1234-5678", quantity: 1 } });
   });
 
   it("keeps a valid email", () => {
@@ -13,7 +13,7 @@ describe("validateHackeaLead", () => {
       validateHackeaLead({ name: "Lucía", phone: "1112345678", email: " lu@mail.com " }),
     ).toEqual({
       ok: true,
-      value: { name: "Lucía", phone: "1112345678", email: "lu@mail.com" },
+      value: { name: "Lucía", phone: "1112345678", email: "lu@mail.com", quantity: 1 },
     });
   });
 
@@ -74,6 +74,35 @@ describe("validateHackeaLead", () => {
       });
       const ok = "+54 (9) 11 1234-5678";
       expect(validateHackeaLead({ name: "A", phone: ok }).ok).toBe(true);
+    });
+  });
+
+  describe("quantity", () => {
+    const base = { name: "A", phone: "1112345678" };
+
+    it("defaults to 1 when missing", () => {
+      const r = validateHackeaLead(base);
+      expect(r.ok && r.value.quantity).toBe(1);
+    });
+
+    it("accepts 1..4", () => {
+      for (const quantity of [1, 2, 3, 4]) {
+        const r = validateHackeaLead({ ...base, quantity });
+        expect(r.ok && r.value.quantity).toBe(quantity);
+      }
+    });
+
+    it("rejects out of range, fractions and strings — first, in form order", () => {
+      for (const quantity of [0, 5, -1, 2.5, "2", null, Number.NaN]) {
+        expect(validateHackeaLead({ ...base, quantity })).toEqual({
+          ok: false,
+          errors: ["quantity"],
+        });
+      }
+      expect(validateHackeaLead({ name: "", phone: "1", quantity: 9 })).toEqual({
+        ok: false,
+        errors: ["quantity", "name", "phone"],
+      });
     });
   });
 });

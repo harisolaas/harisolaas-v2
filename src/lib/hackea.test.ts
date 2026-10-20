@@ -13,7 +13,7 @@ import {
   markHackeaFlag,
   normalizeArPhone,
 } from "./hackea";
-import { hackeaConfig } from "@/data/hackea";
+import { hackeaConfig, hackeaGroupPriceCents } from "@/data/hackea";
 
 // DB-backed: hits the shared dev Neon branch (see docs/ops/test-database.md).
 // Everything this file creates is keyed on a `hackea-test-` prefix — event
@@ -22,6 +22,8 @@ import { hackeaConfig } from "@/data/hackea";
 
 const EVT_OPEN = "hackea-test-evt-open";
 const EVT_CAPPED = "hackea-test-evt-capped";
+// Room for 4 entradas — group purchase capacity cases.
+const EVT_GROUP = "hackea-test-evt-group";
 
 // Phone-only people have no email to match on, so the sweep keys on the
 // name prefix. Every fixture name below starts with it.
@@ -92,7 +94,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`
-    DELETE FROM participations WHERE event_id IN (${EVT_OPEN}, ${EVT_CAPPED})
+    DELETE FROM participations
+    WHERE event_id IN (${EVT_OPEN}, ${EVT_CAPPED}, ${EVT_GROUP})
   `);
   await db.execute(sql`
     DELETE FROM people
@@ -491,6 +494,7 @@ describe("confirmHackeaPayment", () => {
       name: N("ines"),
       phone: "+5491100000109",
       email: E("ines"),
+      quantity: 1,
     });
     const row = await participation(lead.participationId);
     expect(row.status).toBe("confirmed");
@@ -821,6 +825,113 @@ describe("confirmHackeaPayment", () => {
   });
 });
 
+describe("group purchases", () => {
+  // Own event with room for 4 entradas, so the capacity cases don't depend
+  // on what the other suites left in EVT_CAPPED. Its participations are
+  // cleared by the file-level beforeEach; the row itself by sweep().
+  beforeAll(async () => {
+    await db.execute(sql`DELETE FROM participations WHERE event_id = ${EVT_GROUP}`);
+    await db.execute(sql`DELETE FROM events WHERE id = ${EVT_GROUP}`);
+    await db.insert(schema.events).values({
+      id: EVT_GROUP,
+      type: "hackea",
+      name: "hackea test group",
+      date: new Date("2027-01-01T00:00:00Z"),
+      capacity: 4,
+      status: "upcoming",
+    });
+  });
+
+  it("writes the quantity and its tier total; a pending lead's refresh follows the latest submit", async () => {
+    const lead = await createHackeaLead({
+      name: N("grupo-a"),
+      phone: "+5491100000401",
+      quantity: 3,
+      eventId: EVT_OPEN,
+    });
+    let row = await participation(lead.participationId);
+    expect(row.metadata.quantity).toBe(3);
+    expect(Number(row.price_cents)).toBe(hackeaGroupPriceCents(3));
+
+    const again = await createHackeaLead({
+      name: N("grupo-a"),
+      phone: "+5491100000401",
+      quantity: 2,
+      eventId: EVT_OPEN,
+    });
+    expect(again.participationId).toBe(lead.participationId);
+    row = await participation(lead.participationId);
+    expect(row.metadata.quantity).toBe(2);
+    expect(Number(row.price_cents)).toBe(hackeaGroupPriceCents(2));
+  });
+
+  it("defaults to one entrada at the single price", async () => {
+    const lead = await createHackeaLead({
+      name: N("grupo-b"),
+      phone: "+5491100000402",
+      eventId: EVT_OPEN,
+    });
+    const row = await participation(lead.participationId);
+    expect(row.metadata.quantity).toBe(1);
+    expect(Number(row.price_cents)).toBe(hackeaConfig.ticketPriceCents);
+  });
+
+  it("checks the amount against the group price, not the single one", async () => {
+    const lead = await createHackeaLead({
+      name: N("grupo-c"),
+      phone: "+5491100000403",
+      quantity: 4,
+      eventId: EVT_OPEN,
+    });
+    const res = await confirmHackeaPayment({
+      participationId: lead.participationId,
+      paymentId: "hackea-test-pay-403",
+      // One single entrada's worth for a group of 4.
+      amountCents: hackeaConfig.ticketPriceCents,
+      currency: "ARS",
+      eventId: EVT_OPEN,
+    });
+    expect(res.outcome).toBe("confirmed");
+    expect(res.underpaid).toBe(true);
+    expect(res.expectedCents).toBe(hackeaGroupPriceCents(4));
+    expect(res.participant?.quantity).toBe(4);
+  });
+
+  it("capacity counts entradas: a group that doesn't fit stays pending", async () => {
+    const three = await createHackeaLead({
+      name: N("grupo-d"),
+      phone: "+5491100000404",
+      quantity: 3,
+      eventId: EVT_GROUP,
+    });
+    const two = await createHackeaLead({
+      name: N("grupo-e"),
+      phone: "+5491100000405",
+      quantity: 2,
+      eventId: EVT_GROUP,
+    });
+    const one = await createHackeaLead({
+      name: N("grupo-f"),
+      phone: "+5491100000406",
+      eventId: EVT_GROUP,
+    });
+    const pay = (participationId: string, id: string, amountCents: number) =>
+      confirmHackeaPayment({
+        participationId,
+        paymentId: id,
+        amountCents,
+        currency: "ARS",
+        eventId: EVT_GROUP,
+      });
+
+    expect((await pay(three.participationId, "hackea-test-pay-404", hackeaGroupPriceCents(3))).outcome).toBe("confirmed");
+    // 3 taken of 4: a pair doesn't fit, a single does.
+    expect((await pay(two.participationId, "hackea-test-pay-405", hackeaGroupPriceCents(2))).outcome).toBe("capacity");
+    expect((await participation(two.participationId)).status).toBe("pending");
+    expect((await pay(one.participationId, "hackea-test-pay-406", hackeaGroupPriceCents(1))).outcome).toBe("confirmed");
+  });
+});
+
 describe("markHackeaFlag", () => {
   it("merges flags without clobbering existing metadata", async () => {
     const lead = await createHackeaLead({
@@ -1006,6 +1117,7 @@ describe("createHackeaLead contact snapshot", () => {
       name: N("pato"),
       phone: "+5491100000303",
       email: E("pato-mail"),
+      quantity: 1,
     });
   });
 

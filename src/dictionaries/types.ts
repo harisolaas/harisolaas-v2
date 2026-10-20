@@ -719,8 +719,22 @@ export interface HackeaDict {
     includesValue: string;
     scarcity: string;
     cardTitle: string;
+    /** Group purchase: "Tus {n} entradas". */
+    cardTitleGroup: string;
+    /** Next to the scarcity badge: "… hasta {pct}% off". */
+    groupBadge: string;
   };
   form: {
+    quantityLabel: string;
+    /** Option for one entrada. Tokens: {precio}. */
+    quantityOptionSingle: string;
+    /** Group option — per-person price first, discount second, no total. Tokens: {n} {precio} {pct}. */
+    quantityOption: string;
+    quantityHint: string;
+    /** Suffix after the per-person price in the card header. */
+    perPerson: string;
+    /** Small line above the submit for groups. Tokens: {total} {ahorro}. */
+    totalLine: string;
     nameLabel: string;
     namePlaceholder: string;
     phoneLabel: string;
@@ -731,6 +745,7 @@ export interface HackeaDict {
     submit: string;
     submitting: string;
     errors: {
+      quantity: string;
       name: string;
       phone: string;
       email: string;

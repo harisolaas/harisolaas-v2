@@ -65,7 +65,7 @@ const dbExecute = vi.fn(async (q: { queryChunks?: unknown[] }) => {
   const text = sqlText(q);
   const params = sqlParams(q);
   const meta = deliveryRow?.metadata;
-  if (text.includes("COUNT(*)")) return { rows: [{ n: confirmedCount }] };
+  if (text.includes("SUM(")) return { rows: [{ n: confirmedCount }] };
   if (text.includes("RETURNING id")) {
     // claimMail: flag, "sending", atKey, now, forKey, paymentId, id,
     // paymentId, flag, flag, "sending", atKey, staleBefore
@@ -188,10 +188,17 @@ const participant = {
   name: "Lucía Fernández",
   phone: "+5491122334455",
   email: "lucia@example.com",
+  quantity: 1,
 };
 
 function confirmed(over: Record<string, unknown> = {}) {
-  return { outcome: "confirmed", participant, underpaid: false, ...over };
+  return {
+    outcome: "confirmed",
+    participant,
+    underpaid: false,
+    expectedCents: 2_130_000,
+    ...over,
+  };
 }
 
 /** What the checkout route stashes for CAPI. */
@@ -509,6 +516,30 @@ describe("POST /api/hackea/webhook", () => {
       subject: expect.stringContaining("debajo del precio"),
     });
     expect(emailsSend).toHaveBeenCalledTimes(2);
+  });
+
+  it("group purchase: mails, alert and Purchase carry the quantity", async () => {
+    stash();
+    paymentGet.mockResolvedValue(payment({ transaction_amount: 30000 }));
+    confirmHackeaPayment.mockResolvedValue(
+      confirmed({
+        participant: { ...participant, quantity: 3 },
+        underpaid: true,
+        expectedCents: 4_590_000,
+      }),
+    );
+    await POST(signed());
+    expect(notifyAdminOfIncident.mock.calls[0][0]).toMatchObject({
+      lines: expect.arrayContaining(["Precio esperado: 45900 ARS (3 entradas)"]),
+    });
+    const [buyer, host] = emailsSend.mock.calls.map((c) => c[0]);
+    expect(buyer.html).toContain("3 entradas");
+    expect(host.subject).toContain("(3 entradas)");
+    expect(host.html).toContain("3 entradas (compra grupal)");
+    expect(sendMetaEvent.mock.calls[0][0]).toMatchObject({
+      event_name: "Purchase",
+      custom_data: { num_items: 3, value: 30000 },
+    });
   });
 
   it("second distinct payment for a paid entrada: admin alert, no re-delivery", async () => {
