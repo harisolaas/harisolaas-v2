@@ -3,14 +3,19 @@
 // so the client bundle can use it and both sides reject the same input.
 import { isValidEmail } from "./plant-types";
 import { parseHackeaWhatsApp } from "./hackea-phone";
+import { isHackeaQuantity } from "../data/hackea";
 
-export type HackeaField = "name" | "phone" | "email";
+/** Form order: the quantity select sits above the identity fields. */
+export type HackeaField = "quantity" | "name" | "phone" | "email";
+export type HackeaTextField = Exclude<HackeaField, "quantity">;
 
 export interface HackeaLeadInput {
   name: string;
   phone: string;
   /** Optional by design: people can buy with WhatsApp only. */
   email?: string;
+  /** Entradas in this purchase, 1..HACKEA_MAX_QUANTITY. */
+  quantity: number;
 }
 
 export type HackeaValidation =
@@ -23,7 +28,7 @@ export type HackeaValidation =
  * already caps the digits at 15; this bounds the separators around them so
  * a padded string can't reach the DB.
  */
-export const HACKEA_MAX_LENGTH: Record<HackeaField, number> = {
+export const HACKEA_MAX_LENGTH: Record<HackeaTextField, number> = {
   name: 120,
   phone: 40,
   email: 254,
@@ -34,18 +39,23 @@ const asTrimmed = (v: unknown): string => (typeof v === "string" ? v.trim() : ""
 /**
  * Name: trimmed, non-empty. WhatsApp: a real mobile number per
  * `parseHackeaWhatsApp` (any AR spelling, or a foreign one with `+`/`00`). Email: optional — blank means "no email", anything
- * else must pass `isValidEmail`. Errors come back in form order.
+ * else must pass `isValidEmail`. Quantity: missing means 1, anything else
+ * must be an integer 1..HACKEA_MAX_QUANTITY. Errors come back in form order.
  */
 export function validateHackeaLead(raw: {
   name?: unknown;
   phone?: unknown;
   email?: unknown;
+  quantity?: unknown;
 }): HackeaValidation {
   const name = asTrimmed(raw.name);
   const phone = asTrimmed(raw.phone);
   const email = asTrimmed(raw.email);
 
+  const quantity = raw.quantity === undefined ? 1 : raw.quantity;
+
   const errors: HackeaField[] = [];
+  if (!isHackeaQuantity(quantity)) errors.push("quantity");
   if (!name || name.length > HACKEA_MAX_LENGTH.name) errors.push("name");
   if (phone.length > HACKEA_MAX_LENGTH.phone || parseHackeaWhatsApp(phone) === null) {
     errors.push("phone");
@@ -55,5 +65,9 @@ export function validateHackeaLead(raw: {
   }
 
   if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, value: email ? { name, phone, email } : { name, phone } };
+  const q = quantity as number;
+  return {
+    ok: true,
+    value: email ? { name, phone, email, quantity: q } : { name, phone, quantity: q },
+  };
 }

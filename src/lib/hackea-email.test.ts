@@ -47,6 +47,40 @@ describe("hackea emails", () => {
     );
   });
 
+  it("group purchase mails match their golden fixtures", () => {
+    golden(
+      "hackea-buyer-email-group.golden.html",
+      buildHackeaBuyerConfirmationHtml({
+        name: "Lucía Fernández",
+        participationId: "HTM-ABCD1234",
+        quantity: 3,
+      }),
+    );
+    golden(
+      "hackea-host-email-group.golden.html",
+      buildHackeaHostNotificationHtml({
+        name: "Lucía Fernández",
+        phone: "+5491122334455",
+        email: "lucia@example.com",
+        participationId: "HTM-ABCD1234",
+        quantity: 3,
+        amountCents: 4_590_000,
+        totalConfirmed: 12,
+      }),
+    );
+  });
+
+  it("quantity 1 renders exactly the single-entrada mails", () => {
+    const base = { name: "Lucía", participationId: "HTM-ABCD1234" };
+    expect(buildHackeaBuyerConfirmationHtml({ ...base, quantity: 1 })).toBe(
+      buildHackeaBuyerConfirmationHtml(base),
+    );
+    expect(hackeaHostSubject("Lucía", 1)).toBe(hackeaHostSubject("Lucía"));
+    expect(hackeaHostSubject("Lucía", 3)).toBe(
+      "Nuevas entradas Hackeá tu mente — Lucía (3 entradas)",
+    );
+  });
+
   it("buyer mail carries entrada, date, address, maps link and the WhatsApp line, with no ebook delivery promise", () => {
     const html = buildHackeaBuyerConfirmationHtml({
       name: "Lucía",

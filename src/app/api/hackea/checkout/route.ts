@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { Preference } from "mercadopago";
-import { HACKEA_PAYMENT_TYPE, hackeaConfig } from "@/data/hackea";
+import {
+  HACKEA_PAYMENT_TYPE,
+  hackeaConfig,
+  hackeaGroupPriceCents,
+} from "@/data/hackea";
 import { createHackeaLead } from "@/lib/hackea";
 import { isHackeaSalesOpen } from "@/lib/hackea-display";
 // Same rules the landing runs before POSTing, so the two can't disagree on
@@ -100,7 +104,9 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { name, phone, email } = validation.value;
+    const { name, phone, email, quantity } = validation.value;
+    // The group total from the tiers — never a client-sent amount.
+    const totalCents = hackeaGroupPriceCents(quantity);
     const locale = body.locale === "en" ? "en" : "es";
 
     // URL-provided UTMs win over the `haris_link` cookie /go/[slug] sets;
@@ -114,6 +120,7 @@ export async function POST(req: Request) {
       name,
       phone,
       email,
+      quantity,
       attribution,
       linkSlug: attribution?.linkSlug,
     });
@@ -131,10 +138,16 @@ export async function POST(req: Request) {
         external_reference: lead.participationId,
         items: [
           {
+            // One line for the whole group at its tier total: MP multiplies
+            // quantity × unit_price, and a per-entrada unit price wouldn't
+            // always divide the group price evenly.
             id: HACKEA_PAYMENT_TYPE,
-            title: "Hackeá tu mente — entrada",
+            title:
+              quantity > 1
+                ? `Hackeá tu mente — ${quantity} entradas`
+                : "Hackeá tu mente — entrada",
             quantity: 1,
-            unit_price: hackeaConfig.ticketPriceCents / 100,
+            unit_price: totalCents / 100,
             currency_id: hackeaConfig.currency,
           },
         ],
@@ -152,6 +165,7 @@ export async function POST(req: Request) {
         metadata: {
           type: HACKEA_PAYMENT_TYPE,
           participation_id: lead.participationId,
+          quantity,
         },
         payer: email ? { name, email } : { name },
       },
@@ -214,8 +228,8 @@ export async function POST(req: Request) {
       },
       custom_data: {
         currency: hackeaConfig.currency,
-        value: hackeaConfig.ticketPriceCents / 100,
-        num_items: 1,
+        value: totalCents / 100,
+        num_items: quantity,
       },
     }).catch(() => {}); // fire and forget
 

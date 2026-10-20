@@ -59,7 +59,10 @@ interface EventDetail {
   }[];
   /** Only for `type === "hackea"`; revenue counts confirmed/used only. */
   hackea: {
+    /** Entradas (seats) — a group purchase counts its quantity. */
     paid: number;
+    /** Paid checkouts (rows). */
+    paidPurchases: number;
     pendingLeads: number;
     revenueCents: number;
     currency: string;
@@ -444,6 +447,12 @@ export default function EventDrawer({
                             {data.event.type === "hackea" && (
                               <HackeaStatusChip status={p.status} />
                             )}
+                            {data.event.type === "hackea" &&
+                              hackeaQuantity(p.metadata) > 1 && (
+                                <span className="shrink-0 rounded-full bg-terracotta/10 px-2 py-0.5 text-[10px] font-semibold text-terracotta">
+                                  ×{hackeaQuantity(p.metadata)} entradas
+                                </span>
+                              )}
                           </p>
                           {/* Email can be null (phone-only people); the
                               WhatsApp number is the default channel. */}
@@ -661,12 +670,24 @@ function HackeaSalesSummary({
           value={formatMoney(summary.revenueCents, summary.currency)}
         />
       </div>
+      {summary.paid !== summary.paidPurchases && (
+        <p className="mt-2 text-[11px] text-charcoal/60">
+          {summary.paid} entradas en {summary.paidPurchases} compras (incluye
+          compras grupales).
+        </p>
+      )}
       <p className="mt-2 text-[11px] text-charcoal/50">
         Leads pendientes: completaron el formulario y no terminaron el pago
         en MercadoPago. Lo recaudado cuenta solo entradas pagadas.
       </p>
     </section>
   );
+}
+
+/** Entradas in a Hackeá purchase: `metadata.quantity`, 1 when absent. */
+function hackeaQuantity(metadata: Record<string, unknown>): number {
+  const q = Number(metadata?.quantity);
+  return Number.isInteger(q) && q > 1 ? q : 1;
 }
 
 const HACKEA_STATUS_LABELS: Record<string, string> = {

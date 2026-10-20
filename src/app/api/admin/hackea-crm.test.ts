@@ -18,6 +18,7 @@ const PHONE_LEAD = "+5491190017702";
 const EMAIL_PAID = "d1crm-paid@example.com";
 const EMAIL_ONLY = "d1crm-email-only@example.com";
 const PRICE = 2_130_000;
+const GROUP_OF_3 = 4_590_000;
 
 vi.mock("@/data/hackea", async (orig) => {
   const actual = await orig<typeof import("@/data/hackea")>();
@@ -92,13 +93,17 @@ async function insertParticipation(
   personId: number,
   status: string,
   contact: { name: string; phone: string; email: string | null },
+  /** Group purchase: `metadata.quantity` + its tier total as the price. */
+  group?: { quantity: number; priceCents: number },
 ) {
+  const metadata = group ? { contact, quantity: group.quantity } : { contact };
   await db.execute(sql`
     INSERT INTO participations
       (id, person_id, event_id, role, status, price_cents, currency, metadata)
     VALUES (
-      ${id}, ${personId}, ${EVENT}, 'attendee', ${status}, ${PRICE}, 'ARS',
-      ${JSON.stringify({ contact })}::jsonb
+      ${id}, ${personId}, ${EVENT}, 'attendee', ${status},
+      ${group?.priceCents ?? PRICE}, 'ARS',
+      ${JSON.stringify(metadata)}::jsonb
     )
   `);
 }
@@ -120,11 +125,14 @@ beforeAll(async () => {
     phone: PHONE_PAID,
     email: null,
   });
-  await insertParticipation("HTM-D1CRM002", ids.withEmail, "used", {
-    name: "Con Mail",
-    phone: "+5491190017703",
-    email: EMAIL_PAID,
-  });
+  // A group of 3: one row, three entradas.
+  await insertParticipation(
+    "HTM-D1CRM002",
+    ids.withEmail,
+    "used",
+    { name: "Con Mail", phone: "+5491190017703", email: EMAIL_PAID },
+    { quantity: 3, priceCents: GROUP_OF_3 },
+  );
   await insertParticipation("HTM-D1CRM003", ids.lead, "pending", {
     name: "Lead",
     phone: PHONE_LEAD,
@@ -248,16 +256,17 @@ describe("PATCH /api/admin/people/:id contact fields", () => {
 });
 
 describe("Event drawer for type hackea", () => {
-  it("revenue counts confirmed/used only; pending leads are counted apart", async () => {
+  it("revenue counts confirmed/used only; pending leads are counted apart; paid counts entradas", async () => {
     const res = await eventDetail(req(`/api/admin/events/${EVENT}`), {
       params: Promise.resolve({ id: EVENT }),
     });
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.hackea).toEqual({
-      paid: 2,
+      paid: 4,
+      paidPurchases: 2,
       pendingLeads: 1,
-      revenueCents: 2 * PRICE,
+      revenueCents: PRICE + GROUP_OF_3,
       currency: "ARS",
     });
     expect(body.counts.pending).toBe(1);

@@ -1376,8 +1376,16 @@ const es: Dictionary = {
       includesValue: "Entrada + ebook",
       scarcity: "Cupos limitados",
       cardTitle: "Tu entrada",
+      cardTitleGroup: "Tus {n} entradas",
+      groupBadge: "Vení en grupo: hasta {pct}% off",
     },
     form: {
+      quantityLabel: "¿Cuántas entradas?",
+      quantityOptionSingle: "1 entrada · {precio}",
+      quantityOption: "{n} entradas · {precio} c/u · -{pct}%",
+      quantityHint: "Sumá a tu gente: cuantas más entradas, menos paga cada persona.",
+      perPerson: "c/u",
+      totalLine: "Total a pagar: {total} · ahorran {ahorro}",
       nameLabel: "Nombre",
       namePlaceholder: "Tu nombre",
       phoneLabel: "WhatsApp",
@@ -1388,6 +1396,7 @@ const es: Dictionary = {
       submit: "Quiero ser parte →",
       submitting: "Un momento…",
       errors: {
+        quantity: "Elegí cuántas entradas querés (de 1 a 4).",
         name: "Contanos tu nombre",
         phone:
           "Revisá el número: poné el código de área, por ejemplo 11 2345 6789. Si es de otro país, empezá con + y el código del país.",

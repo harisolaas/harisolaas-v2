@@ -48,6 +48,49 @@ export const hackeaConfig = {
     "https://www.google.com/maps/search/?api=1&query=Costa+Rica+5644+Palermo+Buenos+Aires",
 };
 
+// Group purchase: up to HACKEA_MAX_QUANTITY entradas in one checkout, one
+// participation with `metadata.quantity`. Totals in ARS cents, keyed by
+// quantity. Per-person prices end in 900 on purpose; every tier stays under
+// a 35% discount and four come out cheaper than three single entradas.
+export const HACKEA_MAX_QUANTITY = 4;
+export const HACKEA_GROUP_TIERS: Record<number, number> = {
+  1: TICKET_PRICE_CENTS, // $21.300
+  2: 3_380_000, // $16.900 c/u
+  3: 4_590_000, // $15.300 c/u
+  4: 5_560_000, // $13.900 c/u
+};
+
+export function isHackeaQuantity(q: unknown): q is number {
+  return (
+    typeof q === "number" &&
+    Number.isInteger(q) &&
+    q >= 1 &&
+    q <= HACKEA_MAX_QUANTITY
+  );
+}
+
+/** Group total for `q` entradas. Anything out of range reads as 1. */
+export function hackeaGroupPriceCents(q: number): number {
+  return HACKEA_GROUP_TIERS[isHackeaQuantity(q) ? q : 1];
+}
+
+export function hackeaPerPersonCents(q: number): number {
+  const n = isHackeaQuantity(q) ? q : 1;
+  return Math.round(hackeaGroupPriceCents(n) / n);
+}
+
+/** What the group saves vs `q` single entradas. */
+export function hackeaGroupSavingsCents(q: number): number {
+  const n = isHackeaQuantity(q) ? q : 1;
+  return n * TICKET_PRICE_CENTS - hackeaGroupPriceCents(n);
+}
+
+/** Discount in whole percent, rounded down so the copy never overstates it. */
+export function hackeaGroupDiscountPercent(q: number): number {
+  const n = isHackeaQuantity(q) ? q : 1;
+  return Math.floor((hackeaGroupSavingsCents(n) * 100) / (n * TICKET_PRICE_CENTS));
+}
+
 // MP Preference metadata.type — every MP flow shares one access token and
 // one webhook secret, so each webhook ignores payments that aren't its own.
 export const HACKEA_PAYMENT_TYPE = "hackea-ticket";

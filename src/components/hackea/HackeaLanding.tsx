@@ -9,7 +9,16 @@ import {
   HACKEA_MAX_LENGTH,
   validateHackeaLead,
   type HackeaField,
+  type HackeaTextField,
 } from "@/lib/hackea-validation";
+import {
+  HACKEA_MAX_QUANTITY,
+  formatArsLabel,
+  hackeaGroupDiscountPercent,
+  hackeaGroupPriceCents,
+  hackeaGroupSavingsCents,
+  hackeaPerPersonCents,
+} from "@/data/hackea";
 import {
   Badge,
   Eyebrow,
@@ -25,7 +34,15 @@ const SCROLL_OFFSET = 60;
 /** How long the "LISTO, {nombre}" state shows before the MP redirect. */
 const REDIRECT_DELAY_MS = 1400;
 
-const FIELDS: HackeaField[] = ["name", "phone", "email"];
+const FIELDS: HackeaField[] = ["quantity", "name", "phone", "email"];
+const QUANTITIES = Array.from({ length: HACKEA_MAX_QUANTITY }, (_, i) => i + 1);
+
+/** Replaces each `{key}` token in a dictionary string. */
+function fill(template: string, values: Record<string, string | number>) {
+  return template.replace(/\{(\w+)\}/g, (m, k: string) =>
+    k in values ? String(values[k]) : m,
+  );
+}
 
 const inputId = (f: HackeaField) => `hackea-${f}`;
 
@@ -58,6 +75,7 @@ export default function HackeaLanding({
   /** False once the talk has started: a closed card replaces the form. */
   salesOpen: boolean;
 }) {
+  const [quantity, setQuantity] = useState(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -86,7 +104,7 @@ export default function HackeaLanding({
     e.preventDefault();
     if (submitting) return;
 
-    const result = validateHackeaLead({ name, phone, email });
+    const result = validateHackeaLead({ quantity, name, phone, email });
     setFormError(null);
     if (!result.ok) {
       setErrors(result.errors);
@@ -161,7 +179,7 @@ export default function HackeaLanding({
   const err = (f: HackeaField) => (errors.includes(f) ? dict.form.errors[f] : null);
 
   const field = (
-    f: HackeaField,
+    f: HackeaTextField,
     props: {
       label: string;
       placeholder: string;
@@ -211,6 +229,14 @@ export default function HackeaLanding({
       </div>
     );
   };
+
+  // Per-person price leads, the discount follows; the group total only
+  // shows up small, right before paying.
+  const perPersonLabel = formatArsLabel(hackeaPerPersonCents(quantity));
+  const discountPct = hackeaGroupDiscountPercent(quantity);
+  const maxDiscountPct = hackeaGroupDiscountPercent(HACKEA_MAX_QUANTITY);
+  const quantityError = err("quantity");
+  const quantityNote = quantityError ?? dict.form.quantityHint;
 
   const details: [string, string][] = [
     [dict.purchase.labels.date, display.longDate],
@@ -333,8 +359,11 @@ export default function HackeaLanding({
                 ))}
               </dl>
               {salesOpen && (
-                <div style={{ display: "flex" }}>
+                <div className="htm-row">
                   <Badge tone="outline">{dict.purchase.scarcity}</Badge>
+                  {maxDiscountPct > 0 && (
+                    <Badge>{fill(dict.purchase.groupBadge, { pct: maxDiscountPct })}</Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -376,8 +405,53 @@ export default function HackeaLanding({
               ) : (
                 <form className="htm-form" onSubmit={onSubmit} noValidate>
                   <div className="htm-form__head">
-                    <div className="htm-form__title">{dict.purchase.cardTitle}</div>
-                    <div className="htm-form__price">{priceLabel}</div>
+                    <div className="htm-form__title">
+                      {quantity > 1
+                        ? fill(dict.purchase.cardTitleGroup, { n: quantity })
+                        : dict.purchase.cardTitle}
+                    </div>
+                    <div className="htm-form__price-wrap">
+                      {discountPct > 0 && <Badge>-{discountPct}%</Badge>}
+                      <div className="htm-form__price">
+                        {quantity > 1 ? perPersonLabel : priceLabel}
+                        {quantity > 1 && (
+                          <span className="htm-form__unit"> {dict.form.perPerson}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="htm-field">
+                    <label htmlFor={inputId("quantity")} className="htm-field__label">
+                      {dict.form.quantityLabel}
+                    </label>
+                    <select
+                      id={inputId("quantity")}
+                      className="htm-field__input htm-field__select"
+                      name="quantity"
+                      value={quantity}
+                      disabled={submitting}
+                      aria-invalid={quantityError ? true : undefined}
+                      aria-describedby={`${inputId("quantity")}-note`}
+                      onChange={(e) => setQuantity(Number(e.target.value))}
+                    >
+                      {QUANTITIES.map((q) => (
+                        <option key={q} value={q}>
+                          {q === 1
+                            ? fill(dict.form.quantityOptionSingle, { precio: priceLabel })
+                            : fill(dict.form.quantityOption, {
+                                n: q,
+                                precio: formatArsLabel(hackeaPerPersonCents(q)),
+                                pct: hackeaGroupDiscountPercent(q),
+                              })}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      id={`${inputId("quantity")}-note`}
+                      className={`htm-field__note${quantityError ? " htm-field__note--error" : ""}`}
+                    >
+                      {quantityNote}
+                    </span>
                   </div>
                   {field("name", {
                     label: dict.form.nameLabel,
@@ -406,6 +480,14 @@ export default function HackeaLanding({
                     type: "email",
                     autoComplete: "email",
                   })}
+                  {quantity > 1 && (
+                    <p className="htm-form__total">
+                      {fill(dict.form.totalLine, {
+                        total: formatArsLabel(hackeaGroupPriceCents(quantity)),
+                        ahorro: formatArsLabel(hackeaGroupSavingsCents(quantity)),
+                      })}
+                    </p>
+                  )}
                   {formError && (
                     <p className="htm-form__error" role="alert">
                       {formError}

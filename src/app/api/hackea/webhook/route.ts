@@ -10,6 +10,7 @@ import {
   markHackeaFlag,
   type HackeaParticipant,
 } from "@/lib/hackea";
+import { quantitySql } from "@/lib/hackea-quantity";
 import {
   HACKEA_BUYER_SUBJECT,
   buildHackeaBuyerConfirmationHtml,
@@ -76,10 +77,11 @@ async function loadDeliveryRow(
   };
 }
 
+/** Confirmed + used entradas (a group purchase counts its quantity). */
 async function countConfirmed(): Promise<number> {
   const res = await db.execute<{ n: number }>(sql`
-    SELECT COUNT(*)::int AS n FROM participations
-    WHERE event_id = ${hackeaConfig.eventId} AND status IN ('confirmed', 'used')
+    SELECT COALESCE(SUM(${quantitySql}), 0)::int AS n FROM participations pa
+    WHERE pa.event_id = ${hackeaConfig.eventId} AND pa.status IN ('confirmed', 'used')
   `);
   return Number(res.rows?.[0]?.n ?? 0);
 }
@@ -231,6 +233,7 @@ async function deliver(
       html: buildHackeaBuyerConfirmationHtml({
         name: participant.name,
         participationId: participant.id,
+        quantity: participant.quantity,
       }),
     }));
     if (r === "retry") outcome = "retry";
@@ -243,12 +246,13 @@ async function deliver(
   }
   const r = await sendClaimed(participant.id, "hostNotified", paymentId, async () => ({
     to,
-    subject: hackeaHostSubject(participant.name),
+    subject: hackeaHostSubject(participant.name, participant.quantity),
     html: buildHackeaHostNotificationHtml({
       name: participant.name,
       phone: participant.phone,
       email: participant.email,
       participationId: participant.id,
+      quantity: participant.quantity,
       // What MP actually charged, not the list price: an underpaid payment
       // must look like one in the host's inbox.
       amountCents,
@@ -377,6 +381,7 @@ async function sendPurchaseOnce(
     mpPaymentId: string;
     amountCents: number;
     currency: string;
+    quantity: number;
   },
 ): Promise<void> {
   let stash: { ip?: string; ua?: string; fbp?: string; fbc?: string } | null =
@@ -412,7 +417,7 @@ async function sendPurchaseOnce(
       currency: params.currency,
       value: params.amountCents / 100,
       content_name: "Hackeá tu mente",
-      num_items: 1,
+      num_items: params.quantity,
     },
   }).catch(() => {}); // fire and forget
 }
@@ -553,7 +558,11 @@ export async function POST(req: Request) {
         subject: "Hackeá tu mente: pago por debajo del precio",
         lines: [
           ...alertLines,
-          `Precio esperado: ${hackeaConfig.ticketPriceCents / 100} ARS`,
+          `Precio esperado: ${(result.expectedCents ?? hackeaConfig.ticketPriceCents) / 100} ARS${
+            result.participant && result.participant.quantity > 1
+              ? ` (${result.participant.quantity} entradas)`
+              : ""
+          }`,
         ],
       });
     }
@@ -574,6 +583,7 @@ export async function POST(req: Request) {
         mpPaymentId,
         amountCents,
         currency,
+        quantity: result.participant.quantity,
       });
       // Admin status wins: an entrada cancelled or set back to `pending`
       // by hand gets no "confirmada" mail from a redelivery, and no claim.
