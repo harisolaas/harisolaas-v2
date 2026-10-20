@@ -22,6 +22,8 @@ import { hackeaConfig, hackeaGroupPriceCents } from "@/data/hackea";
 
 const EVT_OPEN = "hackea-test-evt-open";
 const EVT_CAPPED = "hackea-test-evt-capped";
+// Room for 4 entradas — group purchase capacity cases.
+const EVT_GROUP = "hackea-test-evt-group";
 
 // Phone-only people have no email to match on, so the sweep keys on the
 // name prefix. Every fixture name below starts with it.
@@ -92,7 +94,8 @@ afterAll(async () => {
 
 beforeEach(async () => {
   await db.execute(sql`
-    DELETE FROM participations WHERE event_id IN (${EVT_OPEN}, ${EVT_CAPPED})
+    DELETE FROM participations
+    WHERE event_id IN (${EVT_OPEN}, ${EVT_CAPPED}, ${EVT_GROUP})
   `);
   await db.execute(sql`
     DELETE FROM people
@@ -824,8 +827,8 @@ describe("confirmHackeaPayment", () => {
 
 describe("group purchases", () => {
   // Own event with room for 4 entradas, so the capacity cases don't depend
-  // on what the other suites left in EVT_CAPPED.
-  const EVT_GROUP = "hackea-test-evt-group";
+  // on what the other suites left in EVT_CAPPED. Its participations are
+  // cleared by the file-level beforeEach; the row itself by sweep().
   beforeAll(async () => {
     await db.execute(sql`DELETE FROM participations WHERE event_id = ${EVT_GROUP}`);
     await db.execute(sql`DELETE FROM events WHERE id = ${EVT_GROUP}`);
