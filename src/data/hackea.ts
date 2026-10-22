@@ -42,6 +42,12 @@ export const hackeaConfig = {
   ticketPriceLabel: formatArsLabel(TICKET_PRICE_CENTS),
   currency: "ARS",
 
+  // VSL right after the hero: a self-hosted file under /public, or a
+  // YouTube / Vimeo link (resolveHackeaVsl). Bump the filename when the cut
+  // changes, never overwrite — browsers and the CDN cache it by URL.
+  // Empty string = poster only.
+  vslUrl: "/hackea/vsl-v1.mp4",
+
   neighborhood: "Palermo, Buenos Aires",
   exactAddress: "Costa Rica 5644, Palermo, Buenos Aires",
   exactAddressMapLink:

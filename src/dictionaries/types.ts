@@ -693,6 +693,20 @@ export interface HackeaDict {
     speakerLast: string;
     imageAlt: string;
   };
+  /** VSL right after the hero. Tokens: body `{dia}`, includes `{precio}`. */
+  vsl: {
+    badge: string;
+    titleLead: string;
+    titleAccent: string;
+    body: string;
+    play: string;
+    byline: string;
+    playAria: string;
+    videoTitle: string;
+    cta: string;
+    scarcity: string;
+    includes: string;
+  };
   ebook: {
     badge: string;
     titleLead: string;

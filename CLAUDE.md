@@ -544,6 +544,8 @@ In-person talk, paid entrada via MercadoPago Checkout Pro. Spanish-only page at 
 
 **Share card + structured data**: `HACKEA_OG_IMAGE` (`hackea/og-hackea-v1.png`, 1200×630, date/time/barrio but no price) feeds the landing's OG, Twitter and JSON-LD image — same rule as BROTE's: bump the filename when the artwork changes, never overwrite. The landing emits an `Event` JSON-LD from `buildHackeaEventJsonLd()` (`src/lib/hackea-jsonld.ts`); its offer reads `isHackeaSalesOpen` (InStock → SoldOut).
 
+**VSL** (`HackeaVsl.tsx`, between hero and ebook): `hackeaConfig.vslUrl` → `resolveHackeaVsl()` (`src/lib/hackea-vsl.ts`). A `/…` path or video file plays in a native `<video preload="none">` started from the poster click; a YouTube/Vimeo link is normalised to its autoplay embed and mounted only on click; empty = poster only. The file is `public/hackea/vsl-v1.mp4` (720p H.264, faststart, re-encoded from the 1440p HEVC master) — **bump the filename on a new cut, never overwrite**, and keep "2 min" in `dict.hackea.vsl` in sync with its length. Pixel custom events `VslPlay` / `VslCta`.
+
 **Sales close at `startIso`**: `isHackeaSalesOpen(now)` swaps the form for a closed card on the landing (`revalidate = 60`) and makes the checkout answer 410.
 
 ### Flow (Sinergia-style: persist the lead first)

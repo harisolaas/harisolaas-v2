@@ -369,7 +369,8 @@ describe.each(dicts)("$locale dictionary — hackea", ({ dict }) => {
   it("carries the tokens the landing fills", () => {
     expect(hackea.done.title).toContain("{nombre}");
     expect(hackea.done.body.split("{phone}")).toHaveLength(2);
-    expect(hackea.done.titleNoName).not.toMatch(/\{\w+\}/);
+    expect(hackea.done.titleNoName).not.toMatch(/\{\w+\}/);    expect(hackea.vsl.body).toContain("{dia}");
+    expect(hackea.vsl.includes).toContain("{precio}");
   });
 
   it("links nowhere: no internal hrefs to cross a locale", () => {
@@ -393,6 +394,11 @@ describe("hackea dictionary — es", () => {
     expect(es.hackea.form.phonePlaceholder).toBe("11 2345 6789");
     expect(es.hackea.form.errors.email).toBe("Revisá el email");
     expect(es.hackea.form.submit).toBe("Quiero ser parte →");
+    // design_handoff_vsl_section
+    expect(es.hackea.vsl.body).toBe(
+      "En 2 minutos, Hari te cuenta qué vas a vivir el {dia} y por qué no es una charla más.",
+    );
+    expect(es.hackea.vsl.cta).toBe("Quiero mi entrada →");
   });
 
   it("follows the handoff's copy rules: no exclamation marks", () => {
@@ -414,6 +420,7 @@ describe("hackea dictionary — es/en parity", () => {
       "hero.speakerFirst",
       "hero.speakerLast",
       "hero.imageAlt",
+      "vsl.byline",
       "ebook.cover.number",
       "ebook.cover.author",
       "purchase.withValue",

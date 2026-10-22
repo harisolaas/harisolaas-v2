@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "re
 import Image from "next/image";
 import type { HackeaDict } from "@/dictionaries/types";
 import type { HackeaDisplay } from "@/lib/hackea-display";
+import type { HackeaVslSource } from "@/lib/hackea-vsl";
 import { readBrowserAttribution } from "@/lib/attribution";
 import {
   HACKEA_MAX_LENGTH,
@@ -27,6 +28,7 @@ import {
   HACKEA_WHATSAPP_HREF,
   buttonClass,
 } from "./ui";
+import HackeaVsl from "./HackeaVsl";
 import "./hackea.css";
 
 /** Sticky header height the scroll leaves room for (design: −60px). */
@@ -66,6 +68,7 @@ export default function HackeaLanding({
   locale,
   fontClassName,
   salesOpen,
+  vsl,
 }: {
   dict: HackeaDict;
   display: HackeaDisplay;
@@ -74,6 +77,8 @@ export default function HackeaLanding({
   fontClassName: string;
   /** False once the talk has started: a closed card replaces the form. */
   salesOpen: boolean;
+  /** null = poster only (no video configured). */
+  vsl: HackeaVslSource | null;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [name, setName] = useState("");
@@ -311,6 +316,16 @@ export default function HackeaLanding({
             </div>
           </div>
         </section>
+
+        <HackeaVsl
+          dict={dict.vsl}
+          source={vsl}
+          dayNum={display.dayNum}
+          priceLabel={priceLabel}
+          salesOpen={salesOpen}
+          closedCta={dict.closed.cta}
+          goForm={goForm}
+        />
 
         <section className="htm-section htm-section--void">
           <div className="htm-section__grid htm-ebook-grid">
