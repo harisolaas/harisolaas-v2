@@ -10,6 +10,8 @@ export interface HackeaDisplay {
   stampTime: string;
   /** "Jueves 29 de octubre" — purchase details. */
   longDate: string;
+  /** "29" — the VSL intro ("qué vas a vivir el 29"). */
+  dayNum: string;
   /** "19:00 h" — purchase details. */
   time: string;
   /** "Costa Rica 5644 · Palermo, Buenos Aires" — hero. */
@@ -42,6 +44,7 @@ export function hackeaDisplay(config: DisplayConfig = hackeaConfig): HackeaDispl
     stamp: `${dayNum}.${monthShort}`,
     stampTime: config.startTime.replace(":", "H"),
     longDate: `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${dayNum} de ${month}`,
+    dayNum,
     time: `${config.startTime} h`,
     placeFull: `${street} · ${config.neighborhood}`,
     placeShort: `${street} · ${barrio}`,

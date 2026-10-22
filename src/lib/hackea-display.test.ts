@@ -8,6 +8,7 @@ describe("hackeaDisplay", () => {
       stamp: "29.OCT",
       stampTime: "19H00",
       longDate: "Jueves 29 de octubre",
+      dayNum: "29",
       time: "19:00 h",
       placeFull: "Costa Rica 5644 · Palermo, Buenos Aires",
       placeShort: "Costa Rica 5644 · Palermo",
@@ -24,6 +25,7 @@ describe("hackeaDisplay", () => {
     expect(d.stamp).toBe("5.MAR");
     expect(d.stampTime).toBe("20H30");
     expect(d.longDate).toBe("Viernes 5 de marzo");
+    expect(d.dayNum).toBe("5");
     expect(d.placeShort).toBe("Av. Corrientes 1234 · Almagro");
   });
 });

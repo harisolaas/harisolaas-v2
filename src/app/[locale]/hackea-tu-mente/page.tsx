@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getDictionary } from "@/i18n/getDictionary";
 import { HACKEA_OG_IMAGE, hackeaConfig } from "@/data/hackea";
 import { hackeaDisplay, isHackeaSalesOpen } from "@/lib/hackea-display";
+import { resolveHackeaVsl } from "@/lib/hackea-vsl";
 import { buildHackeaEventJsonLd } from "@/lib/hackea-jsonld";
 import HackeaLanding from "@/components/hackea/HackeaLanding";
 import { hackeaFontClassName } from "@/components/hackea/fonts";
@@ -76,6 +77,8 @@ export default async function HackeaPage() {
         locale={LOCALE}
         fontClassName={hackeaFontClassName}
         salesOpen={isHackeaSalesOpen(now)}
+        vsl={resolveHackeaVsl(hackeaConfig.vslUrl)}
+        vslPoster={hackeaConfig.vslPosterUrl}
       />
     </>
   );
