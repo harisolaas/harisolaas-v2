@@ -26,6 +26,7 @@ function track(event: "VslPlay" | "VslCta") {
 export default function HackeaVsl({
   dict,
   source,
+  poster,
   dayNum,
   priceLabel,
   salesOpen,
@@ -34,6 +35,7 @@ export default function HackeaVsl({
 }: {
   dict: HackeaDict["vsl"];
   source: HackeaVslSource | null;
+  poster: string | null;
   dayNum: string;
   priceLabel: string;
   salesOpen: boolean;
@@ -70,6 +72,7 @@ export default function HackeaVsl({
                 className="htm-vsl__media"
                 src={source.src}
                 preload="none"
+                poster={poster ?? undefined}
                 playsInline
                 controls={playing}
                 title={dict.videoTitle}
@@ -91,6 +94,15 @@ export default function HackeaVsl({
                 aria-label={dict.playAria}
                 className="htm-vsl__poster"
               >
+                {poster && (
+                  <Image
+                    src={poster}
+                    alt=""
+                    fill
+                    sizes="(max-width: 1040px) 100vw, 1040px"
+                    className="htm-vsl__still"
+                  />
+                )}
                 <Image
                   src="/hackea/hari-cutout.png"
                   alt=""

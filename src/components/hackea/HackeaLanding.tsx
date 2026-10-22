@@ -69,6 +69,7 @@ export default function HackeaLanding({
   fontClassName,
   salesOpen,
   vsl,
+  vslPoster,
 }: {
   dict: HackeaDict;
   display: HackeaDisplay;
@@ -79,6 +80,8 @@ export default function HackeaLanding({
   salesOpen: boolean;
   /** null = poster only (no video configured). */
   vsl: HackeaVslSource | null;
+  /** Frame of the video behind the poster; null = gradient only. */
+  vslPoster: string | null;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [name, setName] = useState("");
@@ -320,6 +323,7 @@ export default function HackeaLanding({
         <HackeaVsl
           dict={dict.vsl}
           source={vsl}
+          poster={vslPoster}
           dayNum={display.dayNum}
           priceLabel={priceLabel}
           salesOpen={salesOpen}

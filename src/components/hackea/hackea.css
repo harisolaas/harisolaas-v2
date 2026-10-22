@@ -832,6 +832,13 @@ body:has(.hackea) {
   cursor: pointer;
   display: block;
 }
+/* Texture, not a second Hari: blurred and dim so the cutout leads. */
+.hackea .htm-vsl__still {
+  object-fit: cover;
+  opacity: 0.35;
+  filter: blur(6px) saturate(0.8);
+  transform: scale(1.04);
+}
 .hackea .htm-vsl__cutout {
   position: absolute;
   right: 4%;

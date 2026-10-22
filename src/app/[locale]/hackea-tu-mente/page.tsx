@@ -78,6 +78,7 @@ export default async function HackeaPage() {
         fontClassName={hackeaFontClassName}
         salesOpen={isHackeaSalesOpen(now)}
         vsl={resolveHackeaVsl(hackeaConfig.vslUrl)}
+        vslPoster={hackeaConfig.vslPosterUrl}
       />
     </>
   );
