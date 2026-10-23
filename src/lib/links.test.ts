@@ -88,6 +88,29 @@ describe("buildDestinationUrl", () => {
     expect(url).toContain("utm_source=email");
   });
 
+  it("forwards click ids from the incoming query", () => {
+    const url = buildDestinationUrl(
+      "/es/hackea-tu-mente",
+      { source: "instagram", medium: "ad", campaign: "hackea-tu-mente", slug: "ig-ad-20261023-k3m" },
+      new URLSearchParams("fbclid=IwAR0abc&gclid=xyz"),
+    );
+    const params = new URL(url).searchParams;
+    expect(params.get("fbclid")).toBe("IwAR0abc");
+    expect(params.get("gclid")).toBe("xyz");
+  });
+
+  it("keeps the link's UTMs over incoming ones", () => {
+    const url = buildDestinationUrl(
+      "/es/hackea-tu-mente",
+      { source: "instagram", medium: "ad", campaign: "hackea-tu-mente", slug: "ig-ad-20261023-k3m" },
+      new URLSearchParams("utm_source=facebook&utm_content=other&utm_term=x"),
+    );
+    const params = new URL(url).searchParams;
+    expect(params.get("utm_source")).toBe("instagram");
+    expect(params.get("utm_content")).toBe("ig-ad-20261023-k3m");
+    expect(params.get("utm_term")).toBeNull();
+  });
+
   it("handles absolute destination URLs", () => {
     const url = buildDestinationUrl("https://example.com/landing", {
       source: "partner",
