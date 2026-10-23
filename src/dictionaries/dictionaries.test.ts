@@ -369,7 +369,7 @@ describe.each(dicts)("$locale dictionary — hackea", ({ dict }) => {
   it("carries the tokens the landing fills", () => {
     expect(hackea.done.title).toContain("{nombre}");
     expect(hackea.done.body.split("{phone}")).toHaveLength(2);
-    expect(hackea.done.titleNoName).not.toMatch(/\{\w+\}/);    expect(hackea.vsl.body).toContain("{dia}");
+    expect(hackea.done.titleNoName).not.toMatch(/\{\w+\}/);
     expect(hackea.vsl.includes).toContain("{precio}");
   });
 
@@ -394,11 +394,10 @@ describe("hackea dictionary — es", () => {
     expect(es.hackea.form.phonePlaceholder).toBe("11 2345 6789");
     expect(es.hackea.form.errors.email).toBe("Revisá el email");
     expect(es.hackea.form.submit).toBe("Quiero ser parte →");
-    // design_handoff_vsl_section
-    expect(es.hackea.vsl.body).toBe(
-      "En 2 minutos, Hari te cuenta qué vas a vivir el {dia} y por qué no es una charla más.",
-    );
+    // design_handoff_vsl_section + the autoplay handoff
     expect(es.hackea.vsl.cta).toBe("Quiero mi entrada →");
+    expect(es.hackea.vsl.unmuteTitle).toBe("Tu video ya empezó");
+    expect(es.hackea.vsl.unmuteHint).toBe("Tocá para activar el sonido");
   });
 
   it("follows the handoff's copy rules: no exclamation marks", () => {

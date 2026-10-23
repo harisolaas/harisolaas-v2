@@ -80,6 +80,7 @@ export default async function HackeaPage() {
         salesOpen={isHackeaSalesOpen(now)}
         vsl={resolveHackeaVsl(hackeaConfig.vslUrl)}
         vslPoster={hackeaConfig.vslPosterUrl}
+        vslAutoplay={hackeaConfig.vslAutoplay}
       />
       <MetaPixel />
     </>
