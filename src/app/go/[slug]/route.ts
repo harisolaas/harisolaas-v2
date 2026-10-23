@@ -47,7 +47,7 @@ export async function GET(
     medium: link.medium,
     campaign,
     slug: link.slug,
-  });
+  }, new URL(req.url).searchParams);
 
   const userAgent = req.headers.get("user-agent");
   const referer = req.headers.get("referer");

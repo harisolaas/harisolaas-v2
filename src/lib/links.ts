@@ -127,10 +127,20 @@ export function buildDestinationUrl(
     campaign: string;
     slug: string;
   },
+  /**
+   * The query the visitor arrived with on /go/[slug]. Click ids the ad
+   * platforms append (fbclid, gclid…) have to survive the redirect: the
+   * Meta Pixel builds its `_fbc` cookie from `fbclid` on the landing.
+   */
+  incoming?: URLSearchParams,
 ): string {
   const url = destination.startsWith("http")
     ? new URL(destination)
     : new URL(destination, BASE_URL);
+
+  incoming?.forEach((value, key) => {
+    if (!key.startsWith("utm_")) url.searchParams.set(key, value);
+  });
 
   // Preserve any existing query on destination; our UTMs take precedence.
   url.searchParams.set("utm_source", params.source);
