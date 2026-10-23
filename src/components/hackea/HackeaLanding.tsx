@@ -19,6 +19,7 @@ import {
   hackeaGroupPriceCents,
   hackeaGroupSavingsCents,
   hackeaPerPersonCents,
+  hackeaConfig,
 } from "@/data/hackea";
 import {
   Badge,
@@ -100,6 +101,17 @@ export default function HackeaLanding({
     [],
   );
 
+  // The fbq stub is inlined by <MetaPixel /> in the page, so it already
+  // exists here; the call queues until fbevents.js loads.
+  useEffect(() => {
+    window.fbq?.("track", "ViewContent", {
+      content_name: "Hackeá tu mente",
+      content_category: "Event Ticket",
+      currency: hackeaConfig.currency,
+      value: hackeaConfig.ticketPriceCents / 100,
+    });
+  }, []);
+
   const goForm = (e: MouseEvent<HTMLAnchorElement>) => {
     const el = document.getElementById(HACKEA_FORM_ANCHOR);
     if (!el) return;
@@ -122,6 +134,12 @@ export default function HackeaLanding({
     setErrors([]);
     setSubmitting(true);
 
+    // Shared with the server's CAPI InitiateCheckout so Meta dedupes the pair.
+    const eventId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     try {
       const res = await fetch("/api/hackea/checkout", {
         method: "POST",
@@ -132,6 +150,7 @@ export default function HackeaLanding({
         body: JSON.stringify({
           ...result.value,
           locale,
+          eventId,
           ...readBrowserAttribution(window.location.search, document.cookie),
         }),
       });
@@ -141,6 +160,19 @@ export default function HackeaLanding({
 
       if (res.ok && typeof data.initPoint === "string") {
         const initPoint = data.initPoint;
+        // Only once the server took the lead: that is when its CAPI twin
+        // goes out. The basket value, like the server's — a deduped pair
+        // that disagrees on value is worse than either alone.
+        window.fbq?.(
+          "track",
+          "InitiateCheckout",
+          {
+            currency: hackeaConfig.currency,
+            value: hackeaGroupPriceCents(result.value.quantity) / 100,
+            num_items: result.value.quantity,
+          },
+          { eventID: eventId },
+        );
         setDone(true);
         redirectTimer.current = setTimeout(() => {
           window.location.href = initPoint;

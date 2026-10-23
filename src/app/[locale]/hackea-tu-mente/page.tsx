@@ -5,6 +5,7 @@ import { hackeaDisplay, isHackeaSalesOpen } from "@/lib/hackea-display";
 import { resolveHackeaVsl } from "@/lib/hackea-vsl";
 import { buildHackeaEventJsonLd } from "@/lib/hackea-jsonld";
 import HackeaLanding from "@/components/hackea/HackeaLanding";
+import MetaPixel from "@/components/MetaPixel";
 import { hackeaFontClassName } from "@/components/hackea/fonts";
 
 /**
@@ -80,6 +81,7 @@ export default async function HackeaPage() {
         vsl={resolveHackeaVsl(hackeaConfig.vslUrl)}
         vslPoster={hackeaConfig.vslPosterUrl}
       />
+      <MetaPixel />
     </>
   );
 }

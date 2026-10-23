@@ -1,6 +1,7 @@
 // Shell of the post-MercadoPago pages (/success, /failure): the landing's
 // hero background with a centred column. Server component.
 import type { ReactNode } from "react";
+import MetaPixel from "@/components/MetaPixel";
 import { hackeaFontClassName } from "./fonts";
 import { Eyebrow, GlitchText } from "./ui";
 import "./hackea.css";
@@ -30,6 +31,7 @@ export default function HackeaStatus({
           {children}
         </div>
       </main>
+      <MetaPixel />
     </div>
   );
 }
