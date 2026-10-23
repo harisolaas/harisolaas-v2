@@ -42,7 +42,7 @@ export const hackeaConfig = {
   ticketPriceLabel: formatArsLabel(TICKET_PRICE_CENTS),
   currency: "ARS",
 
-  // VSL right after the hero: a self-hosted file under /public, or a
+  // VSL, first thing under the header: a self-hosted file under /public, or a
   // YouTube / Vimeo link (resolveHackeaVsl). Bump the filename when the cut
   // changes, never overwrite — browsers and the CDN cache it by URL.
   // Empty string = poster only.
@@ -50,6 +50,10 @@ export const hackeaConfig = {
   // A frame of the cut (no subtitles, from the v-unica export) behind the
   // poster's scrim and as the <video> poster. Same bump rule.
   vslPosterUrl: "/hackea/vsl-v1-poster.jpg",
+  // Start the VSL on load: with sound where the browser allows it, muted
+  // with a "tocá para activar el sonido" overlay where it doesn't. false =
+  // poster until the visitor hits play.
+  vslAutoplay: true,
 
   neighborhood: "Palermo, Buenos Aires",
   exactAddress: "Costa Rica 5644, Palermo, Buenos Aires",

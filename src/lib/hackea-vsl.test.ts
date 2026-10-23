@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hackeaConfig } from "@/data/hackea";
-import { resolveHackeaVsl } from "./hackea-vsl";
+import { hackeaVslEmbedSrc, resolveHackeaVsl } from "./hackea-vsl";
 
 const YT = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0&modestbranding=1&playsinline=1";
 
@@ -17,7 +17,7 @@ describe("resolveHackeaVsl", () => {
     "https://www.youtube.com/shorts/dQw4w9WgXcQ",
     "https://www.youtube.com/embed/dQw4w9WgXcQ",
   ])("normalises YouTube link %s to the autoplay embed", (url) => {
-    expect(resolveHackeaVsl(url)).toEqual({ kind: "embed", src: YT });
+    expect(resolveHackeaVsl(url)).toEqual({ kind: "embed", src: YT, muteParam: "mute" });
   });
 
   it.each(["https://vimeo.com/123456789", "https://player.vimeo.com/video/123456789"])(
@@ -26,6 +26,7 @@ describe("resolveHackeaVsl", () => {
       expect(resolveHackeaVsl(url)).toEqual({
         kind: "embed",
         src: "https://player.vimeo.com/video/123456789?autoplay=1",
+        muteParam: "muted",
       });
     },
   );
@@ -43,6 +44,23 @@ describe("resolveHackeaVsl", () => {
       kind: "embed",
       src: "https://example.com/player/42",
     });
+  });
+
+  it("toggles the embed's mute param", () => {
+    const yt = resolveHackeaVsl("https://youtu.be/dQw4w9WgXcQ");
+    const vm = resolveHackeaVsl("https://vimeo.com/123456789");
+    if (yt?.kind !== "embed" || vm?.kind !== "embed") throw new Error("expected embeds");
+    expect(hackeaVslEmbedSrc(yt, true)).toBe(`${YT}&mute=1`);
+    expect(hackeaVslEmbedSrc(yt, false)).toBe(`${YT}&mute=0`);
+    expect(hackeaVslEmbedSrc(vm, true)).toBe(
+      "https://player.vimeo.com/video/123456789?autoplay=1&muted=1",
+    );
+  });
+
+  it("an unknown embed can't autoplay muted", () => {
+    const other = { kind: "embed" as const, src: "https://example.com/player/42" };
+    expect(hackeaVslEmbedSrc(other, true)).toBeNull();
+    expect(hackeaVslEmbedSrc(other, false)).toBe(other.src);
   });
 
   it("the configured VSL resolves to a source", () => {

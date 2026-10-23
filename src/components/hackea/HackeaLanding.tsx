@@ -71,6 +71,7 @@ export default function HackeaLanding({
   salesOpen,
   vsl,
   vslPoster,
+  vslAutoplay,
 }: {
   dict: HackeaDict;
   display: HackeaDisplay;
@@ -83,6 +84,8 @@ export default function HackeaLanding({
   vsl: HackeaVslSource | null;
   /** Frame of the video behind the poster; null = gradient only. */
   vslPoster: string | null;
+  /** Start the VSL on load (muted + unmute icon where sound is blocked). */
+  vslAutoplay: boolean;
 }) {
   const [quantity, setQuantity] = useState(1);
   const [name, setName] = useState("");
@@ -304,6 +307,17 @@ export default function HackeaLanding({
       </header>
 
       <main>
+        <HackeaVsl
+          dict={dict.vsl}
+          source={vsl}
+          poster={vslPoster}
+          autoplay={vslAutoplay}
+          priceLabel={priceLabel}
+          salesOpen={salesOpen}
+          closedCta={dict.closed.cta}
+          goForm={goForm}
+        />
+
         <section className="htm-hero htm-grain">
           <div className="htm-hero__scan htm-scanlines" aria-hidden="true" />
           <div className="htm-hero__grid">
@@ -351,17 +365,6 @@ export default function HackeaLanding({
             </div>
           </div>
         </section>
-
-        <HackeaVsl
-          dict={dict.vsl}
-          source={vsl}
-          poster={vslPoster}
-          dayNum={display.dayNum}
-          priceLabel={priceLabel}
-          salesOpen={salesOpen}
-          closedCta={dict.closed.cta}
-          goForm={goForm}
-        />
 
         <section className="htm-section htm-section--void">
           <div className="htm-section__grid htm-ebook-grid">

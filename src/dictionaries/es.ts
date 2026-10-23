@@ -1351,15 +1351,12 @@ const es: Dictionary = {
       imageAlt: "Hari Solaas",
     },
     vsl: {
-      // design_handoff_vsl_section, verbatim. "2 min" / "En 2 minutos"
-      // follow the real cut (2:17) — keep them in sync when it changes.
-      badge: "Mirá esto antes de comprar",
-      titleLead: "¿Cuánto de tu día",
-      titleAccent: "decidís vos?",
-      body: "En 2 minutos, Hari te cuenta qué vas a vivir el {dia} y por qué no es una charla más.",
+      // design_handoff_vsl_section + the autoplay handoff, verbatim. "2 min"
+      // follows the real cut (2:17) — keep it in sync when it changes.
       play: "Dale play",
       byline: "Hari Solaas · 2 min",
       playAria: "Reproducir video",
+      unmuteAria: "Activar sonido",
       videoTitle: "Video Hackeá tu mente",
       cta: "Quiero mi entrada →",
       scarcity: "Cupos limitados",
