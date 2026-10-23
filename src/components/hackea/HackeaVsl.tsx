@@ -19,7 +19,7 @@ function track(event: "VslPlay" | "VslAutoplay" | "VslUnmute" | "VslCta") {
 
 /**
  * poster = nothing playing (no video, autoplay off or refused);
- * muted = autoplaying without sound, behind the unmute overlay;
+ * muted = autoplaying without sound, with the muted-speaker button;
  * sound = playing with sound.
  */
 type Mode = "poster" | "muted" | "sound";
@@ -28,8 +28,8 @@ type Mode = "poster" | "muted" | "sound";
  * VSL above the fold (design handoff "VSL above the fold with autoplay").
  * On load it tries to play with sound; browsers only allow that for sites
  * the visitor already engages with, so the usual outcome is a muted start
- * plus a full-frame "tocá para activar el sonido" overlay. Tapping it
- * restarts the cut from 0 with sound. If even muted autoplay is refused
+ * with a muted-speaker icon (no text). Tapping it — or anywhere on the
+ * frame — restarts the cut from 0 with sound. If even muted autoplay is refused
  * (iOS low-power mode), the poster stays and plays with sound on click.
  */
 export default function HackeaVsl({
@@ -149,10 +149,17 @@ export default function HackeaVsl({
                 aria-label={dict.unmuteAria}
                 className="htm-vsl__unmute"
               >
-                <div className="htm-vsl__unmute-box">
-                  <div className="htm-vsl__unmute-title">{dict.unmuteTitle}</div>
-                  <div className="htm-vsl__unmute-hint">{dict.unmuteHint}</div>
-                </div>
+                <span className="htm-vsl__unmute-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" />
+                    <path
+                      d="M16.5 9.5l5 5m0-5l-5 5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
               </button>
             )}
             {mode === "poster" && (

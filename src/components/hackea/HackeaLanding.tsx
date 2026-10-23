@@ -84,7 +84,7 @@ export default function HackeaLanding({
   vsl: HackeaVslSource | null;
   /** Frame of the video behind the poster; null = gradient only. */
   vslPoster: string | null;
-  /** Start the VSL on load (muted + unmute overlay where sound is blocked). */
+  /** Start the VSL on load (muted + unmute icon where sound is blocked). */
   vslAutoplay: boolean;
 }) {
   const [quantity, setQuantity] = useState(1);

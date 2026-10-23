@@ -698,9 +698,7 @@ export interface HackeaDict {
     play: string;
     byline: string;
     playAria: string;
-    /** Overlay over the muted autoplay. */
-    unmuteTitle: string;
-    unmuteHint: string;
+    /** Label of the muted-speaker icon over the muted autoplay. */
     unmuteAria: string;
     videoTitle: string;
     cta: string;

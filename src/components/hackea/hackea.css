@@ -893,6 +893,7 @@ body:has(.hackea) {
   text-transform: uppercase;
   color: var(--htm-violet-300);
 }
+/* Muted autoplay: the whole frame unmutes; the icon (no text) says so. */
 .hackea .htm-vsl__unmute {
   position: absolute;
   inset: 0;
@@ -900,49 +901,50 @@ body:has(.hackea) {
   height: 100%;
   padding: 0;
   border: 0;
-  background: rgba(7, 8, 26, 0.28);
+  background: transparent;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .hackea .htm-vsl__unmute:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: -2px;
 }
-.hackea .htm-vsl__unmute-box {
+.hackea .htm-vsl__unmute-icon {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 20px 28px;
-  border-radius: 10px;
-  background: rgba(7, 8, 26, 0.82);
+  justify-content: center;
+  color: var(--fg-1);
+  background: rgba(7, 8, 26, 0.72);
   border: 1px solid rgba(201, 139, 255, 0.6);
-  box-shadow: 0 0 40px rgba(147, 51, 255, 0.6);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 0 24px rgba(147, 51, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition: box-shadow 0.2s ease;
 }
-.hackea .htm-vsl__unmute:hover .htm-vsl__unmute-box,
-.hackea .htm-vsl__unmute:focus-visible .htm-vsl__unmute-box {
-  box-shadow: 0 0 70px rgba(147, 51, 255, 0.95);
+.hackea .htm-vsl__unmute-icon svg {
+  width: 26px;
+  height: 26px;
 }
-.hackea .htm-vsl__unmute-title {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(14px, 2vw, 22px);
-  line-height: 1;
-  text-transform: uppercase;
-  color: var(--fg-1);
+@media (max-width: 600px) {
+  .hackea .htm-vsl__unmute-icon {
+    right: 10px;
+    bottom: 10px;
+    width: 40px;
+    height: 40px;
+  }
+  .hackea .htm-vsl__unmute-icon svg {
+    width: 20px;
+    height: 20px;
+  }
 }
-.hackea .htm-vsl__unmute-hint {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--htm-violet-300);
+.hackea .htm-vsl__unmute:hover .htm-vsl__unmute-icon,
+.hackea .htm-vsl__unmute:focus-visible .htm-vsl__unmute-icon {
+  box-shadow: 0 0 44px rgba(147, 51, 255, 0.95);
 }
 .hackea .htm-vsl__cta { justify-content: center; }
 .hackea .htm-vsl__includes {
@@ -956,5 +958,5 @@ body:has(.hackea) {
   .hackea .htm-glitch--animated { animation: none; }
   .hackea .htm-btn { transition: none; }
   .hackea .htm-vsl__tile { transition: none; }
-  .hackea .htm-vsl__unmute-box { transition: none; }
+  .hackea .htm-vsl__unmute-icon { transition: none; }
 }

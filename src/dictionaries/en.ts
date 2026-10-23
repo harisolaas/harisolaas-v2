@@ -1336,8 +1336,6 @@ const en: Dictionary = {
       play: "Hit play",
       byline: "Hari Solaas · 2 min",
       playAria: "Play video",
-      unmuteTitle: "Your video has started",
-      unmuteHint: "Tap to turn the sound on",
       unmuteAria: "Turn sound on",
       videoTitle: "Hack your mind video",
       cta: "I want my ticket →",

@@ -1356,8 +1356,6 @@ const es: Dictionary = {
       play: "Dale play",
       byline: "Hari Solaas · 2 min",
       playAria: "Reproducir video",
-      unmuteTitle: "Tu video ya empezó",
-      unmuteHint: "Tocá para activar el sonido",
       unmuteAria: "Activar sonido",
       videoTitle: "Video Hackeá tu mente",
       cta: "Quiero mi entrada →",

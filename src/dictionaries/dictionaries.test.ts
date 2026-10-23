@@ -394,10 +394,9 @@ describe("hackea dictionary — es", () => {
     expect(es.hackea.form.phonePlaceholder).toBe("11 2345 6789");
     expect(es.hackea.form.errors.email).toBe("Revisá el email");
     expect(es.hackea.form.submit).toBe("Quiero ser parte →");
-    // design_handoff_vsl_section + the autoplay handoff
+    // design_handoff_vsl_section
     expect(es.hackea.vsl.cta).toBe("Quiero mi entrada →");
-    expect(es.hackea.vsl.unmuteTitle).toBe("Tu video ya empezó");
-    expect(es.hackea.vsl.unmuteHint).toBe("Tocá para activar el sonido");
+    expect(es.hackea.vsl.unmuteAria).toBe("Activar sonido");
   });
 
   it("follows the handoff's copy rules: no exclamation marks", () => {
