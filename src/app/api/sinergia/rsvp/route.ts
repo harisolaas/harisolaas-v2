@@ -119,29 +119,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // Donation is optional. `donationDeclined:true` means the user opted
-    // out via the checkbox. Any positive `donationAmountCents` triggers
-    // an MP Preference; the RSVP is confirmed either way.
-    const donationDeclined = Boolean(body.donationDeclined);
+    // The contribution is mandatory: every RSVP carries a donation
+    // amount that triggers an MP Preference. The RSVP is still confirmed
+    // at submit (an abandoned checkout doesn't invalidate it).
     const rawDonationAmount = Number(body.donationAmountCents);
-    const donationAmountCents =
-      !donationDeclined && Number.isFinite(rawDonationAmount) && rawDonationAmount > 0
-        ? Math.round(rawDonationAmount)
-        : 0;
+    const donationAmountCents = Number.isFinite(rawDonationAmount)
+      ? Math.round(rawDonationAmount)
+      : 0;
 
-    if (donationAmountCents > 0) {
-      if (donationAmountCents < MIN_DONATION_CENTS) {
-        return NextResponse.json(
-          { error: "Donation below minimum" },
-          { status: 400 },
-        );
-      }
-      if (donationAmountCents > MAX_DONATION_CENTS) {
-        return NextResponse.json(
-          { error: "Donation above maximum" },
-          { status: 400 },
-        );
-      }
+    if (donationAmountCents < MIN_DONATION_CENTS) {
+      return NextResponse.json(
+        { error: "Donation below minimum" },
+        { status: 400 },
+      );
+    }
+    if (donationAmountCents > MAX_DONATION_CENTS) {
+      return NextResponse.json(
+        { error: "Donation above maximum" },
+        { status: 400 },
+      );
     }
 
     const sessionDate = nextSinergiaDate();
