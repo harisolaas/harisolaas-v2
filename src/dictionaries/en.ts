@@ -976,9 +976,7 @@ const en: Dictionary = {
         chip20k: "$20,000",
         customChip: "Other amount",
         customPlaceholder: "Amount in ARS",
-        declineCheckbox: "I\u2019d rather save my seat without contributing this time",
-        chooseError:
-          "Pick an amount or check \u201csave my seat without contributing\u201d.",
+        chooseError: "Pick an amount.",
         minAmountError: "Minimum is $1,000.",
       },
     },

@@ -449,7 +449,6 @@ export interface SinergiaDict {
       chip20k: string;
       customChip: string;
       customPlaceholder: string;
-      declineCheckbox: string;
       /** Shown when submit is attempted but no donation choice was made. */
       chooseError: string;
       /** Shown when the custom amount is below the minimum. */

@@ -78,9 +78,9 @@ export default function SinergiaLanding({ dict, locale }: Props) {
   const [staysForDinner, setStaysForDinner] = useState<boolean | null>(null);
 
   // Donation choice drives the MP preference: a selected preset or a
-  // valid custom amount sends the form to MercadoPago; "decline" or
-  // unchosen blocks submit.
-  type DonationChoice = "5000" | "10000" | "20000" | "custom" | "decline";
+  // valid custom amount sends the form to MercadoPago; unchosen blocks
+  // submit. The contribution is mandatory — there's no opt-out.
+  type DonationChoice = "5000" | "10000" | "20000" | "custom";
   const [donationChoice, setDonationChoice] = useState<DonationChoice | null>(
     null,
   );
@@ -219,9 +219,7 @@ export default function SinergiaLanding({ dict, locale }: Props) {
           phone: phone.trim(),
           staysForDinner,
           locale,
-          donationDeclined: donationChoice === "decline",
-          donationAmountCents:
-            donationChoice === "decline" ? 0 : donationAmountCents,
+          donationAmountCents,
           ...(Object.keys(utm).length > 0 && { utm }),
           ...(linkSlug && { linkSlug }),
         }),
@@ -265,7 +263,6 @@ export default function SinergiaLanding({ dict, locale }: Props) {
     phone,
     staysForDinner,
     locale,
-    donationChoice,
     donationAmountCents,
     dict,
     utm,
@@ -688,24 +685,6 @@ export default function SinergiaLanding({ dict, locale }: Props) {
                           )}
                         </div>
                       )}
-                      <label className="mt-3 flex cursor-pointer items-start gap-2 text-xs text-charcoal/70">
-                        <input
-                          type="checkbox"
-                          checked={donationChoice === "decline"}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setDonationChoice("decline");
-                              setCustomAmount("");
-                            } else {
-                              setDonationChoice(null);
-                            }
-                            setTouched((t) => ({ ...t, donation: true }));
-                            clearError();
-                          }}
-                          className="mt-0.5 h-4 w-4 accent-forest"
-                        />
-                        <span>{dict.rsvp.donation.declineCheckbox}</span>
-                      </label>
                       {showDonationError && !customAmountBelowMin && (
                         <p className="mt-2 text-xs text-terracotta">
                           {dict.rsvp.donation.chooseError}

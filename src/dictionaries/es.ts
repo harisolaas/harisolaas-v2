@@ -996,9 +996,7 @@ const es: Dictionary = {
         chip20k: "$20.000",
         customChip: "Otro monto",
         customPlaceholder: "Monto en ARS",
-        declineCheckbox: "Prefiero reservar sin aportar esta vez",
-        chooseError:
-          "Elegí un monto o marcá \"prefiero reservar sin aportar\".",
+        chooseError: "Elegí un monto.",
         minAmountError: "El mínimo es $1.000.",
       },
     },
