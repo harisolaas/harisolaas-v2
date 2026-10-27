@@ -68,6 +68,7 @@ Mirror the pattern in `src/components/SinergiaLanding.tsx`:
 - Display helper copy (`dict.rsvp.phoneHelper` or equivalent) directly under the input so the user knows why we're asking.
 - Pass `phone` into `recordParticipation()` — it already accepts `phone?: string` and writes it to `people.phone`, no schema work.
 - In the host-notification email, render the phone as a tappable `wa.me` link using `phoneToWaMe()` (prepends `549` to a 10-digit AR local; `phoneDigits()` only strips separators) so the recipient can tap-to-chat from their inbox. Use `buildSinergiaHostNotificationHtml` as the reference implementation.
+- Emit the standard form events (PostHog funnel, Meta `InitiateCheckout` dedup, persistent server-side rejection log) and run its pre-campaign checklist — see [`docs/ops/form-analytics.md`](docs/ops/form-analytics.md).
 
 ### Exceptions
 
@@ -598,3 +599,4 @@ Shares `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `RESEND_*`, `META_*` with the oth
 - `NEXT_PUBLIC_BASE_URL` must be the www host (see BROTE's env table): the Preference's `notification_url` and back URLs are built from it.
 - **No schema migration** — everything lives in existing columns + `participations.metadata`.
 - Set capacity once the room is confirmed: change `hackeaConfig.capacity` **and** `UPDATE events SET capacity = N WHERE id = 'hackea-tu-mente-2026-10-29'` on prod — `ensureHackeaEvent` never updates an existing row, and the webhook reads capacity from the row.
+- Before paying for ads, follow [`docs/ops/meta-ads-playbook.md`](docs/ops/meta-ads-playbook.md) (placements, `/go/` links, daily funnel check, dated lessons from the Oct 2026 campaign).
