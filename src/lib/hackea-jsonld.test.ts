@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { buildHackeaEventJsonLd } from "./hackea-jsonld";
@@ -8,7 +8,13 @@ const COPY = { name: "Hackeá tu mente", description: "Charla presencial." };
 const BEFORE_START = new Date("2026-10-20T12:00:00-03:00");
 const AFTER_START = new Date("2026-10-29T19:00:01-03:00");
 
+// The live config may have the date suspended; the scheduled-event cases
+// build with sales open, and the suspended case flips it on its own.
+hackeaConfig.salesSuspended = false;
 const jsonLd = buildHackeaEventJsonLd(COPY, BEFORE_START);
+afterEach(() => {
+  hackeaConfig.salesSuspended = false;
+});
 
 describe("the Hackeá Event node", () => {
   it("declares the fields Google needs for an event result", () => {
@@ -89,5 +95,14 @@ describe("the offer", () => {
   it("is SoldOut once sales close at startIso", () => {
     const closed = buildHackeaEventJsonLd(COPY, AFTER_START);
     expect(closed.offers.availability).toBe("https://schema.org/SoldOut");
+  });
+});
+
+describe("a suspended date", () => {
+  it("is postponed and SoldOut even before startIso", () => {
+    hackeaConfig.salesSuspended = true;
+    const suspended = buildHackeaEventJsonLd(COPY, BEFORE_START);
+    expect(suspended.eventStatus).toBe("https://schema.org/EventPostponed");
+    expect(suspended.offers.availability).toBe("https://schema.org/SoldOut");
   });
 });

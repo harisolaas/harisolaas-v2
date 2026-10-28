@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { hackeaConfig } from "@/data/hackea";
 
 /**
  * POST /api/hackea/checkout. Everything is mocked: no DB, no MercadoPago,
@@ -107,6 +108,9 @@ beforeEach(() => {
   // Boundary tests re-set it; afterEach restores real timers.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-20T12:00:00-03:00"));
+  // The live config may have the date suspended; these cases test the sale
+  // itself, so they run with sales open. The suspended case flips it back.
+  hackeaConfig.salesSuspended = false;
   preferenceCreate.mockClear();
   createHackeaLead.mockClear();
   sendMetaEvent.mockClear();
@@ -424,6 +428,15 @@ describe("POST /api/hackea/checkout", () => {
   it("410 closed once the talk has started — writes nothing", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-10-29T19:00:01-03:00"));
+    const { status, json } = await post(VALID);
+    expect(status).toBe(410);
+    expect(json).toEqual({ error: "closed" });
+    expect(createHackeaLead).not.toHaveBeenCalled();
+    expect(preferenceCreate).not.toHaveBeenCalled();
+  });
+
+  it("410 closed while the date is suspended — writes nothing", async () => {
+    hackeaConfig.salesSuspended = true;
     const { status, json } = await post(VALID);
     expect(status).toBe(410);
     expect(json).toEqual({ error: "closed" });

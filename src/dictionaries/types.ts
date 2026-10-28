@@ -780,8 +780,8 @@ export interface HackeaDict {
     back: string;
   };
   /**
-   * Once the talk has started (`isHackeaSalesOpen` false): the CTAs scroll
-   * to a closed card that replaces the form.
+   * Once sales close (`isHackeaSalesOpen` false — talk started or date
+   * suspended): the CTAs scroll to a closed card that replaces the form.
    */
   closed: {
     /** Header + hero CTA label. */
