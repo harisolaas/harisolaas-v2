@@ -32,19 +32,26 @@ describe("hackeaDisplay", () => {
 
 describe("isHackeaSalesOpen", () => {
   const start = Date.parse(hackeaConfig.startIso);
+  const open = { startIso: hackeaConfig.startIso, salesSuspended: false };
 
   it("is open before the talk starts and at the start instant", () => {
-    expect(isHackeaSalesOpen(new Date(start - 60_000))).toBe(true);
-    expect(isHackeaSalesOpen(new Date(start))).toBe(true);
+    expect(isHackeaSalesOpen(new Date(start - 60_000), open)).toBe(true);
+    expect(isHackeaSalesOpen(new Date(start), open)).toBe(true);
   });
 
   it("closes once the talk has started", () => {
-    expect(isHackeaSalesOpen(new Date(start + 1))).toBe(false);
-    expect(isHackeaSalesOpen(new Date(start + 86_400_000))).toBe(false);
+    expect(isHackeaSalesOpen(new Date(start + 1), open)).toBe(false);
+    expect(isHackeaSalesOpen(new Date(start + 86_400_000), open)).toBe(false);
+  });
+
+  it("is closed at any time while the date is suspended", () => {
+    const suspended = { ...open, salesSuspended: true };
+    expect(isHackeaSalesOpen(new Date(start - 86_400_000), suspended)).toBe(false);
+    expect(isHackeaSalesOpen(new Date(start), suspended)).toBe(false);
   });
 
   it("reads startIso as Argentina time, not server-local", () => {
-    const config = { startIso: "2027-03-05T20:30:00-03:00" };
+    const config = { startIso: "2027-03-05T20:30:00-03:00", salesSuspended: false };
     expect(isHackeaSalesOpen(new Date("2027-03-05T23:29:59Z"), config)).toBe(true);
     expect(isHackeaSalesOpen(new Date("2027-03-05T23:30:01Z"), config)).toBe(false);
   });

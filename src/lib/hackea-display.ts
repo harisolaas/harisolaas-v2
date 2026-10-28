@@ -52,12 +52,14 @@ export function hackeaDisplay(config: DisplayConfig = hackeaConfig): HackeaDispl
 }
 
 /**
- * Sales stay open until the talk starts (`startIso`). Pure, so the landing
- * (closed card in place of the form) and the checkout (410) share one rule.
+ * Sales stay open until the talk starts (`startIso`), unless the date was
+ * suspended (`salesSuspended`). Pure, so the landing (closed card in place
+ * of the form) and the checkout (410) share one rule.
  */
 export function isHackeaSalesOpen(
   now: Date = new Date(),
-  config: Pick<typeof hackeaConfig, "startIso"> = hackeaConfig,
+  config: Pick<typeof hackeaConfig, "startIso" | "salesSuspended"> = hackeaConfig,
 ): boolean {
+  if (config.salesSuspended) return false;
   return now.getTime() <= Date.parse(config.startIso);
 }

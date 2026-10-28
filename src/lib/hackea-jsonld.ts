@@ -72,7 +72,9 @@ export function buildHackeaEventJsonLd(
     description: copy.description,
     startDate: hackeaConfig.startIso,
     endDate: hackeaConfig.endIso,
-    eventStatus: "https://schema.org/EventScheduled",
+    eventStatus: hackeaConfig.salesSuspended
+      ? "https://schema.org/EventPostponed"
+      : "https://schema.org/EventScheduled",
     eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
     inLanguage: "es",
     url,

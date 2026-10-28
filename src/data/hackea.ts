@@ -32,6 +32,10 @@ export const hackeaConfig = {
   endIso: "2026-10-29T21:00:00-03:00",
   // When ticket sales opened — the JSON-LD offer's `validFrom`.
   salesOpenIso: "2026-10-18T00:00:00-03:00",
+  // Kill switch: true closes sales before `startIso` — closed card on the
+  // landing, 410 at the checkout, JSON-LD marked postponed. Set on 28/10/2026
+  // when this date was suspended (the talk moves to a new, free date).
+  salesSuspended: true,
 
   // null = sin tope. "Cupos limitados" in the copy; set a number once the
   // room size is confirmed and recordParticipation enforces it.

@@ -33,7 +33,12 @@ vi.mock("@/data/hackea", async (orig) => {
   const actual = await orig<typeof import("@/data/hackea")>();
   return {
     ...actual,
-    hackeaConfig: { ...actual.hackeaConfig, eventId: "test-e1flow-hackea-evt" },
+    // Sales open even while the live date is suspended: this suite tests the sale.
+    hackeaConfig: {
+      ...actual.hackeaConfig,
+      eventId: "test-e1flow-hackea-evt",
+      salesSuspended: false,
+    },
   };
 });
 
